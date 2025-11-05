@@ -189,45 +189,45 @@
   --font-weight-sop-Medium: 500;
   --font-weight-sop-Bold: 700;
 
-  /* Font sizes (unitless) */
-  --text-sop-3XS: 10;
-  --text-sop-2XS: 12;
-  --text-sop-XS: 14;
-  --text-sop-SM: 16;
-  --text-sop-MD: 18;
-  --text-sop-LG: 20;
-  --text-sop-XL: 24;
-  --text-sop-2XL: 28;
-  --text-sop-3XL: 32;
-  --text-sop-4XL: 36;
-  --text-sop-5XL: 44;
+  /* Font sizes */
+  --text-sop-3XS: 10px;
+  --text-sop-2XS: 12px;
+  --text-sop-XS: 14px;
+  --text-sop-SM: 16px;
+  --text-sop-MD: 18px;
+  --text-sop-LG: 20px;
+  --text-sop-XL: 24px;
+  --text-sop-2XL: 28px;
+  --text-sop-3XL: 32px;
+  --text-sop-4XL: 36px;
+  --text-sop-5XL: 44px;
 
-  /* Line heights (unitless) */
-  --leading-sop-3XS: 14;
-  --leading-sop-2XS: 16;
-  --leading-sop-XS: 20;
-  --leading-sop-SM: 24;
-  --leading-sop-MD: 28;
-  --leading-sop-LG: 32;
-  --leading-sop-XL: 36;
-  --leading-sop-2XL: 44;
-  --leading-sop-3XL: 48;
-  --leading-sop-4XL: 56;
-  --leading-sop-5XL: 64;
+  /* Line heights */
+  --leading-sop-3XS: 14px;
+  --leading-sop-2XS: 16px;
+  --leading-sop-XS: 20px;
+  --leading-sop-SM: 24px;
+  --leading-sop-MD: 28px;
+  --leading-sop-LG: 32px;
+  --leading-sop-XL: 36px;
+  --leading-sop-2XL: 44px;
+  --leading-sop-3XL: 48px;
+  --leading-sop-4XL: 56px;
+  --leading-sop-5XL: 64px;
 
-  /* Letter spacing (tracking) */
-  --tracking-sop-XXS: -2;
-  --tracking-sop-XS: -1;
-  --tracking-sop-SM: 0;
-  --tracking-sop-MD: 1;
-  --tracking-sop-LG: 2;
+  /* Letter spacing */
+  --tracking-sop-XXS: -2px;
+  --tracking-sop-XS: -1px;
+  --tracking-sop-SM: 0px;
+  --tracking-sop-MD: 1px;
+  --tracking-sop-LG: 2px;
 
   /* Paragraph spacing */
-  --spacing-sop-paragraph-spacing-XXS: 0;
-  --spacing-sop-paragraph-spacing-XS: 2;
-  --spacing-sop-paragraph-spacing-SM: 4;
-  --spacing-sop-paragraph-spacing-MD: 8;
-  --spacing-sop-paragraph-spacing-LG: 12;
+  --spacing-sop-paragraph-spacing-XXS: 0px;
+  --spacing-sop-paragraph-spacing-XS: 2px;
+  --spacing-sop-paragraph-spacing-SM: 4px;
+  --spacing-sop-paragraph-spacing-MD: 8px;
+  --spacing-sop-paragraph-spacing-LG: 12px;
 }
 
 /* ========================================================================== */
