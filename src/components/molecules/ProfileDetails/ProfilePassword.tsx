@@ -55,7 +55,7 @@ export const ProfilePassword = ({
         <Modal heading="Change password" onClose={() => setShowForm(false)}>
           <div className="flex p-4 justify-center">
             <Button
-              className="uppercase py-3 px-6 !font-semibold"
+              className="uppercase py-3 px-6 font-semibold!"
               onClick={handleSendResetPasswordEmail}
             >
               Send reset password email

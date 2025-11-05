@@ -49,7 +49,7 @@ export const SellerRatingFilter = () => {
               rate={+label}
               disabled={!Boolean(amount)}
             />
-            <span className='label-sm !font-light'>
+            <span className='label-sm font-light!'>
               ({amount})
             </span>
           </li>

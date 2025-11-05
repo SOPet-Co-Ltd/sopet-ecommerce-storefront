@@ -16,7 +16,7 @@ export const StepProgressBar = ({
           <p
             className={cn(
               "text-center label-md text-primary",
-              index <= currentStep ? "!font-bold" : "!font-normal"
+              index <= currentStep ? "font-bold!" : "font-normal!"
             )}
           >
             {step}

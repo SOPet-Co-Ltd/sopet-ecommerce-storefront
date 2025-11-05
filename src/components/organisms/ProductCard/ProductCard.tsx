@@ -28,7 +28,7 @@ export const ProductCard = ({
   return (
     <div
       className={clsx(
-        "relative group border rounded-sm flex flex-col justify-between p-1 w-full lg:w-[calc(25%-1rem)] min-w-[250px]"
+        "relative group border rounded-xs flex flex-col justify-between p-1 w-full lg:w-[calc(25%-1rem)] min-w-[250px]"
       )}
     >
       <div className="relative w-full h-full bg-primary aspect-square">
@@ -37,7 +37,7 @@ export const ProductCard = ({
           aria-label={`View ${productName}`}
           title={`View ${productName}`}
         >
-          <div className="overflow-hidden rounded-sm w-full h-full flex justify-center align-center ">
+          <div className="overflow-hidden rounded-xs w-full h-full flex justify-center align-center ">
             {product.thumbnail ? (
               <Image
                 priority
@@ -67,7 +67,7 @@ export const ProductCard = ({
           aria-label={`See more about ${productName}`}
           title={`See more about ${productName}`}
         >
-          <Button className="absolute rounded-sm bg-action text-action-on-primary h-auto lg:h-[48px] lg:group-hover:block hidden w-full uppercase bottom-1 z-10">
+          <Button className="absolute rounded-xs bg-action text-action-on-primary h-auto lg:h-[48px] lg:group-hover:block hidden w-full uppercase bottom-1 z-10">
             See More
           </Button>
         </LocalizedClientLink>

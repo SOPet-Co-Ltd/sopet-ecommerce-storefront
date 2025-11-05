@@ -58,7 +58,7 @@ export function Input({
 
         <input
           className={cn(
-            "w-full px-[16px] py-[12px] border rounded-sm bg-component-secondary focus:border-primary focus:outline-none focus:ring-0",
+            "w-full px-[16px] py-[12px] border rounded-xs bg-component-secondary focus:border-primary focus:outline-hidden focus:ring-0",
             error && "border-negative focus:border-negative",
             props.disabled && "bg-disabled cursor-not-allowed",
             paddingY,
@@ -81,7 +81,7 @@ export function Input({
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-ui-fg-subtle px-4 focus:outline-none transition-all duration-150 outline-none focus:text-ui-fg-base absolute right-0 top-4"
+            className="text-ui-fg-subtle px-4 focus:outline-hidden transition-all duration-150 outline-hidden focus:text-ui-fg-base absolute right-0 top-4"
           >
             {showPassword ? <EyeMini /> : <EyeSlashMini />}
           </button>

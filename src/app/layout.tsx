@@ -1,23 +1,22 @@
 import type { Metadata } from "next"
-import { Funnel_Display } from "next/font/google"
+import { Mitr } from "next/font/google"
 import "./globals.css"
 import { Toaster } from "@medusajs/ui"
 import Head from "next/head"
 import { retrieveCart } from "@/lib/data/cart"
 import { Providers } from "./providers"
 
-const funnelDisplay = Funnel_Display({
-  variable: "--font-funnel-sans",
+const mitr = Mitr({
+  variable: "--font-mitr",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600"],
 })
 
 export const metadata: Metadata = {
   title: {
-    template: `%s | ${
-      process.env.NEXT_PUBLIC_SITE_NAME ||
+    template: `%s | ${process.env.NEXT_PUBLIC_SITE_NAME ||
       "Mercur B2C Demo - Marketplace Storefront"
-    }`,
+      }`,
     default:
       process.env.NEXT_PUBLIC_SITE_NAME ||
       "Mercur B2C Demo - Marketplace Storefront",
@@ -86,7 +85,7 @@ export default async function RootLayout({
           </>
         )}
         {/* Image origins for faster LCP */}
-        <link
+        {/* <link
           rel="preconnect"
           href="https://medusa-public-images.s3.eu-west-1.amazonaws.com"
           crossOrigin="anonymous"
@@ -115,10 +114,10 @@ export default async function RootLayout({
           href="https://api.mercurjs.com"
           crossOrigin="anonymous"
         />
-        <link rel="dns-prefetch" href="https://api.mercurjs.com" />
+        <link rel="dns-prefetch" href="https://api.mercurjs.com" /> */}
       </Head>
       <body
-        className={`${funnelDisplay.className} antialiased bg-primary text-secondary relative`}
+        className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative`}
       >
         <Providers cart={cart}>{children}</Providers>
         <Toaster position="top-right" />

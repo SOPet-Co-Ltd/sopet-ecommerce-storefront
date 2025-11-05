@@ -11,7 +11,7 @@ export const SellerPageHeader = ({
   user: HttpTypes.StoreCustomer | null
 }) => {
   return (
-    <div className="border rounded-sm p-4">
+    <div className="border rounded-xs p-4">
       <SellerHeading header seller={seller} user={user} />
       <p
         dangerouslySetInnerHTML={{

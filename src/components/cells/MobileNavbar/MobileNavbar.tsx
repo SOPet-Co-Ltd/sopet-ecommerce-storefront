@@ -33,7 +33,7 @@ export const MobileNavbar = ({
               <CloseIcon size={20} />
             </div>
           </div>
-          <div className='border mt-4 rounded-sm'>
+          <div className='border mt-4 rounded-xs'>
             <HeaderCategoryNavbar
               onClose={closeMenuHandler}
               categories={parentCategories}

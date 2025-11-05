@@ -63,7 +63,7 @@ export const OrderCancel = ({ order }: { order: any }) => {
                   <li
                     key={item.id}
                     className={cn(
-                      "flex items-center gap-4 p-4 mb-2 rounded-sm",
+                      "flex items-center gap-4 p-4 mb-2 rounded-xs",
                       isSelected && "bg-secondary/70"
                     )}
                   >
@@ -72,14 +72,14 @@ export const OrderCancel = ({ order }: { order: any }) => {
                       onChange={() => handleSelectItem(item)}
                     />
                     <div className="flex gap-4 w-full">
-                      <div className="w-16 rounded-sm border">
+                      <div className="w-16 rounded-xs border">
                         {item.thumbnail ? (
                           <Image
                             src={item.thumbnail}
                             alt={item.subtitle}
                             width={60}
                             height={60}
-                            className="rounded-sm"
+                            className="rounded-xs"
                           />
                         ) : (
                           <Image
@@ -105,18 +105,18 @@ export const OrderCancel = ({ order }: { order: any }) => {
                             <div className="flex items-center mt-2">
                               <Button
                                 variant="text"
-                                className="w-8 h-8 flex items-center justify-center !bg-transparent !hover:bg-secondary"
+                                className="w-8 h-8 flex items-center justify-center bg-transparent! !hover:bg-secondary"
                                 disabled={item.quantity === 1}
                                 onClick={() => handleChangeQuantity(item, -1)}
                               >
                                 -
                               </Button>
-                              <div className="text-primary font-medium border rounded-sm w-8 h-8 text-center flex items-center justify-center bg-primary">
+                              <div className="text-primary font-medium border rounded-xs w-8 h-8 text-center flex items-center justify-center bg-primary">
                                 {item.quantity}
                               </div>
                               <Button
                                 variant="text"
-                                className="w-8 h-8 flex items-center justify-center !bg-transparent !hover:bg-secondary"
+                                className="w-8 h-8 flex items-center justify-center bg-transparent! !hover:bg-secondary"
                                 disabled={item.quantity === itemline.quantity}
                                 onClick={() => handleChangeQuantity(item, 1)}
                               >

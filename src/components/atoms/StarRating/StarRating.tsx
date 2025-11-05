@@ -1,5 +1,4 @@
 import { StarIcon } from "@/icons"
-import tailwindConfig from "../../../../tailwind.config"
 
 export const StarRating = ({
   rate,
@@ -16,9 +15,9 @@ export const StarRating = ({
         const starColor =
           i < Math.floor(rate)
             ? disabled
-              ? tailwindConfig.theme.extend.colors.disabled
-              : tailwindConfig.theme.extend.colors.primary
-            : tailwindConfig.theme.extend.colors.action.on.primary
+              ? "#9CA3AF"
+              : "#FBBF24"
+            : "#E5E7EB"
         return <StarIcon size={starSize} key={i} color={starColor} />
       })}
     </div>

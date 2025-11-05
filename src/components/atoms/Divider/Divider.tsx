@@ -22,7 +22,7 @@ export function Divider({
       ? "w-full h-1px border-l-0"
       : "h-full w-1px border-t-0"
   const formClasses = square
-    ? "!w-[4px] !h-[4px] lg:!w-[4px] lg:!h-[4px] !border-0 bg-tertiary/50 rotate-45"
+    ? "w-[4px]! h-[4px]! lg:w-[4px]! lg:h-[4px]! border-0! bg-tertiary/50 rotate-45"
     : ""
 
   return (

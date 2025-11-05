@@ -1,7 +1,7 @@
 import { HttpTypes } from "@medusajs/types"
 
 export interface Cart extends HttpTypes.StoreCart {
-  promotions?: HttpTypes.StorePromotion[]
+  promotions: HttpTypes.StoreCartPromotion[]
 }
 
 export interface StoreCartLineItemOptimisticUpdate

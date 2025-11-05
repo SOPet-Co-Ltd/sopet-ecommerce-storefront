@@ -63,7 +63,7 @@ export function Indicator({
     >
       <div
         className={cn(
-          'h-full rounded-sm absolute transition-all duration-300',
+          'h-full rounded-xs absolute transition-all duration-300',
           variant === 'light' ? 'bg-tertiary' : 'bg-white'
         )}
         style={{

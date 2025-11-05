@@ -170,7 +170,7 @@ const ProductsListing = ({
         <ProductListingActiveFilters />
       </div>
       <div className="md:flex gap-4">
-        <div className="w-[280px] flex-shrink-0 hidden md:block">
+        <div className="w-[280px] shrink-0 hidden md:block">
           <AlgoliaProductSidebar />
         </div>
         <div className="w-full">

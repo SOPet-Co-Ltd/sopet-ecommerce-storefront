@@ -153,7 +153,7 @@ function SizeFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
               selected={isFilterActive(label)}
               onSelect={() => selectSizeHandler(label)}
               value={label}
-              className="w-full !justify-center !py-2 !font-normal"
+              className="w-full justify-center! py-2! font-normal!"
             />
           </li>
         ))}

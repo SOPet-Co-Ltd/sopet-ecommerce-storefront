@@ -18,10 +18,10 @@ export function Avatar({
   className,
 }: AvatarProps) {
   const baseClasses =
-    "inline-flex items-center justify-center rounded-sm text-primary font-medium border"
+    "inline-flex items-center justify-center rounded-xs text-primary font-medium border"
   const sizeClasses = {
     small: "w-8 h-8 text-sm",
-    large: "w-12 h-12 text-lg !font-semibold",
+    large: "w-12 h-12 text-lg font-semibold!",
   }
 
   if (src) {

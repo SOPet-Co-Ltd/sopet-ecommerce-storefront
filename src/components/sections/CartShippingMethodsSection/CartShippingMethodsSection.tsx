@@ -185,7 +185,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
     .map((item) => item.product?.seller?.name)
 
   return (
-    <div className="border p-4 rounded-sm bg-ui-bg-interactive">
+    <div className="border p-4 rounded-xs bg-ui-bg-interactive">
       {/* {missingModal && (
         <Modal
           heading="Missing seller shipping option"
@@ -251,7 +251,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
                         <div className="relative">
                           <Listbox.Button
                             className={clsx(
-                              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
+                              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
                             )}
                           >
                             {({ open }) => (
@@ -277,7 +277,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
                             leaveTo="opacity-0"
                           >
                             <Listbox.Options
-                              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm"
+                              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
                               data-testid="shipping-address-options"
                             >
                               {groupedBySellerId[key].map((option: any) => {

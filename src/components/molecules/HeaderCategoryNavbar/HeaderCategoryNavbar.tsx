@@ -20,7 +20,7 @@ export const HeaderCategoryNavbar = ({
           onClick={() => (onClose ? onClose(false) : null)}
           className={cn("label-md uppercase w-full")}
         >
-          <Button className="w-full rounded-sm">{name}</Button>
+          <Button className="w-full rounded-xs">{name}</Button>
         </LocalizedClientLink>
       ))}
     </nav>

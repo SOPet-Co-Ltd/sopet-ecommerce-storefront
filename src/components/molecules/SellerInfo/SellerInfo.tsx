@@ -25,7 +25,7 @@ export const SellerInfo = ({
 
   return (
     <div className="flex gap-4 w-full">
-      <div className="relative h-12 w-12 overflow-hidden rounded-sm">
+      <div className="relative h-12 w-12 overflow-hidden rounded-xs">
         <SellerAvatar photo={photo} size={56} alt={name} />
       </div>
       <div className="w-[90%]">

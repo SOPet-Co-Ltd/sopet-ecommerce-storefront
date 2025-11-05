@@ -9,17 +9,17 @@ export const Item = ({
   currencyCode: string
 }) => {
   const original_total = convertToLocale({
-    amount: item.original_total,
+    amount: item.original_total ?? item.total ?? 0,
     currency_code: currencyCode,
   })
 
   const total = convertToLocale({
-    amount: item.total,
+    amount: item.total ?? 0,
     currency_code: currencyCode,
   })
 
   return (
-    <div className="border rounded-sm p-1 flex gap-2">
+    <div className="border rounded-xs p-1 flex gap-2">
       <div className="w-[100px] h-[132px] flex items-center justify-center">
         {item.thumbnail ? (
           <Image

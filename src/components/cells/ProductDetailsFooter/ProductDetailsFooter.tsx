@@ -14,7 +14,7 @@ export const ProductDetailsFooter = ({
 }) => {
   return (
     <>
-      <div className='p-4 border rounded-sm'>
+      <div className='p-4 border rounded-xs'>
         <ProductTags tags={tags} />
         <div className='flex justify-between items-center mt-4'>
           <ProductPostedDate posted={posted} />

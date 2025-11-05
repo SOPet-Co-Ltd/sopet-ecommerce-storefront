@@ -1,153 +1,671 @@
-/* Defined colors variables */
-@import "colors.css";
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ========================================================================== */
+/* SOP Design System — Global CSS (Tailwind v4)                               */
+/* ========================================================================== */
+/* Contents                                                                     *
+ * - @theme (Design tokens)                                                    *
+ * - Utilities: Gradients                                                      *
+ * - Utilities: Typographic bases                                              *
+ * - Utilities: Font weights                                                   *
+ * - Utilities: Shorthand text classes (Display, Headline, Body)               *
+ * - Utilities: Links                                                          *
+ * - Utilities: Strikethrough                                                  *
+ * - Utilities: Optional helpers (radius, spacing)                             *
+ * ========================================================================== */
 
-/* Typography */
-.text-xl {
-  @apply font-light tracking-normal;
-}
-.text-lg {
-  @apply text-base font-light tracking-normal;
-}
-.text-md {
-  @apply text-[14px] leading-[22px] font-light tracking-normal;
-}
-.text-sm {
-  @apply text-[12px] font-light tracking-normal;
+/* ========================================================================== */
+/* @theme: Design Tokens                                                       */
+/* ========================================================================== */
+@theme {
+  /* ================= Colors ================= */
+  /* Base */
+  --color-sop-base-black: #000000;
+  --color-sop-base-white: #ffffff;
+
+  /* Neutrals (Gray) */
+  --color-sop-neutral-gray-100: #171719;
+  --color-sop-neutral-gray-200: #211f23;
+  --color-sop-neutral-gray-300: #454547;
+  --color-sop-neutral-gray-400: #949495;
+  --color-sop-neutral-gray-500: #f5f5f5;
+  --color-sop-neutral-gray-600: #fdfdfd;
+
+  /* Neutral Gray Alpha */
+  --color-sop-neutral-grayalpha-100: rgba(34, 34, 41, 0.08);
+  --color-sop-neutral-grayalpha-200: rgba(34, 34, 41, 0.12);
+  --color-sop-neutral-grayalpha-300: rgba(34, 34, 41, 0.16);
+  --color-sop-neutral-grayalpha-400: rgba(34, 34, 41, 0.28);
+  --color-sop-neutral-grayalpha-500: rgba(34, 34, 41, 0.4);
+  --color-sop-neutral-grayalpha-600: rgba(34, 34, 41, 0.52);
+  --color-sop-neutral-grayalpha-700: rgba(34, 34, 41, 0.64);
+  --color-sop-neutral-grayalpha-800: rgba(34, 34, 41, 0.76);
+  --color-sop-neutral-grayalpha-900: rgba(34, 34, 41, 0.88);
+  --color-sop-neutral-grayalpha-1000: rgba(34, 34, 41, 0.96);
+
+  /* Neutral White Alpha */
+  --color-sop-neutral-whitealpha-100: rgba(255, 255, 255, 0.08);
+  --color-sop-neutral-whitealpha-200: rgba(255, 255, 255, 0.12);
+  --color-sop-neutral-whitealpha-300: rgba(255, 255, 255, 0.16);
+  --color-sop-neutral-whitealpha-400: rgba(255, 255, 255, 0.28);
+  --color-sop-neutral-whitealpha-500: rgba(255, 255, 255, 0.4);
+  --color-sop-neutral-whitealpha-600: rgba(255, 255, 255, 0.52);
+  --color-sop-neutral-whitealpha-700: rgba(255, 255, 255, 0.64);
+  --color-sop-neutral-whitealpha-800: rgba(255, 255, 255, 0.76);
+  --color-sop-neutral-whitealpha-900: rgba(255, 255, 255, 0.88);
+  --color-sop-neutral-whitealpha-1000: rgba(255, 255, 255, 0.96);
+
+  /* System (Error) */
+  --color-sop-system-error-100: #ffe8e8;
+  --color-sop-system-error-200: #ffa1a2;
+  --color-sop-system-error-300: #ff7a7c;
+  --color-sop-system-error-400: #ff1a1d;
+  --color-sop-system-error-500: #cc1517;
+
+  /* System (Warning) */
+  --color-sop-system-warning-100: #fff8e8;
+  --color-sop-system-warning-200: #ffe19f;
+  --color-sop-system-warning-300: #ffb514;
+  --color-sop-system-warning-400: #ffd477;
+  --color-sop-system-warning-500: #e8a512;
+
+  /* System (Success) */
+  --color-sop-system-success-100: #eaf8ee;
+  --color-sop-system-success-200: #abe2b8;
+  --color-sop-system-success-300: #88d69b;
+  --color-sop-system-success-400: #54c570;
+  --color-sop-system-success-500: #31b953;
+
+  /* Brand: Primary */
+  --color-sop-primary-100: #f9f6fe;
+  --color-sop-primary-200: #f2ebfc;
+  --color-sop-primary-300: #e7dbf9;
+  --color-sop-primary-400: #b996ea;
+  --color-sop-primary-500: #9c6ade;
+  --color-sop-primary-600: #884ecf;
+  --color-sop-primary-700: #613594;
+
+  /* Brand: Secondary */
+  --color-sop-secondary-100: #fff2f1;
+  --color-sop-secondary-200: #ffe4e1;
+  --color-sop-secondary-300: #ffccc7;
+  --color-sop-secondary-400: #ffa8a0;
+  --color-sop-secondary-500: #ff6f61;
+  --color-sop-secondary-600: #f84c3b;
+  --color-sop-secondary-700: #e52f1d;
+
+  /* Brand: Tertiary */
+  --color-sop-tertiary-100: #f2f7f9;
+  --color-sop-tertiary-200: #dfeaee;
+  --color-sop-tertiary-300: #c2d7df;
+  --color-sop-tertiary-400: #98b9c8;
+  --color-sop-tertiary-500: #5587a0;
+  --color-sop-tertiary-600: #416379;
+  --color-sop-tertiary-700: #3a5364;
+
+  /* Additional: Blue */
+  --color-sop-additionalblue-100: #f1f1fd;
+  --color-sop-additionalblue-200: #d2d5fa;
+  --color-sop-additionalblue-300: #9ea3f4;
+  --color-sop-additionalblue-400: #8b91f1;
+  --color-sop-additionalblue-500: #6e76ee;
+  --color-sop-additionalblue-600: #646bd9;
+  --color-sop-additionalblue-700: #4e54a9;
+
+  /* Additional: Green */
+  --color-sop-additionalgreen-100: #f4fbf7;
+  --color-sop-additionalgreen-200: #dcf3e7;
+  --color-sop-additionalgreen-300: #cbeddc;
+  --color-sop-additionalgreen-400: #a5e0c2;
+  --color-sop-additionalgreen-500: #81c5a3;
+  --color-sop-additionalgreen-600: #65997f;
+  --color-sop-additionalgreen-700: #4e7762;
+
+  /* Neutral */
+  --color-sop-neutral-grayfixed-100: #171719;
+  --color-sop-neutral-grayfixed-200: #211f23;
+  --color-sop-neutral-grayfixed-300: #454547;
+  --color-sop-neutral-grayfixed-400: #949495;
+  --color-sop-neutral-grayfixed-500: #f5f5f5;
+  --color-sop-neutral-grayfixed-600: #fdfdfd;
+
+  /* Neutral Orange Alpha (primary hue alpha ramp) */
+  --color-sop-neutral-orangealpha-100: rgba(156, 106, 222, 0.08);
+  --color-sop-neutral-orangealpha-200: rgba(156, 106, 222, 0.12);
+  --color-sop-neutral-orangealpha-300: rgba(156, 106, 222, 0.16);
+  --color-sop-neutral-orangealpha-400: rgba(156, 106, 222, 0.28);
+  --color-sop-neutral-orangealpha-500: rgba(156, 106, 222, 0.4);
+  --color-sop-neutral-orangealpha-600: rgba(156, 106, 222, 0.52);
+  --color-sop-neutral-orangealpha-700: rgba(156, 106, 222, 0.64);
+  --color-sop-neutral-orangealpha-800: rgba(156, 106, 222, 0.76);
+  --color-sop-neutral-orangealpha-900: rgba(156, 106, 222, 0.88);
+  --color-sop-neutral-orangealpha-1000: rgba(156, 106, 222, 0.96);
+
+  /* ================= Radii ================= */
+  --radius-sop-0px: 0px;
+  --radius-sop-4px: 4px;
+  --radius-sop-8px: 8px;
+  --radius-sop-12px: 12px;
+  --radius-sop-16px: 16px;
+  --radius-sop-20px: 20px;
+  --radius-sop-24px: 24px;
+  --radius-sop-28px: 28px;
+  --radius-sop-32px: 32px;
+  --radius-sop-36px: 36px;
+  --radius-sop-100px: 100px;
+
+  /* ================= Spacing ================= */
+  --spacing-sop-0px: 0px;
+  --spacing-sop-4px: 4px;
+  --spacing-sop-8px: 8px;
+  --spacing-sop-12px: 12px;
+  --spacing-sop-16px: 16px;
+  --spacing-sop-20px: 20px;
+  --spacing-sop-24px: 24px;
+  --spacing-sop-28px: 28px;
+  --spacing-sop-32px: 32px;
+  --spacing-sop-36px: 36px;
+  --spacing-sop-40px: 40px;
+  --spacing-sop-48px: 48px;
+  --spacing-sop-56px: 56px;
+  --spacing-sop-64px: 64px;
+  --spacing-sop-72px: 72px;
+  --spacing-sop-80px: 80px;
+  --spacing-sop-96px: 96px;
+  --spacing-sop-128px: 128px;
+  --spacing-sop-160px: 160px;
+  --spacing-sop-192px: 192px;
+  --spacing-sop-224px: 224px;
+  --spacing-sop-256px: 256px;
+
+  /* ================= Typography ================= */
+  /* Font family */
+  --font-sans: Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+    "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Font weights (labels retained for reference; Tailwind utilities used in practice) */
+  --font-weight-sop-Light: 300;
+  --font-weight-sop-Regular: 400;
+  --font-weight-sop-Medium: 500;
+  --font-weight-sop-Bold: 700;
+
+  /* Font sizes */
+  --text-sop-3XS: 10px;
+  --text-sop-2XS: 12px;
+  --text-sop-XS: 14px;
+  --text-sop-SM: 16px;
+  --text-sop-MD: 18px;
+  --text-sop-LG: 20px;
+  --text-sop-XL: 24px;
+  --text-sop-2XL: 28px;
+  --text-sop-3XL: 32px;
+  --text-sop-4XL: 36px;
+  --text-sop-5XL: 44px;
+
+  /* Line heights */
+  --leading-sop-3XS: 14px;
+  --leading-sop-2XS: 16px;
+  --leading-sop-XS: 20px;
+  --leading-sop-SM: 24px;
+  --leading-sop-MD: 28px;
+  --leading-sop-LG: 32px;
+  --leading-sop-XL: 36px;
+  --leading-sop-2XL: 44px;
+  --leading-sop-3XL: 48px;
+  --leading-sop-4XL: 56px;
+  --leading-sop-5XL: 64px;
+
+  /* Letter spacing */
+  --tracking-sop-XXS: -2px;
+  --tracking-sop-XS: -1px;
+  --tracking-sop-SM: 0px;
+  --tracking-sop-MD: 1px;
+  --tracking-sop-LG: 2px;
+
+  /* Paragraph spacing */
+  --spacing-sop-paragraph-spacing-XXS: 0px;
+  --spacing-sop-paragraph-spacing-XS: 2px;
+  --spacing-sop-paragraph-spacing-SM: 4px;
+  --spacing-sop-paragraph-spacing-MD: 8px;
+  --spacing-sop-paragraph-spacing-LG: 12px;
 }
 
-.label-sm {
-  @apply text-[12px] leading-[20px] font-normal tracking-normal;
+/* ========================================================================== */
+/* Utilities: Gradients                                                        */
+/* ========================================================================== */
+@utility sop-gradient-01 {
+  /* secondary-500 -> primary-500 */
+  @apply bg-[linear-gradient(270deg,var(--color-sop-secondary-500)_0%,var(--color-sop-primary-500)_100%)];
 }
-.label-md {
-  @apply text-[14px] leading-[22px] font-normal tracking-normal;
-}
-.label-lg {
-  @apply text-[16px] leading-[24px] font-semibold tracking-normal;
-}
-.label-xl {
-  @apply text-[20px] leading-[28px] font-semibold tracking-normal;
-}
-
-.heading-xs {
-  @apply text-[14px] leading-[22px] font-medium tracking-normal;
-}
-.heading-sm {
-  @apply text-[16px] leading-[24px] font-medium tracking-normal;
-}
-.heading-md {
-  @apply text-[24px] leading-[32px] font-medium tracking-normal max-md:text-[20px] max-md:leading-[28px];
-}
-.heading-lg {
-  @apply text-[32px] leading-[40px] font-medium tracking-normal max-md:text-[24px] max-md:leading-[32px];
-}
-.heading-xl {
-  @apply text-[40px] leading-[48px] font-medium tracking-normal max-md:text-[32px] max-md:leading-[40px];
+@utility sop-gradient-02 {
+  /* exact 90deg + 30% stop on primary-500 to tertiary-500 */
+  @apply bg-[linear-gradient(90deg,var(--color-sop-primary-500)_30%,var(--color-sop-tertiary-500)_100%)];
 }
 
-.display-sm {
-  @apply text-[56px] leading-[64px] font-medium tracking-normal max-md:text-[32px] max-md:leading-[40px];
+/* ========================================================================== */
+/* Typographic helpers (bases) — sizes via tokens                              */
+/* ========================================================================== */
+@utility sop-display-lg {
+  @apply text-[length:calc(var(--text-sop-5XL)*1px)] leading-[calc(var(--leading-sop-5XL)*1px)] font-sans;
 }
-.display-md {
-  @apply text-[64px] leading-[72px] font-medium tracking-normal max-md:text-[40px] max-md:leading-[48px];
+@utility sop-display-md {
+  @apply text-[length:calc(var(--text-sop-4XL)*1px)] leading-[calc(var(--leading-sop-4XL)*1px)] font-sans;
 }
-.container {
-  @apply px-4 md:px-5 max-w-full w-full lg:py-8 py-4 lg:px-8;
-}
-
-/* Atoms components */
-
-.button-icon {
-  @apply bg-primary hover:bg-action-secondary-hover active:bg-action-secondary-pressed disabled:bg-primary;
-}
-.button-icon svg path {
-  @apply fill-secondary;
+@utility sop-display-sm {
+  @apply text-[length:calc(var(--text-sop-3XL)*1px)] leading-[calc(var(--leading-sop-3XL)*1px)] font-sans;
 }
 
-.button-filled {
-  @apply bg-action hover:bg-action-hover active:bg-action-pressed disabled:bg-disabled;
+@utility sop-headline-lg {
+  @apply text-[length:calc(var(--text-sop-2XL)*1px)] leading-[calc(var(--leading-sop-2XL)*1px)] font-sans;
 }
-.button-filled svg path {
-  @apply fill-primary;
+@utility sop-headline-md {
+  @apply text-[length:calc(var(--text-sop-XL)*1px)] leading-[calc(var(--leading-sop-XL)*1px)] font-sans;
 }
-
-.button-tonal {
-  @apply bg-action-secondary hover:bg-action-secondary-hover active:bg-action-secondary-pressed disabled:bg-disabled;
-}
-.button-tonal svg path {
-  @apply fill-secondary;
+@utility sop-headline-sm {
+  @apply text-[length:calc(var(--text-sop-LG)*1px)] leading-[calc(var(--leading-sop-LG)*1px)] font-sans;
 }
 
-button:disabled svg path {
-  @apply fill-disabled;
+@utility sop-body-lg {
+  @apply text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+}
+@utility sop-body-md {
+  @apply text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+}
+@utility sop-body-sm {
+  @apply text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+}
+@utility sop-body-xs {
+  @apply text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+}
+@utility sop-body-2xs {
+  @apply text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
 }
 
-.button-text-filled svg path {
-  @apply fill-tertiary;
+/* ========================================================================== */
+/* Type weights — mapped to Tailwind utilities                                 */
+/* ========================================================================== */
+@utility sop-light {
+  @apply font-light;
+}
+@utility sop-regular {
+  @apply font-normal;
+}
+@utility sop-medium {
+  @apply font-medium;
+}
+@utility sop-bold {
+  @apply font-bold;
 }
 
-.checkbox-wrapper {
-  @apply rounded-xs bg-component-secondary w-[20px] h-[20px] border border-secondary bg-component-secondary cursor-pointer;
+/* ========================================================================== */
+/* Shorthand “final” text classes                                              */
+/* ========================================================================== */
+/* Display */
+@utility sop-display-lg-light {
+  @apply sop-display-lg sop-light;
 }
-.checkbox-wrapper svg {
-  @apply pointer-events-none;
+@utility sop-display-lg-regular {
+  @apply sop-display-lg sop-regular;
 }
-.checkbox-wrapper svg path {
-  @apply fill-primary;
+@utility sop-display-lg-medium {
+  @apply sop-display-lg sop-medium;
 }
-
-.chip-wrapper {
-  @apply bg-component inline-flex items-center px-3 py-1 rounded-sm label-sm border hover:bg-component-hover relative;
-}
-.chip-wrapper svg path {
-  @apply fill-secondary;
-}
-.chip-wrapper[data-disabled="true"] svg path {
-  @apply fill-primary;
+@utility sop-display-lg-bold {
+  @apply sop-display-lg sop-bold;
 }
 
-.multi-gradient {
-  background: conic-gradient(
-    from 180deg at 50% 50%,
-    #00438f 0deg,
-    #4da0ff 50.4deg,
-    #17a34a 108deg,
-    #ffbf38 165.6deg,
-    #c56a09 217.8deg,
-    #d92d20 282.6deg,
-    #00438f 360deg
-  );
+@utility sop-display-md-light {
+  @apply sop-display-md sop-light;
 }
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
+@utility sop-display-md-regular {
+  @apply sop-display-md sop-regular;
 }
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+@utility sop-display-md-medium {
+  @apply sop-display-md sop-medium;
 }
-.product-details {
-  @apply text-md;
-}
-.product-details ul {
-  @apply list-disc text-md pl-5;
-}
-.embla__container {
-  touch-action: pan-y pinch-zoom;
-}
-.embla__slide {
-  transform: translate3d(0, 0, 0);
-  flex: 0 0 100%;
-  min-width: 0;
+@utility sop-display-md-bold {
+  @apply sop-display-md sop-bold;
 }
 
-.no-arrows-number-input::-webkit-inner-spin-button,
-.no-arrows-number-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+@utility sop-display-sm-light {
+  @apply sop-display-sm sop-light;
 }
-.no-arrows-number-input {
-  -moz-appearance: textfield;
+@utility sop-display-sm-regular {
+  @apply sop-display-sm sop-regular;
+}
+@utility sop-display-sm-medium {
+  @apply sop-display-sm sop-medium;
+}
+@utility sop-display-sm-bold {
+  @apply sop-display-sm sop-bold;
+}
+
+/* Headline */
+@utility sop-headline-lg-light {
+  @apply sop-headline-lg sop-light;
+}
+@utility sop-headline-lg-regular {
+  @apply sop-headline-lg sop-regular;
+}
+@utility sop-headline-lg-medium {
+  @apply sop-headline-lg sop-medium;
+}
+@utility sop-headline-lg-bold {
+  @apply sop-headline-lg sop-bold;
+}
+
+@utility sop-headline-md-light {
+  @apply sop-headline-md sop-light;
+}
+@utility sop-headline-md-regular {
+  @apply sop-headline-md sop-regular;
+}
+@utility sop-headline-md-medium {
+  @apply sop-headline-md sop-medium;
+}
+@utility sop-headline-md-bold {
+  @apply sop-headline-md sop-bold;
+}
+
+@utility sop-headline-sm-light {
+  @apply sop-headline-sm sop-light;
+}
+@utility sop-headline-sm-regular {
+  @apply sop-headline-sm sop-regular;
+}
+@utility sop-headline-sm-medium {
+  @apply sop-headline-sm sop-medium;
+}
+@utility sop-headline-sm-bold {
+  @apply sop-headline-sm sop-bold;
+}
+
+/* Body */
+@utility sop-body-lg-light {
+  @apply sop-body-lg sop-light;
+}
+@utility sop-body-lg-regular {
+  @apply sop-body-lg sop-regular;
+}
+@utility sop-body-lg-medium {
+  @apply sop-body-lg sop-medium;
+}
+@utility sop-body-lg-bold {
+  @apply sop-body-lg sop-bold;
+}
+
+@utility sop-body-md-light {
+  @apply sop-body-md sop-light;
+}
+@utility sop-body-md-regular {
+  @apply sop-body-md sop-regular;
+}
+@utility sop-body-md-medium {
+  @apply sop-body-md sop-medium;
+}
+@utility sop-body-md-bold {
+  @apply sop-body-md sop-bold;
+}
+
+@utility sop-body-sm-light {
+  @apply sop-body-sm sop-light;
+}
+@utility sop-body-sm-regular {
+  @apply sop-body-sm sop-regular;
+}
+@utility sop-body-sm-medium {
+  @apply sop-body-sm sop-medium;
+}
+@utility sop-body-sm-bold {
+  @apply sop-body-sm sop-bold;
+}
+
+@utility sop-body-xs-light {
+  @apply sop-body-xs sop-light;
+}
+@utility sop-body-xs-regular {
+  @apply sop-body-xs sop-regular;
+}
+@utility sop-body-xs-medium {
+  @apply sop-body-xs sop-medium;
+}
+@utility sop-body-xs-bold {
+  @apply sop-body-xs sop-bold;
+}
+
+@utility sop-body-2xs-light {
+  @apply sop-body-2xs sop-light;
+}
+@utility sop-body-2xs-regular {
+  @apply sop-body-2xs sop-regular;
+}
+@utility sop-body-2xs-medium {
+  @apply sop-body-2xs sop-medium;
+}
+@utility sop-body-2xs-bold {
+  @apply sop-body-2xs sop-bold;
+}
+
+/* ========================================================================== */
+/* Links (underline variants)                                                  */
+/* ========================================================================== */
+@utility sop-link-lg {
+  @apply underline text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+}
+@utility sop-link-md {
+  @apply underline text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+}
+@utility sop-link-sm {
+  @apply underline text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+}
+@utility sop-link-xs {
+  @apply underline text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+}
+@utility sop-link-2xs {
+  @apply underline text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
+}
+
+@utility sop-link-lg-light {
+  @apply sop-link-lg sop-light;
+}
+@utility sop-link-lg-regular {
+  @apply sop-link-lg sop-regular;
+}
+@utility sop-link-lg-medium {
+  @apply sop-link-lg sop-medium;
+}
+@utility sop-link-lg-bold {
+  @apply sop-link-lg sop-bold;
+}
+
+@utility sop-link-md-light {
+  @apply sop-link-md sop-light;
+}
+@utility sop-link-md-regular {
+  @apply sop-link-md sop-regular;
+}
+@utility sop-link-md-medium {
+  @apply sop-link-md sop-medium;
+}
+@utility sop-link-md-bold {
+  @apply sop-link-md sop-bold;
+}
+
+@utility sop-link-sm-light {
+  @apply sop-link-sm sop-light;
+}
+@utility sop-link-sm-regular {
+  @apply sop-link-sm sop-regular;
+}
+@utility sop-link-sm-medium {
+  @apply sop-link-sm sop-medium;
+}
+@utility sop-link-sm-bold {
+  @apply sop-link-sm sop-bold;
+}
+
+@utility sop-link-xs-light {
+  @apply sop-link-xs sop-light;
+}
+@utility sop-link-xs-regular {
+  @apply sop-link-xs sop-regular;
+}
+@utility sop-link-xs-medium {
+  @apply sop-link-xs sop-medium;
+}
+@utility sop-link-xs-bold {
+  @apply sop-link-xs sop-bold;
+}
+
+@utility sop-link-2xs-light {
+  @apply sop-link-2xs sop-light;
+}
+@utility sop-link-2xs-regular {
+  @apply sop-link-2xs sop-regular;
+}
+@utility sop-link-2xs-medium {
+  @apply sop-link-2xs sop-medium;
+}
+@utility sop-link-2xs-bold {
+  @apply sop-link-2xs sop-bold;
+}
+
+/* ========================================================================== */
+/* Strikethrough sets                                                          */
+/* ========================================================================== */
+@utility sop-strike-lg {
+  @apply line-through text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+}
+@utility sop-strike-md {
+  @apply line-through text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+}
+@utility sop-strike-sm {
+  @apply line-through text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+}
+@utility sop-strike-xs {
+  @apply line-through text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+}
+@utility sop-strike-2xs {
+  @apply line-through text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
+}
+
+@utility sop-strike-lg-light {
+  @apply sop-strike-lg sop-light;
+}
+@utility sop-strike-lg-regular {
+  @apply sop-strike-lg sop-regular;
+}
+@utility sop-strike-lg-medium {
+  @apply sop-strike-lg sop-medium;
+}
+@utility sop-strike-lg-bold {
+  @apply sop-strike-lg sop-bold;
+}
+
+@utility sop-strike-md-light {
+  @apply sop-strike-md sop-light;
+}
+@utility sop-strike-md-regular {
+  @apply sop-strike-md sop-regular;
+}
+@utility sop-strike-md-medium {
+  @apply sop-strike-md sop-medium;
+}
+@utility sop-strike-md-bold {
+  @apply sop-strike-md sop-bold;
+}
+
+@utility sop-strike-sm-light {
+  @apply sop-strike-sm sop-light;
+}
+@utility sop-strike-sm-regular {
+  @apply sop-strike-sm sop-regular;
+}
+@utility sop-strike-sm-medium {
+  @apply sop-strike-sm sop-medium;
+}
+@utility sop-strike-sm-bold {
+  @apply sop-strike-sm sop-bold;
+}
+
+@utility sop-strike-xs-light {
+  @apply sop-strike-xs sop-light;
+}
+@utility sop-strike-xs-regular {
+  @apply sop-strike-xs sop-regular;
+}
+@utility sop-strike-xs-medium {
+  @apply sop-strike-xs sop-medium;
+}
+@utility sop-strike-xs-bold {
+  @apply sop-strike-xs sop-bold;
+}
+
+@utility sop-strike-2xs-light {
+  @apply sop-strike-2xs sop-light;
+}
+@utility sop-strike-2xs-regular {
+  @apply sop-strike-2xs sop-regular;
+}
+@utility sop-strike-2xs-medium {
+  @apply sop-strike-2xs sop-medium;
+}
+@utility sop-strike-2xs-bold {
+  @apply sop-strike-2xs sop-bold;
+}
+
+/* ========================================================================== */
+/* Optional helpers: color, radius, spacing                                    */
+/* ========================================================================== */
+/* Use color tokens via arbitrary values anywhere, e.g.:
+   text-[color:var(--color-sop-primary-500)]
+   bg-[color:var(--color-sop-secondary-100)]
+*/
+
+/* Radii (unitless -> px) */
+@utility rounded-sop-0 {
+  border-radius: calc(var(--radius-sop-0px) * 1px);
+}
+@utility rounded-sop-4 {
+  border-radius: calc(var(--radius-sop-4px) * 1px);
+}
+@utility rounded-sop-8 {
+  border-radius: calc(var(--radius-sop-8px) * 1px);
+}
+@utility rounded-sop-12 {
+  border-radius: calc(var(--radius-sop-12px) * 1px);
+}
+@utility rounded-sop-16 {
+  border-radius: calc(var(--radius-sop-16px) * 1px);
+}
+@utility rounded-sop-20 {
+  border-radius: calc(var(--radius-sop-20px) * 1px);
+}
+@utility rounded-sop-24 {
+  border-radius: calc(var(--radius-sop-24px) * 1px);
+}
+@utility rounded-sop-28 {
+  border-radius: calc(var(--radius-sop-28px) * 1px);
+}
+@utility rounded-sop-32 {
+  border-radius: calc(var(--radius-sop-32px) * 1px);
+}
+@utility rounded-sop-36 {
+  border-radius: calc(var(--radius-sop-36px) * 1px);
+}
+@utility rounded-sop-100 {
+  border-radius: calc(var(--radius-sop-100px) * 1px);
+}
+
+/* Spacing (unitless -> px) */
+@utility p-sop-16 {
+  padding: calc(var(--spacing-sop-16px) * 1px);
+}
+@utility px-sop-32 {
+  padding-left: calc(var(--spacing-sop-32px) * 1px);
+  padding-right: calc(var(--spacing-sop-32px) * 1px);
+}
+@utility py-sop-12 {
+  padding-top: calc(var(--spacing-sop-12px) * 1px);
+  padding-bottom: calc(var(--spacing-sop-12px) * 1px);
 }

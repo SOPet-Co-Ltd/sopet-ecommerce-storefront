@@ -48,14 +48,28 @@ const CountrySelect = forwardRef<
     } as React.ChangeEvent<HTMLSelectElement>)
   }
 
+  const listboxValue = useMemo(() => {
+    const v = props.value
+    if (v === undefined) {
+      return undefined
+    }
+    if (typeof v === "string") {
+      return v
+    }
+    if (Array.isArray(v)) {
+      return v[0] ?? undefined
+    }
+    return String(v)
+  }, [props.value])
+
   return (
     <label className="label-md">
       <p className="mb-2">Country</p>
-      <Listbox onChange={handleSelect} value={props.value}>
+      <Listbox onChange={handleSelect} value={listboxValue}>
         <div className="relative">
           <Listbox.Button
             className={clsx(
-              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
+              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
             )}
             data-testid="shipping-address-select"
           >
@@ -81,7 +95,7 @@ const CountrySelect = forwardRef<
             leaveTo="opacity-0"
           >
             <Listbox.Options
-              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm"
+              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
               data-testid="shipping-address-options"
             >
               {countryOptions?.map(({ value, label }, index) => (
