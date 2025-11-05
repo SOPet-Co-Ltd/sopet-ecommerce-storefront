@@ -52,11 +52,18 @@
     "queryType": "prefixLast",
     "highlightPreTag": "<em>",
     "highlightPostTag": "</em>",
-    "alternativesAsExact": ["ignorePlurals", "singleWordSynonym"],
+    "alternativesAsExact": [
+      "ignorePlurals",
+      "singleWordSynonym"
+    ],
     "renderingContent": {
       "facetOrdering": {
         "facets": {
-          "order": ["variants.color", "variants.size", "variants.condition"]
+          "order": [
+            "variants.color",
+            "variants.size",
+            "variants.condition"
+          ]
         },
         "values": {
           "variants.color": {
