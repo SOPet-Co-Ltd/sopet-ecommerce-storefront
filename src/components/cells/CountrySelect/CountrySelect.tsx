@@ -48,10 +48,24 @@ const CountrySelect = forwardRef<
     } as React.ChangeEvent<HTMLSelectElement>)
   }
 
+  const listboxValue = useMemo(() => {
+    const v = props.value
+    if (v === undefined) {
+      return undefined
+    }
+    if (typeof v === "string") {
+      return v
+    }
+    if (Array.isArray(v)) {
+      return v[0] ?? undefined
+    }
+    return String(v)
+  }, [props.value])
+
   return (
     <label className="label-md">
       <p className="mb-2">Country</p>
-      <Listbox onChange={handleSelect} value={props.value}>
+      <Listbox onChange={handleSelect} value={listboxValue}>
         <div className="relative">
           <Listbox.Button
             className={clsx(

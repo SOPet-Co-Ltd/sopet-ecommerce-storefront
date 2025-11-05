@@ -28,39 +28,40 @@ type CountrySelectProps = {
 }
 
 const CountrySelect = ({ regions }: CountrySelectProps) => {
-  const [current, setCurrent] = useState<
-    | { country: string | undefined; region: string; label: string | undefined }
-    | undefined
-  >(undefined)
+  const [current, setCurrent] = useState<CountryOption | undefined>(undefined)
 
   const { locale: countryCode } = useParams()
   const router = useRouter()
   const currentPath = usePathname().split(`/${countryCode}`)[1]
 
-  const options = useMemo(() => {
-    return regions
-      ?.map((r) => {
-        return r.countries?.map((c) => ({
-          country: c.iso_2,
-          region: r.id,
-          label: c.display_name,
-        }))
-      })
+  const options = useMemo<CountryOption[] | undefined>(() => {
+    const list = regions
+      ?.map((r) =>
+        r.countries?.map((c) =>
+          c?.iso_2 && c?.display_name
+            ? { country: c.iso_2, region: r.id, label: c.display_name }
+            : undefined
+        )
+      )
       .flat()
-      .sort((a, b) => (a?.label ?? "").localeCompare(b?.label ?? ""))
+      .filter((x): x is CountryOption => Boolean(x))
+
+    return list?.sort((a, b) => a.label.localeCompare(b.label))
   }, [regions])
 
   useEffect(() => {
-    if (countryCode) {
-      const option = options?.find((o) => o?.country === countryCode)
-      setCurrent(option)
+    if (!options) {
+      setCurrent(undefined)
+      return
     }
+    const option = options.find((o) => o.country === countryCode)
+    setCurrent(option)
   }, [options, countryCode])
 
   const handleChange = async (option: CountryOption) => {
     try {
       const result = await updateRegionWithValidation(option.country, currentPath)
-      
+
       if (result.removedItems.length > 0) {
         const itemsList = result.removedItems.join(", ")
         toast.info({
@@ -68,7 +69,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
           description: `${itemsList} ${result.removedItems.length === 1 ? "is" : "are"} not available in ${option.label} and ${result.removedItems.length === 1 ? "was" : "were"} removed from your cart.`,
         })
       }
-      
+
       // Navigate to new region
       router.push(result.newPath)
       router.refresh()
