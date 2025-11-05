@@ -15,7 +15,7 @@ const OrderDetails = ({ order, showStatus }: OrderDetailsProps) => {
   }
 
   return (
-    <div className="border rounded-sm p-4 bg-ui-bg-subtle grid lg:grid-cols-2">
+    <div className="border rounded-xs p-4 bg-ui-bg-subtle grid lg:grid-cols-2">
       <Text className="mt-2">
         <span className="font-bold block">Order date</span>
         <span>{format(order.created_at, "dd-MM-yyyy")}</span>

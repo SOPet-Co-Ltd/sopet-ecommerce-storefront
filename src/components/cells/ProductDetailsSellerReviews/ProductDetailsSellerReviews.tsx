@@ -8,7 +8,7 @@ export const ProductDetailsSellerReviews = ({
   reviews: SingleProductReview[];
 }) => {
   return (
-    <div className='p-4 border rounded-sm'>
+    <div className='p-4 border rounded-xs'>
       <div className='flex justify-between items-center mb-5'>
         <h4 className='uppercase heading-sm'>
           Seller reviews

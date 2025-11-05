@@ -44,14 +44,14 @@ export const ReturnItemsTab = ({
                   onChange={() => handleSelectItem(item, "")}
                 />
                 <div className="flex items-center gap-2">
-                  <div className="w-16 rounded-sm border">
+                  <div className="w-16 rounded-xs border">
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
                         alt={item.subtitle}
                         width={64}
                         height={64}
-                        className="rounded-sm"
+                        className="rounded-xs"
                       />
                     ) : (
                       <Image
@@ -88,7 +88,7 @@ export const ReturnItemsTab = ({
                   <div className="relative">
                     <ListboxButton
                       className={cn(
-                        "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular",
+                        "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular",
                         error &&
                           !selectedItems.find((i) => i.line_item_id === item.id)
                             ?.reason_id &&
@@ -114,7 +114,7 @@ export const ReturnItemsTab = ({
                         </>
                       )}
                     </ListboxButton>
-                    <ListboxOptions className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm">
+                    <ListboxOptions className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm">
                       {returnReasons.map((reason) => (
                         <ListboxOption
                           key={reason.id}

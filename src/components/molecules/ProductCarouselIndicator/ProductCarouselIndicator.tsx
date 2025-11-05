@@ -63,7 +63,7 @@ export const ProductCarouselIndicator = ({
             {(slides || []).map((slide, index) => (
               <div
                 key={slide.id}
-                className="mb-3 rounded-sm cursor-pointer w-16 h-16 bg-primary hidden lg:block"
+                className="mb-3 rounded-xs cursor-pointer w-16 h-16 bg-primary hidden lg:block"
                 onClick={() => changeSlideHandler(index)}
               >
                 <Image
@@ -72,7 +72,7 @@ export const ProductCarouselIndicator = ({
                   width={64}
                   height={64}
                   className={cn(
-                    "rounded-sm border-2 transition-color duration-300 hidden lg:block w-16 h-16 object-cover",
+                    "rounded-xs border-2 transition-color duration-300 hidden lg:block w-16 h-16 object-cover",
                     selectedIndex === index
                       ? "border-primary"
                       : "border-tertiary"

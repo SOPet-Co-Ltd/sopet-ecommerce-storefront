@@ -38,14 +38,14 @@ export const ReturnSummaryTab = ({
                 className="flex items-center gap-2 mb-4 justify-between w-full"
               >
                 <div className="flex items-center gap-2 font-semibold">
-                  <div className="w-16 rounded-sm border">
+                  <div className="w-16 rounded-xs border">
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
                         alt={item.subtitle}
                         width={64}
                         height={64}
-                        className="rounded-sm"
+                        className="rounded-xs"
                       />
                     ) : (
                       <Image
@@ -71,7 +71,7 @@ export const ReturnSummaryTab = ({
       <Card className="p-4">
         <p className="label-md flex justify-between mb-4">
           Subtotal refund:
-          <span className="label-md !font-bold text-primary">
+          <span className="label-md font-bold! text-primary">
             {convertToLocale({
               amount: subtotal,
               currency_code,

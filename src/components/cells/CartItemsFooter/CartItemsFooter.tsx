@@ -8,7 +8,7 @@ export const CartItemsFooter = ({
   price: number;
 }) => {
   return (
-    <div className='border rounded-sm p-4 flex items-center justify-between label-md'>
+    <div className='border rounded-xs p-4 flex items-center justify-between label-md'>
       <p className='text-secondary'>Delivery</p>
       <p>
         {convertToLocale({

@@ -57,7 +57,7 @@ export const OrderCard = ({
               {format(order.reviews[0].created_at, "MMM dd, yyyy")}
             </p>
             <StarRating rate={order.reviews[0].rating} starSize={12} />
-            <p className="label-md mt-2 whitespace-pre-line break-words">
+            <p className="label-md mt-2 whitespace-pre-line wrap-break-word">
               {order.reviews[0].customer_note}
             </p>
           </div>

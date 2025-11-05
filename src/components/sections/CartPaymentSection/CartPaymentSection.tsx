@@ -118,7 +118,7 @@ const CartPaymentSection = ({
   }, [isOpen])
 
   return (
-    <div className="border p-4 rounded-sm bg-ui-bg-interactive">
+    <div className="border p-4 rounded-xs bg-ui-bg-interactive">
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"

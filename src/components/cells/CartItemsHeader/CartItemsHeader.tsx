@@ -11,7 +11,7 @@ export const CartItemsHeader = ({
 }) => {
   return (
     <LocalizedClientLink href={`/sellers/${seller.handle}`}>
-      <div className="border rounded-sm p-4 flex gap-4 items-center">
+      <div className="border rounded-xs p-4 flex gap-4 items-center">
         <SellerAvatar photo={seller.photo} size={32} alt={seller.name} />
 
         <div className="lg:flex gap-2">

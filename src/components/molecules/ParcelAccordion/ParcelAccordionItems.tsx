@@ -42,7 +42,7 @@ export const ParcelAccordionItems = ({
   )
 
   return (
-    <Card key={order.id} className="border-b rounded-sm p-0">
+    <Card key={order.id} className="border-b rounded-xs p-0">
       <div
         className="grid grid-cols-2 sm:grid-cols-7 cursor-pointer hover:bg-component-secondary/40 p-4 transition-all duration-300"
         onClick={openHandler}

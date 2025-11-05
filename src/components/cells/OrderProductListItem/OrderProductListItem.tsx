@@ -19,7 +19,7 @@ export const OrderProductListItem = ({
     <li className={cn("flex items-center", withDivider && "mt-2")}>
       <div className="grid grid-cols-1 sm:grid-cols-7 w-full sm:gap-4 mb-2">
         <div className="sm:col-span-2 flex gap-2 items-center">
-          <div className="w-[66px] h-16 relative rounded-sm overflow-hidden flex items-center justify-center">
+          <div className="w-[66px] h-16 relative rounded-xs overflow-hidden flex items-center justify-center">
             {item.thumbnail ? (
               <Image
                 src={item.thumbnail}

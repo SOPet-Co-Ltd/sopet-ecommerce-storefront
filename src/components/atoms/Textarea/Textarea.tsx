@@ -35,7 +35,7 @@ export function Textarea({
       )}
       <textarea
         className={cn(
-          'w-full px-[16px] py-[12px] border rounded-sm bg-component-secondary focus:border-primary focus:outline-none focus:ring-0',
+          'w-full px-[16px] py-[12px] border rounded-xs bg-component-secondary focus:border-primary focus:outline-hidden focus:ring-0',
           error && 'border-negative focus:border-negative',
           props.disabled &&
             'bg-disabled cursor-not-allowed',

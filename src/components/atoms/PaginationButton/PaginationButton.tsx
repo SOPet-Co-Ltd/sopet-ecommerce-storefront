@@ -18,7 +18,7 @@ export const PaginationButton = ({
   return (
     <button
       className={cn(
-        'border w-10 h-10 rounded-sm label-md flex items-center justify-center hover:bg-component-hover cursor-pointer',
+        'border w-10 h-10 rounded-xs label-md flex items-center justify-center hover:bg-component-hover cursor-pointer',
         isActive && 'border-primary',
         disabled &&
           'border text-disabled bg-primary hover:bg-primary cursor-default',

@@ -12,10 +12,10 @@ export const OrderParcels = async ({ orders }: { orders: any[] }) => {
     <>
       {orders.map((order) => (
         <div key={order.id} className="w-full mb-8">
-          <div className="border rounded-sm p-4 bg-component-secondary font-semibold text-secondary uppercase">
+          <div className="border rounded-xs p-4 bg-component-secondary font-semibold text-secondary uppercase">
             Order #{order.display_id}
           </div>
-          <div className="border rounded-sm">
+          <div className="border rounded-xs">
             <div className="p-4 border-b">
               <OrderParcelStatus order={order} />
             </div>

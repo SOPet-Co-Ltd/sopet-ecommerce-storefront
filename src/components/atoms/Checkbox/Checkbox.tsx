@@ -24,7 +24,7 @@ export function Checkbox({
           checked && "!bg-action",
           error && "!border-negative",
           indeterminate && "!bg-action",
-          props.disabled && "!bg-disabled !border-disabled !cursor-default",
+          props.disabled && "!bg-disabled !border-disabled cursor-default!",
           className
         )}
       >

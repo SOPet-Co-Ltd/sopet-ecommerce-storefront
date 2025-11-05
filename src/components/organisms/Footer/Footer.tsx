@@ -6,7 +6,7 @@ export function Footer() {
     <footer className="bg-primary container">
       <div className="grid grid-cols-1 lg:grid-cols-3">
         {/* Customer Services Column */}
-        <div className="p-6 border rounded-sm">
+        <div className="p-6 border rounded-xs">
           <h2 className="heading-sm text-primary mb-3 uppercase">
             Customer services
           </h2>
@@ -24,7 +24,7 @@ export function Footer() {
         </div>
 
         {/* About Column */}
-        <div className="p-6 border rounded-sm">
+        <div className="p-6 border rounded-xs">
           <h2 className="heading-sm text-primary mb-3 uppercase">About</h2>
           <nav className="space-y-3" aria-label="About navigation">
             {footerLinks.about.map(({ label, path }) => (
@@ -40,7 +40,7 @@ export function Footer() {
         </div>
 
         {/* Connect Column */}
-        <div className="p-6 border rounded-sm">
+        <div className="p-6 border rounded-xs">
           <h2 className="heading-sm text-primary mb-3 uppercase">connect</h2>
           <nav className="space-y-3" aria-label="Social media navigation">
             {footerLinks.connect.map(({ label, path }) => (
@@ -60,7 +60,7 @@ export function Footer() {
         </div>
       </div>
 
-      <div className="py-6 border rounded-sm ">
+      <div className="py-6 border rounded-xs ">
         <p className="text-md text-secondary text-center ">© 2024 Fleek</p>
       </div>
     </footer>

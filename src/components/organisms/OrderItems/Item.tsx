@@ -19,7 +19,7 @@ export const Item = ({
   })
 
   return (
-    <div className="border rounded-sm p-1 flex gap-2">
+    <div className="border rounded-xs p-1 flex gap-2">
       <div className="w-[100px] h-[132px] flex items-center justify-center">
         {item.thumbnail ? (
           <Image

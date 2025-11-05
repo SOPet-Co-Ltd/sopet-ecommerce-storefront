@@ -7,7 +7,7 @@ export const ProductDetailsSeller = ({ seller }: { seller?: SellerProps }) => {
   if (!seller) return null
 
   return (
-    <div className="border rounded-sm">
+    <div className="border rounded-xs">
       <div className="p-4">
         <LocalizedClientLink href={`/sellers/${seller.handle}`}>
           <div className="flex justify-between">

@@ -21,7 +21,7 @@ export const ProductSidebar = () => {
     <aside className="w-full relative">
       <div
         className={cn(
-          "blur-sm pointer-events-none md:relative w-full h-full bg-primary top-0 left-0 transition-opacity duration-100",
+          "blur-xs pointer-events-none md:relative w-full h-full bg-primary top-0 left-0 transition-opacity duration-100",
           filterModal
             ? "opacity-1 z-20"
             : "opacity-0 -z-10 md:opacity-100 md:z-10"
