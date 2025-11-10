@@ -1,9 +1,9 @@
 import { Input } from "@/components/atoms/Input/Input"
 import CountrySelect from "@/components/cells/CountrySelect/CountrySelect"
-import { HttpTypes } from "@medusajs/types"
 import React, { useState } from "react"
+import { Cart } from "@/types/cart"
 
-const BillingAddress = ({ cart }: { cart: HttpTypes.StoreCart | null }) => {
+const BillingAddress = ({ cart }: { cart: Cart | null }) => {
   const [formData, setFormData] = useState<any>({
     "billing_address.first_name": cart?.billing_address?.first_name || "",
     "billing_address.last_name": cart?.billing_address?.last_name || "",

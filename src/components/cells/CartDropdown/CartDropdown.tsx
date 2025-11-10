@@ -7,12 +7,12 @@ import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedL
 import { CartIcon } from "@/icons"
 import { convertToLocale } from "@/lib/helpers/money"
 import { filterValidCartItems } from "@/lib/helpers/filter-valid-cart-items"
-import { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useCartContext } from "@/components/providers"
+import { Cart } from "@/types/cart"
 
-const getItemCount = (cart: HttpTypes.StoreCart | null) => {
+const getItemCount = (cart: Cart | null) => {
   return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
 }
 

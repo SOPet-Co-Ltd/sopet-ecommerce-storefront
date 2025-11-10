@@ -3,10 +3,10 @@ import {
   CartItemsHeader,
   CartItemsProducts,
 } from "@/components/cells"
-import { HttpTypes } from "@medusajs/types"
+import { Cart } from "@/types/cart"
 import { EmptyCart } from "./EmptyCart"
 
-export const CartItems = ({ cart }: { cart: HttpTypes.StoreCart | null }) => {
+export const CartItems = ({ cart }: { cart: Cart | null }) => {
   if (!cart) return null
 
   const groupedItems: any = groupItemsBySeller(cart)
@@ -28,7 +28,7 @@ export const CartItems = ({ cart }: { cart: HttpTypes.StoreCart | null }) => {
   ))
 }
 
-function groupItemsBySeller(cart: HttpTypes.StoreCart) {
+function groupItemsBySeller(cart: Cart) {
   const groupedBySeller: any = {}
 
   cart.items?.forEach((item: any) => {

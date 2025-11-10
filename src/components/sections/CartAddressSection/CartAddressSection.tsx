@@ -12,12 +12,13 @@ import Spinner from "@/icons/spinner"
 import ShippingAddress from "@/components/organisms/ShippingAddress/ShippingAddress"
 import { CheckCircleSolid } from "@medusajs/icons"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { Cart } from "@/types/cart"
 
 export const CartAddressSection = ({
   cart,
   customer,
 }: {
-  cart: HttpTypes.StoreCart | null
+  cart: Cart | null
   customer: HttpTypes.StoreCustomer | null
 }) => {
   const searchParams = useSearchParams()

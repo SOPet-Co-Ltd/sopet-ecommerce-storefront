@@ -6,6 +6,7 @@ import { Input } from "@/components/atoms"
 import AddressSelect from "@/components/cells/AddressSelect/AddressSelect"
 import CountrySelect from "@/components/cells/CountrySelect/CountrySelect"
 import { usePathname } from "next/navigation"
+import { Cart } from "@/types/cart"
 
 const ShippingAddress = ({
   customer,
@@ -14,7 +15,7 @@ const ShippingAddress = ({
   onChange,
 }: {
   customer: HttpTypes.StoreCustomer | null
-  cart: HttpTypes.StoreCart | null
+  cart: Cart | null
   checked: boolean
   onChange: () => void
 }) => {

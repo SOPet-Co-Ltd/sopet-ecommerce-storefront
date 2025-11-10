@@ -2,12 +2,12 @@
 
 import { loadStripe } from "@stripe/stripe-js"
 import React from "react"
-import { HttpTypes } from "@medusajs/types"
 import { isStripe } from "@/lib/constants"
 import StripeWrapper from "./StripeWrapper"
+import { Cart } from "@/types/cart"
 
 type PaymentWrapperProps = {
-  cart: HttpTypes.StoreCart
+  cart: Cart
   children: React.ReactNode
 }
 

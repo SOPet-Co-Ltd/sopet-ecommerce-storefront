@@ -15,13 +15,14 @@ import {
 } from "./cookies"
 import { getRegion } from "./regions"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
+import { Cart } from "@/types/cart"
 
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID from the cookies.
  * @param cartId - optional - The ID of the cart to retrieve.
  * @returns The cart object if found, or null if not found.
  */
-export async function retrieveCart(cartId?: string) {
+export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   const id = cartId || (await getCartId())
 
   if (!id) {
@@ -44,7 +45,7 @@ export async function retrieveCart(cartId?: string) {
       headers,
       cache: "no-cache",
     })
-    .then(({ cart }) => cart)
+    .then(({ cart }) => cart as Cart)
     .catch(() => null)
 }
 
@@ -67,7 +68,7 @@ export async function getOrSetCart(countryCode: string) {
       {},
       headers
     )
-    cart = cartResp.cart
+    cart = cartResp.cart as Cart
 
     await setCartId(cart.id)
 

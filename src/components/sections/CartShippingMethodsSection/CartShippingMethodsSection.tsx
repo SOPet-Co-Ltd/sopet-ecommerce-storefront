@@ -14,6 +14,7 @@ import { Modal, SelectField } from "@/components/molecules"
 import { CartShippingMethodRow } from "./CartShippingMethodRow"
 import { Listbox, Transition } from "@headlessui/react"
 import clsx from "clsx"
+import { Cart } from "@/types/cart"
 
 // Extended cart item product type to include seller
 type ExtendedStoreProduct = HttpTypes.StoreProduct & {
@@ -39,7 +40,7 @@ export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {
 }
 
 type ShippingProps = {
-  cart: Omit<HttpTypes.StoreCart, "items"> & {
+  cart: Omit<Cart, "items"> & {
     items?: CartItem[]
   }
   availableShippingMethods:

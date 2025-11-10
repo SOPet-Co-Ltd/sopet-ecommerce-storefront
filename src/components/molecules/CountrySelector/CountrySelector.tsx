@@ -44,18 +44,15 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
         )
       )
       .flat()
-      .filter((x): x is CountryOption => Boolean(x))
-
-    return list?.sort((a, b) => a.label.localeCompare(b.label))
+      .filter((o): o is CountryOption => !!o && !!o.country && !!o.label)
+      .sort((a, b) => a.label.localeCompare(b.label))
   }, [regions])
 
   useEffect(() => {
-    if (!options) {
-      setCurrent(undefined)
-      return
+    if (countryCode) {
+      const option = options?.find((o) => o.country === countryCode)
+      setCurrent(option)
     }
-    const option = options.find((o) => o.country === countryCode)
-    setCurrent(option)
   }, [options, countryCode])
 
   const handleChange = async (option: CountryOption) => {
@@ -89,7 +86,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
           onChange={handleChange}
           defaultValue={
             countryCode
-              ? options?.find((o) => o?.country === countryCode)
+              ? options?.find((o) => o.country === countryCode)
               : undefined
           }
         >
@@ -99,15 +96,15 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
                 <span className="txt-compact-small flex items-center gap-x-2">
                   {/* @ts-ignore */}
                   <ReactCountryFlag
-                    alt={`${current.country?.toUpperCase()} flag`}
+                    alt={`${current.country.toUpperCase()} flag`}
                     svg
                     style={{
                       width: "16px",
                       height: "16px",
                     }}
-                    countryCode={current.country ?? ""}
+                    countryCode={current.country}
                   />
-                  {current.country?.toUpperCase()}
+                  {current.country.toUpperCase()}
                 </span>
               )}
             </div>
