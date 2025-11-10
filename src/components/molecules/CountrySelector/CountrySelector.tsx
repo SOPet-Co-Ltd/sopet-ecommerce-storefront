@@ -28,10 +28,7 @@ type CountrySelectProps = {
 }
 
 const CountrySelect = ({ regions }: CountrySelectProps) => {
-  const [current, setCurrent] = useState<
-    | { country: string | undefined; region: string; label: string | undefined }
-    | undefined
-  >(undefined)
+  const [current, setCurrent] = useState<CountryOption | undefined>(undefined)
 
   const { locale: countryCode } = useParams()
   const router = useRouter()
@@ -47,12 +44,13 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
         }))
       })
       .flat()
-      .sort((a, b) => (a?.label ?? "").localeCompare(b?.label ?? ""))
+      .filter((o): o is CountryOption => !!o && !!o.country && !!o.label)
+      .sort((a, b) => a.label.localeCompare(b.label))
   }, [regions])
 
   useEffect(() => {
     if (countryCode) {
-      const option = options?.find((o) => o?.country === countryCode)
+      const option = options?.find((o) => o.country === countryCode)
       setCurrent(option)
     }
   }, [options, countryCode])
@@ -88,7 +86,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
           onChange={handleChange}
           defaultValue={
             countryCode
-              ? options?.find((o) => o?.country === countryCode)
+              ? options?.find((o) => o.country === countryCode)
               : undefined
           }
         >
@@ -98,15 +96,15 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
                 <span className="txt-compact-small flex items-center gap-x-2">
                   {/* @ts-ignore */}
                   <ReactCountryFlag
-                    alt={`${current.country?.toUpperCase()} flag`}
+                    alt={`${current.country.toUpperCase()} flag`}
                     svg
                     style={{
                       width: "16px",
                       height: "16px",
                     }}
-                    countryCode={current.country ?? ""}
+                    countryCode={current.country}
                   />
-                  {current.country?.toUpperCase()}
+                  {current.country.toUpperCase()}
                 </span>
               )}
             </div>

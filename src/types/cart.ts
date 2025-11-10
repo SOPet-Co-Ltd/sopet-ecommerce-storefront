@@ -1,6 +1,6 @@
 import { HttpTypes } from "@medusajs/types"
 
-export interface Cart extends HttpTypes.StoreCart {
+export interface Cart extends Omit<HttpTypes.StoreCart, 'promotions'> {
   promotions?: HttpTypes.StorePromotion[]
 }
 

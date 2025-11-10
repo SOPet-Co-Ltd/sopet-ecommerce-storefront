@@ -3,15 +3,15 @@
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
 import { isManual, isStripe } from "../../../lib/constants"
 import { placeOrder } from "@/lib/data/cart"
-import { HttpTypes } from "@medusajs/types"
 import { useElements, useStripe } from "@stripe/react-stripe-js"
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/atoms"
 import { orderErrorFormatter } from "@/lib/helpers/order-error-formatter"
 import { toast } from "@/lib/helpers/toast"
+import { Cart } from "@/types/cart"
 
 type PaymentButtonProps = {
-  cart: HttpTypes.StoreCart
+  cart: Cart
   "data-testid": string
 }
 
@@ -55,7 +55,7 @@ const StripePaymentButton = ({
   notReady,
   "data-testid": dataTestId,
 }: {
-  cart: HttpTypes.StoreCart
+  cart: Cart
   notReady: boolean
   "data-testid"?: string
 }) => {

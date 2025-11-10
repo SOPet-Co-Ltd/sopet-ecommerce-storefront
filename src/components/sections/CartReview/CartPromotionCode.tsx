@@ -1,17 +1,15 @@
 "use client"
-import { HttpTypes } from "@medusajs/types"
 import { Button, Input } from "@/components/atoms"
 import { Heading, Label } from "@medusajs/ui"
 import { useState } from "react"
 import { applyPromotions } from "@/lib/data/cart"
 import { toast } from "@/lib/helpers/toast"
+import { Cart } from "@/types/cart"
 
 export default function CartPromotionCode({
   cart,
 }: {
-  cart:
-    | (HttpTypes.StoreCart & { promotions?: HttpTypes.StorePromotion[] })
-    | null
+  cart: Cart | null
 }) {
   const [promotionCode, setPromotionCode] = useState("")
   const [isLoading, setIsLoading] = useState(false)
