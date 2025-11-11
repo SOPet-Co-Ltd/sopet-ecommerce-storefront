@@ -46,6 +46,8 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
       .flat()
       .filter((o): o is CountryOption => !!o && !!o.country && !!o.label)
       .sort((a, b) => a.label.localeCompare(b.label))
+
+    return list
   }, [regions])
 
   useEffect(() => {
