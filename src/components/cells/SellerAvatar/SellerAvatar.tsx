@@ -9,11 +9,6 @@ export const SellerAvatar = ({
   size?: number
   alt?: string
 }) => {
-  console.log({
-    photo,
-    decode: decodeURIComponent(photo),
-  })
-
   return photo ? (
     <Image
       src={decodeURIComponent(photo)}
