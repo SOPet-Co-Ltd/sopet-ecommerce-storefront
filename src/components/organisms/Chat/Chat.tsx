@@ -35,11 +35,7 @@ export const Chat = ({
 
   return (
     <>
-      <Button
-        variant="tonal"
-        onClick={() => setModal(true)}
-        className={buttonClassNames}
-      >
+      <Button onClick={() => setModal(true)} className={buttonClassNames}>
         {icon ? <MessageIcon size={20} /> : "Write to seller"}
       </Button>
       {modal && (

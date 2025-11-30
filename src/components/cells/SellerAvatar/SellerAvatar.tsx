@@ -9,6 +9,11 @@ export const SellerAvatar = ({
   size?: number
   alt?: string
 }) => {
+  console.log({
+    photo,
+    decode: decodeURIComponent(photo),
+  })
+
   return photo ? (
     <Image
       src={decodeURIComponent(photo)}
@@ -21,7 +26,7 @@ export const SellerAvatar = ({
     <Image
       src="/images/placeholder.svg"
       alt={alt}
-      className="opacity-30 w-8 h-8"
+      className="w-8 h-8"
       width={32}
       height={32}
     />

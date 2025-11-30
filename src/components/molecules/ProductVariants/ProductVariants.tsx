@@ -2,9 +2,10 @@
 
 import { HttpTypes } from "@medusajs/types"
 
-import { Chip } from "@/components/atoms"
 import useUpdateSearchParams from "@/hooks/useUpdateSearchParams"
-import { BaseHit, Hit } from "instantsearch.js"
+import { Hit } from "instantsearch.js"
+import { cn } from "@/lib/utils"
+import { Fragment } from "react"
 
 export const ProductVariants = ({
   product,
@@ -21,33 +22,38 @@ export const ProductVariants = ({
   }
 
   return (
-    <div className="my-4 space-y-2">
+    <div className="md:grid md:grid-cols-[8rem_1fr] flex flex-col md:gap-0 gap-4">
       {(product.options || []).map(
         ({ id, title, values }: HttpTypes.StoreProductOption) => (
-          <div key={id}>
-            <span className="label-md text-secondary">{title}: </span>
-            <span className="label-md text-primary">
-              {selectedVariant[title.toLowerCase()]}
-            </span>
-            <div className="flex gap-2 mt-2">
+          <Fragment key={id}>
+            <div>
+              <p className="md:sop-body-lg-regular sop-body-md-regular text-sop-neutral-gray-400">
+                {title}
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
               {(values || []).map(
                 ({
                   id,
                   value,
                 }: Partial<Hit<HttpTypes.StoreProductOptionValue>>) => (
-                  <Chip
+                  <button
                     key={id}
-                    selected={selectedVariant[title.toLowerCase()] === value}
-                    color={title === "Color"}
-                    value={value}
-                    onSelect={() =>
+                    onClick={() =>
                       setOptionValue(title.toLowerCase(), value || "")
                     }
-                  />
+                    className={cn(
+                      "cursor-pointer sop-body-sm-regular border rounded-full px-2 py-1 text-sop-neutral-gray-200 bg-sop-neutral-gray-500 border-sop-neutral-grayalpha-100",
+                      selectedVariant[title.toLowerCase()] === value &&
+                        "text-sop-secondary-500 border-sop-secondary-500 bg-transparent"
+                    )}
+                  >
+                    {value}
+                  </button>
                 )
               )}
             </div>
-          </div>
+          </Fragment>
         )
       )}
     </div>

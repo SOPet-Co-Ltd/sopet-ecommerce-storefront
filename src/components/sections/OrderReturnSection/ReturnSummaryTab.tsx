@@ -90,8 +90,8 @@ export const ReturnSummaryTab = ({
               ? "Continue"
               : "Select Items"
             : !returnMethod
-            ? "Select return method"
-            : "Request return"}
+              ? "Select return method"
+              : "Request return"}
         </Button>
       </Card>
     </div>

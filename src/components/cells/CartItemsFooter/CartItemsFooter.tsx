@@ -1,15 +1,15 @@
-import { convertToLocale } from '@/lib/helpers/money';
+import { convertToLocale } from "@/lib/helpers/money"
 
 export const CartItemsFooter = ({
   currency_code,
   price,
 }: {
-  currency_code: string;
-  price: number;
+  currency_code: string
+  price: number
 }) => {
   return (
-    <div className='border rounded-xs p-4 flex items-center justify-between label-md'>
-      <p className='text-secondary'>Delivery</p>
+    <div className="border rounded-xs p-4 flex items-center justify-between label-md">
+      <p className="text-secondary">Delivery</p>
       <p>
         {convertToLocale({
           amount: price / 1,
@@ -17,5 +17,5 @@ export const CartItemsFooter = ({
         })}
       </p>
     </div>
-  );
-};
+  )
+}

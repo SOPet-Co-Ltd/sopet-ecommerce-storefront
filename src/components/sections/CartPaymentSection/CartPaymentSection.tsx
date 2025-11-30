@@ -129,9 +129,7 @@ const CartPaymentSection = ({
         </Heading>
         {!isOpen && (
           <Text>
-            <Button onClick={handleEdit} variant="tonal">
-              Edit
-            </Button>
+            <Button onClick={handleEdit}>Edit</Button>
           </Text>
         )}
       </div>
@@ -188,7 +186,6 @@ const CartPaymentSection = ({
 
           <Button
             onClick={handleSubmit}
-            variant="tonal"
             loading={isLoading}
             disabled={
               (isStripe && !cardComplete) ||

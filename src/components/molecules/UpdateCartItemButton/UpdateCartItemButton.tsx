@@ -42,7 +42,10 @@ export const UpdateCartItemButton = ({
 
     debounceTimerRef.current = setTimeout(async () => {
       try {
-        const res = await updateLineItem({ lineId: lineItemId, quantity: newQuantity })
+        const res = await updateLineItem({
+          lineId: lineItemId,
+          quantity: newQuantity,
+        })
         if (!res.ok) {
           setPendingQuantity(quantity)
           return handleError(res.error?.message)
@@ -66,7 +69,6 @@ export const UpdateCartItemButton = ({
   return (
     <div className="flex items-center gap-4 mt-2">
       <Button
-        variant="tonal"
         className="w-8 h-8 flex items-center justify-center"
         disabled={pendingQuantity === 1}
         onClick={() => handleQuantityChange(pendingQuantity - 1)}
@@ -83,7 +85,6 @@ export const UpdateCartItemButton = ({
         {pendingQuantity}
       </span>
       <Button
-        variant="tonal"
         className="w-8 h-8 flex items-center justify-center"
         onClick={() => handleQuantityChange(pendingQuantity + 1)}
       >

@@ -14,7 +14,7 @@ export default async function RootLayout({
         <div className="relative w-full py-2 lg:px-8 px-4">
           <div className="absolute top-3">
             <LocalizedClientLink href="/cart">
-              <Button variant="tonal" className="flex items-center gap-2">
+              <Button variant="default" className="flex items-center gap-2">
                 <CollapseIcon className="rotate-90" />
                 <span className="hidden lg:block">Back to cart</span>
               </Button>

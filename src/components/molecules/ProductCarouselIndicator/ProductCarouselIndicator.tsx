@@ -4,7 +4,8 @@ import { HttpTypes } from "@medusajs/types"
 import { EmblaCarouselType } from "embla-carousel"
 import { useCallback, useEffect, useState } from "react"
 import { cn } from "@/lib/utils"
-import { Indicator } from "@/components/atoms"
+import { IconButton } from "@/components/atoms"
+import { LeftArrowIcon, RightArrowIcon } from "@/icons"
 import useEmblaCarousel from "embla-carousel-react"
 
 export const ProductCarouselIndicator = ({
@@ -15,74 +16,110 @@ export const ProductCarouselIndicator = ({
   embla?: EmblaCarouselType
 }) => {
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [canScrollPrev, setCanScrollPrev] = useState(false)
+  const [canScrollNext, setCanScrollNext] = useState(false)
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    axis: "y",
+    axis: "x",
     loop: true,
     align: "start",
+    containScroll: "trimSnaps",
   })
 
   const changeSlideHandler = useCallback(
     (index: number) => {
       if (!parentEmbla) return
       parentEmbla.scrollTo(index)
-
-      if (!emblaApi) return
-      emblaApi.scrollTo(index)
     },
-    [parentEmbla, emblaApi]
+    [parentEmbla]
   )
 
-  const onSelect = useCallback((emblaApi: EmblaCarouselType) => {
+  const scrollPrevImage = useCallback(() => {
+    if (!parentEmbla) return
+    parentEmbla.scrollPrev()
+  }, [parentEmbla])
+
+  const scrollNextImage = useCallback(() => {
+    if (!parentEmbla) return
+    parentEmbla.scrollNext()
+  }, [parentEmbla])
+
+  const onSelectParent = useCallback((emblaApi: EmblaCarouselType) => {
     setSelectedIndex(emblaApi.selectedScrollSnap())
+    setCanScrollPrev(emblaApi.canScrollPrev())
+    setCanScrollNext(emblaApi.canScrollNext())
+  }, [])
+
+  const onSelectThumbs = useCallback((emblaApi: EmblaCarouselType) => {
+    // Just update thumbnail carousel state if needed
   }, [])
 
   useEffect(() => {
     if (!parentEmbla) return
 
-    onSelect(parentEmbla)
-    parentEmbla.on("reInit", onSelect).on("select", onSelect)
-  }, [parentEmbla, onSelect])
+    onSelectParent(parentEmbla)
+    parentEmbla.on("reInit", onSelectParent).on("select", onSelectParent)
+  }, [parentEmbla, onSelectParent])
+
+  useEffect(() => {
+    if (!emblaApi) return
+
+    onSelectThumbs(emblaApi)
+    emblaApi.on("reInit", onSelectThumbs).on("select", onSelectThumbs)
+  }, [emblaApi, onSelectThumbs])
 
   return (
-    <div className="embla__dots absolute lg:top-3 bottom-3 lg:bottom-auto left-3 w-[calc(100%-24px)] h-[2px] pointer-events-none">
-      <div className="lg:hidden pointer-events-auto">
-        <Indicator
-          step={selectedIndex + 1}
-          size="large"
-          maxStep={slides?.length || 0}
-        />
-      </div>
+    <div className="mt-2 flex items-center gap-2">
+      <IconButton
+        onClick={scrollPrevImage}
+        disabled={!canScrollPrev}
+        variant="tonal"
+        size="small"
+        aria-label="Previous image"
+        icon={<LeftArrowIcon size={20} color="#949495" />}
+        className={cn("shrink-0", !canScrollPrev && "cursor-not-allowed")}
+      />
 
-      <div className="embla relative hidden lg:block pointer-events-auto">
-        <div
-          className="embla__viewport overflow-hidden rounded-xs"
-          ref={emblaRef}
-        >
-          <div className="embla__container h-[350px] lg:h-[680px] flex lg:block">
+      <div
+        className="embla flex-1 overflow-hidden"
+        aria-label="Product image thumbnails"
+      >
+        <div className="embla__viewport overflow-hidden" ref={emblaRef}>
+          <div className="embla__container flex gap-2 justify-center">
             {(slides || []).map((slide, index) => (
               <div
                 key={slide.id}
-                className="mb-3 rounded-xs cursor-pointer w-16 h-16 bg-primary hidden lg:block"
+                className="cursor-pointer"
                 onClick={() => changeSlideHandler(index)}
               >
                 <Image
                   src={decodeURIComponent(slide.url)}
-                  alt="Product carousel Indicator"
-                  width={64}
-                  height={64}
+                  alt={`Product thumbnail ${index + 1}`}
+                  width={80}
+                  height={80}
                   className={cn(
-                    "rounded-xs border-2 transition-color duration-300 hidden lg:block w-16 h-16 object-cover",
+                    "border-4 transition-colors duration-300 w-20 h-20 object-cover",
                     selectedIndex === index
-                      ? "border-primary"
-                      : "border-tertiary"
+                      ? "border-sop-secondary-500"
+                      : "border-sop-base-white"
                   )}
+                  draggable={false}
                 />
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      <IconButton
+        onClick={scrollNextImage}
+        disabled={!canScrollNext}
+        variant="tonal"
+        size="small"
+        aria-label="Next image"
+        icon={<RightArrowIcon size={20} color="#949495" />}
+        className={cn("shrink-0", !canScrollNext && "cursor-not-allowed")}
+      />
     </div>
   )
 }

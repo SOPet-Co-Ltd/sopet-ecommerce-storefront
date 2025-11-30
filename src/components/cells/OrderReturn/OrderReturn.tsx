@@ -18,7 +18,7 @@ export const OrderReturn = ({ order }: { order: any }) => {
         </p>
       </div>
       <Link href={`/user/orders/${order.id}/return`}>
-        <Button variant="tonal" className="uppercase" onClick={() => null}>
+        <Button variant="default" className="uppercase" onClick={() => null}>
           Return
         </Button>
       </Link>

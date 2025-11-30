@@ -14,9 +14,10 @@ const mitr = Mitr({
 
 export const metadata: Metadata = {
   title: {
-    template: `%s | ${process.env.NEXT_PUBLIC_SITE_NAME ||
+    template: `%s | ${
+      process.env.NEXT_PUBLIC_SITE_NAME ||
       "Mercur B2C Demo - Marketplace Storefront"
-      }`,
+    }`,
     default:
       process.env.NEXT_PUBLIC_SITE_NAME ||
       "Mercur B2C Demo - Marketplace Storefront",

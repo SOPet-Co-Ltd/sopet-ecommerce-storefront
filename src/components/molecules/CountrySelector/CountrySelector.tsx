@@ -59,7 +59,10 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
 
   const handleChange = async (option: CountryOption) => {
     try {
-      const result = await updateRegionWithValidation(option.country, currentPath)
+      const result = await updateRegionWithValidation(
+        option.country,
+        currentPath
+      )
 
       if (result.removedItems.length > 0) {
         const itemsList = result.removedItems.join(", ")
@@ -75,7 +78,8 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
     } catch (error: any) {
       toast.error({
         title: "Error switching region",
-        description: error?.message || "Failed to update region. Please try again.",
+        description:
+          error?.message || "Failed to update region. Please try again.",
       })
     }
   }

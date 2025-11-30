@@ -2,8 +2,5 @@ import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedL
 import footerLinks from "@/data/footerLinks"
 
 export function Footer() {
-  return (
-    <footer className="bg-primary container">
-    </footer>
-  )
+  return <footer className="bg-primary container"></footer>
 }

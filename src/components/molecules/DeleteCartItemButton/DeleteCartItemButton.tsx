@@ -16,7 +16,7 @@ export const DeleteCartItemButton = ({ id }: { id: string }) => {
   }
   return (
     <Button
-      variant="text"
+      variant="default"
       className="w-10 h-10 flex items-center justify-center p-0"
       onClick={() => handleDelete(id)}
       loading={isDeleting}

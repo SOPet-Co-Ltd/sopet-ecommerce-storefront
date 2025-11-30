@@ -42,7 +42,7 @@ export const OrderCancel = ({ order }: { order: any }) => {
           </p>
         </div>
         <Button
-          variant="tonal"
+          variant="default"
           className="uppercase"
           onClick={() => setOpen(true)}
         >
@@ -104,7 +104,7 @@ export const OrderCancel = ({ order }: { order: any }) => {
                           {isSelected && (
                             <div className="flex items-center mt-2">
                               <Button
-                                variant="text"
+                                variant="default"
                                 className="w-8 h-8 flex items-center justify-center bg-transparent! !hover:bg-secondary"
                                 disabled={item.quantity === 1}
                                 onClick={() => handleChangeQuantity(item, -1)}
@@ -115,7 +115,7 @@ export const OrderCancel = ({ order }: { order: any }) => {
                                 {item.quantity}
                               </div>
                               <Button
-                                variant="text"
+                                variant="default"
                                 className="w-8 h-8 flex items-center justify-center bg-transparent! !hover:bg-secondary"
                                 disabled={item.quantity === itemline.quantity}
                                 onClick={() => handleChangeQuantity(item, 1)}

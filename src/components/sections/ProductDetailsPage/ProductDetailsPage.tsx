@@ -1,7 +1,13 @@
 import { ProductDetails, ProductGallery } from "@/components/organisms"
 import { listProducts } from "@/lib/data/products"
-import { HomeProductSection } from "../HomeProductSection/HomeProductSection"
 import NotFound from "@/app/not-found"
+import { Breadcrumbs } from "@/components/atoms"
+import { ProductDetailsSeller } from "@/components/cells"
+import {
+  ProductDetailDescription,
+  HomeProductSection,
+  ProductDetailReview,
+} from ".."
 
 export const ProductDetailsPage = async ({
   handle,
@@ -22,16 +28,38 @@ export const ProductDetailsPage = async ({
     return NotFound()
   }
 
+  const breadcrumbs = !prod.collection
+    ? [
+        { label: "หน้าแรก", path: "/" },
+        { label: prod.title, path: `/products/${prod.handle}` },
+      ]
+    : [
+        { label: "หน้าแรก", path: "/" },
+        {
+          label: prod.collection.title,
+          path: `/collections/${prod.collection.handle}`,
+        },
+        { label: prod.title, path: `/products/${prod.handle}` },
+      ]
+
   return (
     <>
-      <div className="flex flex-col md:flex-row lg:gap-12">
-        <div className="md:w-1/2 md:px-2">
-          <ProductGallery images={prod?.images || []} />
-        </div>
-        <div className="md:w-1/2 md:px-2">
-          <ProductDetails product={prod} locale={locale} />
-        </div>
+      {/* Section - Breadcrumb */}
+      <div className="py-4 lg:block hidden">
+        <Breadcrumbs items={breadcrumbs} />
       </div>
+
+      <div className="bg-sop-base-white grid lg:grid-cols-[4fr_6fr] grid-cols-1 gap-4 lg:p-4 lg:rounded-lg rounded-none pb-4">
+        <ProductGallery images={prod?.images || []} />
+        <ProductDetails product={prod} locale={locale} />
+      </div>
+
+      <ProductDetailsSeller seller={prod?.seller} />
+
+      <ProductDetailDescription description={prod.description} />
+
+      <ProductDetailReview productId={prod.id} />
+
       <div className="my-8">
         <HomeProductSection
           heading="More from this seller"

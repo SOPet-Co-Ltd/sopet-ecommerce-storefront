@@ -77,10 +77,10 @@ export const getFacedFilters = (filters: ReadonlyURLSearchParams): string => {
     minPrice && maxPrice
       ? ` AND variants.prices.amount:${minPrice} TO ${maxPrice}`
       : minPrice
-      ? ` AND variants.prices.amount >= ${minPrice}`
-      : maxPrice
-      ? ` AND variants.prices.amount <= ${maxPrice}`
-      : ""
+        ? ` AND variants.prices.amount >= ${minPrice}`
+        : maxPrice
+          ? ` AND variants.prices.amount <= ${maxPrice}`
+          : ""
 
   return facet + priceFilter + rating
 }

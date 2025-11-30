@@ -111,18 +111,12 @@ export const Addresses = ({
                 </div>
                 <div className="flex gap-2 sm:gap-4 flex-col-reverse sm:flex-row">
                   <Button
-                    variant="tonal"
                     className="text-negative"
                     onClick={() => setDeleteAddress(address.id)}
                   >
                     Delete
                   </Button>
-                  <Button
-                    variant="tonal"
-                    onClick={() => handleEdit(address.id)}
-                  >
-                    Edit
-                  </Button>
+                  <Button onClick={() => handleEdit(address.id)}>Edit</Button>
                 </div>
               </Card>
             ))}
@@ -156,13 +150,8 @@ export const Addresses = ({
           <div className="px-4 flex flex-col gap-4">
             <p>Are you sure you want to delete this address?</p>
             <div className="flex justify-end gap-4">
-              <Button variant="tonal" onClick={() => setDeleteAddress(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(deleteAddress)}
-              >
+              <Button onClick={() => setDeleteAddress(null)}>Cancel</Button>
+              <Button onClick={() => handleDelete(deleteAddress)}>
                 Delete
               </Button>
             </div>

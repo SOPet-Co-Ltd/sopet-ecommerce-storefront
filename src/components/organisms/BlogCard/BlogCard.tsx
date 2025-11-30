@@ -33,11 +33,7 @@ export function BlogCard({ post, index }: BlogCardProps) {
         <h3 className="heading-sm">{post.title}</h3>
         <p className="text-md line-clamp-2">{post.excerpt}</p>
         <div className="flex items-center gap-4 uppercase label-md mt-[26px]">
-          Read more{" "}
-          <ArrowRightIcon
-            size={20}
-            color={"#FBBF24"}
-          />
+          Read more <ArrowRightIcon size={20} color={"#FBBF24"} />
         </div>
       </div>
     </LocalizedClientLink>
