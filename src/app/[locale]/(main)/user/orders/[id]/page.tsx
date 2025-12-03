@@ -27,7 +27,7 @@ export default async function UserPage({
         <div className="md:col-span-3">
           <LocalizedClientLink href="/user/orders">
             <Button
-              variant="tonal"
+              variant="default"
               className="label-md text-action-on-secondary uppercase flex items-center gap-2"
             >
               <ArrowLeftIcon className="size-4" />

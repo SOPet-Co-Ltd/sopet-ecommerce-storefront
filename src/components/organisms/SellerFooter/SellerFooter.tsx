@@ -23,12 +23,7 @@ export const SellerFooter = ({ seller }: { seller: SellerProps }) => {
         {/* <Divider square /> */}
         {/* <p>sold {seller.sold}</p> */}
       </div>
-      <Button
-        variant="text"
-        size="large"
-        className="uppercase"
-        onClick={() => setOpenModal(true)}
-      >
+      <Button className="uppercase" onClick={() => setOpenModal(true)}>
         Report
       </Button>
       {openModal && (

@@ -217,7 +217,7 @@ export async function deleteLineItem(lineId: string) {
   }
 
   await sdk.store.cart
-    .deleteLineItem(cartId, lineId, {fields: "*"}, headers)
+    .deleteLineItem(cartId, lineId, { fields: "*" }, headers)
     .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       await revalidateTag(cartCacheTag)
@@ -529,7 +529,12 @@ export async function updateRegionWithValidation(
           )
           if (item) {
             try {
-              await sdk.store.cart.deleteLineItem(cart.id, item.id, {fields: "*"}, headers)
+              await sdk.store.cart.deleteLineItem(
+                cart.id,
+                item.id,
+                { fields: "*" },
+                headers
+              )
               removedItems.push(item.product_title || "Unknown product")
             } catch (deleteError) {
               // Silent failure - item removal failed but continue

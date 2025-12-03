@@ -226,9 +226,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
         </Heading>
         {!isOpen && (
           <Text>
-            <Button onClick={handleEdit} variant="tonal">
-              Edit
-            </Button>
+            <Button onClick={handleEdit}>Edit</Button>
           </Text>
         )}
       </div>
@@ -336,7 +334,6 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
             />
             <Button
               onClick={handleSubmit}
-              variant="tonal"
               disabled={!cart.shipping_methods?.[0]}
               loading={isLoadingPrices}
             >

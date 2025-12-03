@@ -40,7 +40,7 @@ export const ParcelAccordion = ({
         </div>
         <div className="col-span-1 flex justify-end items-center gap-4">
           <LocalizedClientLink href={`/user/orders/${orderId}`}>
-            <Button variant="tonal">
+            <Button variant="default">
               <span className="label-md text-primary">VIEW ORDER</span>
             </Button>
           </LocalizedClientLink>

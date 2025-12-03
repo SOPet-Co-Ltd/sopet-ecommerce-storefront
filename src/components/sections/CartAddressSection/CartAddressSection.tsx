@@ -27,12 +27,12 @@ export const CartAddressSection = ({
 
   const isAddress = Boolean(
     cart?.shipping_address &&
-      cart?.shipping_address.first_name &&
-      cart?.shipping_address.last_name &&
-      cart?.shipping_address.address_1 &&
-      cart?.shipping_address.city &&
-      cart?.shipping_address.postal_code &&
-      cart?.shipping_address.country_code
+    cart?.shipping_address.first_name &&
+    cart?.shipping_address.last_name &&
+    cart?.shipping_address.address_1 &&
+    cart?.shipping_address.city &&
+    cart?.shipping_address.postal_code &&
+    cart?.shipping_address.country_code
   )
   const isOpen = searchParams.get("step") === "address" || !isAddress
 
@@ -65,9 +65,7 @@ export const CartAddressSection = ({
         </Heading>
         {!isOpen && isAddress && (
           <Text>
-            <Button onClick={handleEdit} variant="tonal">
-              Edit
-            </Button>
+            <Button onClick={handleEdit}>Edit</Button>
           </Text>
         )}
       </div>
@@ -86,11 +84,7 @@ export const CartAddressSection = ({
               onChange={toggleSameAsBilling}
               cart={cart}
             />
-            <Button
-              className="mt-6"
-              data-testid="submit-address-button"
-              variant="tonal"
-            >
+            <Button className="mt-6" data-testid="submit-address-button">
               Save
             </Button>
             <ErrorMessage
@@ -132,9 +126,7 @@ export const CartAddressSection = ({
         )}
         {isAddress && !searchParams.get("step") && (
           <LocalizedClientLink href="/checkout?step=delivery">
-            <Button className="mt-6" variant="tonal">
-              Continue to Delivery
-            </Button>
+            <Button className="mt-6">Continue to Delivery</Button>
           </LocalizedClientLink>
         )}
       </form>

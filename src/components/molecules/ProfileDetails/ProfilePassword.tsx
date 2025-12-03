@@ -31,7 +31,7 @@ export const ProfilePassword = ({
           Password
         </Heading>
         <Button
-          variant="tonal"
+          variant="default"
           className="uppercase flex items-center gap-2 font-semibold"
           onClick={() => setShowForm(true)}
         >

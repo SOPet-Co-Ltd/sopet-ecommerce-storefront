@@ -30,6 +30,8 @@ import { OrderProductListItem } from "./OrderProductListItem/OrderProductListIte
 import { OrderTimeline } from "./OrderTimeline/OrderTimeline"
 import { WishlistItem } from "./WishlistItem/WishlistItem"
 import { ProductAdditionalAttributes } from "./ProductAdditionalAttributes/ProductAdditionalAttributes"
+import { ProductDetailQuantitySelection } from "./ProductDetailQuantitySelection/ProductDetailQuantitySelection"
+import { RenderStars } from "./ProductReviewStarRender/ProductReviewStarRender"
 
 export {
   Navbar,
@@ -64,4 +66,6 @@ export {
   OrderTimeline,
   WishlistItem,
   ProductAdditionalAttributes,
+  ProductDetailQuantitySelection,
+  RenderStars,
 }

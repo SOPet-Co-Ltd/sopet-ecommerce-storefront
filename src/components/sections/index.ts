@@ -11,6 +11,14 @@ import { WishlistPage } from "./WishlistPage/WishlistPage"
 import { ProductDetailsPage } from "./ProductDetailsPage/ProductDetailsPage"
 import { AlgoliaProductsListing } from "./ProductListing/AlgoliaProductsListing"
 import { OrdersPagination } from "../organisms/OrdersPagination/OrdersPagination"
+import { ProductDetailDescription } from "./ProductDetailDescription/ProductDetailDescription"
+import { ProductDetailReview } from "./ProductDetailReview/ProductDetailReview"
+import { RenderReviewFilterButtons } from "./RenderReviewFilterButtons/RenderReviewFilterButtons"
+import { ProductDetailReviewComment } from "./ProductDetailReviewComment/ProductDetailReviewComment"
+import { ProductDetailReviewPagination } from "./ProductDetailReviewPagination/ProductDetailReviewPagination"
+import { ProductDetailReviewUserComment } from "./ProductDetailReviewUserComment/ProductDetailReviewUserComment"
+import { ProductCardShowPrice } from "./ProductCardShowPrice/ProductCardShowPrice"
+import { ProductCardReviewStars } from "./ProductReview/ProductCardReview"
 
 export {
   Hero,
@@ -26,4 +34,12 @@ export {
   ProductDetailsPage,
   AlgoliaProductsListing,
   OrdersPagination,
+  ProductDetailDescription,
+  ProductDetailReview,
+  RenderReviewFilterButtons,
+  ProductDetailReviewComment,
+  ProductDetailReviewPagination,
+  ProductDetailReviewUserComment,
+  ProductCardShowPrice,
+  ProductCardReviewStars
 }

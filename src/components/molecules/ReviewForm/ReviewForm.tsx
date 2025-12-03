@@ -57,10 +57,10 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
 
     const response = await createReview(body)
 
-    if (response.error) {
-      setError("error")
-      return
-    }
+    // if (response.error) {
+    //   setError("error")
+    //   return
+    // }
 
     setError("")
     handleClose && handleClose()

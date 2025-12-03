@@ -180,7 +180,8 @@
 
   /* ================= Typography ================= */
   /* Font family */
-  --font-sans: Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+  --font-sans:
+    Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Font weights (labels retained for reference; Tailwind utilities used in practice) */
@@ -246,55 +247,77 @@
 /* Typographic helpers (bases) — sizes via tokens                              */
 /* ========================================================================== */
 @utility sop-display-lg {
-  @apply text-[length:calc(var(--text-sop-5XL)*1px)] leading-[calc(var(--leading-sop-5XL)*1px)] font-sans;
+  font-size: var(--text-sop-5XL);
+  line-height: var(--leading-sop-5XL);
+  font-family: var(--font-sans);
 }
 @utility sop-display-md {
-  @apply text-[length:calc(var(--text-sop-4XL)*1px)] leading-[calc(var(--leading-sop-4XL)*1px)] font-sans;
+  font-size: var(--text-sop-4XL);
+  line-height: var(--leading-sop-4XL);
+  font-family: var(--font-sans);
 }
 @utility sop-display-sm {
-  @apply text-[length:calc(var(--text-sop-3XL)*1px)] leading-[calc(var(--leading-sop-3XL)*1px)] font-sans;
+  font-size: var(--text-sop-3XL);
+  line-height: var(--leading-sop-3XL);
+  font-family: var(--font-sans);
 }
 
 @utility sop-headline-lg {
-  @apply text-[length:calc(var(--text-sop-2XL)*1px)] leading-[calc(var(--leading-sop-2XL)*1px)] font-sans;
+  font-size: var(--text-sop-2XL);
+  line-height: var(--leading-sop-2XL);
+  font-family: var(--font-sans);
 }
 @utility sop-headline-md {
-  @apply text-[length:calc(var(--text-sop-XL)*1px)] leading-[calc(var(--leading-sop-XL)*1px)] font-sans;
+  font-size: var(--text-sop-XL);
+  line-height: var(--leading-sop-XL);
+  font-family: var(--font-sans);
 }
 @utility sop-headline-sm {
-  @apply text-[length:calc(var(--text-sop-LG)*1px)] leading-[calc(var(--leading-sop-LG)*1px)] font-sans;
+  font-size: var(--text-sop-LG);
+  line-height: var(--leading-sop-LG);
+  font-family: var(--font-sans);
 }
 
 @utility sop-body-lg {
-  @apply text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+  font-size: var(--text-sop-MD);
+  line-height: var(--leading-sop-MD);
+  font-family: var(--font-sans);
 }
 @utility sop-body-md {
-  @apply text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+  font-size: var(--text-sop-SM);
+  line-height: var(--leading-sop-SM);
+  font-family: var(--font-sans);
 }
 @utility sop-body-sm {
-  @apply text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+  font-size: var(--text-sop-XS);
+  line-height: var(--leading-sop-XS);
+  font-family: var(--font-sans);
 }
 @utility sop-body-xs {
-  @apply text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+  font-size: var(--text-sop-2XS);
+  line-height: var(--leading-sop-2XS);
+  font-family: var(--font-sans);
 }
 @utility sop-body-2xs {
-  @apply text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
+  font-size: var(--text-sop-3XS);
+  line-height: var(--leading-sop-3XS);
+  font-family: var(--font-sans);
 }
 
 /* ========================================================================== */
-/* Type weights — mapped to Tailwind utilities                                 */
+/* Type weights — using design tokens                                          */
 /* ========================================================================== */
 @utility sop-light {
-  @apply font-light;
+  font-weight: var(--font-weight-sop-Light);
 }
 @utility sop-regular {
-  @apply font-normal;
+  font-weight: var(--font-weight-sop-Regular);
 }
 @utility sop-medium {
-  @apply font-medium;
+  font-weight: var(--font-weight-sop-Medium);
 }
 @utility sop-bold {
-  @apply font-bold;
+  font-weight: var(--font-weight-sop-Bold);
 }
 
 /* ========================================================================== */
@@ -380,6 +403,15 @@
   @apply sop-headline-sm sop-bold;
 }
 
+/* Breadcrumb (20px font, 20px line-height XS, Regular weight) */
+@utility sop-breadcrumb {
+  font-size: var(--text-sop-LG);
+  line-height: var(--leading-sop-XS);
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-sop-Regular);
+  letter-spacing: var(--tracking-sop-SM);
+}
+
 /* Body */
 @utility sop-body-lg-light {
   @apply sop-body-lg sop-light;
@@ -450,19 +482,34 @@
 /* Links (underline variants)                                                  */
 /* ========================================================================== */
 @utility sop-link-lg {
-  @apply underline text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+  text-decoration: underline;
+  font-size: var(--text-sop-MD);
+  line-height: var(--leading-sop-MD);
+  font-family: var(--font-sans);
 }
 @utility sop-link-md {
-  @apply underline text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+  text-decoration: underline;
+  font-size: var(--text-sop-SM);
+  line-height: var(--leading-sop-SM);
+  font-family: var(--font-sans);
 }
 @utility sop-link-sm {
-  @apply underline text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+  text-decoration: underline;
+  font-size: var(--text-sop-XS);
+  line-height: var(--leading-sop-XS);
+  font-family: var(--font-sans);
 }
 @utility sop-link-xs {
-  @apply underline text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+  text-decoration: underline;
+  font-size: var(--text-sop-2XS);
+  line-height: var(--leading-sop-2XS);
+  font-family: var(--font-sans);
 }
 @utility sop-link-2xs {
-  @apply underline text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
+  text-decoration: underline;
+  font-size: var(--text-sop-3XS);
+  line-height: var(--leading-sop-3XS);
+  font-family: var(--font-sans);
 }
 
 @utility sop-link-lg-light {
@@ -534,19 +581,34 @@
 /* Strikethrough sets                                                          */
 /* ========================================================================== */
 @utility sop-strike-lg {
-  @apply line-through text-[length:calc(var(--text-sop-MD)*1px)] leading-[calc(var(--leading-sop-MD)*1px)] font-sans;
+  text-decoration: line-through;
+  font-size: var(--text-sop-MD);
+  line-height: var(--leading-sop-MD);
+  font-family: var(--font-sans);
 }
 @utility sop-strike-md {
-  @apply line-through text-[length:calc(var(--text-sop-SM)*1px)] leading-[calc(var(--leading-sop-SM)*1px)] font-sans;
+  text-decoration: line-through;
+  font-size: var(--text-sop-SM);
+  line-height: var(--leading-sop-SM);
+  font-family: var(--font-sans);
 }
 @utility sop-strike-sm {
-  @apply line-through text-[length:calc(var(--text-sop-XS)*1px)] leading-[calc(var(--leading-sop-XS)*1px)] font-sans;
+  text-decoration: line-through;
+  font-size: var(--text-sop-XS);
+  line-height: var(--leading-sop-XS);
+  font-family: var(--font-sans);
 }
 @utility sop-strike-xs {
-  @apply line-through text-[length:calc(var(--text-sop-2XS)*1px)] leading-[calc(var(--leading-sop-2XS)*1px)] font-sans;
+  text-decoration: line-through;
+  font-size: var(--text-sop-2XS);
+  line-height: var(--leading-sop-2XS);
+  font-family: var(--font-sans);
 }
 @utility sop-strike-2xs {
-  @apply line-through text-[length:calc(var(--text-sop-3XS)*1px)] leading-[calc(var(--leading-sop-3XS)*1px)] font-sans;
+  text-decoration: line-through;
+  font-size: var(--text-sop-3XS);
+  line-height: var(--leading-sop-3XS);
+  font-family: var(--font-sans);
 }
 
 @utility sop-strike-lg-light {
@@ -622,50 +684,50 @@
    bg-[color:var(--color-sop-secondary-100)]
 */
 
-/* Radii (unitless -> px) */
+/* Radii */
 @utility rounded-sop-0 {
-  border-radius: calc(var(--radius-sop-0px) * 1px);
+  border-radius: var(--radius-sop-0px);
 }
 @utility rounded-sop-4 {
-  border-radius: calc(var(--radius-sop-4px) * 1px);
+  border-radius: var(--radius-sop-4px);
 }
 @utility rounded-sop-8 {
-  border-radius: calc(var(--radius-sop-8px) * 1px);
+  border-radius: var(--radius-sop-8px);
 }
 @utility rounded-sop-12 {
-  border-radius: calc(var(--radius-sop-12px) * 1px);
+  border-radius: var(--radius-sop-12px);
 }
 @utility rounded-sop-16 {
-  border-radius: calc(var(--radius-sop-16px) * 1px);
+  border-radius: var(--radius-sop-16px);
 }
 @utility rounded-sop-20 {
-  border-radius: calc(var(--radius-sop-20px) * 1px);
+  border-radius: var(--radius-sop-20px);
 }
 @utility rounded-sop-24 {
-  border-radius: calc(var(--radius-sop-24px) * 1px);
+  border-radius: var(--radius-sop-24px);
 }
 @utility rounded-sop-28 {
-  border-radius: calc(var(--radius-sop-28px) * 1px);
+  border-radius: var(--radius-sop-28px);
 }
 @utility rounded-sop-32 {
-  border-radius: calc(var(--radius-sop-32px) * 1px);
+  border-radius: var(--radius-sop-32px);
 }
 @utility rounded-sop-36 {
-  border-radius: calc(var(--radius-sop-36px) * 1px);
+  border-radius: var(--radius-sop-36px);
 }
 @utility rounded-sop-100 {
-  border-radius: calc(var(--radius-sop-100px) * 1px);
+  border-radius: var(--radius-sop-100px);
 }
 
-/* Spacing (unitless -> px) */
+/* Spacing helpers (example utilities) */
 @utility p-sop-16 {
-  padding: calc(var(--spacing-sop-16px) * 1px);
+  padding: var(--spacing-sop-16px);
 }
 @utility px-sop-32 {
-  padding-left: calc(var(--spacing-sop-32px) * 1px);
-  padding-right: calc(var(--spacing-sop-32px) * 1px);
+  padding-left: var(--spacing-sop-32px);
+  padding-right: var(--spacing-sop-32px);
 }
 @utility py-sop-12 {
-  padding-top: calc(var(--spacing-sop-12px) * 1px);
-  padding-bottom: calc(var(--spacing-sop-12px) * 1px);
+  padding-top: var(--spacing-sop-12px);
+  padding-bottom: var(--spacing-sop-12px);
 }

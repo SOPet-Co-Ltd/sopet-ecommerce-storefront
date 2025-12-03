@@ -3,7 +3,7 @@
 import { HttpTypes } from "@medusajs/types"
 import {
   AlgoliaProductSidebar,
-  ProductCard,
+  ProductCardOld,
   ProductListingActiveFilters,
   ProductsPagination,
 } from "@/components/organisms"
@@ -187,7 +187,7 @@ const ProductsListing = ({
                 {products.map(
                   (hit) =>
                     apiProducts?.find((p: any) => p.id === hit.objectID) && (
-                      <ProductCard
+                      <ProductCardOld
                         api_product={apiProducts?.find(
                           (p: any) => p.id === hit.objectID
                         )}

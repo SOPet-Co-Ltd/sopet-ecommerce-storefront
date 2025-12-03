@@ -48,10 +48,7 @@ export const Hero = ({ image, heading, paragraph, buttons }: HeroProps) => {
                   {label}
                 </span>
 
-                <ArrowRightIcon
-                  color={"#374151"}
-                  aria-hidden
-                />
+                <ArrowRightIcon color={"#374151"} aria-hidden />
               </Link>
             ))}
           </div>

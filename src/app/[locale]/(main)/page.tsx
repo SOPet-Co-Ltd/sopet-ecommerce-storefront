@@ -76,9 +76,10 @@ export async function generateMetadata({
       },
     },
     openGraph: {
-      title: `${title} | ${process.env.NEXT_PUBLIC_SITE_NAME ||
+      title: `${title} | ${
+        process.env.NEXT_PUBLIC_SITE_NAME ||
         "Mercur B2C Demo - Marketplace Storefront"
-        }`,
+      }`,
       description,
       url: canonical,
       siteName:
@@ -158,9 +159,7 @@ export default async function Home({
           }),
         }}
       />
-      <div>
-        Welcome to SOPet Co., Ltd. Official Store
-      </div>
+      <div>Welcome to SOPet Co., Ltd. Official Store</div>
     </main>
   )
 }

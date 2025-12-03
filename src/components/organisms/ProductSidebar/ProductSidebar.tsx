@@ -53,7 +53,6 @@ export const ProductSidebar = () => {
         <div className="bg-primary md:hidden absolute bottom-0 left-0 w-full px-4 flex items-center py-4 border-y gap-2">
           <Button
             className="w-1/2 uppercase label-sm"
-            variant="tonal"
             onClick={() => clearAllFilters()}
           >
             Clear all

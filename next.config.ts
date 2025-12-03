@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
+        hostname: "github.com",
+      },
+      {
+        protocol: "https",
+        hostname: "example.com",
+      },
+      {
         protocol: "https",
         hostname: "medusa-public-images.s3.eu-west-1.amazonaws.com",
       },

@@ -20,9 +20,7 @@ export const BannerSection = () => {
             </p>
           </div>
           <LocalizedClientLink href="/collections/boho">
-            <Button size="large" className="w-fit bg-secondary/10">
-              EXPLORE
-            </Button>
+            <Button className="w-fit bg-secondary/10">EXPLORE</Button>
           </LocalizedClientLink>
         </div>
         <div className="relative aspect-4/3 lg:aspect-auto lg:h-full flex justify-end rounded-xs">

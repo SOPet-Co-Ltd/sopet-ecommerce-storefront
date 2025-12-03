@@ -17,7 +17,7 @@ export const ProfileDetails = ({ user }: { user: HttpTypes.StoreCustomer }) => {
           Profile details
         </Heading>
         <Button
-          variant="tonal"
+          variant="default"
           onClick={() => setShowForm(true)}
           className="uppercase flex items-center gap-2 font-semibold"
         >

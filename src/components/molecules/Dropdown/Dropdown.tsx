@@ -2,14 +2,14 @@ export const Dropdown = ({
   children,
   show,
 }: {
-  children: React.ReactNode;
-  show: boolean;
+  children: React.ReactNode
+  show: boolean
 }) => {
-  if (!show) return null;
+  if (!show) return null
 
   return (
-    <div className='absolute -right-2 bg-primary text-primary z-20 border border-primary rounded-xs w-max'>
+    <div className="absolute -right-2 bg-primary text-primary z-20 border border-primary rounded-xs w-max">
       {children}
     </div>
-  );
-};
+  )
+}

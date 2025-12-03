@@ -92,12 +92,38 @@ export function getProductPrice({
       })[0]
   }
 
+  const expensiveVariant = () => {
+    if (!product || !product.variants?.length) {
+      return null
+    }
+
+    return product.variants
+      .filter((v: any) => !!v.calculated_price)
+      .sort((a: any, b: any) => {
+        return a.calculated_price.calculated_amount_with_tax &&
+          b.calculated_price.calculated_amount_with_tax
+          ? b.calculated_price.calculated_amount_with_tax -
+              a.calculated_price.calculated_amount_with_tax
+          : b.calculated_amount - a.calculated_amount
+      })[0]
+  }
+
   const cheapestPrice = () => {
     if (!product || !product.variants?.length) {
       return null
     }
 
     const variant: any = cheapestVariant()
+
+    return getPricesForVariant(variant)
+  }
+
+  const expensivePrice = () => {
+    if (!product || !product.variants?.length) {
+      return null
+    }
+
+    const variant: any = expensiveVariant()
 
     return getPricesForVariant(variant)
   }
@@ -121,7 +147,9 @@ export function getProductPrice({
   return {
     product,
     cheapestPrice: cheapestPrice(),
+    expensivePrice: expensivePrice(),
     variantPrice: variantPrice(),
     cheapestVariant: cheapestVariant(),
+    expensiveVariant: expensiveVariant(),
   }
 }
