@@ -1,4 +1,4 @@
-import { ProductCard } from "./ProductCard/ProductCard"
+import { ProductCardOld } from "./ProductCardOld/ProductCard"
 import { BrandCard } from "./BrandCard/BrandCard"
 import { CategoryCard } from "./CategoryCard/CategoryCard"
 import { BlogCard } from "./BlogCard/BlogCard"
@@ -24,9 +24,10 @@ import { Addresses } from "./Addressess/Addresses"
 import { ReviewsToWrite } from "./Reviews/ReviewsToWrite"
 import { ReviewsWritten } from "./Reviews/ReviewsWritten"
 import { CartEmpty } from "./CartEmpty/CartEmpty"
+import { ProductCard } from "./ProductCard/ProductCard"
 
 export {
-  ProductCard,
+  ProductCardOld,
   BrandCard,
   CategoryCard,
   BlogCard,
@@ -52,4 +53,5 @@ export {
   ReviewsToWrite,
   ReviewsWritten,
   CartEmpty,
+  ProductCard
 }

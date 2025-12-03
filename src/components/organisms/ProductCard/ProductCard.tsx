@@ -1,97 +1,46 @@
-"use client"
-
+import {
+  ProductCardReviewStars,
+  ProductCardShowPrice,
+} from "@/components/sections"
+import { getProductReviewStats } from "@/lib/data/reviews"
+import { Product } from "@/types/product"
+import { StoreProduct } from "@medusajs/types"
 import Image from "next/image"
-import { Button } from "@/components/atoms"
-import { HttpTypes } from "@medusajs/types"
-import { BaseHit, Hit } from "instantsearch.js"
-import clsx from "clsx"
-import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { getProductPrice } from "@/lib/helpers/get-product-price"
 
-export const ProductCard = ({
-  product,
-  api_product,
-}: {
-  product: Hit<HttpTypes.StoreProduct> | Partial<Hit<BaseHit>>
-  api_product?: HttpTypes.StoreProduct | null
-}) => {
-  if (!api_product) {
-    return null
-  }
+type ProductCardProps = {
+  product: StoreProduct
+}
 
-  const { cheapestPrice } = getProductPrice({
-    product: api_product! as HttpTypes.StoreProduct,
-  })
-
-  const productName = String(product.title || "Product")
-
+export const ProductCard = async ({ product }: ProductCardProps) => {
+  const productReviewStars = await getProductReviewStats(product.id.toString())
+  console.log(productReviewStars)
   return (
-    <div
-      className={clsx(
-        "relative group border rounded-xs flex flex-col justify-between p-1 w-full lg:w-[calc(25%-1rem)] min-w-[250px]"
-      )}
-    >
-      <div className="relative w-full h-full bg-primary aspect-square">
-        <LocalizedClientLink
-          href={`/products/${product.handle}`}
-          aria-label={`View ${productName}`}
-          title={`View ${productName}`}
-        >
-          <div className="overflow-hidden rounded-xs w-full h-full flex justify-center align-center ">
-            {product.thumbnail ? (
-              <Image
-                priority
-                fetchPriority="high"
-                src={decodeURIComponent(product.thumbnail)}
-                alt={`${productName} image`}
-                width={100}
-                height={100}
-                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-                className="object-cover aspect-square w-full object-center h-full lg:group-hover:-mt-14 transition-all duration-300 rounded-xs"
-              />
-            ) : (
-              <Image
-                priority
-                fetchPriority="high"
-                src="/images/placeholder.svg"
-                alt={`${productName} image placeholder`}
-                width={100}
-                height={100}
-                sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              />
-            )}
-          </div>
-        </LocalizedClientLink>
-        <LocalizedClientLink
-          href={`/products/${product.handle}`}
-          aria-label={`See more about ${productName}`}
-          title={`See more about ${productName}`}
-        >
-          <Button className="absolute rounded-xs bg-action text-action-on-primary h-auto lg:h-[48px] lg:group-hover:block hidden w-full uppercase bottom-1 z-10">
-            See More
-          </Button>
-        </LocalizedClientLink>
+    <div className="md:w-[223px] w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+      <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
+        <Image
+          fetchPriority={"auto"}
+          src={decodeURIComponent(
+            product.images?.[0]?.url || "/images/product/placeholder.jpg"
+          )}
+          alt="Product image"
+          width={223}
+          height={223}
+          quality={85}
+          className="w-full h-auto aspect-square object-cover object-center pointer-events-none select-none"
+          draggable={false}
+        />
       </div>
-      <LocalizedClientLink
-        href={`/products/${product.handle}`}
-        aria-label={`Go to ${productName} page`}
-        title={`Go to ${productName} page`}
-      >
-        <div className="flex justify-between p-4">
-          <div className="w-full">
-            <h3 className="heading-sm truncate">{product.title}</h3>
-            <div className="flex items-center gap-2 mt-2">
-              <p className="font-medium">{cheapestPrice?.calculated_price}</p>
-              {cheapestPrice?.calculated_price !==
-                cheapestPrice?.original_price && (
-                <p className="text-sm text-gray-500 line-through">
-                  {cheapestPrice?.original_price}
-                </p>
-              )}
-            </div>
-          </div>
+      <div className="py-2 md:px-3 px-2 pb-5 flex flex-col gap-1">
+        <p>{product.title}</p>
+        <ProductCardShowPrice product={product} />
+        <div>
+          <ProductCardReviewStars
+            starCounts={productReviewStars.starCounts}
+            averageRating={productReviewStars.averageRating}
+            totalReviews={productReviewStars.totalReviews}
+          />
         </div>
-      </LocalizedClientLink>
+      </div>
     </div>
   )
 }

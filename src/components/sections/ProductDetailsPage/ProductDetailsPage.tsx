@@ -8,6 +8,7 @@ import {
   HomeProductSection,
   ProductDetailReview,
 } from ".."
+import { Suspense } from "react"
 
 export const ProductDetailsPage = async ({
   handle,
@@ -20,8 +21,9 @@ export const ProductDetailsPage = async ({
     countryCode: locale,
     queryParams: { handle: [handle], limit: 1 },
     forceCache: true,
-  }).then(({ response }) => response.products[0])
+  }).then(({ response }) => response.products[0])  
 
+  // TODO - return NotFound page if product is not found
   if (!prod) return null
 
   if (prod.seller?.store_status === "SUSPENDED") {
@@ -61,12 +63,13 @@ export const ProductDetailsPage = async ({
       <ProductDetailReview productId={prod.id} />
 
       <div className="my-8">
-        <HomeProductSection
-          heading="More from this seller"
-          products={prod.seller?.products}
-          // seller_handle={prod.seller?.handle}
-          locale={locale}
-        />
+        <Suspense fallback={<div>กำลังโหลดสินค้าเพิ่มเติมจากผู้ขาย...</div>}>
+          <HomeProductSection
+            heading="สินค้าจากร้านเดียวกัน"
+            sellerProducts={prod.seller?.products}
+            locale={locale}
+          />
+        </Suspense>
       </div>
     </>
   )

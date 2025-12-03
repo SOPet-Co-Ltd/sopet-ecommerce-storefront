@@ -7,6 +7,7 @@ import { SortOptions } from "@/types/product"
 import { getAuthHeaders } from "./cookies"
 import { getRegion, retrieveRegion } from "./regions"
 import { SellerProps } from "@/types/seller"
+import { ProductReview } from "./reviews"
 
 export const listProducts = async ({
   pageParam = 1,
@@ -19,9 +20,9 @@ export const listProducts = async ({
 }: {
   pageParam?: number
   queryParams?: HttpTypes.FindParams &
-    HttpTypes.StoreProductParams & {
-      handle?: string[]
-    }
+  HttpTypes.StoreProductParams & {
+    handle?: string[]
+  }
   category_id?: string
   collection_id?: string
   countryCode?: string
@@ -77,9 +78,9 @@ export const listProducts = async ({
         limit,
         offset,
         region_id: region?.id,
-        fields:
-          "*variants.calculated_price,+variants.inventory_quantity,*seller,*variants,*seller.products," +
-          "*seller.reviews,*seller.reviews.customer,*seller.reviews.seller,*seller.products.variants,*attribute_values,*attribute_values.attribute",
+        fields: 
+        "*variants.calculated_price,+variants.inventory_quantity,*seller,*variants,*seller.products,*seller.products.reviews,*seller.products.reviews,*seller.products.reviews.customer" +
+        "*seller.reviews,*seller.reviews.customer,*seller.reviews.seller,*seller.products.variants,*attribute_values,*attribute_values.attribute",
         ...queryParams,
       },
       headers,
@@ -93,20 +94,18 @@ export const listProducts = async ({
 
       const nextPage = count > offset + limit ? pageParam + 1 : null
 
-      const response = products.filter((prod) => {
-        // @ts-ignore Property 'seller' exists but TypeScript doesn't recognize it
-        const reviews = prod.seller?.reviews.filter((item) => !!item) ?? []
-        return (
-          // @ts-ignore Property 'seller' exists but TypeScript doesn't recognize it
-          prod?.seller && {
-            ...prod,
-            seller: {
-              // @ts-ignore Property 'seller' exists but TypeScript doesn't recognize it
-              ...prod.seller,
-              reviews,
-            },
-          }
-        )
+      const response = products.map((prod) => {
+        if (!prod.seller) {
+          return prod
+        }
+        const reviews = prod.seller.reviews?.filter((item) => !!item) ?? []
+        return {
+          ...prod,
+          seller: {
+            ...prod.seller,
+            reviews,
+          },
+        }
       })
 
       return {

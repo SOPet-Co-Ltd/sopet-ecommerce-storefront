@@ -17,6 +17,8 @@ import { RenderReviewFilterButtons } from "./RenderReviewFilterButtons/RenderRev
 import { ProductDetailReviewComment } from "./ProductDetailReviewComment/ProductDetailReviewComment"
 import { ProductDetailReviewPagination } from "./ProductDetailReviewPagination/ProductDetailReviewPagination"
 import { ProductDetailReviewUserComment } from "./ProductDetailReviewUserComment/ProductDetailReviewUserComment"
+import { ProductCardShowPrice } from "./ProductCardShowPrice/ProductCardShowPrice"
+import { ProductCardReviewStars } from "./ProductReview/ProductCardReview"
 
 export {
   Hero,
@@ -38,4 +40,6 @@ export {
   ProductDetailReviewComment,
   ProductDetailReviewPagination,
   ProductDetailReviewUserComment,
+  ProductCardShowPrice,
+  ProductCardReviewStars
 }

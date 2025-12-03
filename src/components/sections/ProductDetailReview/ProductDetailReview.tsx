@@ -25,13 +25,13 @@ export const ProductDetailReview = async ({
   return (
     <div className="bg-sop-base-white gap-4 p-4 md:rounded-lg rounded-none md:mt-5 mt-2">
       <div className="border-b mb-4 py-2 border-sop-primary-500">
-        <p className="sop-headline-md-medium text-sop-primary-700">
+        <p className="md:sop-headline-md-medium sop-body-lg-medium text-sop-primary-700">
           รีวิวจากลูกค้า
         </p>
       </div>
       <div className="grid md:grid-cols-[auto_1fr] p-2 md:grid-rows-1 grid-cols-1 grid-rows-[auto_auto] bg-sop-primary-100 rounded-lg md:gap-12 gap-4">
         {/* NOTE - Display stars and average stars */}
-        <div className="flex md:justify-between justify-start items-center md:flex-col gap-2 md:bg-transparent">
+        <div className="flex lg:justify-between md:justify-center justify-start items-center md:flex-col gap-2 md:bg-transparent">
           <p className="sop-headline-md-medium md:sop-display-sm-medium text-sop-system-warning-500">
             {averageRating}
           </p>
