@@ -43,7 +43,8 @@ export const PriceFilter = () => {
         <form method="POST" onSubmit={updateMinPriceHandler}>
           <Input
             placeholder="Min"
-            icon={<DollarIcon size={16} />}
+            hasStartIcon={true}
+            startIcon={<DollarIcon />}
             onChange={(e) => setMin(e.target.value)}
             value={min}
             type="number"
@@ -54,7 +55,8 @@ export const PriceFilter = () => {
         <form method="POST" onSubmit={updateMaxPriceHandler}>
           <Input
             placeholder="Max"
-            icon={<DollarIcon size={16} />}
+            hasStartIcon={true}
+            startIcon={<DollarIcon />}
             onChange={(e) => setMax(e.target.value)}
             type="number"
             className="no-arrows-number-input"

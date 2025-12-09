@@ -43,7 +43,8 @@ export const BrandFilter = () => {
     <Accordion heading="Brand">
       <Input
         placeholder="Search brands"
-        icon={<SearchIcon size={20} />}
+        hasStartIcon={true}
+        startIcon={<SearchIcon />}
         value={brandsSearch}
         onChange={(e) => searchBrandsHandler(e.target.value)}
       />

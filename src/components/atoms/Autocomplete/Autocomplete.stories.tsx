@@ -10,49 +10,10 @@ const meta: Meta<typeof Autocomplete> = {
   },
   tags: ["autodocs"],
   argTypes: {
-    size: {
-      control: "select",
-      options: ["sm", "md"],
-      description: "Input size variant",
-    },
-    state: {
-      control: "select",
-      options: ["default", "hovered", "filled", "selected", "disabled", "error"],
-      description: "Input state",
-    },
-    variant: {
-      control: "select",
-      options: ["flat", "bordered", "underlined"],
-      description: "Input variant style",
-    },
     styleType: {
       control: "select",
       options: ["predefined", "custom"],
       description: "Style configuration type",
-    },
-    hasTitle: {
-      control: "boolean",
-      description: "Whether to show the title/label",
-    },
-    title: {
-      control: "text",
-      description: "Title/label text",
-    },
-    isRequired: {
-      control: "boolean",
-      description: "Whether the field is required (shows asterisk)",
-    },
-    hasStartIcon: {
-      control: "boolean",
-      description: "Whether to show start icon",
-    },
-    hasEndIcon: {
-      control: "boolean",
-      description: "Whether to show end icon",
-    },
-    withDescription: {
-      control: "boolean",
-      description: "Whether to show description text",
     },
     noResultsText: {
       control: "text",
@@ -74,31 +35,31 @@ const productOptions: AutocompleteOption[] = [
     value: "laptop-1",
     label: "MacBook Pro 14-inch",
     description: "Apple M3 Pro chip, 18GB RAM, 512GB SSD",
-    icon: <Tag size={20} />,
+    icon: <Tag />,
   },
   {
     value: "laptop-2",
     label: "MacBook Air 13-inch",
     description: "Apple M2 chip, 8GB RAM, 256GB SSD",
-    icon: <Tag size={20} />,
+    icon: <Tag />,
   },
   {
     value: "phone-1",
     label: "iPhone 15 Pro",
     description: "128GB, Titanium finish",
-    icon: <Tag size={20} />,
+    icon: <Tag />,
   },
   {
     value: "phone-2",
     label: "iPhone 15",
     description: "256GB, Multiple colors available",
-    icon: <Tag size={20} />,
+    icon: <Tag />,
   },
   {
     value: "tablet-1",
     label: "iPad Pro 12.9-inch",
     description: "M2 chip, 256GB, Wi-Fi + Cellular",
-    icon: <Tag size={20} />,
+    icon: <Tag />,
   },
 ]
 
@@ -107,25 +68,25 @@ const locationOptions: AutocompleteOption[] = [
     value: "bangkok",
     label: "Bangkok",
     description: "Capital city of Thailand",
-    icon: <MapPin size={20} />,
+    icon: <MapPin />,
   },
   {
     value: "chiang-mai",
     label: "Chiang Mai",
     description: "Northern Thailand",
-    icon: <MapPin size={20} />,
+    icon: <MapPin />,
   },
   {
     value: "phuket",
     label: "Phuket",
     description: "Southern Thailand, Island province",
-    icon: <MapPin size={20} />,
+    icon: <MapPin />,
   },
   {
     value: "pattaya",
     label: "Pattaya",
     description: "Beach resort city",
-    icon: <MapPin size={20} />,
+    icon: <MapPin />,
   },
 ]
 
@@ -134,33 +95,38 @@ const userOptions: AutocompleteOption[] = [
     value: "user-1",
     label: "John Doe",
     description: "john.doe@example.com",
-    icon: <User size={20} />,
+    icon: <User />,
   },
   {
     value: "user-2",
     label: "Jane Smith",
     description: "jane.smith@example.com",
-    icon: <User size={20} />,
+    icon: <User />,
   },
   {
     value: "user-3",
     label: "Bob Johnson",
     description: "bob.johnson@example.com",
-    icon: <User size={20} />,
+    icon: <User />,
   },
 ]
+
+// Default inputProps to reuse across stories
+const defaultInputProps = {
+  size: "md" as const,
+  variant: "flat" as const,
+  hasTitle: true,
+  title: "Search Products",
+  isRequired: false,
+  hasStartIcon: true,
+  startIcon: <MagnifyingGlass />,
+  placeholder: "Type to search products...",
+}
 
 // Default story - Product search
 export const Default: Story = {
   args: {
-    size: "md",
-    variant: "flat",
-    hasTitle: true,
-    title: "Search Products",
-    isRequired: false,
-    hasStartIcon: true,
-    startIcon: <MagnifyingGlass />,
-    placeholder: "Type to search products...",
+    inputProps: defaultInputProps,
     options: productOptions,
     styleType: "predefined",
     onOptionSelect: (option) => {
@@ -173,9 +139,12 @@ export const Default: Story = {
 export const Bordered: Story = {
   args: {
     ...Default.args,
-    variant: "bordered",
-    title: "Search Location",
-    placeholder: "Type to search location...",
+    inputProps: {
+      ...defaultInputProps,
+      variant: "bordered",
+      title: "Search Location",
+      placeholder: "Type to search location...",
+    },
     options: locationOptions,
   },
 }
@@ -184,9 +153,12 @@ export const Bordered: Story = {
 export const Underlined: Story = {
   args: {
     ...Default.args,
-    variant: "underlined",
-    title: "Search Users",
-    placeholder: "Type to search users...",
+    inputProps: {
+      ...defaultInputProps,
+      variant: "underlined",
+      title: "Search Users",
+      placeholder: "Type to search users...",
+    },
     options: userOptions,
   },
 }
@@ -195,8 +167,11 @@ export const Underlined: Story = {
 export const SmallSize: Story = {
   args: {
     ...Default.args,
-    size: "sm",
-    title: "Quick Search",
+    inputProps: {
+      ...defaultInputProps,
+      size: "sm",
+      title: "Quick Search",
+    },
   },
 }
 
@@ -204,8 +179,11 @@ export const SmallSize: Story = {
 export const WithDescription: Story = {
   args: {
     ...Default.args,
-    withDescription: true,
-    descriptionText: "Start typing to see suggestions",
+    inputProps: {
+      ...defaultInputProps,
+      withDescription: true,
+      descriptionText: "Start typing to see suggestions",
+    },
   },
 }
 
@@ -213,9 +191,12 @@ export const WithDescription: Story = {
 export const ErrorState: Story = {
   args: {
     ...Default.args,
-    state: "error",
-    withDescription: true,
-    descriptionText: "Please select a valid product",
+    inputProps: {
+      ...defaultInputProps,
+      state: "error",
+      withDescription: true,
+      descriptionText: "Please select a valid product",
+    },
   },
 }
 
@@ -223,8 +204,11 @@ export const ErrorState: Story = {
 export const LimitedResults: Story = {
   args: {
     ...Default.args,
+    inputProps: {
+      ...defaultInputProps,
+      title: "Search (Max 3 results)",
+    },
     maxResults: 3,
-    title: "Search (Max 3 results)",
   },
 }
 
@@ -232,7 +216,10 @@ export const LimitedResults: Story = {
 export const CustomStyles: Story = {
   args: {
     ...Default.args,
-    title: "Custom Styled Search",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Custom Styled Search",
+    },
     styleType: "custom",
     customStyles: {
       dropdown: "absolute z-50 w-full mt-2 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl shadow-2xl max-h-60 overflow-auto",
@@ -260,7 +247,10 @@ export const WithoutIcons: Story = {
 export const SimpleOptions: Story = {
   args: {
     ...Default.args,
-    title: "Simple Search",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Simple Search",
+    },
     options: [
       { value: "1", label: "Option 1" },
       { value: "2", label: "Option 2" },
@@ -275,7 +265,10 @@ export const SimpleOptions: Story = {
 export const Required: Story = {
   args: {
     ...Default.args,
-    isRequired: true,
+    inputProps: {
+      ...defaultInputProps,
+      isRequired: true,
+    },
   },
 }
 
@@ -283,7 +276,10 @@ export const Required: Story = {
 export const CustomFilter: Story = {
   args: {
     ...Default.args,
-    title: "Search (Starts with)",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Search (Starts with)",
+    },
     filterFunction: (option, value) => {
       return option.label.toLowerCase().startsWith(value.toLowerCase())
     },
@@ -294,8 +290,11 @@ export const CustomFilter: Story = {
 export const WithEndIcon: Story = {
   args: {
     ...Default.args,
-    hasEndIcon: true,
-    endIcon: <Tag />,
+    inputProps: {
+      ...defaultInputProps,
+      hasEndIcon: true,
+      endIcon: <Tag />,
+    },
   },
 }
 
@@ -312,7 +311,10 @@ export const NoResults: Story = {
 export const CustomContainer: Story = {
   args: {
     ...Default.args,
-    title: "Styled Container",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Styled Container",
+    },
     className: "max-w-md",
     styleType: "custom",
     customStyles: {
@@ -341,7 +343,10 @@ const CompactOptionComponent = ({ option, onClick, onMouseEnter }: OptionCompone
 export const CustomOptionComponent: Story = {
   args: {
     ...Default.args,
-    title: "Compact Option Layout",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Compact Option Layout",
+    },
     OptionComponent: CompactOptionComponent,
   },
 }
@@ -372,7 +377,10 @@ const CardOptionComponent = ({ option, isHovered, onClick, onMouseEnter }: Optio
 export const CardStyleOption: Story = {
   args: {
     ...Default.args,
-    title: "Card Style Options",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Card Style Options",
+    },
     OptionComponent: CardOptionComponent,
     customStyles: {
       dropdown: "absolute z-50 w-full mt-1 bg-white border border-sop-neutral-gray-400 rounded-lg shadow-lg max-h-96 overflow-auto p-2",
@@ -410,7 +418,10 @@ const productOptionsWithBadges: AutocompleteOption[] = productOptions.map(opt =>
 export const WithBadges: Story = {
   args: {
     ...Default.args,
-    title: "Options with Badges",
+    inputProps: {
+      ...defaultInputProps,
+      title: "Options with Badges",
+    },
     options: productOptionsWithBadges,
     OptionComponent: BadgeOptionComponent,
   },
