@@ -1,32 +1,98 @@
 "use client"
 import { cn } from "@/lib/utils"
 
-import { CloseIcon } from "@/icons"
 import { useEffect, useState } from "react"
 import { EyeMini, EyeSlashMini } from "@medusajs/icons"
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  icon?: React.ReactNode
-  clearable?: boolean
-  error?: boolean
-  changeValue?: (value: string) => void
+export interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  // Variant props from Figma
+  size?: "md" | "sm"
+  state?: "default" | "hovered" | "filled" | "selected" | "disabled" | "error" | "Filled + Multiselect"
+  variant?: "flat" | "bordered" | "underlined"
+  
+  // Title props
+  hasTitle?: boolean
+  title?: string
+  isRequired?: boolean
+  
+  // Icon props
+  hasStartIcon?: boolean
+  startIcon?: React.ReactNode
+  hasEndIcon?: boolean
+  endIcon?: React.ReactNode
+  
+  // Content props
+  hasContent?: boolean
+  contentText?: string
+  hasPlaceholder?: boolean
+  placeholderText?: string
+  
+  // Description props
+  withDescription?: boolean
+  descriptionText?: string
 }
 
 export function Input({
-  label,
-  icon,
-  clearable,
+  size = "md",
+  state = "default",
+  variant = "flat",
+  hasTitle = true,
+  title = "Title",
+  isRequired = false,
+  hasStartIcon = false,
+  startIcon,
+  hasEndIcon = false,
+  endIcon,
+  hasContent = true,
+  contentText = "content",
+  hasPlaceholder = false,
+  placeholderText = "placeholder",
+  withDescription = false,
+  descriptionText = "กรุณากรอกข้อมูลของคุณ",
   className,
-  error,
-  changeValue,
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [inputType, setInputType] = useState(props.type)
-  let paddingY = ""
-  if (icon) paddingY += "pl-[46px] "
-  if (clearable) paddingY += "pr-[38px]"
+  
+  // Determine actual values
+  const displayTitle = title
+  const displayStartIcon = startIcon
+  const displayEndIcon = endIcon
+  const displayPlaceholder = props.placeholder || (hasPlaceholder ? placeholderText : undefined)
+  const displayValue = props.value !== undefined ? props.value : (hasContent ? contentText : "")
+  const isError = state === "error"
+  const isDisabled = props.disabled || state === "disabled"
+  
+  // Size variants
+  const sizeClasses = {
+    sm: "text-xs h-8",
+    md: "text-sm h-10",
+  }
+  
+  // Variant styles
+  const variantClasses = {
+    flat: "bg-sop-neutral-gray-500 border border-solid border-sop-neutral-gray-500",
+    bordered: "bg-transparent border border-solid border-sop-neutral-gray-400",
+    underlined: "bg-transparent border-b border-solid border-sop-neutral-gray-400 rounded-none",
+  }
+  
+  // State styles
+  const stateClasses = {
+    default: "",
+    hovered: "border-sop-neutral-grayalpha-300",
+    filled: "border-sop-neutral-grayalpha-300",
+    selected: "border-sop-primary-500 ring-1 ring-sop-primary-500",
+    disabled: "bg-sop-neutral-grayalpha-200 cursor-not-allowed text-sop-neutral-gray-400 border-sop-neutral-grayalpha-300",
+    error: "border-sop-system-error-400 ring-1 ring-sop-system-error-400",
+    "Filled + Multiselect": "border-sop-neutral-grayalpha-300",
+  }
+  
+  let paddingLeft = "pl-3"
+  let paddingRight = "pr-3"
+  
+  if (hasStartIcon && displayStartIcon) paddingLeft = "pl-10"
+  if ((hasEndIcon && displayEndIcon) || props.type === "password") paddingRight = "pr-10"
 
   useEffect(() => {
     if (props.type === "password" && showPassword) {
@@ -38,55 +104,77 @@ export function Input({
     }
   }, [props.type, showPassword])
 
-  const changeHandler = (value: string) => {
-    if (changeValue) changeValue(value)
-  }
-
-  const clearHandler = () => {
-    if (changeValue) changeValue("")
+  const changeHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (props.onChange) {
+      props.onChange(e)
+    }
   }
 
   return (
-    <label className="label-md">
-      {label}
-      <div className="relative mt-2">
-        {icon && (
-          <span className="absolute top-0 left-[16px] h-full flex items-center">
-            {icon}
+    <div className="w-full">
+      {hasTitle && displayTitle && (
+        <label className="label-md flex items-center gap-1 mb-2">
+          {displayTitle}
+          {isRequired && <span className="text-sop-system-error-400">*</span>}
+        </label>
+      )}
+      
+      <div className="relative w-full">
+        {(hasStartIcon && displayStartIcon) && (
+          <span className="absolute top-0 left-3 h-full flex items-center text-sop-neutral-gray-400">
+            {displayStartIcon}
           </span>
         )}
 
         <input
           className={cn(
-            "w-full px-[16px] py-[12px] border rounded-xs bg-component-secondary focus:border-primary focus:outline-hidden focus:ring-0",
-            error && "border-negative focus:border-negative",
-            props.disabled && "bg-disabled cursor-not-allowed",
-            paddingY,
+            "w-full p-2 sop-body-sm-regular rounded-[8px]",
+            "text-sop-neutral-gray-400",
+            "focus:border-sop-primary-500 focus:outline-none focus:ring-1 focus:ring-sop-primary-500",
+            "placeholder:text-sop-neutral-gray-400",
+            "transition-all duration-150",
+            sizeClasses[size],
+            variantClasses[variant],
+            stateClasses[state],
+            isError && !isDisabled && "border-sop-system-error-400 ring-1 ring-sop-system-error-400",
+            isDisabled && "bg-sop-neutral-grayalpha-200 cursor-not-allowed text-sop-neutral-gray-400 border-sop-neutral-grayalpha-300",
+            paddingLeft,
+            paddingRight,
             className
           )}
-          value={props.value}
-          onChange={(e) => changeHandler(e.target.value)}
+          value={displayValue}
+          placeholder={displayPlaceholder}
+          onChange={changeHandler}
+          disabled={isDisabled}
           {...props}
           type={props.type === "password" ? inputType : props.type}
         />
-        {clearable && props.value && (
-          <span
-            className="absolute h-full flex items-center top-0 right-[16px] cursor-pointer"
-            onClick={clearHandler}
-          >
-            <CloseIcon />
+        
+        {(hasEndIcon && displayEndIcon && props.type !== "password") && (
+          <span className="absolute top-0 right-3 h-full flex items-center text-sop-neutral-gray-400">
+            {displayEndIcon}
           </span>
         )}
+        
         {props.type === "password" && (
           <button
             type="button"
             onClick={() => setShowPassword(!showPassword)}
-            className="text-ui-fg-subtle px-4 focus:outline-hidden transition-all duration-150 outline-hidden focus:text-ui-fg-base absolute right-0 top-4"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-sop-neutral-gray-400 hover:text-sop-neutral-gray-300 focus:outline-hidden transition-all duration-150"
           >
             {showPassword ? <EyeMini /> : <EyeSlashMini />}
           </button>
         )}
       </div>
-    </label>
+      
+      {withDescription && descriptionText && (
+        <p className={cn(
+          "text-xs mt-1",
+          isError ? "text-sop-system-error-400" : "text-sop-neutral-gray-400"
+        )}>
+          {descriptionText}
+        </p>
+      )}
+    </div>
   )
 }
