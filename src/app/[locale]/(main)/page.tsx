@@ -12,6 +12,7 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
+import { NavbarSearch } from "@/components/molecules"
 
 export async function generateMetadata({
   params,
@@ -159,7 +160,9 @@ export default async function Home({
           }),
         }}
       />
+      <NavbarSearch/>
       <div>Welcome to SOPet Co., Ltd. Official Store</div>
+
     </main>
   )
 }
