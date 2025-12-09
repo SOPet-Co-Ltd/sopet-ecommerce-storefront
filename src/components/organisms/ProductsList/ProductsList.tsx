@@ -1,4 +1,4 @@
-import { ProductCardOld } from "../ProductCardOld/ProductCard"
+import { ProductCard } from "../ProductCard/ProductCard"
 import { HttpTypes } from "@medusajs/types"
 
 export const ProductsList = ({
@@ -9,7 +9,11 @@ export const ProductsList = ({
   return (
     <>
       {products.map((product) => (
-        <ProductCardOld key={product.id} product={product} api_product={product} />
+        <ProductCard
+          api_product={products?.find((p: any) => p.id === product.id)}
+          key={product.id}
+          product={product}
+        />
       ))}
     </>
   )

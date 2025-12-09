@@ -52,24 +52,27 @@ export const ProductCardShowPrice = ({
         )
       )
     )?.id || ""
+    
+    // get variant price
+    const { variantPrice } = getProductPrice({
+      product,
+      variantId,
+    })
 
-  // get variant price
-  const { variantPrice } = getProductPrice({
-    product,
-    variantId,
-  })
+  // Determine which price to display
+  const displayPrice = variantPrice || cheapestPrice
 
   return (
     <div className="flex gap-2 items-center">
-      {hasAnyPrice && variantPrice ? (
+      {hasAnyPrice && displayPrice ? (
         <>
           <span className="text-sop-secondary-500 rounded-sop-8px md:sop-body-lg-medium sop-body-lg-medium">
-            ฿{variantPrice.calculated_price_number}
+            ฿{displayPrice.calculated_price_number}
           </span>
-          {variantPrice.calculated_price_number !==
-            variantPrice.original_price_number && (
+          {displayPrice.calculated_price_number !==
+            displayPrice.original_price_number && (
             <span className="text-sop-neutral-grayalpha-400 md:sop-strike-sm-regular sop-strike-sm-regular">
-              ฿{variantPrice.original_price_number}
+              ฿{displayPrice.original_price_number}
             </span>
           )}
         </>
