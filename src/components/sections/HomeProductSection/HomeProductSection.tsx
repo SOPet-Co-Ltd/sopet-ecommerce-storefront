@@ -39,7 +39,7 @@ export const HomeProductSection = async ({
             key={product.id}
             className="shrink-0 md:w-auto flex"
           >
-            <ProductCard product={product} />
+            <ProductCard api_product={product} product={product} />
           </div>
         ))}
       </div>
