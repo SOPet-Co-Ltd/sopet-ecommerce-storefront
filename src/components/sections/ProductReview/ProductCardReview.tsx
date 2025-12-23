@@ -20,18 +20,17 @@ export const ProductCardReviewStars = ({ averageRating, totalReviews }: ReviewSt
   }
 
   return (
-    <div className="grid grid-cols-[auto_1fr] gap-4 justify-center items-center">
+    <div className="grid grid-cols-[auto_1fr] gap-1 justify-center items-center">
       <div className="md:flex gap-2 hidden">
         <StarIcon color="#ffb514" size={16} />
       </div>
       <div className="flex gap-2 md:hidden">
         <StarIcon color="#ffb514" size={14} />
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between gap-2">
         <p className="md:sop-body-sm-regular sop-body-xs-regular text-sop-neutral-gray-400">
           {averageRating} ({totalReviews} รีวิว)
         </p>
-        <div className="w-px h-6 bg-sop-neutral-gray-400"> </div>
         <p className="md:sop-body-xs-regular sop-body-xs-regular text-sop-neutral-gray-400">
           ขายแล้ว {formatNumber(amountSaled)} ชิ้น
         </p>

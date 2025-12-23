@@ -1,6 +1,5 @@
 "use client"
-import { PaginationButton } from "@/components/atoms"
-import { CollapseIcon, MeatballsMenuIcon } from "@/icons"
+import { CollapseIcon, LeftPointSquareIcon, MeatballsMenuIcon, RightPointSquareIcon } from "@/icons"
 
 export const Pagination = ({
   pages,
@@ -11,56 +10,55 @@ export const Pagination = ({
   setPage: (page: number) => void
   currentPage: number
 }) => {
-  const renderPaginationButtons = () => {
+  const renderbuttons = () => {
     const buttons = [] as React.ReactNode[]
 
     if (currentPage > 2) {
       buttons.push(
-        <PaginationButton key={`gap-left`} disabled aria-label="More pages">
+        <button key={`gap-left`} disabled aria-label="More pages">
           <MeatballsMenuIcon />
-        </PaginationButton>
+        </button>
       )
     }
 
     if (currentPage > 1) {
       buttons.push(
-        <PaginationButton
+        <button
           key={`page-${currentPage - 1}`}
           aria-label={`Go to page ${currentPage - 1}`}
           onClick={() => setPage(currentPage - 1)}
         >
           {currentPage - 1}
-        </PaginationButton>
+        </button>
       )
     }
 
     buttons.push(
-      <PaginationButton
+      <button
         key={`page-${currentPage}`}
-        isActive
         aria-label={`Current page, page ${currentPage}`}
       >
         {currentPage}
-      </PaginationButton>
+      </button>
     )
 
     if (currentPage < pages) {
       buttons.push(
-        <PaginationButton
+        <button
           key={`page-${currentPage + 1}`}
           aria-label={`Go to page ${currentPage + 1}`}
           onClick={() => setPage(currentPage + 1)}
         >
           {currentPage + 1}
-        </PaginationButton>
+        </button>
       )
     }
 
     if (currentPage < pages - 1) {
       buttons.push(
-        <PaginationButton key={`gap-right`} disabled aria-label="More pages">
+        <button key={`gap-right`} disabled aria-label="More pages">
           <MeatballsMenuIcon />
-        </PaginationButton>
+        </button>
       )
     }
 
@@ -69,25 +67,25 @@ export const Pagination = ({
 
   return (
     <div className="flex items-center">
-      <PaginationButton
+      <button
         disabled={Boolean(currentPage === 1)}
         onClick={() => setPage(currentPage - 1)}
         className="border-none"
         aria-label="Previous page"
       >
-        <CollapseIcon size={20} className="rotate-90" />
-      </PaginationButton>
+        <LeftPointSquareIcon size={28} />
+      </button>
 
-      {renderPaginationButtons()}
+      {renderbuttons()}
 
-      <PaginationButton
+      <button
         disabled={Boolean(currentPage === pages)}
         onClick={() => setPage(currentPage + 1)}
         className="border-none"
         aria-label="Next page"
       >
-        <CollapseIcon size={20} className="-rotate-90" />
-      </PaginationButton>
+        <RightPointSquareIcon size={28} />
+      </button>
     </div>
   )
 }

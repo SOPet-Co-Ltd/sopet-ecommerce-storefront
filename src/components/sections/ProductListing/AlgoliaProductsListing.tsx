@@ -9,7 +9,7 @@ import {
   ProductsPagination,
 } from "@/components/organisms"
 import { client } from "@/lib/client"
-import { Configure, useHits } from "react-instantsearch"
+import { Configure, SearchBox, useHits } from "react-instantsearch"
 import { InstantSearchNext } from "react-instantsearch-nextjs"
 import { useSearchParams } from "next/navigation"
 import { getFacedFilters } from "@/lib/helpers/get-faced-filters"
@@ -18,6 +18,7 @@ import { ProductListingSkeleton } from "@/components/organisms/ProductListingSke
 import { useEffect, useState } from "react"
 import { listProducts } from "@/lib/data/products"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
+import { LeftPointSquareIcon, RightPointSquareIcon } from "@/icons"
 
 export const AlgoliaProductsListing = ({
   category_id,
@@ -86,7 +87,7 @@ const ProductsListing = ({
         countryCode: locale,
         queryParams: {
           fields:
-            "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id",
+            "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id,review_count,average_rating",
           handle: items.map((item) => item.handle),
           limit: items.length,
         },
@@ -163,46 +164,75 @@ const ProductsListing = ({
   }
 
   return (
-    <div className="min-h-[70vh]">
-      <div className="flex justify-between w-full items-center">
-        <div className="my-4 label-md">{`${count} listings`}</div>
-      </div>
-      <div className="hidden md:block">
-        <ProductListingActiveFilters />
-      </div>
-      <div className="md:flex gap-4">
-        <div className="w-[280px] shrink-0 hidden md:block">
-          <AlgoliaProductSidebar />
+    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-8 md:flex-row flex-col md:pb-sop-40px pb-10">
+      {/* NOTE - Sidebar */}
+      <div className="lg:block hidden">
+        {/* NOTE - Content Left - Filter */}
+        {/* <div className="flex justify-between w-full items-center">
+          <div className="my-4 label-md">{`${count} listings`}</div>
         </div>
-        <div className="w-full">
-          {!items.length ? (
-            <div className="text-center w-full my-10">
-              <h2 className="uppercase text-primary heading-lg">no results</h2>
-              <p className="mt-4 text-lg">
-                Sorry, we can&apos;t find any results for your criteria
-              </p>
-            </div>
-          ) : (
-            <div className="w-full">
-              <ul className="flex flex-wrap gap-4">
-                {products.map(
-                  (hit) =>
-                    apiProducts?.find((p: any) => p.id === hit.objectID) && (
-                      <ProductCard
-                        api_product={apiProducts?.find(
-                          (p: any) => p.id === hit.objectID
-                        )}
-                        key={hit.objectID}
-                        product={hit}
-                      />
-                    )
-                )}
-              </ul>
-            </div>
-          )}
+        <div className="hidden md:block">
+          <ProductListingActiveFilters />
+        </div> */}
+        <div className="md:flex gap-4">
+          <div className="w-[280px] shrink-0 hidden md:block">
+            <AlgoliaProductSidebar />
+          </div>
         </div>
       </div>
-      <ProductsPagination pages={pages} />
+      {/* NOTE - Main */}
+      <div className="w-full">
+        {/* NOTE - Header */}
+        {searchParamas.get("query") && (
+          <div className="md:block hidden">
+            <p className="sop-headline-md-medium text-sop-neutral-gray-300">
+              ผลการค้นหาทั้งหมด "{searchParamas.get("query")}"
+            </p>
+          </div>
+        )}
+        <div className="flex justify-between items-center">
+          <div><ProductListingActiveFilters /></div>
+          <div className="md:block hidden">
+            <ProductsPagination pages={pages} />
+          </div>
+        </div>
+
+        {/* NOTE - Content Right */}
+        <div className="flex flex-col">
+          <p className="sop-body-lg-medium text-sop-neutral-gray-300 md:block hidden">
+            สินค้าทั้งหมด {apiProducts?.length}
+          </p>
+          <div className="mt-5">
+            {!items.length ? (
+              <div className="text-center w-full my-10">
+                <h2 className="uppercase text-primary heading-lg">
+                  no results
+                </h2>
+                <p className="mt-4 text-lg">
+                  Sorry, we can&apos;t find any results for your criteria
+                </p>
+              </div>
+            ) : (
+              <div className="w-full">
+                <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
+                  {products.map(
+                    (hit) =>
+                      apiProducts?.find((p: any) => p.id === hit.objectID) && (
+                        <ProductCard
+                          api_product={apiProducts?.find(
+                            (p: any) => p.id === hit.objectID
+                          )}
+                          key={hit.objectID}
+                          product={hit}
+                        />
+                      )
+                  )}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

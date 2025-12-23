@@ -7,7 +7,12 @@ import { SortOptions } from "@/types/product"
 import { getAuthHeaders } from "./cookies"
 import { getRegion, retrieveRegion } from "./regions"
 import { SellerProps } from "@/types/seller"
-import { ProductReview } from "./reviews"
+
+export type ProductWithSeller = HttpTypes.StoreProduct & {
+  seller?: SellerProps
+  review_count?: number | null
+  average_rating?: number | null
+}
 
 export const listProducts = async ({
   pageParam = 1,
@@ -30,7 +35,7 @@ export const listProducts = async ({
   forceCache?: boolean
 }): Promise<{
   response: {
-    products: (HttpTypes.StoreProduct & { seller?: SellerProps })[]
+    products: ProductWithSeller[]
     count: number
   }
   nextPage: number | null
@@ -67,7 +72,7 @@ export const listProducts = async ({
 
   return sdk.client
     .fetch<{
-      products: (HttpTypes.StoreProduct & { seller?: SellerProps })[]
+      products: ProductWithSeller[]
       count: number
     }>(`/store/products`, {
       method: "GET",
@@ -78,9 +83,24 @@ export const listProducts = async ({
         limit,
         offset,
         region_id: region?.id,
-        fields: 
-        "*variants.calculated_price,+variants.inventory_quantity,*seller,*variants,*seller.products,*seller.products.reviews,*seller.products.reviews,*seller.products.reviews.customer" +
-        "*seller.reviews,*seller.reviews.customer,*seller.reviews.seller,*seller.products.variants,*attribute_values,*attribute_values.attribute",
+        fields: [
+          "*variants.calculated_price",
+          "+variants.inventory_quantity",
+          "*seller",
+          "*variants",
+          "*seller.products",
+          "*seller.products.reviews",
+          "*seller.products.reviews.customer",
+          "*seller.reviews",
+          "*seller.reviews.customer",
+          "*seller.reviews.seller",
+          "*seller.products.variants",
+          "*attribute_values",
+          "*attribute_values.attribute",
+          // Denormalized review stats on product (used by storefront cards)
+          "review_count",
+          "average_rating",
+        ].join(","),
         ...queryParams,
       },
       headers,

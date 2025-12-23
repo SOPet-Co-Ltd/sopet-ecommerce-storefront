@@ -78,6 +78,11 @@ export type ReviewStats = {
   starCounts: { starCount: number; count: number }[]
 }
 
+type ProductReviewStatsResponse = ReviewStats & {
+  review_count?: number
+  average_rating?: number
+}
+
 export type CreateProductReviewInput = {
   customer_id: string
   order_id?: string
@@ -289,7 +294,7 @@ export const getProductReviewStats = async (
   const headers = await getAuthHeaders()
 
   try {
-    const data = await sdk.client.fetch<ReviewStats>(
+    const data = await sdk.client.fetch<ProductReviewStatsResponse>(
       `/store/products/${productId}/reviews/stats`,
       {
         method: "GET",
@@ -299,7 +304,25 @@ export const getProductReviewStats = async (
       }
     )
 
-    return data
+    const averageRating =
+      typeof data.averageRating === "number"
+        ? data.averageRating
+        : typeof data.average_rating !== "undefined"
+          ? Number(data.average_rating)
+          : 0
+
+    const totalReviews =
+      typeof data.totalReviews === "number"
+        ? data.totalReviews
+        : typeof data.review_count !== "undefined"
+          ? Number(data.review_count)
+          : 0
+
+    return {
+      averageRating,
+      totalReviews,
+      starCounts: Array.isArray(data.starCounts) ? data.starCounts : [],
+    }
   } catch (error) {
     console.error(
       `Failed to fetch review stats for product ${productId}:`,

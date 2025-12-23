@@ -49,7 +49,7 @@ export default async function RootLayout({
   const htmlLang = locale || "en"
 
   return (
-    <html lang={htmlLang} className="">
+    <html lang={htmlLang} className="" suppressHydrationWarning>
       <Head>
         <link
           rel="preconnect"

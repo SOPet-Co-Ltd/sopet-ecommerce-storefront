@@ -17,9 +17,9 @@ export const revalidate = 60
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<{ locale: string }>
+  params: { locale: string }
 }): Promise<Metadata> {
-  const { locale } = await params
+  const { locale } = params
   const headersList = await headers()
   const host = headersList.get("host")
   const protocol = headersList.get("x-forwarded-proto") || "https"
@@ -71,9 +71,9 @@ const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
 async function AllCategories({
   params,
 }: {
-  params: Promise<{ locale: string }>
+  params: { locale: string }
 }) {
-  const { locale } = await params
+  const { locale } = params
 
   const ua = (await headers()).get("user-agent") || ""
   const bot = isBot(ua)
@@ -107,7 +107,7 @@ async function AllCategories({
   }))
 
   return (
-    <main className="container">
+    <main className="">
       <Script
         id="ld-breadcrumbs-categories"
         type="application/ld+json"
@@ -137,11 +137,11 @@ async function AllCategories({
           }),
         }}
       />
-      <div className="hidden md:block mb-2">
+      {/* <div className="hidden md:block mb-2">
         <Breadcrumbs items={breadcrumbsItems} />
       </div>
 
-      <h1 className="heading-xl uppercase">All Products</h1>
+      <h1 className="heading-xl uppercase">All Products</h1> */}
 
       <Suspense fallback={<ProductListingSkeleton />}>
         {bot || !ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
