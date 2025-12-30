@@ -7,6 +7,7 @@ import {
   ProductCardOld,
   ProductListingActiveFilters,
   ProductsPagination,
+  ProductSortButtons,
 } from "@/components/organisms"
 import { client } from "@/lib/client"
 import { Configure, SearchBox, useHits } from "react-instantsearch"
@@ -15,10 +16,11 @@ import { useSearchParams } from "next/navigation"
 import { getFacedFilters } from "@/lib/helpers/get-faced-filters"
 import { PRODUCT_LIMIT } from "@/const"
 import { ProductListingSkeleton } from "@/components/organisms/ProductListingSkeleton/ProductListingSkeleton"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { listProducts } from "@/lib/data/products"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { LeftPointSquareIcon, RightPointSquareIcon } from "@/icons"
+import { sortProducts } from "@/lib/helpers/sort-products"
+import { SortOptions } from "@/types/product"
 
 export const AlgoliaProductsListing = ({
   category_id,
@@ -38,19 +40,16 @@ export const AlgoliaProductsListing = ({
   const facetFilters: string = getFacedFilters(searchParamas)
   const query: string = searchParamas.get("query") || ""
 
-  const filters = `${
-    seller_handle
+  const filters = `${seller_handle
       ? `NOT seller:null AND seller.handle:${seller_handle} AND `
       : "NOT seller:null AND "
-  }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${
-    category_id
-      ? ` AND categories.id:${category_id}${
-          collection_id !== undefined
-            ? ` AND collections.id:${collection_id}`
-            : ""
-        } ${facetFilters}`
+    }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${category_id
+      ? ` AND categories.id:${category_id}${collection_id !== undefined
+        ? ` AND collections.id:${collection_id}`
+        : ""
+      } ${facetFilters}`
       : ` ${facetFilters}`
-  }`
+    }`
 
   return (
     <InstantSearchNext searchClient={client} indexName="products">
@@ -87,7 +86,7 @@ const ProductsListing = ({
         countryCode: locale,
         queryParams: {
           fields:
-            "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id,review_count,average_rating",
+            "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id,+review_count,+average_rating",
           handle: items.map((item) => item.handle),
           limit: items.length,
         },
@@ -108,60 +107,86 @@ const ProductsListing = ({
     handleSetProducts()
   }, [items.length])
 
-  if (!results?.processingTimeMS) return <ProductListingSkeleton />
-
+  // All hooks must be called before any early returns
   const page: number = +(searchParamas.get("page") || 1)
-  const filteredProducts = items.filter((pr) =>
-    apiProducts?.some((p: any) => p.id === pr.objectID)
-  )
+  const sortBy = (searchParamas.get("sortBy") as SortOptions) || "relevance"
+  const minPrice = searchParamas.get("min_price")
+  const maxPrice = searchParamas.get("max_price")
 
-  const products = filteredProducts
-    .filter((pr) =>
-      apiProducts?.some(
-        (p: any) => p.id === pr.objectID && filterProductsByCurrencyCode(p)
-      )
+  const filteredProducts = useMemo(() => {
+    return items.filter((pr) =>
+      apiProducts?.some((p: any) => p.id === pr.objectID)
     )
-    .slice((page - 1) * PRODUCT_LIMIT, page * PRODUCT_LIMIT)
+  }, [items, apiProducts])
 
-  const count = filteredProducts?.length || 0
-  const pages = Math.ceil(count / PRODUCT_LIMIT) || 1
-
-  function filterProductsByCurrencyCode(product: HttpTypes.StoreProduct) {
-    const minPrice = searchParamas.get("min_price")
-    const maxPrice = searchParamas.get("max_price")
-
-    if ([minPrice, maxPrice].some((price) => typeof price === "string")) {
-      const variantsWithCurrencyCode = product?.variants?.filter(
-        (variant) => variant.calculated_price?.currency_code === currency_code
-      )
-
-      if (!variantsWithCurrencyCode?.length) {
-        return false
-      }
-
-      if (minPrice && maxPrice) {
-        return variantsWithCurrencyCode.some(
-          (variant) =>
-            (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice &&
-            (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
+  // Get the API products that match the filtered products
+  const matchedApiProducts = useMemo(() => {
+    if (!apiProducts || !filteredProducts.length) return []
+    
+    const filterProductsByCurrencyCode = (product: HttpTypes.StoreProduct) => {
+      if ([minPrice, maxPrice].some((price) => typeof price === "string")) {
+        const variantsWithCurrencyCode = product?.variants?.filter(
+          (variant) => variant.calculated_price?.currency_code === currency_code
         )
+
+        if (!variantsWithCurrencyCode?.length) {
+          return false
+        }
+
+        if (minPrice && maxPrice) {
+          return variantsWithCurrencyCode.some(
+            (variant) =>
+              (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice &&
+              (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
+          )
+        }
+        if (minPrice) {
+          return variantsWithCurrencyCode.some(
+            (variant) =>
+              (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice
+          )
+        }
+        if (maxPrice) {
+          return variantsWithCurrencyCode.some(
+            (variant) =>
+              (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
+          )
+        }
       }
-      if (minPrice) {
-        return variantsWithCurrencyCode.some(
-          (variant) =>
-            (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice
-        )
-      }
-      if (maxPrice) {
-        return variantsWithCurrencyCode.some(
-          (variant) =>
-            (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
-        )
-      }
+
+      return true
     }
 
-    return true
-  }
+    return apiProducts.filter((p: any) =>
+      filteredProducts.some((pr) => pr.objectID === p.id && filterProductsByCurrencyCode(p))
+    )
+  }, [apiProducts, filteredProducts, minPrice, maxPrice, currency_code])
+
+  // Sort the API products
+  const sortedApiProducts = useMemo(() => {
+    if (!matchedApiProducts.length) return []
+    return sortProducts(matchedApiProducts, sortBy)
+  }, [matchedApiProducts, sortBy])
+
+  // Map sorted products back to Algolia hits
+  const products = useMemo(() => {
+    if (!sortedApiProducts.length) return []
+    const sortedProductIds = new Set(sortedApiProducts.map((p: any) => p.id))
+    return filteredProducts
+      .filter((pr) => sortedProductIds.has(pr.objectID))
+      .sort((a, b) => {
+        const indexA = sortedApiProducts.findIndex((p: any) => p.id === a.objectID)
+        const indexB = sortedApiProducts.findIndex((p: any) => p.id === b.objectID)
+        return indexA - indexB
+      })
+      .slice((page - 1) * PRODUCT_LIMIT, page * PRODUCT_LIMIT)
+  }, [filteredProducts, sortedApiProducts, page])
+
+  const count = matchedApiProducts?.length || 0
+  const pages = Math.ceil(count / PRODUCT_LIMIT) || 1
+
+  // Early return after all hooks
+  if (!results?.processingTimeMS) return <ProductListingSkeleton />
 
   return (
     <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-8 md:flex-row flex-col md:pb-sop-40px pb-10">
@@ -191,7 +216,7 @@ const ProductsListing = ({
           </div>
         )}
         <div className="flex justify-between items-center">
-          <div><ProductListingActiveFilters /></div>
+          <ProductSortButtons />
           <div className="md:block hidden">
             <ProductsPagination pages={pages} />
           </div>

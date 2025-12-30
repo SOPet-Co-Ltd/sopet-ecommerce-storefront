@@ -10,14 +10,7 @@ import React, { useEffect, useState } from "react"
 import { useRefinementList } from "react-instantsearch"
 import { ProductListingActiveFilters } from "../ProductListingActiveFilters/ProductListingActiveFilters"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
-
-const filters = [
-  { label: "5", amount: 40 },
-  { label: "4", amount: 78 },
-  { label: "3", amount: 0 },
-  { label: "2", amount: 0 },
-  { label: "1", amount: 0 },
-]
+import { FilterFunnelIcon } from "@/icons"
 
 export const AlgoliaProductSidebar = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -33,51 +26,60 @@ export const AlgoliaProductSidebar = () => {
     return () => window.removeEventListener("resize", handleResize)
   }, [])
 
-  return isMobile ? (
-    <>
-      <Button onClick={() => setIsOpen(true)} className="w-full uppercase mb-4">
-        Filters
-      </Button>
-      {isOpen && (
-        <Modal heading="Filters" onClose={() => setIsOpen(false)}>
-          <div className="px-4">
-            <ProductListingActiveFilters />
-            <PriceFilter
-              defaultOpen={Boolean(
-                allSearchParams.min_price || allSearchParams.max_price
-              )}
-            />
-            <SizeFilter defaultOpen={Boolean(allSearchParams.size)} />
-            <ColorFilter defaultOpen={Boolean(allSearchParams.color)} />
-            <ConditionFilter defaultOpen={Boolean(allSearchParams.condition)} />
-          </div>
-        </Modal>
-      )}
-    </>
-  ) : (
-    <div>
-      <PriceFilter />
-      <SizeFilter />
-      <ColorFilter />
-      <ConditionFilter />
-      {/* <RatingFilter /> */}
+  // return isMobile ? (
+  //   <>
+  //     <Button onClick={() => setIsOpen(true)} variant="default">
+  //       Filters
+  //     </Button>
+  //     {isOpen && (
+  //       <Modal heading="Filters" onClose={() => setIsOpen(false)}>
+  //         <div className="px-4">
+  //           <ProductListingActiveFilters />
+  //           <PetTypeFilter defaultOpen={Boolean(allSearchParams.pet_type)} />
+  //           <BrandFilter defaultOpen={Boolean(allSearchParams.brand)} />
+  //           <PriceFilter
+  //             defaultOpen={Boolean(
+  //               allSearchParams.min_price || allSearchParams.max_price
+  //             )}
+  //           />
+  //         </div>
+  //       </Modal>
+  //     )}
+  //   </>
+  // ) : (
+  //   <div>
+  //     <PetTypeFilter />
+  //     <BrandFilter />
+  //     <PriceFilter />
+  //   </div>
+  // )
+
+  return (
+    <div className="bg-sop-base-white rounded-sop-20px overflow-hidden">
+      <div className="flex items-center gap-2 bg-sop-additionalblue-400 px-4 py-3">
+        <FilterFunnelIcon color="#FFFFFF" size={16} />
+        <p className="sop-body-lg-medium text-sop-base-white">ค้นหาแบบละเอียด</p>
+      </div>
+      <PetTypeFilter defaultOpen={false} />
+      <BrandFilter defaultOpen={false} />
+      <PriceFilter defaultOpen={false} />
     </div>
   )
 }
 
-function ConditionFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
+function PetTypeFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
   const { items } = useRefinementList({
-    attribute: "variants.condition",
+    attribute: "custom_tags_pet_type",
     limit: 100,
     operator: "or",
   })
-  const { updateFilters, isFilterActive } = useFilters("condition")
+  const { updateFilters, isFilterActive } = useFilters("pet_type")
 
   const selectHandler = (option: string) => {
     updateFilters(option)
   }
   return (
-    <Accordion heading="Condition" defaultOpen={defaultOpen}>
+    <Accordion heading="ประเภทสัตว์เลี้ยง" defaultOpen={defaultOpen}>
       <ul className="px-4">
         {items.map(({ label, count }) => (
           <li key={label} className="mb-4">
@@ -94,66 +96,27 @@ function ConditionFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
   )
 }
 
-function ColorFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
+function BrandFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
   const { items } = useRefinementList({
-    attribute: "variants.color",
+    attribute: "custom_tags_brand",
     limit: 100,
-    operator: "and",
-    escapeFacetValues: false,
-    sortBy: ["isRefined", "count", "name"],
+    operator: "or",
   })
-  const { updateFilters, isFilterActive } = useFilters("color")
+  const { updateFilters, isFilterActive } = useFilters("brand")
 
   const selectHandler = (option: string) => {
     updateFilters(option)
   }
   return (
-    <Accordion heading="Color" defaultOpen={defaultOpen}>
+    <Accordion heading="แบรนด์" defaultOpen={defaultOpen}>
       <ul className="px-4">
         {items.map(({ label, count }) => (
-          <li key={label} className="mb-4 flex items-center justify-between">
+          <li key={label} className="mb-4">
             <FilterCheckboxOption
               checked={isFilterActive(label)}
               disabled={Boolean(!count)}
               onCheck={selectHandler}
               label={label}
-            />
-            <div
-              style={{ backgroundColor: label.toLowerCase() }}
-              className={cn(
-                "w-5 h-5 border border-primary rounded-xs",
-                Boolean(!label) && "opacity-30"
-              )}
-            />
-          </li>
-        ))}
-      </ul>
-    </Accordion>
-  )
-}
-
-function SizeFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
-  const { items } = useRefinementList({
-    attribute: "variants.size",
-    limit: 100,
-    operator: "or",
-  })
-  const { updateFilters, isFilterActive } = useFilters("size")
-
-  const selectSizeHandler = (size: string) => {
-    updateFilters(size)
-  }
-
-  return (
-    <Accordion heading="Size" defaultOpen={defaultOpen}>
-      <ul className="grid grid-cols-4 mt-2 gap-2">
-        {items.map(({ label }) => (
-          <li key={label} className="mb-4">
-            <Chip
-              selected={isFilterActive(label)}
-              onSelect={() => selectSizeHandler(label)}
-              value={label}
-              className="w-full justify-center! py-2! font-normal!"
             />
           </li>
         ))}
@@ -221,34 +184,6 @@ function PriceFilter({ defaultOpen = true }: { defaultOpen?: boolean }) {
           <input type="submit" className="hidden" />
         </form>
       </div>
-    </Accordion>
-  )
-}
-
-function RatingFilter() {
-  const { updateFilters, isFilterActive } = useFilters("rating")
-
-  const selectHandler = (option: string) => {
-    updateFilters(option)
-  }
-
-  return (
-    <Accordion heading="Rating">
-      <ul className="px-4">
-        {filters.map(({ label }) => (
-          <li
-            key={label}
-            className={cn("mb-4 flex items-center gap-2 cursor-pointer")}
-            onClick={() => selectHandler(label)}
-          >
-            <FilterCheckboxOption
-              checked={isFilterActive(label)}
-              label={label}
-            />
-            <StarRating rate={+label} />
-          </li>
-        ))}
-      </ul>
     </Accordion>
   )
 }

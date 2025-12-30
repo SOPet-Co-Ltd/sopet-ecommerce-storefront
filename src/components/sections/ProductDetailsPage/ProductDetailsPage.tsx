@@ -44,6 +44,9 @@ export const ProductDetailsPage = async ({
         { label: prod.title, path: `/products/${prod.handle}` },
       ]
 
+      console.log(prod);
+      
+
   return (
     <>
       {/* Section - Breadcrumb */}

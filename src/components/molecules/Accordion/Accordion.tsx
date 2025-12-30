@@ -30,13 +30,14 @@ export const Accordion = ({
   }
 
   return (
-    <Card>
+    <div className="py-sop-12px px-sop-16px">
       <div
         onClick={openHandler}
-        className="flex justify-between items-center cursor-pointer px-2"
+        className="flex justify-between items-center cursor-pointer"
       >
-        <h4 className="label-lg uppercase">{heading}</h4>
+        <h4 className="sop-body-md-regular text-sop-neutral-gray-300">{heading}</h4>
         <CollapseIcon
+        color={"#949495"}
           size={20}
           className={cn("transition-all duration-300", isOpen && "rotate-180")}
         />
@@ -53,6 +54,6 @@ export const Accordion = ({
           {children}
         </div>
       </div>
-    </Card>
+    </div>
   )
 }

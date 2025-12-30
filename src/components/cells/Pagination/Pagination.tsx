@@ -66,25 +66,31 @@ export const Pagination = ({
   }
 
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-1">
       <button
         disabled={Boolean(currentPage === 1)}
         onClick={() => setPage(currentPage - 1)}
-        className="border-none"
+        className="border-none cursor-pointer"
         aria-label="Previous page"
       >
-        <LeftPointSquareIcon size={28} />
+        <LeftPointSquareIcon size={28} color={Boolean(currentPage <= 1) ? "#22222947" : "#454547"} />
       </button>
 
-      {renderbuttons()}
+      {/* {renderbuttons()} */}
+      <div className="flex items-center">
+        <p className="sop-body-sm-regular pr-2">หน้า</p>
+        <p className="sop-body-sm-regular">{currentPage}</p>
+        <p className="sop-body-sm-regular text-sop-neutral-grayalpha-400">/</p>
+        <p className="sop-body-sm-regular text-sop-neutral-grayalpha-400">{pages}</p>
+      </div>
 
       <button
         disabled={Boolean(currentPage === pages)}
         onClick={() => setPage(currentPage + 1)}
-        className="border-none"
+        className="border-none cursor-pointer"
         aria-label="Next page"
       >
-        <RightPointSquareIcon size={28} />
+        <RightPointSquareIcon size={28} color={Boolean(currentPage >= pages) ? "#22222947" : "#454547"} />
       </button>
     </div>
   )

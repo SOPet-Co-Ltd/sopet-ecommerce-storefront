@@ -17,9 +17,9 @@ export const revalidate = 60
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }): Promise<Metadata> {
-  const { locale } = params
+  const { locale } = await params
   const headersList = await headers()
   const host = headersList.get("host")
   const protocol = headersList.get("x-forwarded-proto") || "https"
@@ -71,9 +71,9 @@ const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
 async function AllCategories({
   params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
-  const { locale } = params
+  const { locale } = await params
 
   const ua = (await headers()).get("user-agent") || ""
   const bot = isBot(ua)
