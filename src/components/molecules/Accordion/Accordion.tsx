@@ -30,7 +30,7 @@ export const Accordion = ({
   }
 
   return (
-    <div className="py-sop-12px px-sop-16px">
+    <div className="py-sop-12px px-sop-12px">
       <div
         onClick={openHandler}
         className="flex justify-between items-center cursor-pointer"

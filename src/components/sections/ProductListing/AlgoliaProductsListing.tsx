@@ -41,8 +41,8 @@ export const AlgoliaProductsListing = ({
   const query: string = searchParamas.get("query") || ""
 
   const filters = `${seller_handle
-      ? `NOT seller:null AND seller.handle:${seller_handle} AND `
-      : "NOT seller:null AND "
+    ? `NOT seller:null AND seller.handle:${seller_handle} AND `
+    : "NOT seller:null AND "
     }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${category_id
       ? ` AND categories.id:${category_id}${collection_id !== undefined
         ? ` AND collections.id:${collection_id}`
@@ -85,8 +85,6 @@ const ProductsListing = ({
       const { response } = await listProducts({
         countryCode: locale,
         queryParams: {
-          fields:
-            "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id,+review_count,+average_rating",
           handle: items.map((item) => item.handle),
           limit: items.length,
         },
@@ -122,7 +120,7 @@ const ProductsListing = ({
   // Get the API products that match the filtered products
   const matchedApiProducts = useMemo(() => {
     if (!apiProducts || !filteredProducts.length) return []
-    
+
     const filterProductsByCurrencyCode = (product: HttpTypes.StoreProduct) => {
       if ([minPrice, maxPrice].some((price) => typeof price === "string")) {
         const variantsWithCurrencyCode = product?.variants?.filter(
@@ -189,7 +187,7 @@ const ProductsListing = ({
   if (!results?.processingTimeMS) return <ProductListingSkeleton />
 
   return (
-    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-8 md:flex-row flex-col md:pb-sop-40px pb-10">
+    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 md:flex-row flex-col md:pb-sop-40px pb-10">
       {/* NOTE - Sidebar */}
       <div className="lg:block hidden">
         {/* NOTE - Content Left - Filter */}
@@ -200,13 +198,13 @@ const ProductsListing = ({
           <ProductListingActiveFilters />
         </div> */}
         <div className="md:flex gap-4">
-          <div className="w-[280px] shrink-0 hidden md:block">
-            <AlgoliaProductSidebar />
+          <div className="md:w-[290px] w-full md:shrink-0">
+            <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
           </div>
         </div>
       </div>
       {/* NOTE - Main */}
-      <div className="w-full">
+      <div className="w-full flex flex-col md:gap-6 gap-2">
         {/* NOTE - Header */}
         {searchParamas.get("query") && (
           <div className="md:block hidden">
@@ -222,12 +220,16 @@ const ProductsListing = ({
           </div>
         </div>
 
+        <div className="md:hidden block">
+          <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
+        </div>
+
         {/* NOTE - Content Right */}
         <div className="flex flex-col">
           <p className="sop-body-lg-medium text-sop-neutral-gray-300 md:block hidden">
             สินค้าทั้งหมด {apiProducts?.length}
           </p>
-          <div className="mt-5">
+          <div className="md:mt-5 mt-2">
             {!items.length ? (
               <div className="text-center w-full my-10">
                 <h2 className="uppercase text-primary heading-lg">
@@ -239,7 +241,7 @@ const ProductsListing = ({
               </div>
             ) : (
               <div className="w-full">
-                <ul className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
+                <ul className="grid md:gap-4 gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
                   {products.map(
                     (hit) =>
                       apiProducts?.find((p: any) => p.id === hit.objectID) && (

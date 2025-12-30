@@ -4,6 +4,7 @@ import { SortOptions } from "@/types/product"
 interface MinPricedProduct extends HttpTypes.StoreProduct {
   _minPrice?: number
   average_rating?: number | string | null
+  sold_count?: number | null
 }
 
 /**
@@ -18,9 +19,17 @@ export function sortProducts(
 ): HttpTypes.StoreProduct[] {
   const sortedProducts = [...products] as MinPricedProduct[]
 
-  // Relevance and best_selling don't need client-side sorting (handled by Algolia)
-  if (sortBy === "relevance" || sortBy === "best_selling") {
+  // Relevance doesn't need client-side sorting (handled by Algolia)
+  if (sortBy === "relevance") {
     return sortedProducts
+  }
+
+  if (sortBy === "best_selling") {
+    sortedProducts.sort((a, b) => {
+      const soldCountA = a.sold_count || 0
+      const soldCountB = b.sold_count || 0
+      return soldCountB - soldCountA // Descending order (most sold first)
+    })
   }
 
   if (["price_asc", "price_desc"].includes(sortBy)) {

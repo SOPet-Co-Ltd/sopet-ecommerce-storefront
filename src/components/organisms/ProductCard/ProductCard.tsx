@@ -21,6 +21,7 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
 
   const averageRating = Number((api_product as ProductWithSeller)?.average_rating ?? 0)
   const totalReviews = Number((api_product as ProductWithSeller)?.review_count ?? 0)
+  const soldCount = Number((api_product as ProductWithSeller)?.sold_count ?? 0)
 
   return (
     <LocalizedClientLink
@@ -28,8 +29,8 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       aria-label={`View ${productName}`}
       title={`View ${productName}`}
     >
-      <div className="md:w-[223px] w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
-        <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
+      <div className="md:w-[223px] w-[175px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+        <div className="md:w-[223px] w-[175px] md:h-[223px] h-[175px]">
           <Image
             fetchPriority={"auto"}
             src={decodeURIComponent(
@@ -51,6 +52,7 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
               starCounts={[]}
               averageRating={averageRating}
               totalReviews={totalReviews}
+              soldCount={soldCount}
             />
           </div>
         </div>

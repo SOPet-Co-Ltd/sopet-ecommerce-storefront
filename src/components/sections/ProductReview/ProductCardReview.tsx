@@ -2,9 +2,12 @@ import { RenderStars } from "@/components/cells"
 import { StarIcon } from "@/icons"
 import { ReviewStats } from "@/lib/data/reviews"
 
-export const ProductCardReviewStars = ({ averageRating, totalReviews }: ReviewStats) => {
-  // TODO: Fetch amount sold from backend
-  const amountSaled = 1000 // Placeholder value for amount sold
+export const ProductCardReviewStars = ({ 
+  averageRating, 
+  totalReviews,
+  soldCount = 0 
+}: ReviewStats & { soldCount?: number }) => {
+  const amountSaled = soldCount
 
   const formatNumber = (num: number): string => {
     if (num < 1000) return num.toString()

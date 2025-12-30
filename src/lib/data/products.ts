@@ -12,6 +12,7 @@ export type ProductWithSeller = HttpTypes.StoreProduct & {
   seller?: SellerProps
   review_count?: number | null
   average_rating?: number | null
+  sold_count?: number | null
 }
 
 export const listProducts = async ({
@@ -83,52 +84,112 @@ export const listProducts = async ({
         limit,
         offset,
         region_id: region?.id,
-        fields: [
-          "*variants.calculated_price",
-          "+variants.inventory_quantity",
-          "*seller",
-          "*variants",
-          "*seller.products",
-          "*seller.products.reviews",
-          "*seller.products.reviews",
-          "*seller.products.reviews.customer",
-          "*seller.reviews",
-          "*seller.reviews.customer",
-          "*seller.reviews.seller",
-          "*seller.products.variants",
-          "*attribute_values",
-          "*attribute_values.attribute",
-          "+product_reviews",
-          "+product_review",
-          "+review_count",
-          "+average_rating",
-        ].join(","),
-        ...queryParams,
+        fields: (() => {
+          const defaultFields = [
+            "*variants.calculated_price",
+            "+variants.inventory_quantity",
+            "*seller",
+            "*variants",
+            "*seller.products",
+            "*seller.products.reviews",
+            "*seller.products.reviews",
+            "*seller.products.reviews.customer",
+            "*seller.reviews",
+            "*seller.reviews.customer",
+            "*seller.reviews.seller",
+            "*seller.products.variants",
+            "*attribute_values",
+            "*attribute_values.attribute",
+            "+product_reviews",
+            "+product_review",
+            "+review_count",
+            "+average_rating",
+            "+sold_count",
+          ]
+          
+          // If queryParams has fields, merge them with required fields
+          if (queryParams?.fields) {
+            const queryFields = typeof queryParams.fields === "string" 
+              ? queryParams.fields.split(",").map(f => f.trim())
+              : Array.isArray(queryParams.fields)
+              ? queryParams.fields
+              : []
+            
+            // Ensure required fields are included
+            const requiredFields = ["+review_count", "+average_rating", "+sold_count"]
+            const mergedFields = [...new Set([...queryFields, ...requiredFields])]
+            return mergedFields.join(",")
+          }
+          
+          return defaultFields.join(",")
+        })(),
+        ...(queryParams ? Object.fromEntries(
+          Object.entries(queryParams).filter(([key]) => key !== "fields")
+        ) : {}),
       },
       headers,
       next: useCached ? { revalidate: 60 } : undefined,
       cache: useCached ? "force-cache" : "no-cache",
     })
-    .then(({ products: productsRaw, count }) => {
+    .then(async ({ products: productsRaw, count }) => {
       const products = productsRaw.filter(
         (product) => product.seller?.store_status !== "SUSPENDED"
       )
 
       const nextPage = count > offset + limit ? pageParam + 1 : null
 
-      const response = products.map((prod) => {
-        if (!prod.seller) {
-          return prod
-        }
-        const reviews = prod.seller.reviews?.filter((item) => !!item) ?? []
-        return {
-          ...prod,
-          seller: {
-            ...prod.seller,
-            reviews,
-          },
-        }
-      })
+      // Fetch review stats and sold_count for each product
+      const productsWithStats = await Promise.all(
+        products.map(async (prod) => {
+          try {
+            // Fetch review stats
+            const statsRes = await sdk.client
+              .fetch(`/store/products/${prod.id}/reviews/stats`, {
+                method: "GET",
+                headers,
+                next: useCached ? { revalidate: 60 } : undefined,
+                cache: useCached ? "force-cache" : "no-cache",
+              })
+              .catch(() => null)
+
+            // Get sold_count from the product if available, otherwise fetch from database
+            // Note: sold_count should be in the product if fields were requested correctly
+            const stats = statsRes as { review_count?: number; totalReviews?: number; average_rating?: number; averageRating?: number } | null
+            const reviewCount = stats?.review_count ?? stats?.totalReviews ?? (prod as ProductWithSeller).review_count ?? 0
+            const averageRating = stats?.average_rating ?? stats?.averageRating ?? (prod as ProductWithSeller).average_rating ?? 0
+            const soldCount = (prod as ProductWithSeller).sold_count ?? 0
+
+            const reviews = prod.seller?.reviews?.filter((item) => !!item) ?? []
+            
+            return {
+              ...prod,
+              review_count: reviewCount,
+              average_rating: averageRating,
+              sold_count: soldCount,
+              seller: prod.seller ? {
+                ...prod.seller,
+                reviews,
+              } : undefined,
+            }
+          } catch (error) {
+            // If fetching stats fails, return product with defaults
+            const reviews = prod.seller?.reviews?.filter((item) => !!item) ?? []
+            const productWithSeller = prod as ProductWithSeller
+            return {
+              ...prod,
+              review_count: productWithSeller.review_count ?? 0,
+              average_rating: productWithSeller.average_rating ?? 0,
+              sold_count: productWithSeller.sold_count ?? 0,
+              seller: prod.seller ? {
+                ...prod.seller,
+                reviews,
+              } : undefined,
+            }
+          }
+        })
+      )
+
+      const response = productsWithStats
 
       return {
         response: {

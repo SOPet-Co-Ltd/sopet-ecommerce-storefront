@@ -64,7 +64,7 @@ export const ProductSortButtons = () => {
               <p
                 className={`sop-body-sm-medium px-sop-12px py-1 rounded-sop-8px border cursor-pointer ${
                   isActive
-                    ? "text-sop-base-black border-sop-primary-500 bg-sop-primary-50"
+                    ? "text-sop-base-white border-sop-primary-500 bg-sop-primary-500"
                     : "text-sop-base-black border-sop-neutral-grayalpha-100"
                 }`}
               >
