@@ -209,7 +209,7 @@ const ProductsListing = ({
         {searchParamas.get("query") && (
           <div className="md:block hidden">
             <p className="sop-headline-md-medium text-sop-neutral-gray-300">
-              ผลการค้นหาทั้งหมด "{searchParamas.get("query")}"
+              ผลการค้นหาทั้งหมด &quot;{searchParamas.get("query")}&quot;
             </p>
           </div>
         )}
