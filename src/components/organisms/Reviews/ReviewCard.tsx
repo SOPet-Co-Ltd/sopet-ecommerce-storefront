@@ -1,4 +1,4 @@
-import { Button, Card } from "@/components/atoms"
+import { Card } from "@/components/atoms"
 import { StarIcon } from "@/icons"
 import { Review } from "@/lib/data/reviews"
 import { cn } from "@/lib/utils"

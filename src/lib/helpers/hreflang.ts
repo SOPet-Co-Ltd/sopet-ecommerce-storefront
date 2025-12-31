@@ -1,3 +1,5 @@
+import { th } from "zod/v4/locales"
+
 export const toHreflang = (code: string): string => {
   const map: Record<string, string> = {
     us: "en-US",
@@ -27,6 +29,7 @@ export const toHreflang = (code: string): string => {
     hk: "zh-HK",
     sg: "en-SG",
     my: "ms-MY",
+    th: "th-TH",
   }
   return map[code] || code
 }

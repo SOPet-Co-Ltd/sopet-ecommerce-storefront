@@ -27,7 +27,7 @@ export const WishlistItem = ({
   return (
     <div
       className={clsx(
-        "relative group border rounded-sm flex flex-col justify-between p-1 w-[250px] lg:w-[370px]"
+        "relative group border rounded-xs flex flex-col justify-between p-1 w-[250px] lg:w-[370px]"
       )}
     >
       <div className="relative w-full h-full bg-primary aspect-square">
@@ -39,7 +39,7 @@ export const WishlistItem = ({
           />
         </div>
         <LocalizedClientLink href={`/products/${product.handle}`}>
-          <div className="overflow-hidden rounded-sm w-full h-full flex justify-center align-center ">
+          <div className="overflow-hidden rounded-xs w-full h-full flex justify-center align-center ">
             {product.thumbnail ? (
               <Image
                 src={decodeURIComponent(product.thumbnail)}
@@ -61,7 +61,7 @@ export const WishlistItem = ({
           </div>
         </LocalizedClientLink>
         <LocalizedClientLink href={`/products/${product.handle}`}>
-          <Button className="absolute rounded-sm bg-action text-action-on-primary h-auto lg:h-[48px] lg:group-hover:block hidden w-full uppercase bottom-1 z-10">
+          <Button className="absolute rounded-xs bg-action text-action-on-primary h-auto lg:h-[48px] lg:group-hover:block hidden w-full uppercase bottom-1 z-10">
             See More
           </Button>
         </LocalizedClientLink>

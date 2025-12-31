@@ -24,14 +24,17 @@ export default async function UserPage({
   const currentPage = +page || 1
   const offset = (+currentPage - 1) * LIMIT
 
-  const orderSetsGrouped = orders.reduce((acc, order) => {
-    const orderSetId = (order as any).order_set.id
-    if (!acc[orderSetId]) {
-      acc[orderSetId] = []
-    }
-    acc[orderSetId].push(order)
-    return acc
-  }, {} as Record<string, typeof orders>)
+  const orderSetsGrouped = orders.reduce(
+    (acc, order) => {
+      const orderSetId = (order as any).order_set.id
+      if (!acc[orderSetId]) {
+        acc[orderSetId] = []
+      }
+      acc[orderSetId].push(order)
+      return acc
+    },
+    {} as Record<string, typeof orders>
+  )
 
   const orderSets = Object.entries(orderSetsGrouped).map(
     ([orderSetId, orders]) => {

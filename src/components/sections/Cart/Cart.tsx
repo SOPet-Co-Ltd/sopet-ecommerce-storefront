@@ -19,10 +19,10 @@ export const Cart = async () => {
       </div>
       <div className="lg:col-span-2"></div>
       <div className="col-span-12 lg:col-span-4">
-        <div className="w-full mb-6 border rounded-sm p-4">
-          <CartPromotionCode cart={cart} />
+        <div className="w-full mb-6 border rounded-xs p-4">
+          <CartPromotionCode cart={{ ...cart, promotions: [] }} />
         </div>
-        <div className="border rounded-sm p-4 h-fit">
+        <div className="border rounded-xs p-4 h-fit">
           <CartSummary
             item_total={cart?.item_subtotal || 0}
             shipping_total={cart?.shipping_subtotal || 0}

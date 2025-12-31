@@ -36,7 +36,7 @@ export function ShopByStyleSection() {
     <section className="bg-primary container">
       <h2 className="heading-lg text-primary mb-12">SHOP BY STYLE</h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 items-center">
-        <div className="py-[52px] px-[58px] h-full border rounded-sm">
+        <div className="py-[52px] px-[58px] h-full border rounded-xs">
           {styles.map((style) => (
             <LocalizedClientLink
               key={style.id}
@@ -56,7 +56,7 @@ export function ShopByStyleSection() {
             alt="Models showcasing luxury fashion styles"
             width={700}
             height={600}
-            className="object-cover rounded-sm w-full h-auto"
+            className="object-cover rounded-xs w-full h-auto"
           />
         </div>
       </div>

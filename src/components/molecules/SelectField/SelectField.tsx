@@ -47,7 +47,7 @@ export const SelectField = ({
       <div
         ref={selectRef}
         className={cn(
-          "relative rounded-sm border px-3 py-2 bg-component-secondary label-md cursor-pointer h-12 flex items-center",
+          "relative rounded-xs border px-3 py-2 bg-component-secondary label-md cursor-pointer h-12 flex items-center",
           open && "border-primary",
           className
         )}
@@ -62,7 +62,7 @@ export const SelectField = ({
         />
       </div>
       {open && (
-        <ul className="absolute border border-primary bg-component-secondary rounded-sm w-full top-[47px] z-10">
+        <ul className="absolute border border-primary bg-component-secondary rounded-xs w-full top-[47px] z-10">
           {options.map(
             ({ label, value, hidden }, index) =>
               !hidden && (

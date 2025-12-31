@@ -11,7 +11,7 @@ const OrderShipping = ({ order }: ShippingDetailsProps) => {
   const payment = order.payment_collections?.[0].payments?.[0]
 
   return (
-    <div className="border rounded-sm p-4">
+    <div className="border rounded-xs p-4">
       <div>
         <Text className="txt-medium-plus text-ui-fg-base mb-1 font-bold">
           Shipping Address

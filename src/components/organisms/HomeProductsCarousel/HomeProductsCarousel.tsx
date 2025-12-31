@@ -1,9 +1,11 @@
 import { Carousel } from "@/components/cells"
-import { ProductCard } from "../ProductCard/ProductCard"
+import { ProductCardOld } from "../ProductCardOld/ProductCard"
 import { listProducts } from "@/lib/data/products"
 import { Product } from "@/types/product"
 import { HttpTypes } from "@medusajs/types"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
+import { getProductReviewStats, ReviewStats } from "@/lib/data/reviews"
+import { SellerProps } from "@/types/seller"
 
 export const HomeProductsCarousel = async ({
   locale,
@@ -28,34 +30,54 @@ export const HomeProductsCarousel = async ({
     forceCache: !home,
   })
 
-  if (!products.length && !sellerProducts.length) return null
+  const productsWithRatingPromise: (HttpTypes.StoreProduct & {
+    seller?: SellerProps
+    reviewStats: ReviewStats
+  })[] = await Promise.all(
+    products.map(async (product) => {
+      const reviewStats = await getProductReviewStats(product.id.toString())
+      // console.log({ reviewStats });
+      
+      return { ...product, reviewStats }
+    })
+  )
+
+  const sellerProductsWithRating = await Promise.all(
+    sellerProducts.map(async (product) => {
+      const reviewStats = await getProductReviewStats(product.id.toString())
+      return { ...product, reviewStats }
+    })
+  )
+
+  if (!productsWithRatingPromise.length && !sellerProducts.length) return null
 
   return (
     <div className="flex justify-center w-full">
       <Carousel
         align="start"
-        items={(sellerProducts.length ? sellerProducts : products).map(
-          (product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              api_product={
-                home
-                  ? (product as HttpTypes.StoreProduct)
-                  : products.find((p) => {
-                      const { cheapestPrice } = getProductPrice({
-                        product: p,
-                      })
-                      return (
-                        cheapestPrice &&
-                        p.id === product.id &&
-                        Boolean(cheapestPrice)
-                      )
+        items={(sellerProducts.length
+          ? sellerProductsWithRating
+          : productsWithRatingPromise
+        ).map((product) => (
+          <ProductCardOld
+            key={product.id}
+            product={product}
+            api_product={
+              home
+                ? (product as HttpTypes.StoreProduct)
+                : productsWithRatingPromise.find((p) => {
+                    const { cheapestPrice } = getProductPrice({
+                      product: p,
                     })
-              }
-            />
-          )
-        )}
+                    return (
+                      cheapestPrice &&
+                      p.id === product.id &&
+                      Boolean(cheapestPrice)
+                    )
+                  })
+            }
+          />
+        ))}
       />
     </div>
   )

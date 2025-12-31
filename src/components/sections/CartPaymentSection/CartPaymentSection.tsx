@@ -118,7 +118,7 @@ const CartPaymentSection = ({
   }, [isOpen])
 
   return (
-    <div className="border p-4 rounded-sm bg-ui-bg-interactive">
+    <div className="border p-4 rounded-xs bg-ui-bg-interactive">
       <div className="flex flex-row items-center justify-between mb-6">
         <Heading
           level="h2"
@@ -129,9 +129,7 @@ const CartPaymentSection = ({
         </Heading>
         {!isOpen && (
           <Text>
-            <Button onClick={handleEdit} variant="tonal">
-              Edit
-            </Button>
+            <Button onClick={handleEdit}>Edit</Button>
           </Text>
         )}
       </div>
@@ -188,7 +186,6 @@ const CartPaymentSection = ({
 
           <Button
             onClick={handleSubmit}
-            variant="tonal"
             loading={isLoading}
             disabled={
               (isStripe && !cardComplete) ||

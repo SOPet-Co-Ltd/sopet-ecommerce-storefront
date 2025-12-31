@@ -21,7 +21,7 @@ export const ProductSidebar = () => {
     <aside className="w-full relative">
       <div
         className={cn(
-          "blur-sm pointer-events-none md:relative w-full h-full bg-primary top-0 left-0 transition-opacity duration-100",
+          "blur-xs pointer-events-none md:relative w-full h-full bg-primary top-0 left-0 transition-opacity duration-100",
           filterModal
             ? "opacity-1 z-20"
             : "opacity-0 -z-10 md:opacity-100 md:z-10"
@@ -53,7 +53,6 @@ export const ProductSidebar = () => {
         <div className="bg-primary md:hidden absolute bottom-0 left-0 w-full px-4 flex items-center py-4 border-y gap-2">
           <Button
             className="w-1/2 uppercase label-sm"
-            variant="tonal"
             onClick={() => clearAllFilters()}
           >
             Clear all

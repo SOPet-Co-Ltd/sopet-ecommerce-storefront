@@ -57,10 +57,10 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
 
     const response = await createReview(body)
 
-    if (response.error) {
-      setError("error")
-      return
-    }
+    // if (response.error) {
+    //   setError("error")
+    //   return
+    // }
 
     setError("")
     handleClose && handleClose()
@@ -91,7 +91,7 @@ const Form: React.FC<Props> = ({ handleClose, seller }) => {
             <p className={cn(error && "text-negative")}>Your opinion</p>
             <textarea
               className={cn(
-                "w-full px-4 py-3 h-32 border rounded-sm bg-component-secondary focus:border-primary focus:outline-none focus:ring-0 relative",
+                "w-full px-4 py-3 h-32 border rounded-xs bg-component-secondary focus:border-primary focus:outline-hidden focus:ring-0 relative",
                 error && "border-negative focus:border-negative"
               )}
               placeholder="Write your opinion about this seller..."

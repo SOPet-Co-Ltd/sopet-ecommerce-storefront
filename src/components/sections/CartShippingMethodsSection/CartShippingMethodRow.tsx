@@ -31,12 +31,7 @@ export const CartShippingMethodRow = ({
         </Text>
       </div>
 
-      <Button
-        variant="tonal"
-        size="small"
-        className="p-2"
-        onClick={handleRemoveShippingMethod}
-      >
+      <Button className="p-2" onClick={handleRemoveShippingMethod}>
         <BinIcon size={16} />
       </Button>
     </div>

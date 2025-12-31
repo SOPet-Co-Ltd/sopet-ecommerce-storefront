@@ -1,12 +1,13 @@
 "use client"
 import { Input } from "@/components/atoms"
+import type { InputProps } from "@/components/atoms/Input/Input"
 import { cn } from "@/lib/utils"
 import { FieldError } from "react-hook-form"
 
 type LabeledInputProps = {
   label: string
   error?: FieldError
-} & React.InputHTMLAttributes<HTMLInputElement>
+} & InputProps
 
 export const LabeledInput = ({
   error,

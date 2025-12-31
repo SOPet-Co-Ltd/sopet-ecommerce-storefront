@@ -13,7 +13,7 @@ export const ProductAdditionalAttributes = ({
       {attributes.map((attribute) => (
         <div
           key={attribute.id}
-          className="border rounded-sm grid grid-cols-2 text-center label-md"
+          className="border rounded-xs grid grid-cols-2 text-center label-md"
         >
           <div className="border-r py-3">{attribute.attribute.name}</div>
           <div className="py-3">{attribute.value}</div>

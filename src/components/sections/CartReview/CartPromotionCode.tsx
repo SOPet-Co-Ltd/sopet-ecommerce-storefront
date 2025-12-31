@@ -6,11 +6,7 @@ import { applyPromotions } from "@/lib/data/cart"
 import { toast } from "@/lib/helpers/toast"
 import { Cart } from "@/types/cart"
 
-export default function CartPromotionCode({
-  cart,
-}: {
-  cart: Cart | null
-}) {
+export default function CartPromotionCode({ cart }: { cart: Cart | null }) {
   const [promotionCode, setPromotionCode] = useState("")
   const [isLoading, setIsLoading] = useState(false)
 
@@ -60,7 +56,6 @@ export default function CartPromotionCode({
           onClick={handleApplyPromotionCode}
           disabled={isLoading || !promotionCode}
           loading={isLoading}
-          variant="tonal"
         >
           Use promotion code
         </Button>

@@ -56,7 +56,7 @@ export const SizeFilter = () => {
               selected={isFilterActive(option)}
               onSelect={() => selectSizeHandler(option)}
               value={option}
-              className="w-full !justify-center !py-2 !font-normal"
+              className="w-full justify-center! py-2! font-normal!"
             />
           </li>
         ))}

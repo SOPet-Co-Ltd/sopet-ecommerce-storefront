@@ -11,6 +11,10 @@ const getOption = (label: string) => {
       return "variants.condition"
     case "rating":
       return "average_rating"
+    case "pet_type":
+      return "custom_tags_pet_type"
+    case "brand":
+      return "custom_tags_brand"
     default:
       return ""
   }
@@ -77,10 +81,10 @@ export const getFacedFilters = (filters: ReadonlyURLSearchParams): string => {
     minPrice && maxPrice
       ? ` AND variants.prices.amount:${minPrice} TO ${maxPrice}`
       : minPrice
-      ? ` AND variants.prices.amount >= ${minPrice}`
-      : maxPrice
-      ? ` AND variants.prices.amount <= ${maxPrice}`
-      : ""
+        ? ` AND variants.prices.amount >= ${minPrice}`
+        : maxPrice
+          ? ` AND variants.prices.amount <= ${maxPrice}`
+          : ""
 
   return facet + priceFilter + rating
 }

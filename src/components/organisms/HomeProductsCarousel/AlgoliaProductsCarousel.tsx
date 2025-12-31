@@ -5,7 +5,7 @@ import { Carousel } from "@/components/cells"
 import { client } from "@/lib/client"
 import { Configure, useHits } from "react-instantsearch"
 import { InstantSearchNext } from "react-instantsearch-nextjs"
-import { ProductCard } from "../ProductCard/ProductCard"
+import { ProductCardOld } from "../ProductCardOld/ProductCard"
 import { listProducts } from "@/lib/data/products"
 import { useEffect, useState } from "react"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
@@ -66,7 +66,7 @@ const ProductsListing = ({ locale }: { locale: string }) => {
             <Carousel
               align="start"
               items={items.map((hit) => (
-                <ProductCard
+                <ProductCardOld
                   key={hit.objectID}
                   product={hit}
                   api_product={prod?.find((p) => {

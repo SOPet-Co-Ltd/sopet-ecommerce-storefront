@@ -34,18 +34,20 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
   const router = useRouter()
   const currentPath = usePathname().split(`/${countryCode}`)[1]
 
-  const options = useMemo(() => {
-    return regions
-      ?.map((r) => {
-        return r.countries?.map((c) => ({
-          country: c.iso_2,
-          region: r.id,
-          label: c.display_name,
-        }))
-      })
+  const options = useMemo<CountryOption[] | undefined>(() => {
+    const list = regions
+      ?.map((r) =>
+        r.countries?.map((c) =>
+          c?.iso_2 && c?.display_name
+            ? { country: c.iso_2, region: r.id, label: c.display_name }
+            : undefined
+        )
+      )
       .flat()
       .filter((o): o is CountryOption => !!o && !!o.country && !!o.label)
       .sort((a, b) => a.label.localeCompare(b.label))
+
+    return list
   }, [regions])
 
   useEffect(() => {
@@ -57,8 +59,11 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
 
   const handleChange = async (option: CountryOption) => {
     try {
-      const result = await updateRegionWithValidation(option.country, currentPath)
-      
+      const result = await updateRegionWithValidation(
+        option.country,
+        currentPath
+      )
+
       if (result.removedItems.length > 0) {
         const itemsList = result.removedItems.join(", ")
         toast.info({
@@ -66,14 +71,15 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
           description: `${itemsList} ${result.removedItems.length === 1 ? "is" : "are"} not available in ${option.label} and ${result.removedItems.length === 1 ? "was" : "were"} removed from your cart.`,
         })
       }
-      
+
       // Navigate to new region
       router.push(result.newPath)
       router.refresh()
     } catch (error: any) {
       toast.error({
         title: "Error switching region",
-        description: error?.message || "Failed to update region. Please try again.",
+        description:
+          error?.message || "Failed to update region. Please try again.",
       })
     }
   }
@@ -90,7 +96,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
               : undefined
           }
         >
-          <ListboxButton className="relative w-16 flex justify-between items-center h-10 bg-component-secondary text-left  cursor-default focus:outline-none border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular">
+          <ListboxButton className="relative w-16 flex justify-between items-center h-10 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular">
             <div className="txt-compact-small flex items-start mx-auto">
               {current && (
                 <span className="txt-compact-small flex items-center gap-x-2">
@@ -116,7 +122,7 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <ListboxOptions className="no-scrollbar absolute z-20 overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-none sm:text-sm">
+              <ListboxOptions className="no-scrollbar absolute z-20 overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm">
                 {options?.map((o, index) => {
                   return (
                     <ListboxOption

@@ -18,7 +18,7 @@ export const SellerReview = ({ review }: { review: SingleProductReview }) => {
         </p>
       </div>
       <div className="w-5/6">
-        <p className="text-md whitespace-pre-line break-words">
+        <p className="text-md whitespace-pre-line wrap-break-word">
           {review.customer_note}
         </p>
         {review.seller_note && (

@@ -21,13 +21,15 @@ export async function generateMetadata({
 
 export default async function ProductPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ handle: string; locale: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { handle, locale } = await params
 
   return (
-    <main className="container">
+    <main className="lg:px-16 px-0 lg:py-4">
       <ProductDetailsPage handle={handle} locale={locale} />
     </main>
   )

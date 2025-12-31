@@ -134,10 +134,7 @@ const Form = () => {
         </h1>
         <p className="text-center label-md">
           <Link href="/user">
-            <Button
-              variant="tonal"
-              className="w-full flex justify-center mt-8 uppercase"
-            >
+            <Button className="w-full flex justify-center mt-8 uppercase">
               Log in
             </Button>
           </Link>

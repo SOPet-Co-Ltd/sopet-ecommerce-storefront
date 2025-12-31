@@ -20,7 +20,7 @@ export const CartDropdownItem = ({
   })
 
   return (
-    <div className="border rounded-sm p-1 flex gap-2 mb-4">
+    <div className="border rounded-xs p-1 flex gap-2 mb-4">
       <div className="w-[100px] h-[132px] flex items-center justify-center">
         {item.thumbnail ? (
           <Image

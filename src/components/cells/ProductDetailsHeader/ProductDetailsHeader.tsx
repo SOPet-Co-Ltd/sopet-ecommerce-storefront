@@ -128,12 +128,9 @@ export const ProductDetailsHeader = ({
   }
 
   return (
-    <div className="border rounded-sm p-5">
+    <div className="border rounded-xs p-5">
       <div className="flex justify-between">
         <div>
-          <h2 className="label-md text-secondary">
-            {/* {product?.brand || "No brand"} */}
-          </h2>
           <h1 className="heading-lg text-primary">{product.title}</h1>
           <div className="mt-2 flex gap-2 items-center">
             {hasAnyPrice && variantPrice ? (
@@ -164,34 +161,36 @@ export const ProductDetailsHeader = ({
           />
         </div>
       </div>
+
       {/* Product Variants */}
       {hasAnyPrice && (
         <ProductVariants product={product} selectedVariant={selectedVariant} />
       )}
+
       {/* Add to Cart */}
       <Button
         onClick={handleAddToCart}
         disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
         loading={isAdding}
         className="w-full uppercase mb-4 py-3 flex justify-center"
-        size="large"
+        size="default"
       >
         {!hasAnyPrice
           ? "NOT AVAILABLE IN YOUR REGION"
           : variantStock && variantHasPrice
-          ? "ADD TO CART"
-          : "OUT OF STOCK"}
+            ? "ADD TO CART"
+            : "OUT OF STOCK"}
       </Button>
       {/* Seller message */}
 
-      {user && product.seller && (
+      {/* {user && product.seller && (
         <Chat
           user={user}
           seller={product.seller}
           buttonClassNames="w-full uppercase"
           product={product}
         />
-      )}
+      )} */}
     </div>
   )
 }

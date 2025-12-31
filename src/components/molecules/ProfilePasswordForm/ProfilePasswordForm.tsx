@@ -101,10 +101,7 @@ const Form = ({
         password.
       </p>
       <LocalizedClientLink href="/user">
-        <Button
-          className="uppercase py-3 px-6 !font-semibold w-full"
-          size="large"
-        >
+        <Button className="uppercase py-3 px-6 font-semibold! w-full">
           Go to user page
         </Button>
       </LocalizedClientLink>

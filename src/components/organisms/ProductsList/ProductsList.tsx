@@ -9,7 +9,11 @@ export const ProductsList = ({
   return (
     <>
       {products.map((product) => (
-        <ProductCard key={product.id} product={product} api_product={product} />
+        <ProductCard
+          api_product={products?.find((p: any) => p.id === product.id)}
+          key={product.id}
+          product={product}
+        />
       ))}
     </>
   )

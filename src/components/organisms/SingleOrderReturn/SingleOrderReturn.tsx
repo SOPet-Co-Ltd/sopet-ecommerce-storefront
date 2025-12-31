@@ -78,7 +78,7 @@ export const SingleOrderReturn = ({
           className="p-4 flex justify-between items-center cursor-pointer"
           onClick={() => setIsOpen(!isOpen)}
         >
-          <Heading level="h3" className="uppercase label-md !font-semibold">
+          <Heading level="h3" className="uppercase label-md font-semibold!">
             {item.status}
           </Heading>
           <p className="label-sm text-secondary flex gap-2">
@@ -126,7 +126,7 @@ export const SingleOrderReturn = ({
               {filteredItems.map((item: any) => (
                 <div key={item.id} className="flex items-center gap-2">
                   <div className="flex items-center gap-4 w-1/2">
-                    <div className="rounded-sm overflow-hidden border">
+                    <div className="rounded-xs overflow-hidden border">
                       {item.thumbnail ? (
                         <Image
                           src={item.thumbnail}
@@ -145,19 +145,19 @@ export const SingleOrderReturn = ({
                       )}
                     </div>
                     <div>
-                      <p className="label-md !font-semibold text-primary">
+                      <p className="label-md font-semibold! text-primary">
                         {item.product_title}
                       </p>
                       <p className="label-md text-secondary">{item.title}</p>
                     </div>
                   </div>
                   <div className="flex justify-between w-1/2">
-                    <p className="label-md !font-semibold text-primary">
-                      <Badge className="bg-primary text-primary border rounded-sm">
+                    <p className="label-md font-semibold! text-primary">
+                      <Badge className="bg-primary text-primary border rounded-xs">
                         {item.reason_id || "No reason provided"}
                       </Badge>
                     </p>
-                    <p className="label-md !font-semibold text-primary">
+                    <p className="label-md font-semibold! text-primary">
                       {convertToLocale({
                         amount: item.unit_price,
                         currency_code,
@@ -171,7 +171,7 @@ export const SingleOrderReturn = ({
           <Divider />
           <div className="p-4 flex justify-between">
             <p className="label-md text-secondary">Total:</p>
-            <p className="label-md !font-semibold text-primary">
+            <p className="label-md font-semibold! text-primary">
               {convertToLocale({
                 amount: total,
                 currency_code,
