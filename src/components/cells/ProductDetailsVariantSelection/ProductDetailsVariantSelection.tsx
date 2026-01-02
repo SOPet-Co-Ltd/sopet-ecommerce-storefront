@@ -6,6 +6,7 @@ import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { useState } from "react"
+import React from "react"
 import { addToCart } from "@/lib/data/cart"
 import { Chat } from "@/components/organisms/Chat/Chat"
 import { SellerProps } from "@/types/seller"
@@ -14,10 +15,18 @@ import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
 import { useCartContext } from "@/components/providers"
 import {
-  MinusSquareIcon,
-  PlusSquareIcon,
+  FacebookShareButton,
+  FacebookMessengerShareButton,
+  LineShareButton,
+} from "react-share"
+import {
   ShareIcon,
-  WishListHeartIcon,
+  ChainIcon,
+  FacebookCustomIcon,
+  MessengerCustomIcon,
+  LineCustomIcon,
+  InstagramCustomIcon,
+  MeatballsMenuIcon,
 } from "@/icons"
 import { ProductDetailQuantitySelection } from "@/components/cells"
 
@@ -37,6 +46,244 @@ const optionsAsKeymap = (
   )
 }
 
+interface ShareButtonConfig {
+  label: string
+  icon: () => React.ReactNode
+  handler?: () => void
+  buttonClassName?: string
+  ShareButtonComponent?: React.ComponentType<any>
+  shareProps?: Record<string, any>
+}
+
+// Helper function to strip HTML tags and get plain text
+const stripHtml = (html: string | null | undefined): string => {
+  if (!html) return ""
+  const tmp = document.createElement("DIV")
+  tmp.innerHTML = html
+  return tmp.textContent || tmp.innerText || ""
+}
+
+// Helper function to get short description from product
+const getShortDescription = (
+  product: HttpTypes.StoreProduct & { seller?: SellerProps }
+): string => {
+  // First try to use subtitle if available
+  if ((product as any).subtitle) {
+    return (product as any).subtitle
+  }
+
+  // Otherwise, extract from description
+  if (product.description) {
+    const plainText = stripHtml(product.description)
+    // Take first 150 characters and add ellipsis if longer
+    return plainText.length > 150
+      ? plainText.substring(0, 150).trim() + "..."
+      : plainText.trim()
+  }
+
+  return ""
+}
+
+// Helper function to get product share content
+const getProductShareContent = (
+  product: HttpTypes.StoreProduct & { seller?: SellerProps },
+  locale: string
+): string => {
+  const productName = product.title || ""
+  const shortDescription = getShortDescription(product)
+  const productLink = typeof window !== "undefined"
+    ? window.location.href
+    : `/${locale}/products/${product.handle}`
+
+  return `${productName}\n${shortDescription}\n${productLink}`
+}
+
+const ShareModal = ({
+  isOpen,
+  onClose,
+  product,
+  locale,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  product: HttpTypes.StoreProduct & { seller?: SellerProps }
+  locale: string
+}) => {
+  // Get product share data
+  const productLink = typeof window !== "undefined"
+    ? window.location.href
+    : `/${locale}/products/${product.handle}`
+
+  // Handler to copy link to clipboard
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(productLink)
+      toast.success({
+        title: "คัดลอกลิงก์สำเร็จ",
+        description: "ลิงก์สินค้าถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
+      })
+      onClose()
+    } catch (error) {
+      toast.error({
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถคัดลอกลิงก์ได้",
+      })
+    }
+  }
+
+  // Handler to open native share menu (mobile) or fallback to copy link (desktop)
+  const handleNativeShare = async () => {
+    const productName = product.title || ""
+    const shortDescription = getShortDescription(product)
+    const shareText = `${productName}\n${shortDescription}\n${productLink}`
+
+    // Check if Web Share API is available (mobile devices)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: productName,
+          text: shareText,
+          url: productLink,
+        })
+        onClose()
+      } catch (error: any) {
+        // User cancelled or share failed
+        if (error.name !== "AbortError") {
+          toast.error({
+            title: "เกิดข้อผิดพลาด",
+            description: "ไม่สามารถแชร์ได้",
+          })
+        }
+      }
+    } else {
+      // Fallback for desktop: copy link to clipboard
+      await handleCopyLink()
+    }
+  }
+
+  // Share buttons configuration
+  const hasFacebookAppId = !!process.env.NEXT_PUBLIC_FACEBOOK_APP_ID
+  const shareButtons: ShareButtonConfig[] = [
+    {
+      label: "คัดลอกลิงก์",
+      icon: () => {
+        return <ChainIcon size={16} color="#4C4C4C" />
+      },
+      handler: handleCopyLink,
+      buttonClassName:
+        "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full bg-[#D6D6D6] flex items-center justify-center hover:bg-[#C0C0C0] transition-colors cursor-pointer",
+    },
+    {
+      label: "Line",
+      icon: () => {
+        return <LineCustomIcon size={40} />
+      },
+      ShareButtonComponent: LineShareButton,
+      shareProps: {
+        url: productLink,
+        title: product.title || "",
+        onShareWindowClose: onClose,
+      },
+      buttonClassName:
+        "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full bg-[#06C755] flex items-center justify-center hover:bg-[#05B04A] transition-colors cursor-pointer",
+    },
+    {
+      label: "Facebook",
+      icon: () => {
+        return <FacebookCustomIcon size={40} />
+      },
+      ShareButtonComponent: FacebookShareButton,
+      shareProps: {
+        url: productLink,
+        onShareWindowClose: onClose,
+      },
+      buttonClassName: "cursor-pointer",
+    },
+    {
+      label: "Messenger",
+      icon: () => <MessengerCustomIcon size={40} />,
+      ShareButtonComponent: hasFacebookAppId
+        ? FacebookMessengerShareButton
+        : undefined,
+      shareProps: hasFacebookAppId
+        ? {
+            url: productLink,
+            appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
+            onShareWindowClose: onClose,
+          }
+        : undefined,
+      buttonClassName:
+        "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full bg-[#0084FF] flex items-center justify-center hover:bg-[#0073E6] transition-colors cursor-pointer",
+    },
+    {
+      label: "Instagram",
+      icon: () => {
+        return <InstagramCustomIcon size={24} color="#FFFFFF" />
+      },
+      buttonClassName:
+        "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full bg-gradient-to-br from-[#FCAF45] via-[#FD1D1D] to-[#833AB4] flex items-center justify-center hover:opacity-90 transition-opacity cursor-pointer",
+    },
+    {
+      label: "แอปอื่นๆ",
+      icon: () => {
+        return <MeatballsMenuIcon size={20} color="#4C4C4C" />
+      },
+      handler: handleNativeShare,
+      buttonClassName:
+        "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full border border-[#D6D6D6] bg-transparent flex items-center justify-center hover:bg-sop-neutral-grey-100 transition-colors cursor-pointer",
+    },
+  ]
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center z-50">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <div className="relative bg-sop-base-white rounded-sop-16px p-6 max-w-md w-full mx-4 z-10">
+        {/* Header */}
+        <div className="flex items-center justify-center mb-6 border-b border-[#D6D6D6] p-2">
+          <h2 className="sop-body-lg-medium text-[#232323]">
+            แชร์สินค้าให้เพื่อนของคุณ
+          </h2>
+        </div>
+        {/* Share Options */}
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-[12px] justify-items-center">
+          {shareButtons.map((button, index) => {
+            const ShareButton = button.ShareButtonComponent
+            return (
+              <div key={index} className="flex flex-col items-center gap-2">
+                {ShareButton && button.shareProps ? (
+                  <ShareButton
+                    {...button.shareProps}
+                    className={button.buttonClassName}
+                  >
+                    {button.icon()}
+                  </ShareButton>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    onClick={button.handler || undefined}
+                    className={button.buttonClassName}
+                  >
+                    {button.icon()}
+                  </button>
+                )}
+                <span className="sop-body-sm-light text-sop-base-black text-center">
+                  {button.label}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export const ProductDetailsVariantSelection = ({
   product,
   locale,
@@ -49,6 +296,7 @@ export const ProductDetailsVariantSelection = ({
   wishlist?: Wishlist[]
 }) => {
   const [productQuantity, setProductQuantity] = useState(1)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
   const { onAddToCart, cart } = useCartContext()
   const [isAdding, setIsAdding] = useState(false)
@@ -64,9 +312,9 @@ export const ProductDetailsVariantSelection = ({
   // set default variant
   const selectedVariant = hasAnyPrice
     ? {
-        ...optionsAsKeymap(cheapestVariant.options ?? null),
-        ...allSearchParams,
-      }
+      ...optionsAsKeymap(cheapestVariant.options ?? null),
+      ...allSearchParams,
+    }
     : allSearchParams
 
   // get selected variant id
@@ -170,7 +418,7 @@ export const ProductDetailsVariantSelection = ({
         {/* Buy now action */}
         <Button
           // TODO: Handle Buy Now action
-          onClick={() => {}}
+          onClick={() => { }}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           size="fill"
           className="md:py-sop-12px py-sop-8px"
@@ -179,8 +427,7 @@ export const ProductDetailsVariantSelection = ({
         </Button>
 
         <Button
-          // TODO: Handle Share action
-          onClick={() => {}}
+          onClick={() => setIsShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           size="icon"
           variant="icon"
@@ -206,6 +453,14 @@ export const ProductDetailsVariantSelection = ({
         />
       )} */}
       </div>
+
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        product={product}
+        locale={locale}
+      />
     </>
   )
 }
