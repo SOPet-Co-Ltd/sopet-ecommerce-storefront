@@ -24,7 +24,7 @@ export const ProductDetailsPage = async ({
   }).then(({ response }) => response.products[0])  
 
   // TODO - return NotFound page if product is not found
-  if (!prod) return null
+  if (!prod) return NotFound()
 
   if (prod.seller?.store_status === "SUSPENDED") {
     return NotFound()
