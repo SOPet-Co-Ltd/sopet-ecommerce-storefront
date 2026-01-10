@@ -180,8 +180,7 @@
 
   /* ================= Typography ================= */
   /* Font family */
-  --font-sans:
-    Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+  --font-sans: Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Font weights (labels retained for reference; Tailwind utilities used in practice) */
@@ -730,4 +729,8 @@
 @utility py-sop-12 {
   padding-top: var(--spacing-sop-12px);
   padding-bottom: var(--spacing-sop-12px);
+}
+
+@utility text-sop-neutral-gray-300 {
+  color: var(--color-sop-neutral-gray-300);
 }

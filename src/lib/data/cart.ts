@@ -33,20 +33,20 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  return await sdk.client
-    .fetch<HttpTypes.StoreCartResponse>(`/store/carts/${id}`, {
-      method: "GET",
-      query: {
-        fields:
-          "*items,*region, *items.product, *items.variant, *items.variant.options, items.variant.options.option.title," +
-          "*items.thumbnail, *items.metadata, +items.total, *promotions, +shipping_methods.name, *items.product.seller" +
-          "",
-      },
-      headers,
-      cache: "no-cache",
-    })
-    .then(({ cart }) => cart as Cart)
-    .catch(() => null)
+  const { data, error } = await fetchQuery(`/store/cart/${id}`, {
+    method: "GET",
+    headers,
+  })
+
+  if (error || !data?.cart) {
+    console.error(`[retrieveCart] Error fetching cart ${id}:`, error)
+    return null
+  }
+
+  console.log(
+    `[retrieveCart] Success for ID ${id}, Items: ${data.cart.items?.length}`
+  )
+  return data.cart as Cart
 }
 
 export async function getOrSetCart(countryCode: string) {
@@ -63,11 +63,14 @@ export async function getOrSetCart(countryCode: string) {
   }
 
   if (!cart) {
-    const cartResp = await sdk.store.cart.create(
-      { region_id: region.id },
-      {},
-      headers
-    )
+    const cartResp = await sdk.client.fetch<{ cart: Cart }>("/store/cart", {
+      method: "POST",
+      body: {
+        region_id: region.id,
+        currency_code: region.currency_code,
+      },
+      headers,
+    })
     cart = cartResp.cart as Cart
 
     await setCartId(cart.id)
@@ -146,16 +149,15 @@ export async function addToCart({
         revalidateTag(cartCacheTag)
       })
   } else {
-    await sdk.store.cart
-      .createLineItem(
-        cart.id,
-        {
+    await sdk.client
+      .fetch(`/store/cart/${cart.id}/line-items`, {
+        method: "POST",
+        body: {
           variant_id: variantId,
           quantity,
         },
-        {},
-        headers
-      )
+        headers,
+      })
       .then(async () => {
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
@@ -216,8 +218,10 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.cart
-    .deleteLineItem(cartId, lineId, { fields: "*" }, headers)
+  await fetchQuery(`/store/cart/${cartId}/line-items/${lineId}`, {
+    method: "DELETE",
+    headers,
+  })
     .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       await revalidateTag(cartCacheTag)

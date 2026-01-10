@@ -46,6 +46,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "s3.eu-central-1.amazonaws.com",
       },
+      {
+        protocol: "https",
+        hostname: "pub-849fbf4cb4b24d67870e260db84b0412.r2.dev",
+      },
     ],
   },
 }

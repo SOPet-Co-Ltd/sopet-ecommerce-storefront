@@ -24,6 +24,7 @@ import { Addresses } from "./Addressess/Addresses"
 import { ReviewsToWrite } from "./Reviews/ReviewsToWrite"
 import { ReviewsWritten } from "./Reviews/ReviewsWritten"
 import { CartEmpty } from "./CartEmpty/CartEmpty"
+import { CartTemplate } from "./CartTemplate/CartTemplate"
 import { ProductCard } from "./ProductCard/ProductCard"
 
 export {
@@ -53,5 +54,6 @@ export {
   ReviewsToWrite,
   ReviewsWritten,
   CartEmpty,
-  ProductCard
+  CartTemplate,
+  ProductCard,
 }
