@@ -206,3 +206,5 @@ In Algolia dashboard chose your index and select Import configuration from Manag
   "synonyms": []
 }
 ```
+
+properties of sopet.co
