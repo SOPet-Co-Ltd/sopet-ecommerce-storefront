@@ -1,51 +1,27 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import {
-  ProductCardReviewStars,
-  ProductCardShowPrice,
-} from "@/components/sections"
-import { getProductReviewStats, ReviewStats } from "@/lib/data/reviews"
+import { ProductCardReviewStars, ProductCardShowPrice } from "@/components/sections"
 import Image from "next/image"
 import { HttpTypes } from "@medusajs/types"
 import { BaseHit, Hit } from "instantsearch.js"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { ProductWithSeller } from "@/lib/data/products"
 
 type ProductCardProps = {
   product: Hit<HttpTypes.StoreProduct> | Partial<Hit<BaseHit>>
-  api_product?: HttpTypes.StoreProduct | null
+  api_product?: ProductWithSeller | HttpTypes.StoreProduct | null
 }
 export const ProductCard = ({ product, api_product }: ProductCardProps) => {
-  const [reviewStats, setReviewStats] = useState<ReviewStats | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-
   const productId = product.id || api_product?.id
   const productName = String(product.title || "Product")
-
-  useEffect(() => {
-    const fetchReviewStats = async () => {
-      if (!productId) {
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const stats = await getProductReviewStats(productId.toString())
-        setReviewStats(stats)
-      } catch (error) {
-        console.error("Failed to fetch review stats:", error)
-        setReviewStats(null)
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchReviewStats()
-  }, [productId])
 
   if (!api_product) {
     return null
   }
+
+  const averageRating = Number((api_product as ProductWithSeller)?.average_rating ?? 0)
+  const totalReviews = Number((api_product as ProductWithSeller)?.review_count ?? 0)
+  const soldCount = Number((api_product as ProductWithSeller)?.sold_count ?? 0)
 
   return (
     <LocalizedClientLink
@@ -53,8 +29,8 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       aria-label={`View ${productName}`}
       title={`View ${productName}`}
     >
-      <div className="md:w-[223px] w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
-        <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
+      <div className="md:w-[223px] w-[175px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+        <div className="md:w-[223px] w-[175px] md:h-[223px] h-[175px]">
           <Image
             fetchPriority={"auto"}
             src={decodeURIComponent(
@@ -69,19 +45,14 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
           />
         </div>
         <div className="py-2 md:px-3 px-2 pb-5 flex flex-col gap-1">
-          <p>{product.title}</p>
+          <p className="sop-body-sm-regular text-sop-neutral-gray-300 line-clamp-2 h-sop-40px">{product.title}</p>
           <ProductCardShowPrice product={api_product || product} />
           <div>
             <ProductCardReviewStars
-              starCounts={
-                (!isLoading && reviewStats && reviewStats.starCounts) || []
-              }
-              averageRating={
-                (!isLoading && reviewStats && reviewStats.averageRating) || 0
-              }
-              totalReviews={
-                (!isLoading && reviewStats && reviewStats.totalReviews) || 0
-              }
+              starCounts={[]}
+              averageRating={averageRating}
+              totalReviews={totalReviews}
+              soldCount={soldCount}
             />
           </div>
         </div>

@@ -18,8 +18,12 @@ export function Checkbox({
   error,
   className,
   checked,
+  onChange,
   ...props
 }: CheckboxProps) {
+  // Provide a no-op onChange if none is provided to prevent React warning
+  const handleChange = onChange || (() => {})
+
   return (
     <label className="flex items-center gap-2 cursor-pointer group">
       <span
@@ -60,6 +64,8 @@ export function Checkbox({
 
         <input
           type="checkbox"
+          checked={checked}
+          onChange={handleChange}
           className={cn(
             "absolute inset-0 w-full h-full opacity-0 cursor-pointer m-0",
             props.disabled && "cursor-default"

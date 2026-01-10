@@ -26,6 +26,7 @@ import { ReviewsWritten } from "./Reviews/ReviewsWritten"
 import { CartEmpty } from "./CartEmpty/CartEmpty"
 import { CartTemplate } from "./CartTemplate/CartTemplate"
 import { ProductCard } from "./ProductCard/ProductCard"
+import { ProductSortButtons } from "./ProductSortButtons/ProductSortButtons"
 
 export {
   ProductCardOld,
@@ -56,4 +57,5 @@ export {
   CartEmpty,
   CartTemplate,
   ProductCard,
+  ProductSortButtons
 }

@@ -20,6 +20,8 @@ import { TabsTrigger } from "./TabsTrigger/TabsTrigger"
 import { NavigationItem } from "./NavigationItem/NavigationItem"
 import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
+import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
+import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 
 export {
   Button,
@@ -44,10 +46,12 @@ export {
   NavigationItem,
   LogoutButton,
   MarkdownRender,
+  PriceRangeSlider,
 }
 
 export type {
   AutocompleteOption,
   AutocompleteStyleConfig,
   OptionComponentProps,
+  PriceRangeSliderProps,
 }
