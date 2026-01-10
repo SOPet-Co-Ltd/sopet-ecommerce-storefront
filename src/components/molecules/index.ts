@@ -25,6 +25,7 @@ import { HeaderCategoryNavbar } from "./HeaderCategoryNavbar/HeaderCategoryNavba
 import { DeleteCartItemButton } from "./DeleteCartItemButton/DeleteCartItemButton"
 import { Dropdown } from "./Dropdown/Dropdown"
 import { CartDropdownItem } from "./CartDropdownItem/CartDropdownItem"
+import { CartItem } from "./CartItem/CartItem"
 import { LoginForm } from "./LoginForm/LoginForm"
 import { RegisterForm } from "./RegisterForm/RegisterForm"
 import { UserNavigation } from "./UserNavigation/UserNavigation"
@@ -61,6 +62,7 @@ export {
   DeleteCartItemButton,
   Dropdown,
   CartDropdownItem,
+  CartItem,
   LoginForm,
   RegisterForm,
   UserNavigation,

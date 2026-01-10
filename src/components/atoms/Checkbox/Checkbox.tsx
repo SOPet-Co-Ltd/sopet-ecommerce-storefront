@@ -1,6 +1,10 @@
 "use client"
 import { cn } from "@/lib/utils"
+// Using standard SVGs or Lucide icons if custom icons aren't perfectly matching,
+// but sticking to existing imports if they work intended.
+// Assuming MinusHeavyIcon/TickThinIcon are correct internal icons, changing styles primarily.
 import { MinusHeavyIcon, TickThinIcon } from "@/icons"
+import { Check } from "lucide-react"
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   indeterminate?: boolean
@@ -33,6 +37,9 @@ export function Checkbox({
             "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
           className
         )}
+        style={{
+          borderColor: !checked && !error ? "rgba(34,34,41,0.12)" : undefined,
+        }}
       >
         {indeterminate && !checked && !props.disabled && (
           <MinusHeavyIcon size={12} color="#FFFFFF" />
@@ -49,6 +56,11 @@ export function Checkbox({
             "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
             props.disabled && "cursor-not-allowed"
           )}
+          ref={(input) => {
+            if (input) {
+              input.indeterminate = !!indeterminate
+            }
+          }}
           {...props}
         />
       </span>

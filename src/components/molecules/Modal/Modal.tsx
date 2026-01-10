@@ -10,17 +10,14 @@ export const Modal = ({
   onClose: () => void
 }) => {
   return (
-    <div className="fixed top-0 left-0 w-full h-full flex justify-center z-30">
+    <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center z-60 px-4">
       <div
-        className="bg-tertiary/60 w-full h-full absolute backdrop-blur-xs"
+        className="bg-black/40 w-full h-full absolute backdrop-blur-xs"
         onClick={onClose}
       />
-      <div className="absolute bg-primary z-20 my-20 py-5 rounded-xs max-w-[600px] w-full max-h-[80vh] overflow-y-auto shadow-lg">
-        <div className="uppercase flex justify-between items-center heading-md border-b px-4 pb-5">
+      <div className="relative bg-white z-20 py-5 rounded-3xl max-w-[600px] w-full max-h-[80vh] overflow-y-auto shadow-lg">
+        <div className="uppercase flex justify-center items-center text-2xl heading-md px-6">
           {heading}
-          <div onClick={onClose} className="cursor-pointer">
-            <CloseIcon size={20} />
-          </div>
         </div>
         <div className="pt-5">{children}</div>
       </div>

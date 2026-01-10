@@ -180,8 +180,7 @@
 
   /* ================= Typography ================= */
   /* Font family */
-  --font-sans:
-    Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+  --font-sans: Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Font weights (labels retained for reference; Tailwind utilities used in practice) */
@@ -784,4 +783,6 @@ input[type="range"].slider-thumb:focus::-webkit-slider-thumb {
 
 input[type="range"].slider-thumb:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
+@utility text-sop-neutral-gray-300 {
+  color: var(--color-sop-neutral-gray-300);
 }

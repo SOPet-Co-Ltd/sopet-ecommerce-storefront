@@ -1,69 +1,82 @@
 "use client"
 
+import { Button, Checkbox, Input } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 
+interface CartSummaryProps {
+  cart: any
+  selectedCount?: number
+  totalCount?: number
+  isAllSelected?: boolean
+  onSelectAll?: (checked: boolean) => void
+}
+
 export const CartSummary = ({
-  item_total,
-  shipping_total,
-  total,
-  currency_code,
-  tax,
-  discount_total,
-}: {
-  item_total: number
-  shipping_total: number
-  total: number
-  currency_code: string
-  tax: number
-  discount_total: number
-}) => {
+  cart,
+  selectedCount = 0,
+  totalCount = 0,
+  isAllSelected = false,
+  onSelectAll,
+}: CartSummaryProps) => {
+  const {
+    total,
+    subtotal,
+    discount_total,
+    shipping_total,
+    tax_total,
+    currency_code,
+  } = cart || {}
+
   return (
-    <div>
-      <div className="space-y-4 label-md text-secondary mb-4">
-        <div className="flex justify-between">
-          <span>Items:</span>
-          <span className="text-primary">
-            {convertToLocale({
-              amount: item_total,
-              currency_code,
-            })}
-          </span>
+    <div className="w-full bg-white rounded-t-2xl shadow-[0_-4px_24px_rgba(0,0,0,0.12)] p-4">
+      <div className="space-y-4">
+        <div className="flex flex-col justify-between lg:items-end gap-1 text-sm">
+          <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between">
+            <span className="text-gray-500">สินค้า {selectedCount} รายการ</span>
+            <span className="font-medium text-gray-900">
+              {convertToLocale({ amount: subtotal || 0, currency_code })}
+            </span>
+          </div>
+
+          {discount_total > 0 && (
+            <>
+              <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between text-gray-900">
+                <span>ส่วนลดร้านค้า</span>
+                <span className="font-medium">
+                  {convertToLocale({ amount: discount_total, currency_code })}
+                </span>
+              </div>
+              <div className="w-full md:w-[300px] h-px bg-gray-100 my-1"></div>
+            </>
+          )}
+
+          <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between">
+            <span className="font-medium text-gray-900">รวมทั้งสิ้น</span>
+            {discount_total > 0 ? (
+              <span className="font-bold text-white bg-sop-secondary-500 rounded-lg px-2 py-0.5 text-lg">
+                {convertToLocale({ amount: total || 0, currency_code })}
+              </span>
+            ) : (
+              <span className="font-bold text-gray-900 text-lg">
+                {convertToLocale({ amount: total || 0, currency_code })}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex justify-between">
-          <span>Delivery:</span>
-          <span className="text-primary">
-            {convertToLocale({
-              amount: shipping_total,
-              currency_code,
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Tax:</span>
-          <span className="text-primary">
-            {convertToLocale({
-              amount: tax,
-              currency_code,
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between">
-          <span>Discount:</span>
-          <span className="text-primary">
-            {convertToLocale({
-              amount: discount_total,
-              currency_code,
-            })}
-          </span>
-        </div>
-        <div className="flex justify-between border-t pt-4 items-center">
-          <span>Total:</span>
-          <span className="label-xl text-primary">
-            {convertToLocale({
-              amount: total,
-              currency_code,
-            })}
-          </span>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              checked={isAllSelected}
+              onChange={(e) => onSelectAll?.(e.target.checked)}
+            />
+            <span className="text-sm font-medium text-gray-900 whitespace-nowrap">
+              เลือกสินค้าทั้งหมด ({totalCount})
+            </span>
+          </div>
+          <Button className="flex-1 max-w-[300px] rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
+            ชำระเงิน
+          </Button>
         </div>
       </div>
     </div>
