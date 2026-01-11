@@ -7,24 +7,37 @@ import { CartSummary } from "../CartSummary/CartSummary"
 import { useState } from "react"
 import { mockCart } from "@/lib/mocks/cart"
 import { Ticket, Trash } from "lucide-react"
+import { HttpTypes } from "@medusajs/types"
+import { TrashIcon, PlusLineIcon, MinusIcon } from "@/icons"
+import { Cart } from "@/types/cart"
+
+type ProductWithSeller = HttpTypes.StoreProduct & {
+  seller?: { store_name: string }
+}
 
 // Using any for flexibility with mock data during this phase
-type CartType = any
-
-export const CartTemplate = ({ cart }: { cart: CartType }) => {
+export const CartTemplate = ({
+  cart,
+}: {
+  cart: HttpTypes.StoreCart | Cart
+}) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
 
   // Group items by seller
-  const itemsBySeller = (cart?.items || []).reduce((acc: any, item: any) => {
-    const sellerName = item.product?.seller?.store_name || "SOPet"
-    if (!acc[sellerName]) {
-      acc[sellerName] = []
-    }
-    acc[sellerName].push(item)
-    return acc
-  }, {})
+  const itemsBySeller = (cart?.items || []).reduce(
+    (acc: Record<string, HttpTypes.StoreCartLineItem[]>, item) => {
+      const sellerName =
+        (item.product as ProductWithSeller)?.seller?.store_name || "SOPet"
+      if (!acc[sellerName]) {
+        acc[sellerName] = []
+      }
+      acc[sellerName].push(item)
+      return acc
+    },
+    {} as Record<string, HttpTypes.StoreCartLineItem[]>
+  )
 
-  const allItemIds = cart?.items?.map((i: any) => i.id) || []
+  const allItemIds = cart?.items?.map((i) => i.id) || []
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -43,7 +56,7 @@ export const CartTemplate = ({ cart }: { cart: CartType }) => {
   }
 
   const handleSelectSeller = (sellerName: string, checked: boolean) => {
-    const sellerItems = itemsBySeller[sellerName]?.map((i: any) => i.id) || []
+    const sellerItems = itemsBySeller[sellerName]?.map((i) => i.id) || []
     if (checked) {
       setSelectedItems((prev) => [...new Set([...prev, ...sellerItems])])
     } else {
@@ -92,56 +105,54 @@ export const CartTemplate = ({ cart }: { cart: CartType }) => {
             </div> */}
 
             {/* Cart Items Grouped by Seller */}
-            {Object.entries(itemsBySeller).map(
-              ([sellerName, items]: [string, any]) => {
-                const isSellerSelected = items.every((i: any) =>
-                  selectedItems.includes(i.id)
-                )
-                return (
-                  <div
-                    key={sellerName}
-                    className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm"
-                  >
-                    <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-100 flex items-center gap-3">
-                      <Checkbox
-                        checked={isSellerSelected}
-                        onChange={(e) =>
-                          handleSelectSeller(sellerName, e.target.checked)
-                        }
+            {Object.entries(itemsBySeller).map(([sellerName, items]) => {
+              const isSellerSelected = items.every((i) =>
+                selectedItems.includes(i.id)
+              )
+              return (
+                <div
+                  key={sellerName}
+                  className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm"
+                >
+                  <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-100 flex items-center gap-3">
+                    <Checkbox
+                      checked={isSellerSelected}
+                      onChange={(e) =>
+                        handleSelectSeller(sellerName, e.target.checked)
+                      }
+                    />
+                    <span className="text-body-lg font-bold text-gray-900">
+                      {sellerName}
+                    </span>
+                  </div>
+                  <div className="px-4 md:px-6">
+                    {items.map((item) => (
+                      <CartItem
+                        key={item.id}
+                        item={item}
+                        currencyCode={cart.currency_code || "THB"}
+                        isSelected={selectedItems.includes(item.id)}
+                        onSelect={handleSelectItem}
                       />
-                      <span className="text-body-lg font-bold text-gray-900">
-                        {sellerName}
+                    ))}
+                  </div>
+                  {/* Store Discount Section (Footer) */}
+                  <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center w-5 h-5 bg-sop-primary-100 text-sop-primary-500 rounded p-0.5">
+                        <Ticket className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-gray-900 font-medium">
+                        ส่วนลดร้านค้า
                       </span>
                     </div>
-                    <div className="px-4 md:px-6">
-                      {items.map((item: any) => (
-                        <CartItem
-                          key={item.id}
-                          item={item}
-                          currencyCode={cart.currency_code || "THB"}
-                          isSelected={selectedItems.includes(item.id)}
-                          onSelect={handleSelectItem}
-                        />
-                      ))}
-                    </div>
-                    {/* Store Discount Section (Footer) */}
-                    <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center justify-center w-5 h-5 bg-sop-primary-100 text-sop-primary-500 rounded p-0.5">
-                          <Ticket className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="text-gray-900 font-medium">
-                          ส่วนลดร้านค้า
-                        </span>
-                      </div>
-                      <button className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline">
-                        ดูส่วนลดอื่นๆ
-                      </button>
-                    </div>
+                    <button className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline">
+                      ดูส่วนลดอื่นๆ
+                    </button>
                   </div>
-                )
-              }
-            )}
+                </div>
+              )
+            })}
           </div>
         </div>
 
