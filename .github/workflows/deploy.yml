@@ -1,0 +1,23 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches:
+      - main
+      - uat
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get commit author email
+        id: author
+        run: echo "email=${{ github.event.head_commit.author.email }}" >> $GITHUB_OUTPUT
+
+      - name: Trigger Vercel deploy (main)
+        if: github.ref == 'refs/heads/main' && steps.author.outputs.email != 'thapecroth@gmail.com'
+        run: wget -qO- 'https://api.vercel.com/v1/integrations/deploy/prj_RQD7G6yT2KDoZakndDjIKNBLfqWK/ekIls3DU9s'
+
+      - name: Trigger Vercel deploy (uat)
+        if: github.ref == 'refs/heads/uat' && steps.author.outputs.email != 'thapecroth@gmail.com'
+        run: wget -qO- 'https://api.vercel.com/v1/integrations/deploy/prj_RQD7G6yT2KDoZakndDjIKNBLfqWK/NqpEOPfFA1'
