@@ -5,21 +5,20 @@ import { convertToLocale } from "@/lib/helpers/money"
 import Image from "next/image"
 import Link from "next/link"
 import { useState } from "react"
-import {
-  Heart,
-  Trash,
-  Minus,
-  Plus,
-  ChevronDown,
-  Ticket,
-  MoreVertical,
-} from "lucide-react"
+import { TrashIcon, PlusLineIcon, MinusIcon } from "@/icons"
+import { MoreVertical, ChevronDown } from "lucide-react"
+import { HttpTypes } from "@medusajs/types"
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { deleteLineItem, updateLineItem } from "@/lib/data/cart"
 
 // Using any for mock flexibility
+type ExtendedCartItem = HttpTypes.StoreCartLineItem & {
+  original_total?: number
+  original_price?: number
+}
+
 type CartItemProps = {
-  item: any
+  item: ExtendedCartItem
   currencyCode: string
   isSelected: boolean
   onSelect: (id: string, checked: boolean) => void
@@ -127,7 +126,7 @@ export const CartItem = ({
                         setIsDeleteModalOpen(true)
                       }}
                     >
-                      <Trash className="w-4 h-4" />
+                      <TrashIcon size={16} />
                       ลบสินค้า
                     </button>
                   </div>
@@ -147,14 +146,16 @@ export const CartItem = ({
 
               {options && (
                 <div className="flex flex-wrap gap-2">
-                  {options.map((opt: any) => (
+                  {options.map((opt) => (
                     <div key={opt.id} className="relative inline-block">
                       <select
                         className="appearance-none w-full bg-white border border-gray-200 rounded-md px-2 py-1.5 pr-6 text-xs text-gray-700 shadow-sm focus:outline-none focus:border-gray-300 transition-colors cursor-pointer"
                         defaultValue={opt.value}
                       >
                         <option value={opt.value}>
-                          {opt.option_id === "color" ? opt.value : opt.value}
+                          {opt.option?.title === "Color"
+                            ? opt.value
+                            : opt.value}
                         </option>
                         <option value="other">Other Option</option>
                       </select>
@@ -166,9 +167,9 @@ export const CartItem = ({
 
               <div className="flex items-end justify-between mt-4 md:hidden pt-2">
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-gray-900 leading-tight">
+                  <span className="sop-body-sm-medium text-gray-900 leading-tight">
                     {convertToLocale({
-                      amount: item.total,
+                      amount: item.total ?? 0,
                       currency_code: currencyCode,
                     })}
                   </span>
@@ -187,18 +188,18 @@ export const CartItem = ({
                   <button
                     onClick={() => handleQuantityChange(item.quantity - 1)}
                     disabled={item.quantity <= 1}
-                    className="w-6 h-6 flex items-center justify-center text-gray-900 border border-gray-200 rounded-[4px] hover:bg-gray-50 active:bg-gray-100 transition-colors bg-white disabled:opacity-50"
+                    className="disabled:opacity-50 cursor-pointer"
                   >
-                    <Minus className="w-3 h-3" />
+                    <MinusIcon size={24} />
                   </button>
-                  <span className="text-sm font-medium text-gray-900 w-4 text-center">
+                  <span className="sop-body-sm-medium text-gray-900 w-4 text-center">
                     {updating ? "..." : item.quantity}
                   </span>
                   <button
                     onClick={() => handleQuantityChange(item.quantity + 1)}
-                    className="w-6 h-6 flex items-center justify-center text-gray-900 border border-gray-200 rounded-[4px] hover:bg-gray-50 active:bg-gray-100 transition-colors bg-white"
+                    className="cursor-pointer"
                   >
-                    <Plus className="w-3 h-3" />
+                    <PlusLineIcon size={24} />
                   </button>
                 </div>
               </div>
@@ -228,18 +229,18 @@ export const CartItem = ({
                 <button
                   onClick={() => handleQuantityChange(item.quantity - 1)}
                   disabled={item.quantity <= 1}
-                  className="w-8 h-8 flex items-center justify-center text-gray-900 border border-gray-200 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors bg-white shadow-xs disabled:opacity-50"
+                  className="disabled:opacity-50 cursor-pointer"
                 >
-                  <Minus className="w-4 h-4" />
+                  <MinusIcon size={28} />
                 </button>
                 <span className="text-body-md font-normal text-gray-900 w-6 text-center">
                   {updating ? "..." : item.quantity}
                 </span>
                 <button
                   onClick={() => handleQuantityChange(item.quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center text-gray-900 border border-gray-200 rounded hover:bg-gray-50 active:bg-gray-100 transition-colors bg-white shadow-xs"
+                  className="cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
+                  <PlusLineIcon size={28} />
                 </button>
               </div>
               <button
@@ -247,7 +248,7 @@ export const CartItem = ({
                 title="ลบรายการ"
                 onClick={() => setIsDeleteModalOpen(true)}
               >
-                <Trash className="w-5 h-5" />
+                <TrashIcon size={20} />
               </button>
             </div>
           </div>

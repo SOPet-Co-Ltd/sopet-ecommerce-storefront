@@ -3,8 +3,11 @@
 import { Button, Checkbox, Input } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 
+import { HttpTypes } from "@medusajs/types"
+import { Cart } from "@/types/cart"
+
 interface CartSummaryProps {
-  cart: any
+  cart: HttpTypes.StoreCart | Cart
   selectedCount?: number
   totalCount?: number
   isAllSelected?: boolean
