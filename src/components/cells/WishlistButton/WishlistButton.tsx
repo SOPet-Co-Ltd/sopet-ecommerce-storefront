@@ -6,6 +6,7 @@ import { addWishlistItem, removeWishlistItem } from "@/lib/data/wishlist"
 import { Wishlist } from "@/types/wishlist"
 import { useEffect, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
+import { useRouter, useParams } from "next/navigation"
 
 export const WishlistButton = ({
   productId,
@@ -16,6 +17,9 @@ export const WishlistButton = ({
   wishlist?: Wishlist[]
   user?: HttpTypes.StoreCustomer | null
 }) => {
+  const router = useRouter()
+  const params = useParams()
+  const locale = params?.locale as string
   const [isWishlistAdding, setIsWishlistAdding] = useState(false)
   const [isWishlisted, setIsWishlisted] = useState(
     wishlist?.[0]?.products?.some((item) => item.id === productId)
@@ -58,7 +62,10 @@ export const WishlistButton = ({
   return (
     <Button
       onClick={() => {
-        if (!user) return
+        if (!user) {
+          router.push(`/${locale}/user`)
+          return
+        }
         if (isWishlisted) {
           handleRemoveFromWishlist()
         } else {
