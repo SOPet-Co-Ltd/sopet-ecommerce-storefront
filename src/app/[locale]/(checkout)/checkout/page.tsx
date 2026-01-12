@@ -46,21 +46,19 @@ async function CheckoutPageContent({}) {
   return (
     <PaymentWrapper cart={cart}>
       <main className="container">
-        <div className="grid lg:grid-cols-11 gap-8">
-          <div className="flex flex-col gap-4 lg:col-span-6">
+        <div className="flex w-full">
+          <div className="flex flex-col gap-4">
             <CartAddressSection cart={cart} customer={customer} />
             <CartShippingMethodsSection
               cart={cart}
-              availableShippingMethods={shippingMethods as any}
+              availableShippingMethods={shippingMethods}
             />
+            <CartReview cart={cart} />
+
             <CartPaymentSection
               cart={cart}
               availablePaymentMethods={paymentMethods}
             />
-          </div>
-
-          <div className="lg:col-span-5">
-            <CartReview cart={cart} />
           </div>
         </div>
       </main>

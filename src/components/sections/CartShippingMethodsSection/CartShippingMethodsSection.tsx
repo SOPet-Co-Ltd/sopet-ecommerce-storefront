@@ -14,7 +14,7 @@ import { Modal, SelectField } from "@/components/molecules"
 import { CartShippingMethodRow } from "./CartShippingMethodRow"
 import { Listbox, Transition } from "@headlessui/react"
 import clsx from "clsx"
-import { Cart } from "@/types/cart"
+import { Cart, StoreCardShippingMethod } from "@/types/cart"
 
 // Extended cart item product type to include seller
 type ExtendedStoreProduct = HttpTypes.StoreProduct & {
@@ -30,29 +30,9 @@ type CartItem = {
   // Include other cart item properties as needed
 }
 
-export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {
-  seller_id?: string
-  service_zone?: {
-    fulfillment_set: {
-      type: string
-    }
-  }
-}
-
 type ShippingProps = {
-  cart: Omit<Cart, "items"> & {
-    items?: CartItem[]
-  }
-  availableShippingMethods:
-    | (StoreCardShippingMethod &
-        {
-          rules: any
-          seller_id: string
-          price_type: string
-          id: string
-          amount?: number
-        }[])
-    | null
+  cart: Cart
+  availableShippingMethods: StoreCardShippingMethod[] | null
 }
 
 const CartShippingMethodsSection: React.FC<ShippingProps> = ({
@@ -84,8 +64,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
   useEffect(() => {
     const set = new Set<string>()
     cart.items?.forEach((item) => {
-      if (item?.product?.seller?.id) {
-        set.add(item.product.seller.id)
+      const product = item?.product as ExtendedStoreProduct
+      if (product?.seller?.id) {
+        set.add(product.seller.id)
       }
     })
 
@@ -180,10 +161,14 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
   }
 
   const missingSellers = cart.items
-    ?.filter((item) =>
-      missingShippingSellers.includes(item.product?.seller?.id!)
-    )
-    .map((item) => item.product?.seller?.name)
+    ?.filter((item) => {
+      const product = item.product as ExtendedStoreProduct
+      return missingShippingSellers.includes(product?.seller?.id!)
+    })
+    .map((item) => {
+      const product = item.product as ExtendedStoreProduct
+      return product?.seller?.name
+    })
 
   return (
     <div className="border p-4 rounded-xs bg-ui-bg-interactive">
@@ -250,7 +235,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
                         <div className="relative">
                           <Listbox.Button
                             className={clsx(
-                              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
+                              "relative w-full flex justify-between items-center px-4 h-12 bg-white text-left cursor-default border rounded-lg focus:outline-none focus:ring-1 focus:ring-sop-primary-500 border-gray-200 text-base"
                             )}
                           >
                             {({ open }) => (
@@ -276,7 +261,7 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
                             leaveTo="opacity-0"
                           >
                             <Listbox.Options
-                              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
+                              className="absolute z-20 w-full overflow-auto text-sm bg-white border rounded-lg shadow-lg max-h-60 focus:outline-none mt-1"
                               data-testid="shipping-address-options"
                             >
                               {groupedBySellerId[key].map((option: any) => {
