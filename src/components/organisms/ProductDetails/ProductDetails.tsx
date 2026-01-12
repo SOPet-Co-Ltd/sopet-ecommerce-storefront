@@ -9,6 +9,7 @@ import {
 import { ProductDetailsVariantSelection } from "@/components/cells/ProductDetailsVariantSelection/ProductDetailsVariantSelection"
 import ProductReviewStars from "@/components/sections/ProductReview/ProductReview"
 import { ProductShowPrice } from "@/components/sections/ProductShowPrice/ProductShowPrice"
+import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
 import { ClipboardAddIcon, LinkIcon, SaleIcon, ShieldCheckIcon } from "@/icons"
 
 import { retrieveCustomer } from "@/lib/data/customer"
@@ -38,6 +39,23 @@ export const ProductDetails = async ({
   }
 
   const reviewStats = await getProductReviewStats(product.id)
+  // Get sold_count from reviewStats (which fetches from stats endpoint)
+  // Fallback to product.sold_count if available
+  const soldCount = reviewStats.soldCount ?? Number((product as any)?.sold_count ?? 0)
+
+  // Debug logging
+  if (process.env.NODE_ENV === "development") {
+    console.log(`[ProductDetails] Product ${product.id} soldCount:`, {
+      fromReviewStats: reviewStats.soldCount,
+      fromProduct: (product as any)?.sold_count,
+      final: soldCount
+    })
+  }
+
+  const dateOfExpired: string | null = product.attribute_values?.find(
+    (attr) => (attr as any)?.attribute?.handle === "date_of_expired"
+  )?.value ?? null
+
 
   return (
     <div className="flex flex-col px-4 gap-6">
@@ -49,8 +67,11 @@ export const ProductDetails = async ({
         starCounts={reviewStats.starCounts}
         averageRating={reviewStats.averageRating}
         totalReviews={reviewStats.totalReviews}
+        soldCount={soldCount}
       />
       <ProductShowPrice product={product} />
+
+      <ProductExpiryDate dateOfExpired={dateOfExpired} />
 
       <ProductDetailsVariantSelection
         product={product}

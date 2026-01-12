@@ -1,10 +1,11 @@
 import { RenderStars } from "@/components/cells"
 import { ReviewStats } from "@/lib/data/reviews"
 
-const ProductReviewStars = ({ averageRating, totalReviews }: ReviewStats) => {
-  // TODO: Fetch amount sold from backend
-  const amountSaled = 1000 // Placeholder value for amount sold
-
+const ProductReviewStars = ({ 
+  averageRating, 
+  totalReviews,
+  soldCount = 0 
+}: ReviewStats & { soldCount?: number }) => {
   const formatNumber = (num: number): string => {
     if (num < 1000) return num.toString()
 
@@ -32,7 +33,7 @@ const ProductReviewStars = ({ averageRating, totalReviews }: ReviewStats) => {
         </p>
         <div className="w-px h-6 bg-sop-neutral-gray-400"> </div>
         <p className="md:sop-body-lg-regular sop-body-sm-regular text-sop-neutral-gray-400">
-          ขายแล้ว {formatNumber(amountSaled)} ชิ้น
+          ขายแล้ว {formatNumber(soldCount)} ชิ้น
         </p>
       </div>
     </div>
