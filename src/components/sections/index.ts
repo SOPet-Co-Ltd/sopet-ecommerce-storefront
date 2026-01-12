@@ -13,6 +13,8 @@ import { AlgoliaProductsListing } from "./ProductListing/AlgoliaProductsListing"
 import { OrdersPagination } from "../organisms/OrdersPagination/OrdersPagination"
 import { ProductDetailDescription } from "./ProductDetailDescription/ProductDetailDescription"
 import { ProductDetailReview } from "./ProductDetailReview/ProductDetailReview"
+import { ProductDetailWarning } from "./ProductDetailWarning/ProductDetailWarning"
+import { ProductExpiryDate } from "./ProductExpiryDate/ProductExpiryDate"
 import { RenderReviewFilterButtons } from "./RenderReviewFilterButtons/RenderReviewFilterButtons"
 import { ProductDetailReviewComment } from "./ProductDetailReviewComment/ProductDetailReviewComment"
 import { ProductDetailReviewPagination } from "./ProductDetailReviewPagination/ProductDetailReviewPagination"
@@ -36,6 +38,8 @@ export {
   OrdersPagination,
   ProductDetailDescription,
   ProductDetailReview,
+  ProductDetailWarning,
+  ProductExpiryDate,
   RenderReviewFilterButtons,
   ProductDetailReviewComment,
   ProductDetailReviewPagination,

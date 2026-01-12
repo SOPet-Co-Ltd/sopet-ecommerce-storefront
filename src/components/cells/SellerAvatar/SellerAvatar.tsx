@@ -1,3 +1,4 @@
+import { ProfileFilledIcon, ProfileIcon } from "@/icons"
 import Image from "next/image"
 
 export const SellerAvatar = ({
@@ -18,12 +19,6 @@ export const SellerAvatar = ({
       style={{ width: size, height: size }}
     />
   ) : (
-    <Image
-      src="/images/placeholder.svg"
-      alt={alt}
-      className="w-8 h-8"
-      width={32}
-      height={32}
-    />
+    <ProfileFilledIcon size={size} color="#211F23" />
   )
 }
