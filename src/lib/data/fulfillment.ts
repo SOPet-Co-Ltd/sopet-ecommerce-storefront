@@ -3,7 +3,7 @@
 import { sdk } from "@/lib/config"
 import { HttpTypes } from "@medusajs/types"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
-import { StoreCardShippingMethod } from "@/components/sections/CartShippingMethodsSection/CartShippingMethodsSection"
+import { StoreCardShippingMethod } from "@/types/cart"
 
 export const listCartShippingMethods = async (
   cartId: string,

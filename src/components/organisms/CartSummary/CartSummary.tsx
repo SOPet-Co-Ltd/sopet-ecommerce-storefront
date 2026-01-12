@@ -5,6 +5,7 @@ import { convertToLocale } from "@/lib/helpers/money"
 
 import { HttpTypes } from "@medusajs/types"
 import { Cart } from "@/types/cart"
+import Link from "next/link"
 
 interface CartSummaryProps {
   cart: HttpTypes.StoreCart | Cart
@@ -77,9 +78,11 @@ export const CartSummary = ({
               เลือกสินค้าทั้งหมด ({totalCount})
             </span>
           </div>
-          <Button className="flex-1 max-w-[300px] rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
-            ชำระเงิน
-          </Button>
+          <Link href="/checkout" className="flex-1 max-w-[300px]">
+            <Button className="w-full rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
+              ชำระเงิน
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
