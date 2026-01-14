@@ -207,4 +207,4 @@ In Algolia dashboard chose your index and select Import configuration from Manag
 }
 ```
 
-properties of sopet.co 2026 bla bla bla.
+properties of sopet.co 2026 all rights reserved.
