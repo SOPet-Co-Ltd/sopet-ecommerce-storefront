@@ -38,15 +38,15 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-  params,
 }: Readonly<{
   children: React.ReactNode
-  params: Promise<{ locale: string }>
 }>) {
-  const { locale } = await params
+  // Root layout doesn't receive params, so use default locale
+  // The actual locale is handled by layouts inside [locale] folder
+  const locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "th"
   const cart = await retrieveCart()
 
-  const htmlLang = locale || "en"
+  const htmlLang = locale || "th"
 
   return (
     <html lang={htmlLang} className="" suppressHydrationWarning>
