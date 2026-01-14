@@ -5,6 +5,32 @@ const BACKEND_URL = process.env.MEDUSA_BACKEND_URL
 const PUBLISHABLE_API_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "th"
 
+function logEnvironmentVariables() {
+  console.log("[Middleware] Environment Variables Check:")
+  console.log("=".repeat(50))
+  
+  // Log MEDUSA_BACKEND_URL
+  const backendUrl = process.env.MEDUSA_BACKEND_URL
+  console.log(`MEDUSA_BACKEND_URL: ${backendUrl ? `SET (${backendUrl})` : "NOT SET"}`)
+  
+  // Log NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY (masked for security)
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
+  if (publishableKey) {
+    const maskedKey = publishableKey.length > 8 
+      ? `${publishableKey.substring(0, 8)}...` 
+      : "***"
+    console.log(`NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: SET (${maskedKey}, length: ${publishableKey.length})`)
+  } else {
+    console.log("NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: NOT SET")
+  }
+  
+  // Log NEXT_PUBLIC_DEFAULT_REGION
+  const defaultRegion = process.env.NEXT_PUBLIC_DEFAULT_REGION
+  console.log(`NEXT_PUBLIC_DEFAULT_REGION: ${defaultRegion ? `SET (${defaultRegion})` : `NOT SET (using fallback: ${DEFAULT_REGION})`}`)
+  
+  console.log("=".repeat(50))
+}
+
 const regionMapCache = {
   regionMap: new Map<string, HttpTypes.StoreRegion>(),
   regionMapUpdated: Date.now(),
@@ -154,6 +180,9 @@ async function getCountryCode(
 
 export async function middleware(request: NextRequest) {
   try {
+    // Log environment variables for debugging
+    logEnvironmentVariables()
+
     // Handle OPTIONS requests (CORS preflight)
     if (request.method === "OPTIONS") {
       return new NextResponse(null, {
