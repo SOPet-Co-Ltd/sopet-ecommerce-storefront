@@ -642,48 +642,76 @@ const regionMapCache = {
   regionMapUpdated: Date.now()
 };
 
-async function getRegionMap(cacheId: string) {
+async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.StoreRegion> | null> {
   const { regionMap, regionMapUpdated } = regionMapCache;
 
   if (!BACKEND_URL) {
-    throw new Error(
-      'Middleware.ts: Error fetching regions. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL.'
+    console.error(
+      '[Middleware] MEDUSA_BACKEND_URL environment variable is not set. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL.'
     );
+    return null;
   }
 
   if (!regionMap.keys().next().value || regionMapUpdated < Date.now() - 3600 * 1000) {
     // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
-    const { regions } = await fetch(`${BACKEND_URL}/store/regions`, {
-      headers: {
-        'x-publishable-api-key': PUBLISHABLE_API_KEY!
-      },
-      next: {
-        revalidate: 3600,
-        tags: [`regions-${cacheId}`]
-      },
-      cache: 'force-cache'
-    }).then(async response => {
-      const json = await response.json();
+    // Use AbortController with 4-second timeout to stay within Vercel's 5-second middleware limit
+    const timeoutMs = 4000; // 4 seconds, leaving 1 second buffer for Vercel's 5-second limit
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const response = await fetch(`${BACKEND_URL}/store/regions`, {
+        headers: {
+          'x-publishable-api-key': PUBLISHABLE_API_KEY!
+        },
+        signal: controller.signal,
+        next: {
+          revalidate: 3600,
+          tags: [`regions-${cacheId}`]
+        },
+        cache: 'force-cache'
+      });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(json.message);
+        const json = await response.json().catch(() => ({}));
+        console.error(`[Middleware] Failed to fetch regions: ${response.status} ${response.statusText}. ${json.message || 'Unknown error'}`);
+        return null;
       }
 
-      return json;
-    });
+      const json = await response.json();
 
-    if (!regions?.length) {
-      throw new Error('No regions found. Please set up regions in your Medusa Admin.');
-    }
+      if (!json.regions?.length) {
+        console.error('[Middleware] No regions found. Please set up regions in your Medusa Admin.');
+        return null;
+      }
 
-    // Create a map of country codes to regions.
-    regions.forEach((region: HttpTypes.StoreRegion) => {
-      region.countries?.forEach(c => {
-        regionMapCache.regionMap.set(c.iso_2 ?? '', region);
+      // Clear existing cache before populating new data
+      regionMapCache.regionMap.clear();
+
+      // Create a map of country codes to regions.
+      json.regions.forEach((region: HttpTypes.StoreRegion) => {
+        region.countries?.forEach(c => {
+          if (c.iso_2) {
+            regionMapCache.regionMap.set(c.iso_2.toLowerCase(), region);
+          }
+        });
       });
-    });
 
-    regionMapCache.regionMapUpdated = Date.now();
+      regionMapCache.regionMapUpdated = Date.now();
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          console.error(`[Middleware] Request to ${BACKEND_URL}/store/regions timed out after ${timeoutMs}ms. Falling back to default region.`);
+        } else {
+          console.error(`[Middleware] Error fetching regions: ${error.message}`);
+        }
+      } else {
+        console.error('[Middleware] Unknown error fetching regions:', error);
+      }
+      return null;
+    }
   }
 
   return regionMapCache.regionMap;
@@ -712,11 +740,10 @@ async function getCountryCode(
 
     return countryCode;
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(
-        'Middleware.ts: Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL.'
-      );
-    }
+    console.error(
+      '[Middleware] Error getting the country code. Did you set up regions in your Medusa Admin and define a MEDUSA_BACKEND_URL environment variable? Note that the variable is no longer named NEXT_PUBLIC_MEDUSA_BACKEND_URL.',
+      error
+    );
   }
 }
 
@@ -768,9 +795,34 @@ export async function middleware(request: NextRequest) {
     });
   }
 
-  const regionMap = await getRegionMap(cacheId);
-  const countryCode = regionMap && (await getCountryCode(request, regionMap));
-  const urlHasCountryCode = countryCode && pathname.split('/')[1].includes(countryCode);
+  // Fetch region map with error handling - gracefully fall back to default region on failure
+  let regionMap: Map<string, HttpTypes.StoreRegion> | null = null;
+  try {
+    regionMap = await getRegionMap(cacheId);
+  } catch (error) {
+    // If getRegionMap throws (shouldn't happen now, but defensive), log and continue
+    console.error('[Middleware] Unexpected error fetching region map:', error);
+    regionMap = null;
+  }
+
+  // If region map fetch failed, use default region and continue without redirect
+  let countryCode: string | null = null;
+  if (regionMap) {
+    try {
+      const code = await getCountryCode(request, regionMap);
+      countryCode = code || null;
+    } catch (error) {
+      console.error('[Middleware] Error getting country code:', error);
+      countryCode = null;
+    }
+  }
+
+  // Fallback to DEFAULT_REGION if we couldn't determine country code
+  if (!countryCode) {
+    countryCode = DEFAULT_REGION;
+  }
+
+  const urlHasCountryCode = countryCode && pathname.split('/')[1]?.toLowerCase() === countryCode.toLowerCase();
 
   // If no country code in URL but we can resolve one, redirect to locale-prefixed path
   if (!urlHasCountryCode && countryCode) {
