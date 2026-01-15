@@ -642,6 +642,56 @@ const regionMapCache = {
   regionMapUpdated: Date.now()
 };
 
+async function validatePublishableKey(): Promise<boolean> {
+  if (!BACKEND_URL) {
+    return false;
+  }
+
+  if (!PUBLISHABLE_API_KEY) {
+    return false;
+  }
+
+  const timeoutMs = 30000;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    const response = await fetch(`${BACKEND_URL}/store/health/publishable-key`, {
+      headers: {
+        'x-publishable-api-key': PUBLISHABLE_API_KEY
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.error(`[Middleware] Publishable key validation failed: ${response.status} ${response.statusText}`);
+      return false;
+    }
+
+    const json = await response.json().catch(() => ({}));
+    
+    if (json.valid === true && json.status === 'active') {
+      return true;
+    }
+
+    console.error(`[Middleware] Publishable key is invalid or inactive: ${json.message || 'Unknown reason'}`);
+    return false;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        console.error(`[Middleware] Publishable key validation timed out after ${timeoutMs}ms`);
+      } else {
+        console.error(`[Middleware] Error validating publishable key: ${error.message}`);
+      }
+    } else {
+      console.error('[Middleware] Unknown error validating publishable key:', error);
+    }
+    return false;
+  }
+}
+
 async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.StoreRegion> | null> {
   const { regionMap, regionMapUpdated } = regionMapCache;
 
@@ -653,6 +703,13 @@ async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.Stor
   }
 
   if (!regionMap.keys().next().value || regionMapUpdated < Date.now() - 3600 * 1000) {
+    // Validate publishable key first
+    const isValidKey = await validatePublishableKey();
+    if (!isValidKey) {
+      console.error('[Middleware] Publishable API key validation failed. Skipping regions fetch.');
+      return null;
+    }
+
     const timeoutMs = 30000;
     try {
       const controller = new AbortController();
@@ -671,6 +728,9 @@ async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.Stor
       });
 
       clearTimeout(timeoutId);
+
+      // Log the response
+    console.log('[Middleware] Response:', response);
 
       if (!response.ok) {
         const json = await response.json().catch(() => ({}));
