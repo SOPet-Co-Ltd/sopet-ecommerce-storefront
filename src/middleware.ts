@@ -62,9 +62,9 @@ async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.Stor
 
   // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
   try {
-    // Create AbortController for timeout handling (3 seconds to stay under Vercel's 5-second limit)
+    // Create AbortController for timeout handling (10 seconds - note: this exceeds Vercel's 5-second limit, which may cause issues)
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 3000)
+    const timeoutId = setTimeout(() => controller.abort(), 10000)
 
     const response = await fetch(`${BACKEND_URL}/store/regions`, {
       headers: {
@@ -111,7 +111,7 @@ async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.Stor
     if (error instanceof Error) {
       if (error.name === "AbortError") {
         console.error(
-          `[Middleware] Request to ${BACKEND_URL}/store/regions timed out after 3 seconds. This may cause middleware timeout on Vercel. Falling back to default region.`
+          `[Middleware] Request to ${BACKEND_URL}/store/regions timed out after 10 seconds. This may cause middleware timeout on Vercel. Falling back to default region.`
         )
       } else {
         console.error(
