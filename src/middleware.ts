@@ -666,6 +666,9 @@ async function validatePublishableKey(): Promise<boolean> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
+      console.error(`[Middleware] Current PUBLISHABLE_API_KEY: ${PUBLISHABLE_API_KEY}`);
+      console.error(`[Middleware] Current BACKEND_URL: ${BACKEND_URL}`);
+      console.error(`[Middleware] Response: ${JSON.stringify(response)}`);
       console.error(`[Middleware] Publishable key validation failed: ${response.status} ${response.statusText}`);
       return false;
     }
