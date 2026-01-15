@@ -653,9 +653,7 @@ async function getRegionMap(cacheId: string): Promise<Map<string, HttpTypes.Stor
   }
 
   if (!regionMap.keys().next().value || regionMapUpdated < Date.now() - 3600 * 1000) {
-    // Fetch regions from Medusa. We can't use the JS client here because middleware is running on Edge and the client needs a Node environment.
-    // Use AbortController with 4-second timeout to stay within Vercel's 5-second middleware limit
-    const timeoutMs = 4000; // 4 seconds, leaving 1 second buffer for Vercel's 5-second limit
+    const timeoutMs = 30000;
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
