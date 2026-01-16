@@ -8,6 +8,9 @@ const MEDUSA_BACKEND_URL =
 // This is critical as the Medusa SDK requires a valid publishable key
 const PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "").trim()
 
+// Debug log to diagnose Vercel deployment issues
+console.log("[DEBUG] NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:", PUBLISHABLE_KEY ? `${PUBLISHABLE_KEY.substring(0, 10)}...` : "NOT SET")
+
 // Log warning if key appears to be missing (but don't throw to allow app to start)
 if (!PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
   console.warn(
