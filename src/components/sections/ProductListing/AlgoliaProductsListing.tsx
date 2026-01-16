@@ -243,11 +243,11 @@ const ProductsListing = ({
   }
 
   return (
-    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 md:flex-row flex-col md:pb-sop-40px pb-10">
+    <div className="min-h-[70vh] lg:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 lg:flex-row flex-col lg:pb-sop-40px pb-10">
       {/* NOTE - Sidebar */}
       <div className="lg:block hidden">
-        <div className="md:flex gap-4">
-          <div className="md:w-[290px] w-full md:shrink-0">
+        <div className="lg:flex gap-4">
+          <div className="lg:w-[290px] w-full lg:shrink-0">
             <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
           </div>
         </div>
@@ -290,7 +290,7 @@ const ProductsListing = ({
               </div>
             ) : (
               <div className="w-full">
-                <ul className="grid md:gap-4 gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
+                <ul className="grid md:gap-4 gap-2 justify-items-center grid-cols-[repeat(auto-fit,minmax(165px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(223px,1fr))]">
                   {products.map((hit) => {
                     const apiProduct = apiProductsMap.get(hit.objectID)
                     if (!apiProduct) return null
