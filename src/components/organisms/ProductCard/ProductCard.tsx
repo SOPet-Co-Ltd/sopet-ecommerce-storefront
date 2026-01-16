@@ -28,8 +28,8 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       aria-label={`View ${productName}`}
       title={`View ${productName}`}
     >
-      <div className="md:w-[223px] w-[175px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
-        <div className="md:w-[223px] w-[175px] md:h-[223px] h-[175px]">
+      <div className="md:w-[223px] w-[168px] md:max-w-[223px] max-w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+        <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
           {product.thumbnail ? (
 
             <Image
