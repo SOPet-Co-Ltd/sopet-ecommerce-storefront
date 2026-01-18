@@ -65,7 +65,7 @@ const AddressSelect = ({
           leaveTo="opacity-0"
         >
           <Listbox.Options
-            className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
+            className="absolute z-100 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
             data-testid="shipping-address-options"
           >
             {addresses.map((address) => {

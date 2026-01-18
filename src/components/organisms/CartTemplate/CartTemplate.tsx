@@ -59,10 +59,15 @@ export const CartTemplate = ({
     const sellerItems = itemsBySeller[sellerName]?.map((i) => i.id) || []
     if (checked) {
       setSelectedItems((prev) => [...new Set([...prev, ...sellerItems])])
-    } else {
       setSelectedItems((prev) => prev.filter((id) => !sellerItems.includes(id)))
     }
   }
+
+  // Calculate selected total
+  const selectedTotal =
+    cart?.items
+      ?.filter((item) => selectedItems.includes(item.id))
+      .reduce((acc, item) => acc + (item.total ?? 0), 0) || 0
 
   if (!cart || !cart.items?.length) {
     return (
@@ -168,6 +173,7 @@ export const CartTemplate = ({
                   allItemIds.length > 0
                 }
                 onSelectAll={handleSelectAll}
+                customTotal={selectedTotal}
               />
             </div>
           </div>

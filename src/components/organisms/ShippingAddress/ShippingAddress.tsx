@@ -4,7 +4,9 @@ import { mapKeys } from "lodash"
 import React, { useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/atoms"
 import AddressSelect from "@/components/cells/AddressSelect/AddressSelect"
-import CountrySelect from "@/components/cells/CountrySelect/CountrySelect"
+import ThaiAddressSelect, {
+  ThaiAddressValue,
+} from "@/components/cells/ThaiAddressSelect/ThaiAddressSelect"
 import { usePathname } from "next/navigation"
 import { Cart } from "@/types/cart"
 
@@ -71,7 +73,6 @@ const ShippingAddress = ({
   }
 
   useEffect(() => {
-    // Ensure cart is not null and has a shipping_address before setting form data
     if (cart && cart.shipping_address) {
       setFormAddress(cart?.shipping_address, cart?.email)
     }
@@ -79,7 +80,7 @@ const ShippingAddress = ({
     if (cart && !cart.email && customer?.email) {
       setFormAddress(undefined, customer.email)
     }
-  }, [cart]) // Add cart as a dependency
+  }, [cart])
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -90,6 +91,16 @@ const ShippingAddress = ({
       ...formData,
       [e.target.name]: e.target.value,
     })
+  }
+
+  const handleThaiAddressChange = (value: ThaiAddressValue) => {
+    setFormData((prev) => ({
+      ...prev,
+      "shipping_address.province": value.province,
+      "shipping_address.city": value.district, // Map Amphoe to City
+      "shipping_address.address_2": value.subdistrict, // Map Tambon to Address 2
+      "shipping_address.postal_code": value.zipCode,
+    }))
   }
 
   return (
@@ -112,100 +123,69 @@ const ShippingAddress = ({
           </div>
         </Container>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      {/* Name and Phone Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <Input
-          title="First name"
+          title="ชื่อ-นามสกุล ผู้รับสินค้า"
           name="shipping_address.first_name"
-          autoComplete="given-name"
+          placeholder="ชื่อ-นามสกุล"
+          autoComplete="name"
           value={formData["shipping_address.first_name"]}
           onChange={handleChange}
           required
           data-testid="shipping-first-name-input"
         />
         <Input
-          title="Last name"
-          name="shipping_address.last_name"
-          autoComplete="family-name"
-          value={formData["shipping_address.last_name"]}
+          title="เบอร์โทรศัพท์"
+          name="shipping_address.phone"
+          placeholder="099-999-9999"
+          autoComplete="tel"
+          value={formData["shipping_address.phone"]}
           onChange={handleChange}
           required
-          data-testid="shipping-last-name-input"
+          data-testid="shipping-phone-input"
         />
+      </div>
+
+      <ThaiAddressSelect
+        value={{
+          province: formData["shipping_address.province"],
+          district: formData["shipping_address.city"],
+          subdistrict: formData["shipping_address.address_2"] || "",
+          zipCode: formData["shipping_address.postal_code"],
+        }}
+        onChange={handleThaiAddressChange}
+      />
+
+      <div className="grid grid-cols-1 gap-4 my-4">
         <Input
-          title="Address"
+          title="ที่อยู่"
           name="shipping_address.address_1"
+          placeholder="บ้านเลขที่/ซอย/หมู่/ถนน"
           autoComplete="address-line1"
           value={formData["shipping_address.address_1"]}
           onChange={handleChange}
           required
           data-testid="shipping-address-input"
         />
-        <Input
-          title="Company"
-          name="shipping_address.company"
-          value={formData["shipping_address.company"]}
-          onChange={handleChange}
-          autoComplete="organization"
-          data-testid="shipping-company-input"
-        />
-        <Input
-          title="Postal code"
-          name="shipping_address.postal_code"
-          autoComplete="postal-code"
-          value={formData["shipping_address.postal_code"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-postal-code-input"
-        />
-        <Input
-          title="City"
-          name="shipping_address.city"
-          autoComplete="address-level2"
-          value={formData["shipping_address.city"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-city-input"
-        />
-        <CountrySelect
-          name="shipping_address.country_code"
-          autoComplete="country"
-          region={cart?.region}
-          value={formData["shipping_address.country_code"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-country-select"
-        />
-        <Input
-          title="State / Province"
-          name="shipping_address.province"
-          autoComplete="address-level1"
-          value={formData["shipping_address.province"]}
-          onChange={handleChange}
-          data-testid="shipping-province-input"
-        />
       </div>
-      <div className="grid grid-cols-2 gap-4 my-4">
-        <Input
-          title="Email"
-          name="email"
-          type="email"
-          withDescription={true}
-          descriptionText="Enter a valid email address."
-          autoComplete="email"
-          value={formData.email}
-          onChange={handleChange}
-          required
-          data-testid="shipping-email-input"
-        />
-        <Input
-          title="Phone"
-          name="shipping_address.phone"
-          autoComplete="tel"
-          value={formData["shipping_address.phone"]}
-          onChange={handleChange}
-          data-testid="shipping-phone-input"
-        />
-      </div>
+
+      {/* Hidden Fields for required Medusa fields that we might not show or handle differently */}
+      <input
+        type="hidden"
+        name="shipping_address.country_code"
+        value={formData["shipping_address.country_code"]}
+      />
+      {/* Use a hidden input for last_name if we want to bypass required check, or we can just leave it if it's not strict.
+           Ideally we'd split the name string. For this task I'll just leave first_name as the primary input.
+       */}
+      <input
+        type="hidden"
+        name="shipping_address.last_name"
+        value={formData["shipping_address.last_name"] || "-"}
+      />
+      <input type="hidden" name="email" value={formData.email} />
     </>
   )
 }

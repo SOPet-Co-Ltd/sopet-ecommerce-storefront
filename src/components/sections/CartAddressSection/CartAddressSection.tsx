@@ -1,6 +1,6 @@
 "use client"
 
-import { Heading, Text, useToggleState } from "@medusajs/ui"
+import { Heading, useToggleState } from "@medusajs/ui"
 import { setAddresses } from "@/lib/data/cart"
 import compareAddresses from "@/lib/helpers/compare-addresses"
 import { HttpTypes } from "@medusajs/types"
@@ -8,11 +8,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useActionState, useEffect } from "react"
 import { Button } from "@/components/atoms"
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
-import Spinner from "@/icons/spinner"
 import ShippingAddress from "@/components/organisms/ShippingAddress/ShippingAddress"
-import { CheckCircleSolid } from "@medusajs/icons"
-import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { MapPin } from "lucide-react"
 import { Cart } from "@/types/cart"
+import ShippingAddressSummary from "@/components/molecules/ShippingAddressSummary/ShippingAddressSummary"
 
 export const CartAddressSection = ({
   cart,
@@ -27,12 +26,12 @@ export const CartAddressSection = ({
 
   const isAddress = Boolean(
     cart?.shipping_address &&
-    cart?.shipping_address.first_name &&
-    cart?.shipping_address.last_name &&
-    cart?.shipping_address.address_1 &&
-    cart?.shipping_address.city &&
-    cart?.shipping_address.postal_code &&
-    cart?.shipping_address.country_code
+      cart?.shipping_address.first_name &&
+      cart?.shipping_address.last_name &&
+      cart?.shipping_address.address_1 &&
+      cart?.shipping_address.city &&
+      cart?.shipping_address.postal_code &&
+      cart?.shipping_address.country_code
   )
   const isOpen = searchParams.get("step") === "address" || !isAddress
 
@@ -54,21 +53,32 @@ export const CartAddressSection = ({
     router.replace(pathname + "?step=address")
   }
 
+  const MOCK_ADDRESS = {
+    first_name: "สมชาย",
+    last_name: "ใจดี",
+    phone: "081-234-5678",
+    address_1: "123/45 หมู่ 6 ถนนสุขุมวิท",
+    address_2: "แขวงคลองตัน",
+    city: "เขตคลองเตย",
+    province: "กรุงเทพมหานคร",
+    postal_code: "10110",
+    country_code: "th",
+  }
+
   return (
-    <div className="border p-4 rounded-xs bg-ui-bg-interactive">
-      <div className="flex flex-row items-center justify-between mb-6">
+    <div className="p-4 rounded-xs  bg-sop-base-white">
+      <div className="flex flex-row items-center justify-between mb-6 border-b border-sop-neutral-gray py-2">
         <Heading
           level="h2"
-          className="flex flex-row text-3xl-regular gap-x-2 items-baseline items-center"
+          className="flex flex-row text-3xl-regular gap-x-2  items-center text-ui-fg-base"
         >
-          {!isOpen && <CheckCircleSolid />} Shipping Address
+          <MapPin className="text-purple-600" />
+          <span className="text-lg font-normal text-purple-600">
+            ที่อยู่ในการจัดส่ง
+          </span>
         </Heading>
-        {!isOpen && isAddress && (
-          <Text>
-            <Button onClick={handleEdit}>Edit</Button>
-          </Text>
-        )}
       </div>
+
       <form
         action={async (data) => {
           await formAction(data)
@@ -85,7 +95,7 @@ export const CartAddressSection = ({
               cart={cart}
             />
             <Button className="mt-6" data-testid="submit-address-button">
-              Save
+              บันทึกและดำเนินการต่อ
             </Button>
             <ErrorMessage
               error={message !== "success" && message}
@@ -94,40 +104,8 @@ export const CartAddressSection = ({
           </div>
         ) : (
           <div>
-            <div className="text-small-regular">
-              {cart && cart.shipping_address ? (
-                <div className="flex items-start gap-x-8">
-                  <div className="flex items-start gap-x-1 w-full">
-                    <div>
-                      <Text className="txt-medium-plus font-bold">
-                        {cart.shipping_address.first_name}{" "}
-                        {cart.shipping_address.last_name}
-                      </Text>
-                      <Text>
-                        {cart.shipping_address.address_1}{" "}
-                        {cart.shipping_address.address_2},{" "}
-                        {cart.shipping_address.postal_code}{" "}
-                        {cart.shipping_address.city},{" "}
-                        {cart.shipping_address.country_code?.toUpperCase()}
-                      </Text>
-                      <Text>
-                        {cart.email}, {cart.shipping_address.phone}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Spinner />
-                </div>
-              )}
-            </div>
+            {cart && <ShippingAddressSummary cart={cart} onEdit={handleEdit} />}
           </div>
-        )}
-        {isAddress && !searchParams.get("step") && (
-          <LocalizedClientLink href="/checkout?step=delivery">
-            <Button className="mt-6">Continue to Delivery</Button>
-          </LocalizedClientLink>
         )}
       </form>
     </div>
