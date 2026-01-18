@@ -1,10 +1,21 @@
 import { HttpTypes } from "@medusajs/types"
 
-export interface Cart extends Omit<HttpTypes.StoreCart, "promotions"> {
-  promotions?: HttpTypes.StorePromotion[]
-  gift_cards?: any[]
-  shipping_methods?: any[]
-  payment_collection?: any
+export interface StoreGiftCard {
+  id: string
+  code: string
+  value: number
+  balance: number
+}
+
+export interface Cart
+  extends Omit<
+    HttpTypes.StoreCart,
+    "promotions" | "payment_collection" | "shipping_methods"
+  > {
+  promotions?: HttpTypes.StoreCartPromotion[]
+  gift_cards?: StoreGiftCard[]
+  shipping_methods?: HttpTypes.StoreCartShippingMethod[]
+  payment_collection?: HttpTypes.StorePaymentCollection
 }
 
 export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {

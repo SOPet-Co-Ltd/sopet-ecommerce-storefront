@@ -13,6 +13,7 @@ interface CartSummaryProps {
   totalCount?: number
   isAllSelected?: boolean
   onSelectAll?: (checked: boolean) => void
+  customTotal?: number
 }
 
 export const CartSummary = ({
@@ -21,6 +22,7 @@ export const CartSummary = ({
   totalCount = 0,
   isAllSelected = false,
   onSelectAll,
+  customTotal,
 }: CartSummaryProps) => {
   const {
     total,
@@ -38,7 +40,10 @@ export const CartSummary = ({
           <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between">
             <span className="text-gray-500">สินค้า {selectedCount} รายการ</span>
             <span className="font-medium text-gray-900">
-              {convertToLocale({ amount: subtotal || 0, currency_code })}
+              {convertToLocale({
+                amount: customTotal ?? subtotal ?? 0,
+                currency_code,
+              })}
             </span>
           </div>
 
@@ -56,13 +61,19 @@ export const CartSummary = ({
 
           <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between">
             <span className="font-medium text-gray-900">รวมทั้งสิ้น</span>
-            {discount_total > 0 ? (
+            {discount_total > 0 && selectedCount === totalCount ? (
               <span className="font-bold text-white bg-sop-secondary-500 rounded-lg px-2 py-0.5 text-lg">
-                {convertToLocale({ amount: total || 0, currency_code })}
+                {convertToLocale({
+                  amount: customTotal ?? total ?? 0,
+                  currency_code,
+                })}
               </span>
             ) : (
-              <span className="font-bold text-gray-900 text-lg">
-                {convertToLocale({ amount: total || 0, currency_code })}
+              <span className="font-bold text-sop-primary-500 text-lg">
+                {convertToLocale({
+                  amount: customTotal ?? total ?? 0,
+                  currency_code,
+                })}
               </span>
             )}
           </div>
@@ -78,11 +89,22 @@ export const CartSummary = ({
               เลือกสินค้าทั้งหมด ({totalCount})
             </span>
           </div>
-          <Link href="/checkout" className="flex-1 max-w-[300px]">
-            <Button className="w-full rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
-              ชำระเงิน
-            </Button>
-          </Link>
+          {selectedCount > 0 ? (
+            <Link href="/checkout" className="flex-1 max-w-[300px]">
+              <Button className="w-full rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
+                ชำระเงิน ({selectedCount})
+              </Button>
+            </Link>
+          ) : (
+            <div className="flex-1 max-w-[300px]">
+              <Button
+                disabled
+                className="w-full rounded-full font-bold bg-gray-200 text-gray-400 h-10 text-base cursor-not-allowed hover:bg-gray-200 shadow-none"
+              >
+                ชำระเงิน
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

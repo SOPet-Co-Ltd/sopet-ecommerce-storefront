@@ -1,3 +1,6 @@
+import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
+import { CheckoutPaymentSection } from "@/components/sections/CheckoutPaymentSection"
+import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
 import { CartAddressSection } from "@/components/sections/CartAddressSection/CartAddressSection"
 import CartPaymentSection from "@/components/sections/CartPaymentSection/CartPaymentSection"
@@ -45,20 +48,21 @@ async function CheckoutPageContent({}) {
 
   return (
     <PaymentWrapper cart={cart}>
-      <main className="container">
-        <div className="flex w-full">
-          <div className="flex flex-col gap-4">
+      <main className="">
+        <div className="flex w-full justify-center py-10">
+          <div className="flex flex-col gap-4 w-full max-w-4xl">
             <CartAddressSection cart={cart} customer={customer} />
-            <CartShippingMethodsSection
-              cart={cart}
-              availableShippingMethods={shippingMethods}
-            />
+
             <CartReview cart={cart} />
 
-            <CartPaymentSection
+            <CheckoutDiscountSection cart={cart} />
+
+            <CheckoutPaymentSection
               cart={cart}
-              availablePaymentMethods={paymentMethods}
+              paymentMethods={paymentMethods}
             />
+
+            <CheckoutSummarySection cart={cart} />
           </div>
         </div>
       </main>

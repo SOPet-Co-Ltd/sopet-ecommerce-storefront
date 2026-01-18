@@ -253,7 +253,7 @@ export async function setShippingMethod({
 }
 
 export async function initiatePaymentSession(
-  cart: HttpTypes.StoreCart,
+  cart: Cart,
   data: {
     provider_id: string
     context?: Record<string, unknown>
@@ -264,7 +264,12 @@ export async function initiatePaymentSession(
   }
 
   return sdk.store.payment
-    .initiatePaymentSession(cart, data, {}, headers)
+    .initiatePaymentSession(
+      cart as unknown as HttpTypes.StoreCart,
+      data,
+      {},
+      headers
+    )
     .then(async (resp) => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
@@ -402,8 +407,8 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
 
     await updateCart(data)
     await revalidatePath("/cart")
-  } catch (e: any) {
-    return e.message
+  } catch (e: unknown) {
+    return (e as Error).message
   }
 }
 
@@ -497,15 +502,17 @@ export async function updateRegionWithValidation(
 
     try {
       await updateCart({ region_id: region.id })
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Check if error is about variants not having prices
-      if (!error?.message?.includes("do not have a price")) {
+      if (!(error as Error)?.message?.includes("do not have a price")) {
         // Re-throw if it's a different error
         throw error
       }
 
       // Parse variant IDs from error message
-      const problematicVariantIds = parseVariantIdsFromError(error.message)
+      const problematicVariantIds = parseVariantIdsFromError(
+        (error as Error).message
+      )
 
       // Early return if no variant IDs found
       if (!problematicVariantIds.length) {
