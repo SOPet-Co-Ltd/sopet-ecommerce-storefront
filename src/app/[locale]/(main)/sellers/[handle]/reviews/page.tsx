@@ -1,6 +1,6 @@
 import { SellerTabs } from "@/components/organisms"
 import { SellerPageHeader } from "@/components/sections"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
 import { getSellerByHandle } from "@/lib/data/seller"
 import { SellerProps } from "@/types/seller"
@@ -15,7 +15,7 @@ export default async function SellerReviewsPage({
   const seller = (await getSellerByHandle(handle)) as SellerProps
   const currency_code = (await getRegion(locale))?.currency_code || "usd"
 
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   const tab = "reviews"
 

@@ -1,69 +1,73 @@
 "use client"
-import {
-  FieldError,
-  FieldValues,
-  FormProvider,
-  useForm,
-  useFormContext,
-} from "react-hook-form"
-import { Button, InputSOPet } from "@/components/atoms"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { LabeledInput } from "@/components/cells"
-import { registerFormSchema, RegisterFormData } from "./schema"
-import { signup } from "@/lib/data/customer"
 import { useState } from "react"
-import { Container } from "@medusajs/ui"
-import Link from "next/link"
-import { PasswordValidator } from "@/components/cells/PasswordValidator/PasswordValidator"
+import { Button, InputSOPet } from "@/components/atoms"
 import LocalizedClientLink from "../LocalizedLink/LocalizedLink"
-import { FacebookCustomIcon, GoogleIcon, LineCustomIcon, SOPetLogo } from "@/icons"
+import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
+import { SOPetLogo, FacebookCustomIcon, GoogleIcon, LineCustomIcon } from "@/icons"
+import { useRouter } from "next/navigation"
 
 export const RegisterForm = () => {
-  const methods = useForm<RegisterFormData>({
-    resolver: zodResolver(registerFormSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      phone: "",
-      email: "",
-      password: "",
-    },
-  })
-
-  return (
-    <FormProvider {...methods}>
-      <Form />
-    </FormProvider>
-  )
+  return <Form />
 }
 
 const Form = () => {
-  const [passwordError, setPasswordError] = useState({
-    isValid: false,
-    lower: false,
-    upper: false,
-    "8chars": false,
-    symbolOrDigit: false,
-  })
-  const [error, setError] = useState()
-  const {
-    handleSubmit,
-    register,
-    watch,
-    formState: { errors, isSubmitting },
-  } = useFormContext()
+  const [identifier, setIdentifier] = useState("")
+  const [otp, setOtp] = useState("")
+  const [otpRequested, setOtpRequested] = useState(false)
+  const [isRequestingOtp, setIsRequestingOtp] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [error, setError] = useState<string | undefined>()
+  const router = useRouter()
 
-  const submit = async (data: FieldValues) => {
+  const handleRequestOtp = async () => {
+    if (!identifier.trim()) {
+      setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์")
+      return
+    }
+
+    setIsRequestingOtp(true)
+    setError(undefined)
+
     const formData = new FormData()
-    formData.append("email", data.email)
-    formData.append("password", data.password)
-    formData.append("first_name", data.firstName)
-    formData.append("last_name", data.lastName)
-    formData.append("phone", data.phone)
+    formData.append("identifier", identifier.trim())
 
-    const res = passwordError.isValid && (await signup(formData))
+    const res = await requestOtp(formData)
+    if (res) {
+      setError(res)
+      setIsRequestingOtp(false)
+      return
+    }
 
-    if (res && !res?.id) setError(res)
+    setOtpRequested(true)
+    setIsRequestingOtp(false)
+  }
+
+  const handleVerifyAndLogin = async () => {
+    if (!identifier.trim()) {
+      setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์")
+      return
+    }
+    if (!otp.trim() || !/^\d{6}$/.test(otp.trim())) {
+      setError("กรุณากรอก OTP 6 หลักให้ถูกต้อง")
+      return
+    }
+
+    setIsVerifying(true)
+    setError(undefined)
+
+    const formData = new FormData()
+    formData.append("identifier", identifier.trim())
+    formData.append("otp", otp.trim())
+
+    const res = await verifyOtpAndLogin(formData)
+    if (res) {
+      setError(res)
+      setIsVerifying(false)
+      return
+    }
+
+    setIsVerifying(false)
+    router.push("/user")
   }
 
   return (
@@ -86,15 +90,48 @@ const Form = () => {
         </div>
         {/* Form */}
         <div className="space-y-4">
-          {/* NOTE -  */}
-          <InputSOPet placeholder="อีเมลล์/เบอร์โทรศัพท์" variant="bordered" />
+          <InputSOPet
+            placeholder="อีเมลล์/เบอร์โทรศัพท์"
+            variant="bordered"
+            value={identifier}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setIdentifier(e.target.value)
+            }
+          />
           <div className="relative md:mb-4 mb-12">
-            <InputSOPet placeholder="เลข OTP" variant="bordered" />
+            <InputSOPet
+              placeholder="เลข OTP"
+              variant="bordered"
+              value={otp}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setOtp(e.target.value)
+              }
+            />
             <div className="absolute right-0 md:-right-sop-80px md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-center">
-              <Button variant="secondary" disabled={true} size="fill" style={{ padding: "2px 8px", borderRadius: "8px", }}>ขอ OTP</Button>
+              <Button
+                variant="secondary"
+                size="fill"
+                style={{ padding: "2px 8px", borderRadius: "8px" }}
+                disabled={isRequestingOtp || !identifier.trim()}
+                onClick={handleRequestOtp}
+              >
+                ขอ OTP
+              </Button>
             </div>
           </div>
-          <Button variant="default" style={{ width: "100%", minHeight: "48px" }}>เข้าสู่ระบบ</Button>
+          {error && (
+            <p className="text-red-500 text-sm">
+              {error}
+            </p>
+          )}
+          <Button
+            variant="default"
+            style={{ width: "100%", minHeight: "48px" }}
+            disabled={isVerifying || !otpRequested || !otp.trim()}
+            onClick={handleVerifyAndLogin}
+          >
+            {isVerifying ? "กำลังเข้าสู่ระบบ..." : "สร้างบัญชีใหม่"}
+          </Button>
         </div>
         {/* Divider */}
         <div className="flex justify-center items-center gap-2">
@@ -121,7 +158,7 @@ const Form = () => {
           <p className="sop-body-lg-regular text-[#888888]">หากคุณมีบัญชีแล้ว</p>
           <LocalizedClientLink href="/login" className="underline"  >
             <button className="sop-link-lg-regular text-sop-primary-500 cursor-pointer">
-            เข้าสู่ระบบ
+              เข้าสู่ระบบ
             </button>
           </LocalizedClientLink>
         </div>

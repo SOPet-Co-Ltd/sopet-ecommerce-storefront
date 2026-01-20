@@ -1,5 +1,5 @@
 import { UserNavigation } from "@/components/molecules"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { Button } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { ArrowLeftIcon } from "@/icons"
@@ -15,7 +15,7 @@ export default async function UserPage({
 }) {
   const { id } = await params
 
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
   const orderSet = await retrieveOrderSet(id)
 
   if (!user) return redirect("/user")
