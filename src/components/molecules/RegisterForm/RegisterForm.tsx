@@ -19,6 +19,20 @@ const Form = () => {
   const [error, setError] = useState<string | undefined>()
   const router = useRouter()
 
+  const isValidEmailOrPhone = (value: string | null | undefined): boolean => {
+    if (!value || value.trim() === "") {
+      return false
+    }
+
+    const trimmedValue = value.trim()
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    
+    const phoneRegex = /^(\+?66|0)[0-9]{9,10}$/
+
+    return emailRegex.test(trimmedValue) || phoneRegex.test(trimmedValue.replace(/\s+/g, ""))
+  }
+
   const handleRequestOtp = async () => {
     if (!identifier.trim()) {
       setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์")
@@ -29,7 +43,7 @@ const Form = () => {
     setError(undefined)
 
     const formData = new FormData()
-    formData.append("identifier", identifier.trim())
+    formData.append("identifier", identifier.trim().toLowerCase())
 
     const res = await requestOtp(formData)
     if (res) {
@@ -56,7 +70,7 @@ const Form = () => {
     setError(undefined)
 
     const formData = new FormData()
-    formData.append("identifier", identifier.trim())
+    formData.append("identifier", identifier.trim().toLowerCase())
     formData.append("otp", otp.trim())
 
     const res = await verifyOtpAndLogin(formData)
@@ -112,7 +126,7 @@ const Form = () => {
                 variant="secondary"
                 size="fill"
                 style={{ padding: "2px 8px", borderRadius: "8px" }}
-                disabled={isRequestingOtp || !identifier.trim()}
+                disabled={isRequestingOtp || !isValidEmailOrPhone(identifier)}
                 onClick={handleRequestOtp}
               >
                 ขอ OTP
