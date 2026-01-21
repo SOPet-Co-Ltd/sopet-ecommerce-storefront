@@ -36,6 +36,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   const { data, error } = await fetchQuery(`/store/cart/${id}`, {
     method: "GET",
     headers,
+    cache: "no-store",
   })
 
   if (error || !data?.cart) {
@@ -56,6 +57,10 @@ export async function getOrSetCart(countryCode: string) {
     throw new Error(`Region not found for country code: ${countryCode}`)
   }
 
+  const salesChannelId =
+    process.env.NEXT_PUBLIC_MEDUSA_SALES_CHANNEL_ID ||
+    process.env.MEDUSA_SALES_CHANNEL_ID
+
   let cart = await retrieveCart()
 
   const headers = {
@@ -68,6 +73,7 @@ export async function getOrSetCart(countryCode: string) {
       body: {
         region_id: region.id,
         currency_code: region.currency_code,
+        ...(salesChannelId ? { sales_channel_id: salesChannelId } : {}),
       },
       headers,
     })
@@ -79,10 +85,22 @@ export async function getOrSetCart(countryCode: string) {
     revalidateTag(cartCacheTag)
   }
 
-  if (cart && cart?.region_id !== region.id) {
-    await sdk.store.cart.update(cart.id, { region_id: region.id }, {}, headers)
-    const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+  if (cart) {
+    const updateData: HttpTypes.StoreUpdateCart = {}
+
+    if (cart.region_id !== region.id) {
+      updateData.region_id = region.id
+    }
+
+    if (salesChannelId && cart.sales_channel_id !== salesChannelId) {
+      updateData.sales_channel_id = salesChannelId
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await sdk.store.cart.update(cart.id, updateData, {}, headers)
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+    }
   }
 
   return cart
@@ -149,15 +167,16 @@ export async function addToCart({
         revalidateTag(cartCacheTag)
       })
   } else {
-    await sdk.client
-      .fetch(`/store/cart/${cart.id}/line-items`, {
-        method: "POST",
-        body: {
+    await sdk.store.cart
+      .createLineItem(
+        cart.id,
+        {
           variant_id: variantId,
           quantity,
         },
-        headers,
-      })
+        {},
+        headers
+      )
       .then(async () => {
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
@@ -596,4 +615,149 @@ export async function listCartOptions() {
     headers,
     cache: "force-cache",
   })
+}
+
+export async function checkoutWithSelection(selectedItemIds: string[]) {
+  const cartId = await getCartId()
+  console.log(
+    `[checkoutWithSelection] Starting for cartId: ${cartId}, selected:`,
+    selectedItemIds
+  )
+
+  if (!cartId) {
+    throw new Error("No existing cart found")
+  }
+
+  const cart = await retrieveCart(cartId)
+  if (!cart?.items) {
+    console.log("[checkoutWithSelection] No items in cart, redirecting")
+    redirect("/checkout")
+    return
+  }
+
+  // Identify items to delete (unselected items)
+  // We only process items that have a variant_id to ensure we can restore them later
+  const itemsToDelete = cart.items.filter(
+    (item) => !selectedItemIds.includes(item.id) && item.variant_id
+  )
+
+  console.log(
+    `[checkoutWithSelection] Items to delete/hide: ${itemsToDelete.length}`
+  )
+
+  if (itemsToDelete.length > 0) {
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    // Save hidden items to metadata
+    const hiddenItems = itemsToDelete.map((item) => ({
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+    }))
+
+    console.log(
+      "[checkoutWithSelection] Saving hidden items to metadata:",
+      JSON.stringify(hiddenItems)
+    )
+
+    // CRITICAL: We must successfully save metadata BEFORE deleting items.
+    // We do NOT catch the error here. If this fails, the function throws,
+    // the deletion is skipped, and the CartSummary component catches the error.
+    await sdk.store.cart.update(
+      cartId,
+      { metadata: { hidden_items: hiddenItems } },
+      {},
+      headers
+    )
+
+    console.log(
+      "[checkoutWithSelection] Metadata saved successfully. Proceeding to delete items."
+    )
+
+    // Delete the items from the cart
+    await Promise.all(
+      itemsToDelete.map((item) =>
+        sdk.store.cart
+          .deleteLineItem(cartId, item.id, {}, headers)
+          .then(() =>
+            console.log(`[checkoutWithSelection] Deleted item ${item.id}`)
+          )
+          .catch((err) => {
+            // If deletion fails, we log it but continue.
+            // Worst case: item remains in cart (better than lost).
+            console.error(`Failed to delete item ${item.id}`, err)
+          })
+      )
+    )
+
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
+
+  console.log("[checkoutWithSelection] Redirecting to checkout")
+  redirect("/checkout")
+}
+
+export async function restoreHiddenItems(): Promise<boolean> {
+  const cartId = await getCartId()
+  if (!cartId) return false
+
+  const cart = await retrieveCart(cartId)
+  const hidden = (cart?.metadata?.hidden_items as any[]) || []
+
+  console.log(
+    `[restoreHiddenItems] CartId: ${cartId}, Found hidden items:`,
+    hidden.length,
+    JSON.stringify(hidden)
+  )
+
+  if (hidden.length > 0) {
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    const results = await Promise.all(
+      hidden.map(async (item) => {
+        try {
+          await sdk.store.cart.createLineItem(
+            cartId,
+            { variant_id: item.variant_id, quantity: item.quantity },
+            {},
+            headers
+          )
+          console.log(`[restoreHiddenItems] Restored item ${item.variant_id}`)
+          return { item, ok: true }
+        } catch (err) {
+          console.error(
+            `[restoreHiddenItems] Failed to restore item ${item.variant_id}`,
+            err
+          )
+          return { item, ok: false }
+        }
+      })
+    )
+
+    const remainingHidden = results.filter((r) => !r.ok).map((r) => r.item)
+
+    if (remainingHidden.length !== hidden.length) {
+      await sdk.store.cart
+        .update(
+          cartId,
+          { metadata: { hidden_items: remainingHidden } },
+          {},
+          headers
+        )
+        .then(() =>
+          console.log(
+            `[restoreHiddenItems] Metadata updated. Remaining hidden: ${remainingHidden.length}`
+          )
+        )
+        .catch(console.error)
+    }
+
+    return remainingHidden.length !== hidden.length
+  }
+
+  return false
 }

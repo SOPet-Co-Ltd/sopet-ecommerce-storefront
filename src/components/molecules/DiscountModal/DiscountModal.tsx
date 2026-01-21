@@ -48,65 +48,60 @@ export const DiscountModal = ({ isOpen, close, cart }: DiscountModalProps) => {
   if (!isOpen) return null
 
   return (
-    <Modal heading="ส่วนลด SOPet" onClose={close}>
-      <div className="flex flex-col gap-4 px-2 pb-2">
-        <div className="flex flex-col gap-2">
-          <div className="flex gap-3 items-center bg-gray-50 p-3 rounded-lg">
-            <Input
-              name="discount-code"
-              placeholder="กรอกโค้ดส่วนลด"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="flex-1 bg-white"
-              disabled={isLoading}
-            />
-            <Button
-              variant="secondary"
-              onClick={handleApply}
-              className="whitespace-nowrap"
-              loading={isLoading}
-              disabled={!code || isLoading}
+    <Modal heading="คูปองส่วนลดของ SOPet" onClose={close}>
+      <div className="px-4 pb-4 flex flex-col gap-4">
+        {/* Input Section */}
+        <div className="flex gap-2 items-center">
+          <Input
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="กรอกโค้ดส่วนลด"
+            className="flex-1 bg-gray-50 border-none"
+            title=""
+          />
+          <Button
+            onClick={handleApply}
+            loading={isLoading}
+            className="bg-sop-primary-500 text-white w-28 h-10 rounded-lg px-6"
+            disabled={!code}
+          >
+            ใช้โค้ด
+          </Button>
+        </div>
+
+        {error && <Text className="text-red-500 text-sm">{error}</Text>}
+        {message && <Text className="text-green-600 text-sm">{message}</Text>}
+
+        {/* Coupon List */}
+        <div className="space-y-3 mt-2">
+          {[1, 2, 3].map((_, idx) => (
+            <div
+              key={idx}
+              className="flex h-[120px] rounded-xl overflow-hidden  relative group cursor-pointer hover:border-sop-primary-200 transition-all"
             >
-              ใช้โค้ด
-            </Button>
-          </div>
-          {error && <Text className="text-red-500 text-sm px-1">{error}</Text>}
-          {message && (
-            <Text className="text-green-600 text-sm px-1">{message}</Text>
-          )}
-        </div>
+              {/* Left Side - Image/Promo */}
+              <div className="w-[120px] bg-sop-primary-300 flex flex-col items-center justify-center text-sop-primary-300 relative">
+                <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full z-10" />
+                <span className="font-bold text-lg">Promotion</span>
+                <span className="font-bold text-lg">Image</span>
+              </div>
 
-        <div className="flex flex-col gap-3 mt-2">
-          <Text className="font-bold text-gray-700">โค้ดส่วนลดแนะนำ</Text>
-
-          <div className="border rounded-lg p-3 flex justify-between items-center hover:border-purple-600 transition-colors cursor-pointer bg-white shadow-sm">
-            <div className="flex flex-col">
-              <Text className="font-bold text-purple-600">ลด ฿50</Text>
-              <Text className="text-sm text-gray-500">เมื่อช้อปครบ ฿500</Text>
-              <div className="flex items-center gap-1 mt-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full w-fit">
-                <Ticket className="w-3 h-3" />
-                <span>ใช้ได้</span>
+              {/* Right Side - Details */}
+              <div className="flex-1 p-4 flex flex-col justify-center bg-white relative border border-gray-300 border-l-0 rounded-r-xl">
+                <h4 className="heading-md text-gray-900">ส่วนลด 25%</h4>
+                <p className="text-sm text-gray-500 mt-1">
+                  สำหรับผู้ใช้งานครั้งแรก
+                </p>
+                <p className="text-xs text-sop-primary-500 underline mt-1 cursor-pointer">
+                  เงื่อนไขการใช้งาน
+                </p>
+                <p className="text-xs text-gray-400 mt-auto">
+                  สิ้นสุด 25/12/2025
+                </p>
               </div>
             </div>
-            <div className="h-4 w-4 rounded-full border border-gray-300"></div>
-          </div>
-
-          <div className="border rounded-lg p-3 flex justify-between items-center hover:border-purple-600 transition-colors cursor-pointer bg-white shadow-sm">
-            <div className="flex flex-col">
-              <Text className="font-bold text-purple-600">ส่งฟรี</Text>
-              <Text className="text-sm text-gray-500">ไม่มีขั้นต่ำ</Text>
-              <div className="flex items-center gap-1 mt-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full w-fit">
-                <Ticket className="w-3 h-3" />
-                <span>ใช้ได้</span>
-              </div>
-            </div>
-            <div className="h-4 w-4 rounded-full border border-gray-300"></div>
-          </div>
+          ))}
         </div>
-
-        <Button className="mt-4 w-full" onClick={close}>
-          ตกลง
-        </Button>
       </div>
     </Modal>
   )

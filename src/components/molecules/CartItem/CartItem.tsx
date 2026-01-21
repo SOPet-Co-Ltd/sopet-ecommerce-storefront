@@ -187,7 +187,7 @@ export const CartItem = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleQuantityChange(item.quantity - 1)}
-                    disabled={item.quantity <= 1}
+                    disabled={Number(item.quantity) <= 1}
                     className="disabled:opacity-50 cursor-pointer"
                   >
                     <MinusIcon size={24} />
@@ -228,7 +228,7 @@ export const CartItem = ({
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => handleQuantityChange(item.quantity - 1)}
-                  disabled={item.quantity <= 1}
+                  disabled={Number(item.quantity) <= 1}
                   className="disabled:opacity-50 cursor-pointer"
                 >
                   <MinusIcon size={28} />

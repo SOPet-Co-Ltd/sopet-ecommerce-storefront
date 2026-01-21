@@ -15,11 +15,13 @@ const ShippingAddress = ({
   cart,
   checked,
   onChange,
+  prefilledPhone,
 }: {
   customer: HttpTypes.StoreCustomer | null
   cart: Cart | null
   checked: boolean
   onChange: () => void
+  prefilledPhone?: string
 }) => {
   const pathname = usePathname()
 
@@ -80,7 +82,14 @@ const ShippingAddress = ({
     if (cart && !cart.email && customer?.email) {
       setFormAddress(undefined, customer.email)
     }
-  }, [cart])
+
+    if (prefilledPhone) {
+      setFormData((prev) => ({
+        ...prev,
+        "shipping_address.phone": prefilledPhone,
+      }))
+    }
+  }, [cart, prefilledPhone])
 
   const handleChange = (
     e: React.ChangeEvent<

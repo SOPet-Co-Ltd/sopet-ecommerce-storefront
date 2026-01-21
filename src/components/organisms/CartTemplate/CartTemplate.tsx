@@ -4,7 +4,8 @@ import { Button, Checkbox } from "@/components/atoms"
 import { CartItem } from "@/components/molecules"
 import { convertToLocale } from "@/lib/helpers/money"
 import { CartSummary } from "../CartSummary/CartSummary"
-import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { useEffect, useMemo, useState } from "react"
 import { mockCart } from "@/lib/mocks/cart"
 import { Ticket, Trash } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
@@ -22,9 +23,43 @@ export const CartTemplate = ({
   cart: HttpTypes.StoreCart | Cart
 }) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const router = useRouter()
+
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        router.refresh()
+      }
+    }
+
+    const handleFocus = () => {
+      if (document.visibilityState === "visible") {
+        router.refresh()
+      }
+    }
+
+    window.addEventListener("pageshow", handlePageShow)
+    window.addEventListener("focus", handleFocus)
+    document.addEventListener("visibilitychange", handleFocus)
+
+    return () => {
+      window.removeEventListener("pageshow", handlePageShow)
+      window.removeEventListener("focus", handleFocus)
+      document.removeEventListener("visibilitychange", handleFocus)
+    }
+  }, [router])
+
+  const sortedItems = useMemo(() => {
+    const items = [...(cart?.items || [])]
+    return items.sort((a, b) => {
+      const aKey = String(a.created_at || a.id || "")
+      const bKey = String(b.created_at || b.id || "")
+      return aKey.localeCompare(bKey)
+    })
+  }, [cart?.items])
 
   // Group items by seller
-  const itemsBySeller = (cart?.items || []).reduce(
+  const itemsBySeller = sortedItems.reduce(
     (acc: Record<string, HttpTypes.StoreCartLineItem[]>, item) => {
       const sellerName =
         (item.product as ProductWithSeller)?.seller?.store_name || "SOPet"
@@ -37,7 +72,7 @@ export const CartTemplate = ({
     {} as Record<string, HttpTypes.StoreCartLineItem[]>
   )
 
-  const allItemIds = cart?.items?.map((i) => i.id) || []
+  const allItemIds = sortedItems.map((i) => i.id)
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -59,14 +94,15 @@ export const CartTemplate = ({
     const sellerItems = itemsBySeller[sellerName]?.map((i) => i.id) || []
     if (checked) {
       setSelectedItems((prev) => [...new Set([...prev, ...sellerItems])])
+    } else {
       setSelectedItems((prev) => prev.filter((id) => !sellerItems.includes(id)))
     }
   }
 
   // Calculate selected total
   const selectedTotal =
-    cart?.items
-      ?.filter((item) => selectedItems.includes(item.id))
+    sortedItems
+      .filter((item) => selectedItems.includes(item.id))
       .reduce((acc, item) => acc + (item.total ?? 0), 0) || 0
 
   if (!cart || !cart.items?.length) {
@@ -174,6 +210,7 @@ export const CartTemplate = ({
                 }
                 onSelectAll={handleSelectAll}
                 customTotal={selectedTotal}
+                selectedItemIds={selectedItems}
               />
             </div>
           </div>

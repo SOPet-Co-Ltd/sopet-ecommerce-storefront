@@ -19,6 +19,7 @@ export const CheckoutPaymentSection = ({
 }: CheckoutPaymentSectionProps) => {
   const [method, setMethod] = useState<"qrcode" | "card">("card")
   const [isLoading, setIsLoading] = useState(false)
+  const [isAddingCard, setIsAddingCard] = useState(false)
 
   useEffect(() => {
     if (cart?.payment_collection?.payment_sessions?.length) {
@@ -113,25 +114,72 @@ export const CheckoutPaymentSection = ({
           </div>
 
           {method === "card" && (
-            <div className="pl-8 flex flex-col gap-3">
-              <div className="flex items-center justify-between p-3 border-b border-sop-neutral-gray-light hover:bg-gray-50 cursor-pointer">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-5 bg-orange-100 rounded flex items-center justify-center relative overflow-hidden">
-                    <div className="w-4 h-4 rounded-full bg-red-500 opacity-80 -mr-2 z-10"></div>
-                    <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-80"></div>
+            <div className="pl-8 flex flex-col gap-4">
+              {/* Toggle Logic: For demo, showing saved card if !isAddingCard. User can toggle. */}
+              {!isAddingCard ? (
+                <>
+                  <div
+                    className="flex items-center justify-between p-3 border border-sop-neutral-gray-light rounded-lg hover:bg-gray-50 cursor-pointer"
+                    onClick={() => setIsAddingCard(false)} // Select existing
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-5 bg-orange-100 rounded flex items-center justify-center relative overflow-hidden">
+                        <div className="w-4 h-4 rounded-full bg-red-500 opacity-80 -mr-2 z-10"></div>
+                        <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-80"></div>
+                      </div>
+                      <Text className="text-gray-700">****9999</Text>
+                    </div>
+                    <Check className="w-4 h-4 text-purple-600" />
                   </div>
-                  <Text className="text-gray-700">****9999</Text>
-                </div>
-                <Check className="w-4 h-4 text-purple-600" />
-              </div>
 
-              <Button
-                variant="secondary"
-                className="w-fit flex items-center gap-2 text-red-500 border-red-200 hover:bg-red-50 px-4 py-2 h-auto rounded-full"
-              >
-                <Plus className="w-4 h-4" />
-                <span>เพิ่มบัตร</span>
-              </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-fit flex items-center gap-2 text-red-500 border-red-200 hover:bg-red-50 px-4 py-2 h-auto rounded-full"
+                    onClick={() => setIsAddingCard(true)}
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>เพิ่มบัตรใหม่</span>
+                  </Button>
+                </>
+              ) : (
+                <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
+                  <input
+                    type="text"
+                    placeholder="หมายเลขบัตร"
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="วันหมดอายุ"
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      placeholder="CVV"
+                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
+                    />
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="ชื่อผู้ถือบัตร"
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
+                  />
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="secondary"
+                      className="text-gray-500 hover:text-gray-700 border-none bg-transparent shadow-none"
+                      onClick={() => setIsAddingCard(false)}
+                    >
+                      ยกเลิก
+                    </Button>
+                    {/* Add Card Action would go here */}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

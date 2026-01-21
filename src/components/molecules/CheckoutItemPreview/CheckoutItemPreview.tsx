@@ -1,6 +1,11 @@
 "use client"
 
-import { Cart } from "@/types/cart"
+import {
+  Cart,
+  ExtendedLineItem,
+  StoreCardShippingMethod,
+  GroupedItems,
+} from "@/types/cart"
 import { ClipboardList, Percent, Truck } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
 import Image from "next/image"
@@ -8,33 +13,29 @@ import { convertToLocale } from "@/lib/helpers/money"
 import { Button } from "@/components/atoms"
 import { HttpTypes } from "@medusajs/types"
 
+import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
+import { setShippingMethod } from "@/lib/data/cart"
+import { useRouter } from "next/navigation"
+import { useState } from "react"
+
 type CheckoutItemPreviewProps = {
   cart: Cart | null
+  availableShippingMethods?: StoreCardShippingMethod[] | null
 }
 
-type Seller = {
-  id: string
-  name: string
-  photo?: string
-  created_at?: Date | string
-}
+const CheckoutItemPreview = ({
+  cart,
+  availableShippingMethods,
+}: CheckoutItemPreviewProps) => {
+  const [isShippingOpen, setIsShippingOpen] = useState(false)
+  const router = useRouter()
 
-type ExtendedLineItem = HttpTypes.StoreCartLineItem & {
-  product?: HttpTypes.StoreProduct & {
-    seller?: Seller
-  }
-}
-
-type GroupedItems = Record<
-  string,
-  {
-    seller: Seller
-    items: ExtendedLineItem[]
-  }
->
-
-const CheckoutItemPreview = ({ cart }: CheckoutItemPreviewProps) => {
   if (!cart) return null
+
+  const handleSelectShipping = async (methodId: string) => {
+    await setShippingMethod({ cartId: cart.id, shippingMethodId: methodId })
+    router.refresh()
+  }
 
   const groupedItems: GroupedItems = groupItemsBySeller(cart)
 
@@ -152,32 +153,12 @@ const CheckoutItemPreview = ({ cart }: CheckoutItemPreviewProps) => {
                     <Truck className="w-5 h-5" />
                     <span>ตัวเลือกการจัดส่ง</span>
                   </div>
-                  <button className="text-gray-500 underline text-sm hover:text-gray-700">
+                  <button
+                    onClick={() => setIsShippingOpen(true)}
+                    className="text-gray-500 underline text-sm hover:text-gray-700"
+                  >
                     เปลี่ยน
                   </button>
-                </div>
-                <div className="flex justify-between items-center pl-7">
-                  <div className="text-gray-700 text-sm">
-                    {shippingMethods.length > 0
-                      ? shippingMethods
-                          .map(
-                            (m: any) =>
-                              m.name +
-                              (m.shipping_option?.name
-                                ? ` (${m.shipping_option?.name})`
-                                : "")
-                          )
-                          .join(", ")
-                      : "ส่งธรรมดาในประเทศ"}
-                  </div>
-                  <span className="font-normal">
-                    {shippingTotal > 0
-                      ? convertToLocale({
-                          amount: shippingTotal,
-                          currency_code: cart.currency_code,
-                        })
-                      : "฿29.00"}
-                  </span>
                 </div>
               </div>
 
@@ -212,7 +193,10 @@ const CheckoutItemPreview = ({ cart }: CheckoutItemPreviewProps) => {
                         })
                       : "฿29.00"}
                   </span>
-                  <button className="text-gray-500 underline text-sm hover:text-gray-700">
+                  <button
+                    onClick={() => setIsShippingOpen(true)}
+                    className="text-gray-500 underline text-sm hover:text-gray-700"
+                  >
                     เปลี่ยน
                   </button>
                 </div>
@@ -232,6 +216,16 @@ const CheckoutItemPreview = ({ cart }: CheckoutItemPreviewProps) => {
           </div>
         )
       })}
+
+      {availableShippingMethods && (
+        <ShippingOptionDialog
+          isOpen={isShippingOpen}
+          onClose={() => setIsShippingOpen(false)}
+          shippingMethods={availableShippingMethods}
+          cart={cart}
+          onSelectMethod={handleSelectShipping}
+        />
+      )}
     </div>
   )
 }

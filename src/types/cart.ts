@@ -7,11 +7,10 @@ export interface StoreGiftCard {
   balance: number
 }
 
-export interface Cart
-  extends Omit<
-    HttpTypes.StoreCart,
-    "promotions" | "payment_collection" | "shipping_methods"
-  > {
+export interface Cart extends Omit<
+  HttpTypes.StoreCart,
+  "promotions" | "payment_collection" | "shipping_methods"
+> {
   promotions?: HttpTypes.StoreCartPromotion[]
   gift_cards?: StoreGiftCard[]
   shipping_methods?: HttpTypes.StoreCartShippingMethod[]
@@ -29,7 +28,23 @@ export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {
   }
 }
 
-export interface StoreCartLineItemOptimisticUpdate
-  extends Partial<HttpTypes.StoreCartLineItem> {
+export interface StoreCartLineItemOptimisticUpdate extends Partial<HttpTypes.StoreCartLineItem> {
   tax_total: number
 }
+
+// Check with seller.ts imports
+import { Seller } from "./seller"
+
+export type ExtendedLineItem = HttpTypes.StoreCartLineItem & {
+  product?: HttpTypes.StoreProduct & {
+    seller?: Seller
+  }
+}
+
+export type GroupedItems = Record<
+  string,
+  {
+    seller: Seller
+    items: ExtendedLineItem[]
+  }
+>
