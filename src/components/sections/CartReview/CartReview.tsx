@@ -2,11 +2,17 @@
 
 import PaymentButton from "./PaymentButton"
 import CheckoutItemPreview from "@/components/molecules/CheckoutItemPreview/CheckoutItemPreview"
-import { Cart } from "@/types/cart"
+import { StoreCardShippingMethod, Cart } from "@/types/cart"
 import { Heading } from "@medusajs/ui"
 import { ClipboardList } from "lucide-react"
 
-const Review = ({ cart }: { cart: Cart }) => {
+const Review = ({
+  cart,
+  shippingMethods,
+}: {
+  cart: Cart
+  shippingMethods: StoreCardShippingMethod[]
+}) => {
   const paidByGiftcard =
     cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
 
@@ -27,7 +33,10 @@ const Review = ({ cart }: { cart: Cart }) => {
         </div>
       </div>
       <div className="w-full">
-        <CheckoutItemPreview cart={cart} />
+        <CheckoutItemPreview
+          cart={cart}
+          availableShippingMethods={shippingMethods}
+        />
       </div>
 
       {previousStepsCompleted && (

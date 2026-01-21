@@ -42,10 +42,10 @@ export function Button({
     <button
       disabled={disabled}
       className={cn(
-        className,
         variantClasses[variant],
         sizeClasses[size],
-        baseClasses
+        baseClasses,
+        className
       )}
       {...props}
     >

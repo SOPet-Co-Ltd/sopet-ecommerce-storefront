@@ -1,11 +1,11 @@
 "use client"
-
 import { Button, Checkbox, Input } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 
 import { HttpTypes } from "@medusajs/types"
 import { Cart } from "@/types/cart"
-import Link from "next/link"
+import { checkoutWithSelection } from "@/lib/data/cart"
+import { useState } from "react"
 
 interface CartSummaryProps {
   cart: HttpTypes.StoreCart | Cart
@@ -14,6 +14,7 @@ interface CartSummaryProps {
   isAllSelected?: boolean
   onSelectAll?: (checked: boolean) => void
   customTotal?: number
+  selectedItemIds?: string[]
 }
 
 export const CartSummary = ({
@@ -23,6 +24,7 @@ export const CartSummary = ({
   isAllSelected = false,
   onSelectAll,
   customTotal,
+  selectedItemIds = [],
 }: CartSummaryProps) => {
   const {
     total,
@@ -32,6 +34,19 @@ export const CartSummary = ({
     tax_total,
     currency_code,
   } = cart || {}
+
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleCheckout = async () => {
+    if (selectedCount === 0) return
+    setIsLoading(true)
+    try {
+      await checkoutWithSelection(selectedItemIds)
+    } catch (e) {
+      console.error("[CartSummary] Checkout failed:", e)
+      setIsLoading(false)
+    }
+  }
 
   return (
     <div className="w-full bg-white rounded-t-2xl shadow-[0_-4px_24px_rgba(0,0,0,0.12)] p-4">
@@ -90,11 +105,15 @@ export const CartSummary = ({
             </span>
           </div>
           {selectedCount > 0 ? (
-            <Link href="/checkout" className="flex-1 max-w-[300px]">
-              <Button className="w-full rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base">
+            <div className="flex-1 max-w-[300px]">
+              <Button
+                onClick={handleCheckout}
+                loading={isLoading}
+                className="w-full rounded-full font-bold bg-sop-primary-500 hover:bg-sop-primary-600 text-white shadow-sop-primary h-10 text-base"
+              >
                 ชำระเงิน ({selectedCount})
               </Button>
-            </Link>
+            </div>
           ) : (
             <div className="flex-1 max-w-[300px]">
               <Button

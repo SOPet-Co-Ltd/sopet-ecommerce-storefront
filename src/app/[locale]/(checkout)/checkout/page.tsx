@@ -53,7 +53,7 @@ async function CheckoutPageContent({}) {
           <div className="flex flex-col gap-4 w-full max-w-4xl">
             <CartAddressSection cart={cart} customer={customer} />
 
-            <CartReview cart={cart} />
+            <CartReview cart={cart} shippingMethods={shippingMethods || []} />
 
             <CheckoutDiscountSection cart={cart} />
 

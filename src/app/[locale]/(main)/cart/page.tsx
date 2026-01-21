@@ -1,6 +1,10 @@
 import { CartTemplate } from "@/components/organisms"
-import { retrieveCart } from "@/lib/data/cart"
+import { restoreHiddenItems, retrieveCart } from "@/lib/data/cart"
+import { Cart } from "@/types/cart"
+import { redirect } from "next/navigation"
 // import { mockCart } from "@/lib/mocks/cart"
+
+export const dynamic = "force-dynamic"
 
 export const metadata = {
   title: "Cart",
@@ -8,8 +12,13 @@ export const metadata = {
 }
 
 export default async function CartPage() {
-  const cart = await retrieveCart()
-  // const cart = mockCart
+  const restored = await restoreHiddenItems()
 
-  return <CartTemplate cart={cart} />
+  if (restored) {
+    redirect("/cart")
+  }
+
+  const cart = await retrieveCart()
+
+  return <CartTemplate cart={cart as Cart} />
 }

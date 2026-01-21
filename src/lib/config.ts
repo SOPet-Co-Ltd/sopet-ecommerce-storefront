@@ -18,7 +18,7 @@ type FetchQueryOptions = Omit<RequestInit, "headers" | "body"> & {
 
 export async function fetchQuery(
   url: string,
-  { method, query, headers, body }: FetchQueryOptions
+  { method, query, headers, body, ...rest }: FetchQueryOptions
 ) {
   const params = Object.entries(query || {}).reduce(
     (acc, [key, value], index) => {
@@ -42,6 +42,7 @@ export async function fetchQuery(
         ...headers,
       },
       body: body ? JSON.stringify(body) : null,
+      ...rest,
     }
   )
 
