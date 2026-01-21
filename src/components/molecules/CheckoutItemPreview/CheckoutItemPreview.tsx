@@ -251,7 +251,10 @@ function groupItemsBySeller(cart: Cart): GroupedItems {
             name: "Fleek",
             id: "fleek",
             photo: "/Logo.svg",
-            created_at: new Date(),
+            created_at: new Date().toISOString(),
+            handle: "fleek",
+            description: "Fleek Store",
+            tax_id: "0000000000000",
           },
           items: [],
         }

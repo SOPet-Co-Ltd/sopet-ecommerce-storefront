@@ -13,16 +13,16 @@ import { calculatePriceForShippingOption } from "@/lib/data/fulfillment"
 const CarrierLogos = () => (
   <div className="flex gap-2 items-center mt-2 opacity-80 grayscale">
     {/* Placeholder mainly for visual structure */}
-    <span className="text-[10px] border px-1 rounded-sm text-blue-600 border-blue-200 font-bold">
+    <span className="text-sop-3XS border px-1 rounded-sm text-blue-600 border-blue-200 font-bold">
       Thailand Post
     </span>
-    <span className="text-[10px] border px-1 rounded-sm text-orange-600 border-orange-200 font-bold">
+    <span className="text-sop-3XS border px-1 rounded-sm text-orange-600 border-orange-200 font-bold">
       Kerry
     </span>
-    <span className="text-[10px] border px-1 rounded-sm text-yellow-600 border-yellow-200 font-bold">
+    <span className="text-sop-3XS border px-1 rounded-sm text-yellow-600 border-yellow-200 font-bold">
       Flash
     </span>
-    <span className="text-[10px] border px-1 rounded-sm text-red-600 border-red-200 font-bold">
+    <span className="text-sop-3XS border px-1 rounded-sm text-red-600 border-red-200 font-bold">
       J&T
     </span>
   </div>
@@ -104,64 +104,70 @@ export const ShippingOptionDialog = ({
       <div className="px-4 pb-4 flex flex-col gap-6">
         <RadioGroup value={selectedMethodId} onChange={setSelectedMethodId}>
           <div className="space-y-4">
-            {shippingMethods.map((method) => {
-              const price =
-                method.price_type === "flat"
-                  ? method.amount
-                  : calculatedPricesMap[method.id]
+            {shippingMethods.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                ไม่พบตัวเลือกการจัดส่งสำหรับที่อยู่นี้
+              </div>
+            ) : (
+              shippingMethods.map((method) => {
+                const price =
+                  method.price_type === "flat"
+                    ? method.amount
+                    : calculatedPricesMap[method.id]
 
-              return (
-                <RadioGroup.Option
-                  key={method.id}
-                  value={method.id}
-                  className={({ checked }) =>
-                    `relative flex cursor-pointer rounded-lg px-2 py-2 focus:outline-none ${
-                      checked ? "" : ""
-                    }`
-                  }
-                >
-                  {({ checked }) => (
-                    <div className="flex w-full items-start justify-between border-b border-gray-100 pb-4">
-                      <div className="flex items-start gap-3">
-                        <div className="mt-1">
-                          {checked ? (
-                            <CheckCircle2 className="w-6 h-6 text-sop-primary-500 fill-white" />
-                          ) : (
-                            <Circle className="w-6 h-6 text-gray-300" />
-                          )}
+                return (
+                  <RadioGroup.Option
+                    key={method.id}
+                    value={method.id}
+                    className={({ checked }) =>
+                      `relative flex cursor-pointer rounded-lg px-2 py-2 focus:outline-none ${
+                        checked ? "" : ""
+                      }`
+                    }
+                  >
+                    {({ checked }) => (
+                      <div className="flex w-full items-start justify-between border-b border-gray-100 pb-4">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-1">
+                            {checked ? (
+                              <CheckCircle2 className="w-6 h-6 text-sop-primary-500 fill-white" />
+                            ) : (
+                              <Circle className="w-6 h-6 text-gray-300" />
+                            )}
+                          </div>
+                          <div>
+                            <RadioGroup.Label
+                              as="p"
+                              className={`font-bold  ${
+                                checked ? "text-gray-900" : "text-gray-900"
+                              }`}
+                            >
+                              {method.name}
+                            </RadioGroup.Label>
+                            <RadioGroup.Description
+                              as="div"
+                              className="text-sm text-gray-500"
+                            >
+                              <CarrierLogos />
+                            </RadioGroup.Description>
+                          </div>
                         </div>
-                        <div>
-                          <RadioGroup.Label
-                            as="p"
-                            className={`font-bold  ${
-                              checked ? "text-gray-900" : "text-gray-900"
-                            }`}
-                          >
-                            {method.name}
-                          </RadioGroup.Label>
-                          <RadioGroup.Description
-                            as="div"
-                            className="text-sm text-gray-500"
-                          >
-                            <CarrierLogos />
-                          </RadioGroup.Description>
+                        <div className="font-bold text-gray-900">
+                          {price !== undefined
+                            ? convertToLocale({
+                                amount: price,
+                                currency_code: cart.currency_code,
+                              })
+                            : isLoadingPrices
+                              ? "..."
+                              : "-"}
                         </div>
                       </div>
-                      <div className="font-bold text-gray-900">
-                        {price !== undefined
-                          ? convertToLocale({
-                              amount: price,
-                              currency_code: cart.currency_code,
-                            })
-                          : isLoadingPrices
-                            ? "..."
-                            : "-"}
-                      </div>
-                    </div>
-                  )}
-                </RadioGroup.Option>
-              )
-            })}
+                    )}
+                  </RadioGroup.Option>
+                )
+              })
+            )}
           </div>
         </RadioGroup>
 
@@ -170,7 +176,7 @@ export const ShippingOptionDialog = ({
             variant="secondary"
             onClick={onClose}
             loading={loading}
-            className="flex-1 rounded-full border-sop-primary-500 text-sop-primary-500 hover:bg-sop-primary-50"
+            className="flex-1 rounded-full bg-sop-base-white border-sop-primary-500 text-sop-primary-500 hover:bg-sop-primary-50"
           >
             ยกเลิก
           </Button>
