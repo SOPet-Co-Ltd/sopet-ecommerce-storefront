@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Button, InputSOPet } from "@/components/atoms"
 import LocalizedClientLink from "../LocalizedLink/LocalizedLink"
 import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
+import { initiateOAuth } from "@/lib/data/oauth"
 import { SOPetLogo, FacebookCustomIcon, GoogleIcon, LineCustomIcon } from "@/icons"
 import { useRouter } from "next/navigation"
 
@@ -156,15 +157,27 @@ const Form = () => {
         </div>
         {/* Media Login */}
         <div className="flex justify-center items-center gap-2">
-          {/* TODO - Complete sign in with facebook */}
-          <FacebookCustomIcon size={48} />
-          {/* TODO - Complete sign in with google */}
-          {/* NOTE - Google Icon needs div because the icon is just google logo without a background */}
-          <div className="flex justify-center items-center bg-sop-base-white aspect-square rounded-full overflow-clip w-sop-48px h-sop-48px border-[#EEEEEE]">
+          <button
+            onClick={() => initiateOAuth("facebook")}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label="Sign up with Facebook"
+          >
+            <FacebookCustomIcon size={48} />
+          </button>
+          <button
+            onClick={() => initiateOAuth("google")}
+            className="flex justify-center items-center bg-sop-base-white aspect-square rounded-full overflow-clip w-sop-48px h-sop-48px border-[#EEEEEE] cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label="Sign up with Google"
+          >
             <GoogleIcon size={28} />
-          </div>
-          {/* TODO - Complete sign in with line */}
-          <LineCustomIcon size={48} />
+          </button>
+          <button
+            onClick={() => initiateOAuth("line")}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            aria-label="Sign up with LINE"
+          >
+            <LineCustomIcon size={48} />
+          </button>
         </div>
         {/* Link to Sign Up */}
         <div className="flex justify-center items-center gap-1">
