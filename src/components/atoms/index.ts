@@ -8,8 +8,15 @@ import { Chip } from "./Chip/Chip"
 import { Divider } from "./Divider/Divider"
 import { Indicator } from "./Indicator/Indicator"
 import { Input } from "./Input/Input"
-import { Autocomplete, DefaultOptionComponent } from "./Autocomplete/Autocomplete"
-import type { AutocompleteOption, AutocompleteStyleConfig, OptionComponentProps } from "./Autocomplete/Autocomplete"
+import {
+  Autocomplete,
+  DefaultOptionComponent,
+} from "./Autocomplete/Autocomplete"
+import type {
+  AutocompleteOption,
+  AutocompleteStyleConfig,
+  OptionComponentProps,
+} from "./Autocomplete/Autocomplete"
 import { Textarea } from "./Textarea/Textarea"
 import { PaginationButton } from "./PaginationButton/PaginationButton"
 import { Card } from "./Card/Card"
@@ -20,6 +27,7 @@ import { TabsTrigger } from "./TabsTrigger/TabsTrigger"
 import { NavigationItem } from "./NavigationItem/NavigationItem"
 import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
+import { Spinner } from "./Spinner/Spinner"
 
 export {
   Button,
@@ -44,6 +52,7 @@ export {
   NavigationItem,
   LogoutButton,
   MarkdownRender,
+  Spinner,
 }
 
 export type {

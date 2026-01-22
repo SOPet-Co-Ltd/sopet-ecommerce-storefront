@@ -9,16 +9,19 @@ export const OTPVerificationForm = ({
   onResend,
   isError = false,
   onInputChange,
+  isLoading = false,
 }: {
   phoneNumber: string
   onSubmit: (otp: string) => void
   onResend: () => void
   isError?: boolean
   onInputChange?: () => void
+  isLoading?: boolean
 }) => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""])
   const [timeLeft, setTimeLeft] = useState(60)
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+  const lastSubmittedOtp = useRef<string>("")
 
   useEffect(() => {
     inputRefs.current[0]?.focus()
@@ -56,7 +59,12 @@ export const OTPVerificationForm = ({
   useEffect(() => {
     if (otp.every((digit) => digit !== "")) {
       const otpString = otp.join("")
-      onSubmit(otpString)
+      if (otpString !== lastSubmittedOtp.current) {
+        lastSubmittedOtp.current = otpString
+        onSubmit(otpString)
+      }
+    } else {
+      lastSubmittedOtp.current = ""
     }
   }, [otp, onSubmit])
 

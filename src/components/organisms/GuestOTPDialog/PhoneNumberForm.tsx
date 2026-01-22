@@ -7,8 +7,10 @@ import { Phone } from "lucide-react"
 
 export const PhoneNumberForm = ({
   onSubmit,
+  isLoading = false,
 }: {
   onSubmit: (phone: string) => void
+  isLoading?: boolean
 }) => {
   const [phoneNumber, setPhoneNumber] = useState("")
 
@@ -30,7 +32,7 @@ export const PhoneNumberForm = ({
 
       <form onSubmit={handleSubmit} className="w-full space-y-6">
         <div className="flex gap-3">
-          <div className="w-[80px] shrink-0">
+          <div className="w-sop-80px shrink-0">
             <div className="h-10 w-full bg-gray-50 text-gray-500 rounded-lg border border-gray-200 flex items-center justify-center text-sm font-medium">
               +66
             </div>
@@ -53,7 +55,8 @@ export const PhoneNumberForm = ({
 
         <Button
           type="submit"
-          disabled={phoneNumber.length < 9}
+          disabled={phoneNumber.length < 9 || isLoading}
+          loading={isLoading}
           className="w-36 h-10 mx-auto bg-sop-primary-500 text-white hover:bg-sop-primary-600 border-none rounded-xl text-base font-medium"
         >
           ขอรหัส OTP

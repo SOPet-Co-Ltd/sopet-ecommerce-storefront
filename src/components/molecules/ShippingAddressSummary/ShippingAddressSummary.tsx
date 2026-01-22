@@ -52,7 +52,7 @@ const ShippingAddressSummary = ({
         </div>
 
         {/* Column 3: Default Badge and Edit Link */}
-        <div className="flex flex-row items-center gap-4 justify-end">
+        <div className="flex flex-row items-center gap-10 justify-end">
           <span className="text-sop-secondary-500 text-base-semi font-normal">
             ค่าเริ่มต้น
           </span>

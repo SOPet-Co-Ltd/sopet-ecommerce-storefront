@@ -2,13 +2,14 @@ import { HttpTypes } from "@medusajs/types"
 import { Container } from "@medusajs/ui"
 import { mapKeys } from "lodash"
 import React, { useEffect, useMemo, useState } from "react"
-import { Input } from "@/components/atoms"
-import AddressSelect from "@/components/cells/AddressSelect/AddressSelect"
+import { Input, Checkbox, Button } from "@/components/atoms"
 import ThaiAddressSelect, {
   ThaiAddressValue,
 } from "@/components/cells/ThaiAddressSelect/ThaiAddressSelect"
 import { usePathname } from "next/navigation"
 import { Cart } from "@/types/cart"
+import { AddressSelectionDialog } from "../AddressSelectionDialog/AddressSelectionDialog"
+import { EditAddressDialog } from "../EditAddressDialog/EditAddressDialog"
 
 const ShippingAddress = ({
   customer,
@@ -16,21 +17,25 @@ const ShippingAddress = ({
   checked,
   onChange,
   prefilledPhone,
+  showSaveAddress,
 }: {
   customer: HttpTypes.StoreCustomer | null
   cart: Cart | null
   checked: boolean
   onChange: () => void
   prefilledPhone?: string
+  showSaveAddress?: boolean
 }) => {
   const pathname = usePathname()
 
-  const locale = pathname.split("/")[1]
+  let locale = pathname.split("/")[1]
+  if (!locale || locale.length !== 2) {
+    locale = "th"
+  }
   const [formData, setFormData] = useState<Record<string, any>>({
     "shipping_address.first_name": cart?.shipping_address?.first_name || "",
     "shipping_address.last_name": cart?.shipping_address?.last_name || "",
     "shipping_address.address_1": cart?.shipping_address?.address_1 || "",
-    "shipping_address.company": cart?.shipping_address?.company || "",
     "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
     "shipping_address.city": cart?.shipping_address?.city || "",
     "shipping_address.country_code":
@@ -40,13 +45,24 @@ const ShippingAddress = ({
     email: cart?.email || "",
   })
 
-  // check if customer has saved addresses that are in the current region
+  // Dialog States
+  const [isSelectionOpen, setIsSelectionOpen] = useState(false)
+  const [editDialogState, setEditDialogState] = useState<{
+    isOpen: boolean
+    address: HttpTypes.StoreCustomerAddress | null
+  }>({
+    isOpen: false,
+    address: null,
+  })
+
+  const [shouldSaveAddress, setShouldSaveAddress] = useState(true)
+
   const addressesInRegion = useMemo(
     () =>
       customer?.addresses.filter(
         (a) => a.country_code && a.country_code === locale
       ),
-    [customer?.addresses]
+    [customer?.addresses, locale]
   )
 
   const setFormAddress = (
@@ -59,7 +75,6 @@ const ShippingAddress = ({
         "shipping_address.first_name": address?.first_name || "",
         "shipping_address.last_name": address?.last_name || "",
         "shipping_address.address_1": address?.address_1 || "",
-        "shipping_address.company": address?.company || "",
         "shipping_address.postal_code": address?.postal_code || "",
         "shipping_address.city": address?.city || "",
         "shipping_address.country_code": address?.country_code || locale,
@@ -89,7 +104,7 @@ const ShippingAddress = ({
         "shipping_address.phone": prefilledPhone,
       }))
     }
-  }, [cart, prefilledPhone])
+  }, [cart, prefilledPhone, customer?.email])
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -106,31 +121,62 @@ const ShippingAddress = ({
     setFormData((prev) => ({
       ...prev,
       "shipping_address.province": value.province,
-      "shipping_address.city": value.district, // Map Amphoe to City
-      "shipping_address.address_2": value.subdistrict, // Map Tambon to Address 2
+      "shipping_address.city": value.district,
+      "shipping_address.address_2": value.subdistrict,
       "shipping_address.postal_code": value.zipCode,
     }))
   }
 
   return (
     <>
+      <AddressSelectionDialog
+        isOpen={isSelectionOpen}
+        onClose={() => setIsSelectionOpen(false)}
+        addresses={addressesInRegion || []}
+        currentAddressId={undefined} // Could match based on content if needed
+        onSelect={(addr) => {
+          setFormAddress(addr as unknown as HttpTypes.StoreCartAddress)
+          setIsSelectionOpen(false)
+        }}
+        onEdit={(addr) => {
+          setIsSelectionOpen(false)
+          setEditDialogState({ isOpen: true, address: addr })
+        }}
+        onAddNew={() => {
+          setIsSelectionOpen(false)
+          setEditDialogState({ isOpen: true, address: null })
+        }}
+      />
+
+      <EditAddressDialog
+        isOpen={editDialogState.isOpen}
+        onClose={() =>
+          setEditDialogState({ ...editDialogState, isOpen: false })
+        }
+        address={editDialogState.address}
+        onSuccess={() => {
+          // Address updated logic handled by dialog (refresh)
+          // Optionally re-open selection dialog?
+          setIsSelectionOpen(true)
+        }}
+      />
+
       {customer && (addressesInRegion?.length || 0) > 0 && (
-        <Container className="mb-6 flex flex-col gap-y-4 p-0">
-          <p className="text-small-regular">
-            {`Hi ${customer.first_name}, do you want to use one of your saved addresses?`}
-          </p>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-4">
-            <AddressSelect
-              addresses={addressesInRegion || []}
-              addressInput={
-                mapKeys(formData, (_, key) =>
-                  key.replace("shipping_address.", "")
-                ) as HttpTypes.StoreCartAddress
-              }
-              onSelect={setFormAddress}
-            />
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-700">
+              เลือกจากที่อยู่ที่บันทึกไว้ ({addressesInRegion?.length})
+            </span>
+            <Button
+              variant="secondary"
+              className="text-purple-600 border-purple-600 hover:bg-purple-50 h-8 text-sm"
+              onClick={() => setIsSelectionOpen(true)}
+              type="button"
+            >
+              เลือกที่อยู่
+            </Button>
           </div>
-        </Container>
+        </div>
       )}
 
       {/* Name and Phone Row */}
@@ -180,21 +226,38 @@ const ShippingAddress = ({
         />
       </div>
 
-      {/* Hidden Fields for required Medusa fields that we might not show or handle differently */}
+      {/* Hidden Fields for required Medusa fields */}
       <input
         type="hidden"
         name="shipping_address.country_code"
         value={formData["shipping_address.country_code"]}
       />
-      {/* Use a hidden input for last_name if we want to bypass required check, or we can just leave it if it's not strict.
-           Ideally we'd split the name string. For this task I'll just leave first_name as the primary input.
-       */}
+      <input
+        type="hidden"
+        name="shipping_address.province"
+        value={formData["shipping_address.province"] || ""}
+      />
+      <input
+        type="hidden"
+        name="shipping_address.city"
+        value={formData["shipping_address.city"] || ""}
+      />
+      <input
+        type="hidden"
+        name="shipping_address.postal_code"
+        value={formData["shipping_address.postal_code"] || ""}
+      />
+      <input
+        type="hidden"
+        name="shipping_address.address_2"
+        value={formData["shipping_address.address_2"] || ""}
+      />
       <input
         type="hidden"
         name="shipping_address.last_name"
         value={formData["shipping_address.last_name"] || "-"}
       />
-      <input type="hidden" name="email" value={formData.email} />
+      {customer && <input type="hidden" name="email" value={formData.email} />}
     </>
   )
 }

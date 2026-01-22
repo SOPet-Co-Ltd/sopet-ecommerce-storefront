@@ -390,25 +390,29 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       throw new Error("No existing cart found when setting addresses")
     }
 
-    const data = {
+    const data: HttpTypes.StoreUpdateCart = {
       shipping_address: {
-        first_name: formData.get("shipping_address.first_name"),
-        last_name: formData.get("shipping_address.last_name"),
-        address_1: formData.get("shipping_address.address_1"),
-        address_2: "",
-        company: formData.get("shipping_address.company"),
-        postal_code: formData.get("shipping_address.postal_code"),
-        city: formData.get("shipping_address.city"),
-        country_code: formData.get("shipping_address.country_code"),
-        province: formData.get("shipping_address.province"),
-        phone: formData.get("shipping_address.phone"),
+        first_name: formData.get("shipping_address.first_name") as string,
+        last_name: formData.get("shipping_address.last_name") as string,
+        address_1: formData.get("shipping_address.address_1") as string,
+        address_2: (formData.get("shipping_address.address_2") as string) || "",
+        company: (formData.get("shipping_address.company") as string) || "",
+        postal_code: formData.get("shipping_address.postal_code") as string,
+        city: formData.get("shipping_address.city") as string,
+        country_code: formData.get("shipping_address.country_code") as string,
+        province: formData.get("shipping_address.province") as string,
+        phone: formData.get("shipping_address.phone") as string,
       },
-      email: formData.get("email"),
-    } as any
+    }
+
+    const email = formData.get("email") as string
+    if (email) {
+      data.email = email
+    }
 
     // const sameAsBilling = formData.get("same_as_billing")
     // if (sameAsBilling === "on") data.billing_address = data.shipping_address
-    data.billing_address = data.shipping_address
+    data.billing_address = data.shipping_address as HttpTypes.StoreCartAddress
 
     // if (sameAsBilling !== "on")
     //   data.billing_address = {
@@ -423,6 +427,8 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     //     province: formData.get("billing_address.province"),
     //     phone: formData.get("billing_address.phone"),
     //   }
+
+    console.log("data form: ", data)
 
     await updateCart(data)
     await revalidatePath("/cart")
@@ -522,23 +528,18 @@ export async function updateRegionWithValidation(
     try {
       await updateCart({ region_id: region.id })
     } catch (error: unknown) {
-      // Check if error is about variants not having prices
       if (!(error as Error)?.message?.includes("do not have a price")) {
-        // Re-throw if it's a different error
         throw error
       }
 
-      // Parse variant IDs from error message
       const problematicVariantIds = parseVariantIdsFromError(
         (error as Error).message
       )
 
-      // Early return if no variant IDs found
       if (!problematicVariantIds.length) {
         throw new Error("Failed to parse variant IDs from error")
       }
 
-      // Fetch cart with minimal fields to get items
       try {
         const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
           `/store/carts/${cartId}`,
@@ -552,7 +553,6 @@ export async function updateRegionWithValidation(
           }
         )
 
-        // Iterate over problematic variants and remove corresponding items
         for (const variantId of problematicVariantIds) {
           const item = cart?.items?.find(
             (item) => item.variant_id === variantId
@@ -566,13 +566,10 @@ export async function updateRegionWithValidation(
                 headers
               )
               removedItems.push(item.product_title || "Unknown product")
-            } catch (deleteError) {
-              // Silent failure - item removal failed but continue
-            }
+            } catch (deleteError) {}
           }
         }
 
-        // Retry region update after removing problematic items
         if (removedItems.length > 0) {
           await updateCart({ region_id: region.id })
         }
@@ -635,8 +632,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
     return
   }
 
-  // Identify items to delete (unselected items)
-  // We only process items that have a variant_id to ensure we can restore them later
   const itemsToDelete = cart.items.filter(
     (item) => !selectedItemIds.includes(item.id) && item.variant_id
   )
@@ -661,9 +656,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       JSON.stringify(hiddenItems)
     )
 
-    // CRITICAL: We must successfully save metadata BEFORE deleting items.
-    // We do NOT catch the error here. If this fails, the function throws,
-    // the deletion is skipped, and the CartSummary component catches the error.
     await sdk.store.cart.update(
       cartId,
       { metadata: { hidden_items: hiddenItems } },
@@ -675,7 +667,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       "[checkoutWithSelection] Metadata saved successfully. Proceeding to delete items."
     )
 
-    // Delete the items from the cart
     await Promise.all(
       itemsToDelete.map((item) =>
         sdk.store.cart
@@ -684,8 +675,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
             console.log(`[checkoutWithSelection] Deleted item ${item.id}`)
           )
           .catch((err) => {
-            // If deletion fails, we log it but continue.
-            // Worst case: item remains in cart (better than lost).
             console.error(`Failed to delete item ${item.id}`, err)
           })
       )
