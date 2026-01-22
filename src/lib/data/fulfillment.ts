@@ -33,7 +33,8 @@ export const listCartShippingMethods = async (
       }
     )
     .then(({ shipping_options }) => shipping_options)
-    .catch(() => {
+    .catch((error) => {
+      console.error("[listCartShippingMethods] Error:", error)
       return null
     })
 }

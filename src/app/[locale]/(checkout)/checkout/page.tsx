@@ -8,10 +8,11 @@ import CartReview from "@/components/sections/CartReview/CartReview"
 
 import CartShippingMethodsSection from "@/components/sections/CartShippingMethodsSection/CartShippingMethodsSection"
 import { retrieveCart } from "@/lib/data/cart"
-import { verifyCustomer } from "@/lib/data/customer"
+import { listAddressesByPhone, retrieveCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import { retrieveRegion } from "@/lib/data/regions"
+import { getGuestPhone } from "@/lib/data/cookies"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
@@ -44,14 +45,25 @@ async function CheckoutPageContent({}) {
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
   const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
-  const customer = await verifyCustomer()
+  const customer = await retrieveCustomer()
+  const guestPhone = await getGuestPhone()
+  const fallbackPhone = customer?.phone || (!customer ? guestPhone : "") || ""
+  const phoneAddresses =
+    !customer?.addresses?.length && fallbackPhone
+      ? await listAddressesByPhone(fallbackPhone)
+      : []
 
   return (
     <PaymentWrapper cart={cart}>
       <main className="">
         <div className="flex w-full justify-center py-10">
           <div className="flex flex-col gap-4 w-full max-w-4xl">
-            <CartAddressSection cart={cart} customer={customer} />
+            <CartAddressSection
+              cart={cart}
+              customer={customer}
+              phoneAddresses={phoneAddresses}
+              guestPhone={guestPhone}
+            />
 
             <CartReview cart={cart} shippingMethods={shippingMethods || []} />
 

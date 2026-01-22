@@ -72,36 +72,8 @@ export const DiscountModal = ({ isOpen, close, cart }: DiscountModalProps) => {
         {error && <Text className="text-red-500 text-sm">{error}</Text>}
         {message && <Text className="text-green-600 text-sm">{message}</Text>}
 
-        {/* Coupon List */}
-        <div className="space-y-3 mt-2">
-          {[1, 2, 3].map((_, idx) => (
-            <div
-              key={idx}
-              className="flex h-[120px] rounded-xl overflow-hidden  relative group cursor-pointer hover:border-sop-primary-200 transition-all"
-            >
-              {/* Left Side - Image/Promo */}
-              <div className="w-[120px] bg-sop-primary-300 flex flex-col items-center justify-center text-sop-primary-300 relative">
-                <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full z-10" />
-                <span className="font-bold text-lg">Promotion</span>
-                <span className="font-bold text-lg">Image</span>
-              </div>
-
-              {/* Right Side - Details */}
-              <div className="flex-1 p-4 flex flex-col justify-center bg-white relative border border-gray-300 border-l-0 rounded-r-xl">
-                <h4 className="heading-md text-gray-900">ส่วนลด 25%</h4>
-                <p className="text-sm text-gray-500 mt-1">
-                  สำหรับผู้ใช้งานครั้งแรก
-                </p>
-                <p className="text-xs text-sop-primary-500 underline mt-1 cursor-pointer">
-                  เงื่อนไขการใช้งาน
-                </p>
-                <p className="text-xs text-gray-400 mt-auto">
-                  สิ้นสุด 25/12/2025
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Coupon List - Hidden for now as we don't have a public endpoint for coupons */}
+        {/* <div className="space-y-3 mt-2"> ... </div> */}
       </div>
     </Modal>
   )

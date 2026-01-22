@@ -1,6 +1,6 @@
 "use server"
 
-import { sdk } from "../config"
+import { fetchQuery, sdk } from "../config"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
@@ -26,11 +26,20 @@ export const verifyCustomer =
       return null
     }
 
+<<<<<<< HEAD
     try {
       const result = await sdk.client.fetch<{
         customer: HttpTypes.StoreCustomer
       }>(`/store/auth/me`, {
         method: "GET",
+=======
+    return await sdk.client
+      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
+        method: "GET",
+        query: {
+          fields: "*orders,*addresses",
+        },
+>>>>>>> 67b78c1 (update logic otp and dialog address)
         headers,
         cache: "no-store",
       })
@@ -42,6 +51,30 @@ export const verifyCustomer =
       return null
     }
   }
+
+export const listAddressesByPhone = async (
+  phone: string
+): Promise<HttpTypes.StoreCustomerAddress[]> => {
+  if (!phone) {
+    return []
+  }
+
+  const normalizedPhone = phone.replace(/\D/g, "")
+  if (!normalizedPhone) {
+    return []
+  }
+
+  const res = await fetchQuery("/store/phone-addresses", {
+    method: "GET",
+    query: { phone: normalizedPhone },
+  })
+
+  if (!res.ok || !res.data?.addresses) {
+    return []
+  }
+
+  return res.data.addresses as HttpTypes.StoreCustomerAddress[]
+}
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {
