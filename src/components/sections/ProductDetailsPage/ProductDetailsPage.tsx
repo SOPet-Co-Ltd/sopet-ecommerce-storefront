@@ -7,6 +7,7 @@ import {
   ProductDetailDescription,
   HomeProductSection,
   ProductDetailReview,
+  ProductDetailWarning,
 } from ".."
 import { Suspense } from "react"
 
@@ -21,10 +22,10 @@ export const ProductDetailsPage = async ({
     countryCode: locale,
     queryParams: { handle: [handle], limit: 1 },
     forceCache: true,
-  }).then(({ response }) => response.products[0])  
+  }).then(({ response }) => response.products[0])
 
   // TODO - return NotFound page if product is not found
-  if (!prod) return null
+  if (!prod) return NotFound()
 
   if (prod.seller?.store_status === "SUSPENDED") {
     return NotFound()
@@ -32,17 +33,21 @@ export const ProductDetailsPage = async ({
 
   const breadcrumbs = !prod.collection
     ? [
-        { label: "หน้าแรก", path: "/" },
-        { label: prod.title, path: `/products/${prod.handle}` },
-      ]
+      { label: "หน้าแรก", path: "/" },
+      { label: prod.title, path: `/products/${prod.handle}` },
+    ]
     : [
-        { label: "หน้าแรก", path: "/" },
-        {
-          label: prod.collection.title,
-          path: `/collections/${prod.collection.handle}`,
-        },
-        { label: prod.title, path: `/products/${prod.handle}` },
-      ]
+      { label: "หน้าแรก", path: "/" },
+      {
+        label: prod.collection.title,
+        path: `/collections/${prod.collection.handle}`,
+      },
+      { label: prod.title, path: `/products/${prod.handle}` },
+    ]
+
+  const productWarning: string | null = (prod as any).attribute_values?.find(
+    (attr: any) => attr?.attribute?.handle === "product_warning"
+  )?.value ?? null
 
   return (
     <>
@@ -59,6 +64,8 @@ export const ProductDetailsPage = async ({
       <ProductDetailsSeller seller={prod?.seller} />
 
       <ProductDetailDescription description={prod.description} />
+
+      <ProductDetailWarning warning={productWarning} />
 
       <ProductDetailReview productId={prod.id} />
 

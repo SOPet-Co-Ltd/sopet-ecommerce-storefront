@@ -9,15 +9,29 @@
       "subtitle",
       "brand.name",
       "tags.value",
+      "custom_tags_pet_type",
+      "custom_tags_brand",
       "type.value",
       "categories.name",
       "collection.title",
       "variants.title"
     ],
     "numericAttributesToIndex": null,
-    "attributesToRetrieve": null,
+    "attributesToRetrieve": [
+      "objectID",
+      "handle",
+      "title",
+      "thumbnail",
+      "variants",
+      "custom_tags_pet_type",
+      "custom_tags_brand"
+    ],
     "unretrievableAttributes": null,
     "optionalWords": null,
+    "queryLanguages": [
+      "th",
+      "en"
+    ],
     "attributesForFaceting": [
       "average_rating",
       "filterOnly(categories.id)",
@@ -29,7 +43,10 @@
       "variants.color",
       "variants.condition",
       "variants.prices.currency_code",
-      "variants.size"
+      "variants.size",
+      "custom_tags_pet_type",
+      "custom_tags_brand",
+      "_tags"
     ],
     "attributesToSnippet": null,
     "attributesToHighlight": null,
@@ -52,13 +69,31 @@
     "queryType": "prefixLast",
     "highlightPreTag": "<em>",
     "highlightPostTag": "</em>",
-    "alternativesAsExact": ["ignorePlurals", "singleWordSynonym"],
+    "alternativesAsExact": [
+      "ignorePlurals",
+      "singleWordSynonym"
+    ],
+    "indexLanguages": [
+      "th"
+    ],
     "renderingContent": {
       "facetOrdering": {
         "facets": {
-          "order": ["variants.color", "variants.size", "variants.condition"]
+          "order": [
+            "custom_tags_pet_type",
+            "custom_tags_brand",
+            "variants.color",
+            "variants.size",
+            "variants.condition"
+          ]
         },
         "values": {
+          "custom_tags_pet_type": {
+            "sortRemainingBy": "count"
+          },
+          "custom_tags_brand": {
+            "sortRemainingBy": "count"
+          },
           "variants.color": {
             "sortRemainingBy": "count"
           },

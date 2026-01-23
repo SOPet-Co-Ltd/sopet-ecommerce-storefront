@@ -28,6 +28,8 @@ import { NavigationItem } from "./NavigationItem/NavigationItem"
 import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
 import { Spinner } from "./Spinner/Spinner"
+import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
+import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 
 export {
   Button,
@@ -53,10 +55,12 @@ export {
   LogoutButton,
   MarkdownRender,
   Spinner,
+  PriceRangeSlider,
 }
 
 export type {
   AutocompleteOption,
   AutocompleteStyleConfig,
   OptionComponentProps,
+  PriceRangeSliderProps,
 }

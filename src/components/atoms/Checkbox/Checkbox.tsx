@@ -18,28 +18,22 @@ export function Checkbox({
   error,
   className,
   checked,
+  onChange,
   ...props
 }: CheckboxProps) {
+  // Provide a no-op onChange if none is provided to prevent React warning
+  const handleChange = onChange || (() => {})
+
   return (
-    <label className="flex items-center gap-2 cursor-pointer group">
+    <label>
       <span
         className={cn(
-          "relative flex items-center justify-center w-sop-20px h-sop-20px rounded-[6px] border transition-all duration-200",
-          // Default State (Unchecked)
-          "bg-white border-sop-neutral-grayalpha-200", // Need to ensure colors exist or use hex fallback: border-[rgba(34,34,41,0.12)]
-
+          "relative flex items-center justify-center w-4 h-4 border-2 rounded transition-colors",
+          "border-sop-primary-500",
           checked && "bg-sop-primary-500 border-sop-primary-500",
-
-          // Error State
-          error && "border-red-500!",
-
-          indeterminate && "bg-sop-primary-500 border-sop-primary-500",
-
-          // Disabled State
-          props.disabled &&
-            "bg-gray-100 border-gray-200 cursor-not-allowed opacity-50",
-
-          // Tailwind class overrides
+          !checked && "bg-transparent",
+          error && "border-sop-negative-500",
+          props.disabled && "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
           className
         )}
         style={{
@@ -47,18 +41,17 @@ export function Checkbox({
         }}
       >
         {indeterminate && !checked && !props.disabled && (
-          <MinusHeavyIcon size={14} className="text-white" />
+          <MinusHeavyIcon size={12} color="#FFFFFF" />
         )}
-
-        {checked && !props.disabled && (
-          <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />
-        )}
+        {checked && !props.disabled && <TickThinIcon size={12} color="#FFFFFF" />}
 
         <input
           type="checkbox"
+          checked={checked}
+          onChange={handleChange}
           className={cn(
-            "absolute inset-0 w-full h-full opacity-0 cursor-pointer m-0",
-            props.disabled && "cursor-default"
+            "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
+            props.disabled && "cursor-not-allowed"
           )}
           ref={(input) => {
             if (input) {
@@ -68,7 +61,11 @@ export function Checkbox({
           {...props}
         />
       </span>
-      {label && <span className="text-body-md text-gray-900">{label}</span>}
+      {label && (
+        <span className="sop-body-sm-regular text-sop-neutral-gray-200">
+          {label}
+        </span>
+      )}
     </label>
   )
 }

@@ -76,6 +76,13 @@ export type ReviewStats = {
   averageRating: number
   totalReviews: number
   starCounts: { starCount: number; count: number }[]
+  soldCount?: number
+}
+
+type ProductReviewStatsResponse = ReviewStats & {
+  review_count?: number
+  average_rating?: number
+  sold_count?: number
 }
 
 export type CreateProductReviewInput = {
@@ -289,23 +296,64 @@ export const getProductReviewStats = async (
   const headers = await getAuthHeaders()
 
   try {
-    const data = await sdk.client.fetch<ReviewStats>(
+    const data = await sdk.client.fetch<ProductReviewStatsResponse>(
       `/store/products/${productId}/reviews/stats`,
       {
         method: "GET",
         headers,
-        next: { revalidate: 60 },
-        cache: "force-cache",
+        next: { revalidate: 0 }, // Disable cache to get fresh data
+        cache: "no-store", // Force no cache
       }
     )
 
-    return data
+    // Debug logging
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[REVIEWS] Stats response for product ${productId}:`, {
+        sold_count: data.sold_count,
+        soldCount: data.soldCount,
+        fullData: data
+      })
+    }
+
+    const averageRating =
+      typeof data.averageRating === "number"
+        ? data.averageRating
+        : typeof data.average_rating !== "undefined"
+          ? Number(data.average_rating)
+          : 0
+
+    const totalReviews =
+      typeof data.totalReviews === "number"
+        ? data.totalReviews
+        : typeof data.review_count !== "undefined"
+          ? Number(data.review_count)
+          : 0
+
+    // Check both soldCount and sold_count fields
+    const soldCount =
+      typeof data.soldCount === "number"
+        ? data.soldCount
+        : typeof data.sold_count !== "undefined"
+          ? Number(data.sold_count)
+          : 0
+
+    // Debug logging
+    if (process.env.NODE_ENV === "development") {
+      console.log(`[REVIEWS] Extracted soldCount for product ${productId}:`, soldCount)
+    }
+
+    return {
+      averageRating,
+      totalReviews,
+      starCounts: Array.isArray(data.starCounts) ? data.starCounts : [],
+      soldCount,
+    }
   } catch (error) {
     console.error(
-      `Failed to fetch review stats for product ${productId}:`,
+      `[REVIEWS] Failed to fetch review stats for product ${productId}:`,
       error
     )
-    return { averageRating: 0, totalReviews: 0, starCounts: [] }
+    return { averageRating: 0, totalReviews: 0, starCounts: [], soldCount: 0 }
   }
 }
 

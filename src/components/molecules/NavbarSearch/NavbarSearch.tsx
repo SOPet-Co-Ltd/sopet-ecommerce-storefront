@@ -89,8 +89,6 @@ export const NavbarSearch = () => {
           size: "sm",
           state: "default",
           variant: "flat",
-          hasContent: true,
-          hasPlaceholder: false,
           withDescription: false,
           hasStartIcon: true,
           hasEndIcon: false,

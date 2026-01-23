@@ -9,7 +9,7 @@ export const ProductsPagination = ({ pages }: { pages: number }) => {
     setPage(`${page}`)
   }
   return (
-    <div className="mt-6 flex justify-center">
+    <div>
       <Pagination
         pages={pages}
         setPage={setPageHandler}
