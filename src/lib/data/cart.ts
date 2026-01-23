@@ -428,8 +428,6 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     //     phone: formData.get("billing_address.phone"),
     //   }
 
-    console.log("data form: ", data)
-
     await updateCart(data)
     await revalidatePath("/cart")
   } catch (e: unknown) {
