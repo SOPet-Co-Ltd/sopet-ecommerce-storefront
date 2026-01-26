@@ -4,19 +4,17 @@ import { HttpTypes } from "@medusajs/types"
 import {
   AlgoliaProductSidebar,
   ProductCard,
-  ProductCardOld,
-  ProductListingActiveFilters,
   ProductsPagination,
   ProductSortButtons,
 } from "@/components/organisms"
 import { client } from "@/lib/client"
-import { Configure, SearchBox, useHits } from "react-instantsearch"
+import { Configure, useHits } from "react-instantsearch"
 import { InstantSearchNext } from "react-instantsearch-nextjs"
 import { useSearchParams } from "next/navigation"
 import { getFacedFilters } from "@/lib/helpers/get-faced-filters"
 import { PRODUCT_LIMIT } from "@/const"
 import { ProductListingSkeleton } from "@/components/organisms/ProductListingSkeleton/ProductListingSkeleton"
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useState, useMemo, useCallback, useRef } from "react"
 import { listProducts } from "@/lib/data/products"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { sortProducts } from "@/lib/helpers/sort-products"
@@ -35,10 +33,10 @@ export const AlgoliaProductsListing = ({
   seller_handle?: string
   currency_code: string
 }) => {
-  const searchParamas = useSearchParams()
+  const searchParams = useSearchParams()
 
-  const facetFilters: string = getFacedFilters(searchParamas)
-  const query: string = searchParamas.get("query") || ""
+  const facetFilters: string = getFacedFilters(searchParams)
+  const query: string = searchParams.get("query") || ""
 
   const filters = `${seller_handle
     ? `NOT seller:null AND seller.handle:${seller_handle} AND `
@@ -72,133 +70,184 @@ const ProductsListing = ({
   currency_code: string
   filters: string
 }) => {
-  const [apiProducts, setApiProducts] = useState<
-    HttpTypes.StoreProduct[] | null
-  >(null)
   const { items, results } = useHits()
+  const searchParams = useSearchParams()
 
-  const searchParamas = useSearchParams()
+  // State management
+  const [apiProducts, setApiProducts] = useState<HttpTypes.StoreProduct[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const hasInitialLoad = useRef(false)
+  const previousItemIdsRef = useRef<string>("")
 
-  async function handleSetProducts() {
-    try {
-      setApiProducts(null)
-      const { response } = await listProducts({
-        countryCode: locale,
-        queryParams: {
-          handle: items.map((item) => item.handle),
-          limit: items.length,
-        },
-      })
+  // Extract search params
+  const page: number = +(searchParams.get("page") || 1)
+  const sortBy = (searchParams.get("sortBy") as SortOptions) || "relevance"
+  const minPrice = searchParams.get("min_price")
+  const maxPrice = searchParams.get("max_price")
 
-      setApiProducts(
-        response.products.filter((prod) => {
-          const { cheapestPrice } = getProductPrice({ product: prod })
-          return Boolean(cheapestPrice) && prod
-        })
-      )
-    } catch (error) {
-      setApiProducts(null)
-    }
-  }
+  // Create a stable string of item IDs to detect changes
+  const currentItemIds = useMemo(
+    () => items.map((item) => item.objectID).sort().join(","),
+    [items]
+  )
 
+  // Fetch products from API when items change
   useEffect(() => {
-    handleSetProducts()
-  }, [items.length])
+    // Skip if items haven't actually changed
+    if (currentItemIds === previousItemIdsRef.current) {
+      return
+    }
 
-  // All hooks must be called before any early returns
-  const page: number = +(searchParamas.get("page") || 1)
-  const sortBy = (searchParamas.get("sortBy") as SortOptions) || "relevance"
-  const minPrice = searchParamas.get("min_price")
-  const maxPrice = searchParamas.get("max_price")
+    // Update ref immediately to prevent duplicate fetches
+    previousItemIdsRef.current = currentItemIds
 
-  const filteredProducts = useMemo(() => {
-    return items.filter((pr) =>
-      apiProducts?.some((p: any) => p.id === pr.objectID)
-    )
-  }, [items, apiProducts])
+    // Skip if no items
+    if (!items.length) {
+      if (hasInitialLoad.current) {
+        setApiProducts([])
+      }
+      return
+    }
 
-  // Get the API products that match the filtered products
-  const matchedApiProducts = useMemo(() => {
-    if (!apiProducts || !filteredProducts.length) return []
+    // Mark that we've started loading (only on initial load)
+    const isInitialLoad = !hasInitialLoad.current
+    if (isInitialLoad) {
+      setIsLoading(true)
+    }
 
-    const filterProductsByCurrencyCode = (product: HttpTypes.StoreProduct) => {
-      if ([minPrice, maxPrice].some((price) => typeof price === "string")) {
-        const variantsWithCurrencyCode = product?.variants?.filter(
-          (variant) => variant.calculated_price?.currency_code === currency_code
-        )
+    const fetchProducts = async () => {
+      try {
+        const { response } = await listProducts({
+          countryCode: locale,
+          queryParams: {
+            handle: items.map((item) => item.handle),
+            limit: items.length,
+          },
+        })
 
-        if (!variantsWithCurrencyCode?.length) {
-          return false
+        // Filter products with valid prices
+        const validProducts = response.products.filter((prod) => {
+          const { cheapestPrice } = getProductPrice({ product: prod })
+          return Boolean(cheapestPrice)
+        })
+
+        // Update state in a single batch
+        setApiProducts(validProducts)
+      } catch (error) {
+        // On error, keep previous products if available, only clear on initial load
+        if (isInitialLoad) {
+          setApiProducts([])
         }
-
-        if (minPrice && maxPrice) {
-          return variantsWithCurrencyCode.some(
-            (variant) =>
-              (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice &&
-              (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
-          )
-        }
-        if (minPrice) {
-          return variantsWithCurrencyCode.some(
-            (variant) =>
-              (variant.calculated_price?.calculated_amount ?? 0) >= +minPrice
-          )
-        }
-        if (maxPrice) {
-          return variantsWithCurrencyCode.some(
-            (variant) =>
-              (variant.calculated_price?.calculated_amount ?? 0) <= +maxPrice
-          )
+      } finally {
+        if (isInitialLoad) {
+          setIsLoading(false)
+          hasInitialLoad.current = true
         }
       }
-
-      return true
     }
 
-    return apiProducts.filter((p: any) =>
-      filteredProducts.some((pr) => pr.objectID === p.id && filterProductsByCurrencyCode(p))
-    )
-  }, [apiProducts, filteredProducts, minPrice, maxPrice, currency_code])
+    fetchProducts()
+  }, [currentItemIds, items, locale])
 
-  // Sort the API products
+  // Create a Map for O(1) product lookup by ID
+  const apiProductsMap = useMemo(() => {
+    return new Map(apiProducts.map((p) => [p.id, p]))
+  }, [apiProducts])
+
+  // Create a Set of valid API product IDs for O(1) lookup
+  const validProductIds = useMemo(() => {
+    return new Set(apiProducts.map((p) => p.id))
+  }, [apiProducts])
+
+  // Filter items that have matching API products
+  const filteredItems = useMemo(() => {
+    return items.filter((pr) => validProductIds.has(pr.objectID))
+  }, [items, validProductIds])
+
+  // Price filter helper
+  const matchesPriceFilter = useCallback(
+    (product: HttpTypes.StoreProduct): boolean => {
+      if (!minPrice && !maxPrice) return true
+
+      const variantsWithCurrency = product?.variants?.filter(
+        (variant) => variant.calculated_price?.currency_code === currency_code
+      )
+
+      if (!variantsWithCurrency?.length) return false
+
+      const minPriceNum = minPrice ? +minPrice : -Infinity
+      const maxPriceNum = maxPrice ? +maxPrice : Infinity
+
+      return variantsWithCurrency.some((variant) => {
+        const amount = variant.calculated_price?.calculated_amount ?? 0
+        return amount >= minPriceNum && amount <= maxPriceNum
+      })
+    },
+    [minPrice, maxPrice, currency_code]
+  )
+
+  // Get matched and filtered API products
+  const matchedApiProducts = useMemo(() => {
+    if (!apiProducts.length || !filteredItems.length) return []
+
+    const filteredItemIds = new Set(filteredItems.map((pr) => pr.objectID))
+
+    return apiProducts.filter(
+      (p) => filteredItemIds.has(p.id) && matchesPriceFilter(p)
+    )
+  }, [apiProducts, filteredItems, matchesPriceFilter])
+
+  // Sort the matched products
   const sortedApiProducts = useMemo(() => {
     if (!matchedApiProducts.length) return []
     return sortProducts(matchedApiProducts, sortBy)
   }, [matchedApiProducts, sortBy])
 
-  // Map sorted products back to Algolia hits
+  // Create sorted product index map for efficient sorting
+  const sortedProductIndexMap = useMemo(() => {
+    if (!sortedApiProducts.length) return new Map<string, number>()
+    return new Map(sortedApiProducts.map((p, index) => [p.id, index]))
+  }, [sortedApiProducts])
+
+  // Create sorted product IDs set
+  const sortedProductIds = useMemo(() => {
+    return new Set(sortedApiProducts.map((p) => p.id))
+  }, [sortedApiProducts])
+
+  // Final paginated products list
   const products = useMemo(() => {
     if (!sortedApiProducts.length) return []
-    const sortedProductIds = new Set(sortedApiProducts.map((p: any) => p.id))
-    return filteredProducts
+
+    const startIndex = (page - 1) * PRODUCT_LIMIT
+    const endIndex = page * PRODUCT_LIMIT
+
+    return filteredItems
       .filter((pr) => sortedProductIds.has(pr.objectID))
       .sort((a, b) => {
-        const indexA = sortedApiProducts.findIndex((p: any) => p.id === a.objectID)
-        const indexB = sortedApiProducts.findIndex((p: any) => p.id === b.objectID)
+        const indexA = sortedProductIndexMap.get(a.objectID) ?? Infinity
+        const indexB = sortedProductIndexMap.get(b.objectID) ?? Infinity
         return indexA - indexB
       })
-      .slice((page - 1) * PRODUCT_LIMIT, page * PRODUCT_LIMIT)
-  }, [filteredProducts, sortedApiProducts, page])
+      .slice(startIndex, endIndex)
+  }, [filteredItems, sortedProductIds, sortedProductIndexMap, page])
 
-  const count = matchedApiProducts?.length || 0
+  // Calculate pagination
+  const count = matchedApiProducts.length
   const pages = Math.ceil(count / PRODUCT_LIMIT) || 1
 
-  // Early return after all hooks
-  if (!results?.processingTimeMS) return <ProductListingSkeleton />
+  // Show skeleton only on initial load when we have no data
+  const showSkeleton = !hasInitialLoad.current && (!results?.processingTimeMS || isLoading)
+
+  if (showSkeleton) {
+    return <ProductListingSkeleton />
+  }
 
   return (
-    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 md:flex-row flex-col md:pb-sop-40px pb-10">
+    <div className="min-h-[70vh] lg:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 lg:flex-row flex-col lg:pb-sop-40px pb-10">
       {/* NOTE - Sidebar */}
       <div className="lg:block hidden">
-        {/* NOTE - Content Left - Filter */}
-        {/* <div className="flex justify-between w-full items-center">
-          <div className="my-4 label-md">{`${count} listings`}</div>
-        </div>
-        <div className="hidden md:block">
-          <ProductListingActiveFilters />
-        </div> */}
-        <div className="md:flex gap-4">
-          <div className="md:w-[290px] w-full md:shrink-0">
+        <div className="lg:flex gap-4">
+          <div className="lg:w-[290px] w-full lg:shrink-0">
             <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
           </div>
         </div>
@@ -206,10 +255,10 @@ const ProductsListing = ({
       {/* NOTE - Main */}
       <div className="w-full flex flex-col md:gap-6 gap-2">
         {/* NOTE - Header */}
-        {searchParamas.get("query") && (
+        {searchParams.get("query") && (
           <div className="md:block hidden">
             <p className="sop-headline-md-medium text-sop-neutral-gray-300">
-              ผลการค้นหาทั้งหมด &quot;{searchParamas.get("query")}&quot;
+              ผลการค้นหาทั้งหมด &quot;{searchParams.get("query")}&quot;
             </p>
           </div>
         )}
@@ -227,10 +276,10 @@ const ProductsListing = ({
         {/* NOTE - Content Right */}
         <div className="flex flex-col">
           <p className="sop-body-lg-medium text-sop-neutral-gray-300 md:block hidden">
-            สินค้าทั้งหมด {apiProducts?.length}
+            สินค้าทั้งหมด {count}
           </p>
           <div className="md:mt-5 mt-2">
-            {!items.length ? (
+            {!items.length || !products.length ? (
               <div className="text-center w-full my-10">
                 <h2 className="uppercase text-primary heading-lg">
                   no results
@@ -241,19 +290,19 @@ const ProductsListing = ({
               </div>
             ) : (
               <div className="w-full">
-                <ul className="grid md:gap-4 gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
-                  {products.map(
-                    (hit) =>
-                      apiProducts?.find((p: any) => p.id === hit.objectID) && (
-                        <ProductCard
-                          api_product={apiProducts?.find(
-                            (p: any) => p.id === hit.objectID
-                          )}
-                          key={hit.objectID}
-                          product={hit}
-                        />
-                      )
-                  )}
+                <ul className="grid md:gap-4 gap-2 justify-items-center grid-cols-[repeat(auto-fit,minmax(165px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(223px,1fr))]">
+                  {products.map((hit) => {
+                    const apiProduct = apiProductsMap.get(hit.objectID)
+                    if (!apiProduct) return null
+
+                    return (
+                      <ProductCard
+                        api_product={apiProduct}
+                        key={hit.objectID}
+                        product={hit}
+                      />
+                    )
+                  })}
                 </ul>
               </div>
             )}

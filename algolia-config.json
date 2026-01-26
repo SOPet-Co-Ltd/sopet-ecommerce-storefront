@@ -9,14 +9,23 @@
       "subtitle",
       "brand.name",
       "tags.value",
-      "custom_tags.value",
+      "custom_tags_pet_type",
+      "custom_tags_brand",
       "type.value",
       "categories.name",
       "collection.title",
       "variants.title"
     ],
     "numericAttributesToIndex": null,
-    "attributesToRetrieve": null,
+    "attributesToRetrieve": [
+      "objectID",
+      "handle",
+      "title",
+      "thumbnail",
+      "variants",
+      "custom_tags_pet_type",
+      "custom_tags_brand"
+    ],
     "unretrievableAttributes": null,
     "optionalWords": null,
     "queryLanguages": [

@@ -12,7 +12,6 @@ type ProductCardProps = {
   api_product?: ProductWithSeller | HttpTypes.StoreProduct | null
 }
 export const ProductCard = ({ product, api_product }: ProductCardProps) => {
-  const productId = product.id || api_product?.id
   const productName = String(product.title || "Product")
 
   if (!api_product) {
@@ -29,20 +28,27 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       aria-label={`View ${productName}`}
       title={`View ${productName}`}
     >
-      <div className="md:w-[223px] w-[175px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
-        <div className="md:w-[223px] w-[175px] md:h-[223px] h-[175px]">
-          <Image
-            fetchPriority={"auto"}
-            src={decodeURIComponent(
-              product.images?.[0]?.url || "/images/product/placeholder.jpg"
-            )}
-            alt="Product image"
-            width={223}
-            height={223}
-            quality={85}
-            className="w-full h-auto aspect-square object-cover object-center pointer-events-none select-none"
-            draggable={false}
-          />
+      <div className="md:w-[223px] w-[168px] md:max-w-[223px] max-w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+        <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
+          {product.thumbnail ? (
+
+            <Image
+              fetchPriority={"auto"}
+              src={decodeURIComponent(product.thumbnail)}
+              alt="Product image"
+              width={223}
+              height={223}
+              quality={85}
+              className="w-full h-auto aspect-square object-cover object-center pointer-events-none select-none"
+              draggable={false}
+            />
+          ) : (
+            <div className="w-full h-full flex justify-center items-center bg-sop-additionalblue-300">
+              <p className="md:sop-body-sm-regular sop-body-xs-regular text-sop-base-white line-clamp-2 h-sop-40px">
+                No image
+              </p>
+            </div>
+          )}
         </div>
         <div className="py-2 md:px-3 px-2 pb-5 flex flex-col gap-1">
           <p className="sop-body-sm-regular text-sop-neutral-gray-300 line-clamp-2 h-sop-40px">{product.title}</p>
