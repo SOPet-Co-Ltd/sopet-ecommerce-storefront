@@ -28,20 +28,16 @@ export function Checkbox({
     <label className="flex items-center gap-2 cursor-pointer group">
       <span
         className={cn(
-          "relative flex items-center justify-center w-[20px] h-[20px] rounded-[6px] border transition-all duration-200",
+          "relative flex items-center justify-center w-sop-20px h-sop-20px rounded-[6px] border transition-all duration-200",
           // Default State (Unchecked)
           "bg-white border-sop-neutral-grayalpha-200", // Need to ensure colors exist or use hex fallback: border-[rgba(34,34,41,0.12)]
 
-          // Checked State
-          checked &&
-            "bg-[color:var(--color-sop-primary-500)] border-[color:var(--color-sop-primary-500)]",
+          checked && "bg-sop-primary-500 border-sop-primary-500",
 
           // Error State
-          error && "!border-red-500",
+          error && "border-red-500!",
 
-          // Indeterminate State
-          indeterminate &&
-            "bg-[color:var(--color-sop-primary-500)] border-[color:var(--color-sop-primary-500)]",
+          indeterminate && "bg-sop-primary-500 border-sop-primary-500",
 
           // Disabled State
           props.disabled &&
@@ -70,7 +66,6 @@ export function Checkbox({
             "absolute inset-0 w-full h-full opacity-0 cursor-pointer m-0",
             props.disabled && "cursor-default"
           )}
-          checked={checked}
           ref={(input) => {
             if (input) {
               input.indeterminate = !!indeterminate
