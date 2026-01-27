@@ -207,10 +207,10 @@ const ShareModal = ({
         : undefined,
       shareProps: hasFacebookAppId
         ? {
-            url: productLink,
-            appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
-            onShareWindowClose: onClose,
-          }
+          url: productLink,
+          appId: process.env.NEXT_PUBLIC_FACEBOOK_APP_ID,
+          onShareWindowClose: onClose,
+        }
         : undefined,
       buttonClassName:
         "md:w-sop-40px md:h-sop-40px w-sop-40px h-sop-40px rounded-full bg-[#0084FF] flex items-center justify-center hover:bg-[#0073E6] transition-colors cursor-pointer",
@@ -421,20 +421,19 @@ export const ProductDetailsVariantSelection = ({
           onClick={() => { }}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           size="fill"
+          fill={true}
           className="md:py-sop-12px py-sop-8px"
         >
           ซื้อสินค้า
         </Button>
 
-        <Button
+        <button
           onClick={() => setIsShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          size="icon"
-          variant="icon"
-          className="md:py-sop-12px py-sop-8px"
+          className="cursor-pointer"
         >
           <ShareIcon size={24} color={"#9c6ade"} />
-        </Button>
+        </button>
 
         <WishlistButton
           productId={product.id}
