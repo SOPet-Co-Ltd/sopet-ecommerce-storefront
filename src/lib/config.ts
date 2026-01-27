@@ -6,7 +6,9 @@ const MEDUSA_BACKEND_URL =
 
 // Get publishable key - ensure it's a string and never undefined
 // This is critical as the Medusa SDK requires a valid publishable key
-const PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "").trim()
+const PUBLISHABLE_KEY = (
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+).trim()
 
 // Log warning if key appears to be missing (but don't throw to allow app to start)
 if (!PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
@@ -48,7 +50,7 @@ export async function fetchQuery(
   )
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
-  
+
   const res = await fetch(
     `${MEDUSA_BACKEND_URL}${url}${params && `?${params}`}`,
     {

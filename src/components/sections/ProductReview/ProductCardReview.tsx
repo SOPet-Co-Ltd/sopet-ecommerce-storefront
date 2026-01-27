@@ -2,10 +2,10 @@ import { RenderStars } from "@/components/cells"
 import { StarIcon } from "@/icons"
 import { ReviewStats } from "@/lib/data/reviews"
 
-export const ProductCardReviewStars = ({ 
-  averageRating, 
+export const ProductCardReviewStars = ({
+  averageRating,
   totalReviews,
-  soldCount = 0 
+  soldCount = 0,
 }: ReviewStats & { soldCount?: number }) => {
   const amountSaled = soldCount
 

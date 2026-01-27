@@ -1,10 +1,10 @@
 import { RenderStars } from "@/components/cells"
 import { ReviewStats } from "@/lib/data/reviews"
 
-const ProductReviewStars = ({ 
-  averageRating, 
+const ProductReviewStars = ({
+  averageRating,
   totalReviews,
-  soldCount = 0 
+  soldCount = 0,
 }: ReviewStats & { soldCount?: number }) => {
   const formatNumber = (num: number): string => {
     if (num < 1000) return num.toString()

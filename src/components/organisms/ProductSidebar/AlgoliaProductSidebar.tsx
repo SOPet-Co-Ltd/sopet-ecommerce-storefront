@@ -1,6 +1,12 @@
 "use client"
 
-import { Button, Chip, Input, StarRating, PriceRangeSlider } from "@/components/atoms"
+import {
+  Button,
+  Chip,
+  Input,
+  StarRating,
+  PriceRangeSlider,
+} from "@/components/atoms"
 import { Accordion, FilterCheckboxOption } from "@/components/molecules"
 import useFilters from "@/hooks/useFilters"
 import useUpdateSearchParams from "@/hooks/useUpdateSearchParams"
@@ -32,18 +38,24 @@ export const AlgoliaProductSidebar = ({
   // Monitor filter state changes and open modal only when filters are newly added
   useEffect(() => {
     const hasFilters = Boolean(
-      allSearchParams.pet_type || 
-      allSearchParams.brand || 
-      allSearchParams.min_price || 
+      allSearchParams.pet_type ||
+      allSearchParams.brand ||
+      allSearchParams.min_price ||
       allSearchParams.max_price
     )
-    
+
     // Only auto-open if:
     // 1. Filters transition from empty to having filters (new filters added)
     // 2. User hasn't manually dismissed the modal
     // 3. Modal is not already open
     // 4. On mobile
-    if (hasFilters && !prevHasFilters && isMobile && !isOpen && !userDismissed) {
+    if (
+      hasFilters &&
+      !prevHasFilters &&
+      isMobile &&
+      !isOpen &&
+      !userDismissed
+    ) {
       setIsOpen(true)
       setUserDismissed(false) // Reset dismissal flag when new filters are added
       // Trigger animation after a small delay to ensure DOM is ready
@@ -51,15 +63,22 @@ export const AlgoliaProductSidebar = ({
         setIsAnimating(true)
       }, 10)
     }
-    
+
     // Update previous filter state
     setPrevHasFilters(hasFilters)
-    
+
     // Reset dismissal flag when all filters are cleared
     if (!hasFilters) {
       setUserDismissed(false)
     }
-  }, [searchParams, isMobile, isOpen, allSearchParams, prevHasFilters, userDismissed])
+  }, [
+    searchParams,
+    isMobile,
+    isOpen,
+    allSearchParams,
+    prevHasFilters,
+    userDismissed,
+  ])
 
   useEffect(() => {
     const handleResize = () => {
@@ -99,16 +118,24 @@ export const AlgoliaProductSidebar = ({
 
   return isMobile ? (
     <>
-      <button onClick={handleOpen} className="w-full rounded-sop-20px overflow-hidden bg-sop-additionalblue-400 px-4 py-3 flex items-center justify-between">
+      <button
+        onClick={handleOpen}
+        className="w-full rounded-sop-20px overflow-hidden bg-sop-additionalblue-400 px-4 py-3 flex items-center justify-between"
+      >
         <div className="gap-2 flex items-center">
           <FilterFunnelIcon color="#FFFFFF" size={16} />
-          <p className="sop-body-lg-medium text-sop-base-white">ค้นหาแบบละเอียด</p>
+          <p className="sop-body-lg-medium text-sop-base-white">
+            ค้นหาแบบละเอียด
+          </p>
         </div>
         <div>
           <CollapseIcon
             color={"#FFFFFF"}
             size={24}
-            className={cn("transition-all duration-300", isOpen && "rotate-180")}
+            className={cn(
+              "transition-all duration-300",
+              isOpen && "rotate-180"
+            )}
           />
         </div>
       </button>
@@ -131,7 +158,7 @@ export const AlgoliaProductSidebar = ({
               handleClose()
             }}
           />
-          
+
           {/* Bottom Sheet */}
           <div
             ref={bottomSheetRef}
@@ -146,7 +173,9 @@ export const AlgoliaProductSidebar = ({
             <div className="flex items-center justify-between gap-2 bg-sop-additionalblue-400 px-4 py-3">
               <div className="flex items-center gap-2">
                 <FilterFunnelIcon color="#FFFFFF" size={16} />
-                <p className="sop-body-lg-medium text-sop-base-white">ค้นหาแบบละเอียด</p>
+                <p className="sop-body-lg-medium text-sop-base-white">
+                  ค้นหาแบบละเอียด
+                </p>
               </div>
               <button
                 onClick={handleClose}
@@ -177,7 +206,9 @@ export const AlgoliaProductSidebar = ({
     <div className="bg-sop-base-white rounded-sop-20px overflow-hidden">
       <div className="flex items-center gap-2 bg-sop-additionalblue-400 px-4 py-3">
         <FilterFunnelIcon color="#FFFFFF" size={16} />
-        <p className="sop-body-lg-medium text-sop-base-white">ค้นหาแบบละเอียด</p>
+        <p className="sop-body-lg-medium text-sop-base-white">
+          ค้นหาแบบละเอียด
+        </p>
       </div>
       <PetTypeFilter defaultOpen={Boolean(allSearchParams.pet_type)} />
       <BrandFilter defaultOpen={Boolean(allSearchParams.brand)} />
@@ -301,7 +332,6 @@ function PriceFilter({
     updateSearchParams("max_price", max)
   }
 
-
   const handleApplyFilter = () => {
     const currentSearchParams = new URLSearchParams(searchParams.toString())
 
@@ -358,7 +388,9 @@ function PriceFilter({
                 if (value) {
                   const numValue = Number(value)
                   if (!isNaN(numValue)) {
-                    setSliderMin(Math.max(MIN_PRICE, Math.min(MAX_PRICE, numValue)))
+                    setSliderMin(
+                      Math.max(MIN_PRICE, Math.min(MAX_PRICE, numValue))
+                    )
                   }
                 }
               }}
@@ -390,7 +422,9 @@ function PriceFilter({
                 if (value) {
                   const numValue = Number(value)
                   if (!isNaN(numValue)) {
-                    setSliderMax(Math.max(MIN_PRICE, Math.min(MAX_PRICE, numValue)))
+                    setSliderMax(
+                      Math.max(MIN_PRICE, Math.min(MAX_PRICE, numValue))
+                    )
                   }
                 }
               }}

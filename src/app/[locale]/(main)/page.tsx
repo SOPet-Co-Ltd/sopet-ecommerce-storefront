@@ -160,9 +160,8 @@ export default async function Home({
           }),
         }}
       />
-      <NavbarSearch/>
+      <NavbarSearch />
       <div>Welcome to SOPet Co., Ltd. Official Store</div>
-
     </main>
   )
 }

@@ -35,9 +35,11 @@ export const Accordion = ({
         onClick={openHandler}
         className="flex justify-between items-center cursor-pointer"
       >
-        <h4 className="sop-body-md-regular text-sop-neutral-gray-300">{heading}</h4>
+        <h4 className="sop-body-md-regular text-sop-neutral-gray-300">
+          {heading}
+        </h4>
         <CollapseIcon
-        color={"#949495"}
+          color={"#949495"}
           size={20}
           className={cn("transition-all duration-300", isOpen && "rotate-180")}
         />

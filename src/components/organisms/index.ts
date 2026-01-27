@@ -55,5 +55,5 @@ export {
   ReviewsWritten,
   CartEmpty,
   ProductCard,
-  ProductSortButtons
+  ProductSortButtons,
 }

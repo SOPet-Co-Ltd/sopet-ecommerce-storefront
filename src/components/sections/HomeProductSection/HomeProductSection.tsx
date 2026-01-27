@@ -35,10 +35,7 @@ export const HomeProductSection = async ({
       </h2>
       <div className="flex gap-1 overflow-x-auto lg:grid md:grid-cols-5 md:gap-4 lg:px-0 px-4">
         {products.map((product) => (
-          <div
-            key={product.id}
-            className="shrink-0 md:w-auto flex"
-          >
+          <div key={product.id} className="shrink-0 md:w-auto flex">
             <ProductCard api_product={product} product={product} />
           </div>
         ))}

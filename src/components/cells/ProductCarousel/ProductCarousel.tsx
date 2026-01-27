@@ -176,13 +176,8 @@ export const ProductCarousel = ({
                 className="absolute left-4 z-10 w-[30px] h-[30px] flex items-center justify-center rounded-full bg-sop-neutral-whitealpha-700 hover:bg-sop-neutral-whitealpha-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Previous image"
               >
-                <div
-                  className="flex items-center justify-center"
-                >
-                  <LeftArrowIcon
-                    size={8}
-                    color="#211f23"
-                  />
+                <div className="flex items-center justify-center">
+                  <LeftArrowIcon size={8} color="#211f23" />
                 </div>
               </button>
               <button
@@ -191,13 +186,8 @@ export const ProductCarousel = ({
                 className="absolute right-4 z-10 w-[30px] h-[30px] flex items-center justify-center rounded-full bg-sop-neutral-whitealpha-700 hover:bg-sop-neutral-whitealpha-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 aria-label="Next image"
               >
-                <div
-                  className="flex items-center justify-center"
-                >
-                  <RightArrowIcon
-                    size={8}
-                    color="#211f23"
-                  />
+                <div className="flex items-center justify-center">
+                  <RightArrowIcon size={8} color="#211f23" />
                 </div>
               </button>
             </>

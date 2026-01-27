@@ -45,5 +45,5 @@ export {
   ProductDetailReviewPagination,
   ProductDetailReviewUserComment,
   ProductCardShowPrice,
-  ProductCardReviewStars
+  ProductCardReviewStars,
 }
