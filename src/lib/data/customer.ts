@@ -6,7 +6,6 @@ import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import {
   getAuthHeaders,
-  getCacheOptions,
   getCacheTag,
   getCartId,
   removeAuthToken,
@@ -14,32 +13,34 @@ import {
   setAuthToken,
 } from "./cookies"
 
-export const retrieveCustomer =
+/**
+ * Verify that the current user is logged in using the custom /store/auth/me route.
+ * Returns the customer on 200, or null if unauthorized / not logged in.
+ */
+export const verifyCustomer =
   async (): Promise<HttpTypes.StoreCustomer | null> => {
-    const authHeaders = await getAuthHeaders()
+    const headers = await getAuthHeaders()
 
-    if (!authHeaders) return null
-
-    const headers = {
-      ...authHeaders,
+    // No auth headers means there's no token; treat as not logged in.
+    if (!headers || Object.keys(headers).length === 0) {
+      return null
     }
 
-    const next = {
-      ...(await getCacheOptions("customers")),
-    }
-
-    return await sdk.client
-      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
+    try {
+      const result = await sdk.client.fetch<{
+        customer: HttpTypes.StoreCustomer
+      }>(`/store/auth/me`, {
         method: "GET",
-        query: {
-          fields: "*orders",
-        },
         headers,
-        next,
-        cache: "force-cache",
+        cache: "no-store",
       })
-      .then(({ customer }) => customer)
-      .catch(() => null)
+      console.log(result)
+
+      return result.customer
+    } catch {
+      // If the backend returns 401/404 or any error, treat as not logged in.
+      return null
+    }
   }
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
@@ -60,6 +61,7 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   return updateRes
 }
 
+// Legacy email/password signup - kept for backwards compatibility
 export async function signup(formData: FormData) {
   const password = formData.get("password") as string
   const customerForm = {
@@ -105,6 +107,7 @@ export async function signup(formData: FormData) {
   }
 }
 
+// Legacy email/password login - kept for backwards compatibility
 export async function login(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
@@ -123,6 +126,101 @@ export async function login(formData: FormData) {
 
   try {
     await transferCart()
+  } catch (error: any) {
+    return error.toString()
+  }
+}
+
+/**
+ * Request OTP for a given identifier (email or phone).
+ * Uses the custom /store/auth/signin backend route.
+ */
+export async function requestOtp(formData: FormData) {
+  const identifier = (formData.get("identifier") as string)?.trim()
+
+  if (!identifier) {
+    return "กรุณากรอกอีเมลหรือเบอร์โทรศัพท์"
+  }
+
+  try {
+    const isEmail = identifier.includes("@")
+    const payload: { email?: string; phone?: string } = {}
+
+    if (isEmail) {
+      payload.email = identifier
+    } else {
+      payload.phone = identifier
+    }
+
+    const res = await sdk.client.fetch<{ success: boolean; error?: string }>(
+      `/store/auth/signin`,
+      {
+        method: "POST",
+        body: payload,
+      }
+    )
+
+    if (!res.success) {
+      return res.error || "ไม่สามารถส่ง OTP ได้"
+    }
+
+    return null
+  } catch (error: any) {
+    return error.toString()
+  }
+}
+
+/**
+ * Verify OTP and log in the customer.
+ * Uses /store/auth/signin/verify and stores the returned JWT.
+ */
+export async function verifyOtpAndLogin(formData: FormData) {
+  const identifier = (formData.get("identifier") as string)?.trim()
+  const otp = (formData.get("otp") as string)?.trim()
+
+  if (!identifier) {
+    return "กรุณากรอกอีเมลหรือเบอร์โทรศัพท์"
+  }
+
+  if (!otp || !/^\d{6}$/.test(otp)) {
+    return "กรุณากรอก OTP 6 หลักให้ถูกต้อง"
+  }
+
+  try {
+    const isEmail = identifier.includes("@")
+    const payload: { email?: string; phone?: string; otp: string } = {
+      otp,
+    }
+
+    if (isEmail) {
+      payload.email = identifier
+    } else {
+      payload.phone = identifier
+    }
+
+    const res = await sdk.client.fetch<{
+      success: boolean
+      error?: string
+      token?: string
+    }>(`/store/auth/signin/verify`, {
+      method: "POST",
+      body: payload,
+    })
+
+    if (!res.success || !res.token) {
+      return res.error || "ไม่สามารถยืนยัน OTP ได้"
+    }
+
+    // Store JWT in cookies
+    await setAuthToken(res.token as string)
+
+    // Revalidate customer cache and transfer cart
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    await transferCart()
+
+    return null
   } catch (error: any) {
     return error.toString()
   }

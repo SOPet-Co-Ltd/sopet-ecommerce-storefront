@@ -8,8 +8,15 @@ import { Chip } from "./Chip/Chip"
 import { Divider } from "./Divider/Divider"
 import { Indicator } from "./Indicator/Indicator"
 import { Input } from "./Input/Input"
-import { Autocomplete, DefaultOptionComponent } from "./Autocomplete/Autocomplete"
-import type { AutocompleteOption, AutocompleteStyleConfig, OptionComponentProps } from "./Autocomplete/Autocomplete"
+import {
+  Autocomplete,
+  DefaultOptionComponent,
+} from "./Autocomplete/Autocomplete"
+import type {
+  AutocompleteOption,
+  AutocompleteStyleConfig,
+  OptionComponentProps,
+} from "./Autocomplete/Autocomplete"
 import { Textarea } from "./Textarea/Textarea"
 import { PaginationButton } from "./PaginationButton/PaginationButton"
 import { Card } from "./Card/Card"
@@ -22,6 +29,8 @@ import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
 import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
 import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
+import { Input as InputSOPet } from "./InputSOPet/Input"
+import type { InputProps as InputSOPetProps } from "./InputSOPet/Input"
 
 export {
   Button,
@@ -47,6 +56,7 @@ export {
   LogoutButton,
   MarkdownRender,
   PriceRangeSlider,
+  InputSOPet,
 }
 
 export type {
@@ -54,4 +64,5 @@ export type {
   AutocompleteStyleConfig,
   OptionComponentProps,
   PriceRangeSliderProps,
+  InputSOPetProps,
 }

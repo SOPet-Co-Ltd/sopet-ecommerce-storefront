@@ -1,6 +1,9 @@
 "use client"
 
-import { ProductCardReviewStars, ProductCardShowPrice } from "@/components/sections"
+import {
+  ProductCardReviewStars,
+  ProductCardShowPrice,
+} from "@/components/sections"
 import Image from "next/image"
 import { HttpTypes } from "@medusajs/types"
 import { BaseHit, Hit } from "instantsearch.js"
@@ -18,8 +21,12 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
     return null
   }
 
-  const averageRating = Number((api_product as ProductWithSeller)?.average_rating ?? 0)
-  const totalReviews = Number((api_product as ProductWithSeller)?.review_count ?? 0)
+  const averageRating = Number(
+    (api_product as ProductWithSeller)?.average_rating ?? 0
+  )
+  const totalReviews = Number(
+    (api_product as ProductWithSeller)?.review_count ?? 0
+  )
   const soldCount = Number((api_product as ProductWithSeller)?.sold_count ?? 0)
 
   return (
@@ -28,10 +35,9 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       aria-label={`View ${productName}`}
       title={`View ${productName}`}
     >
-      <div className="md:w-[223px] w-[175px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
-        <div className="md:w-[223px] w-[175px] md:h-[223px] h-[175px]">
+      <div className="md:w-[223px] w-[168px] md:max-w-[223px] max-w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
+        <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
           {product.thumbnail ? (
-
             <Image
               fetchPriority={"auto"}
               src={decodeURIComponent(product.thumbnail)}
@@ -51,7 +57,9 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
           )}
         </div>
         <div className="py-2 md:px-3 px-2 pb-5 flex flex-col gap-1">
-          <p className="sop-body-sm-regular text-sop-neutral-gray-300 line-clamp-2 h-sop-40px">{product.title}</p>
+          <p className="sop-body-sm-regular text-sop-neutral-gray-300 line-clamp-2 h-sop-40px">
+            {product.title}
+          </p>
           <ProductCardShowPrice product={api_product || product} />
           <div>
             <ProductCardReviewStars

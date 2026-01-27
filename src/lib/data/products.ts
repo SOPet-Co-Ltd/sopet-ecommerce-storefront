@@ -67,7 +67,11 @@ const DEFAULT_FIELDS = [
   "+sold_count",
 ] as const
 
-const REQUIRED_FIELDS = ["+review_count", "+average_rating", "+sold_count"] as const
+const REQUIRED_FIELDS = [
+  "+review_count",
+  "+average_rating",
+  "+sold_count",
+] as const
 
 /**
  * Builds the fields query parameter, merging custom fields with required fields
@@ -123,10 +127,7 @@ const extractStats = (
 } => {
   return {
     review_count:
-      stats?.review_count ??
-      stats?.totalReviews ??
-      product.review_count ??
-      0,
+      stats?.review_count ?? stats?.totalReviews ?? product.review_count ?? 0,
     average_rating:
       stats?.average_rating ??
       stats?.averageRating ??

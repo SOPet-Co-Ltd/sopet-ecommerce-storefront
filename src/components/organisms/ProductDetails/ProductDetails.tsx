@@ -12,7 +12,7 @@ import { ProductShowPrice } from "@/components/sections/ProductShowPrice/Product
 import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
 import { ClipboardAddIcon, LinkIcon, SaleIcon, ShieldCheckIcon } from "@/icons"
 
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { getProductReviewStats } from "@/lib/data/reviews"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { AdditionalAttributeProps } from "@/types/product"
@@ -30,7 +30,7 @@ export const ProductDetails = async ({
   }
   locale: string
 }) => {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   let wishlist: Wishlist[] = []
   if (user) {
@@ -41,21 +41,22 @@ export const ProductDetails = async ({
   const reviewStats = await getProductReviewStats(product.id)
   // Get sold_count from reviewStats (which fetches from stats endpoint)
   // Fallback to product.sold_count if available
-  const soldCount = reviewStats.soldCount ?? Number((product as any)?.sold_count ?? 0)
+  const soldCount =
+    reviewStats.soldCount ?? Number((product as any)?.sold_count ?? 0)
 
   // Debug logging
   if (process.env.NODE_ENV === "development") {
     console.log(`[ProductDetails] Product ${product.id} soldCount:`, {
       fromReviewStats: reviewStats.soldCount,
       fromProduct: (product as any)?.sold_count,
-      final: soldCount
+      final: soldCount,
     })
   }
 
-  const dateOfExpired: string | null = product.attribute_values?.find(
-    (attr) => (attr as any)?.attribute?.handle === "date_of_expired"
-  )?.value ?? null
-
+  const dateOfExpired: string | null =
+    product.attribute_values?.find(
+      (attr) => (attr as any)?.attribute?.handle === "date_of_expired"
+    )?.value ?? null
 
   return (
     <div className="flex flex-col px-4 gap-6">

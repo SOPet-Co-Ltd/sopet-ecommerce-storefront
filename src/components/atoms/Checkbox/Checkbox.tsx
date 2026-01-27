@@ -29,14 +29,17 @@ export function Checkbox({
           checked && "bg-sop-primary-500 border-sop-primary-500",
           !checked && "bg-transparent",
           error && "border-sop-negative-500",
-          props.disabled && "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
+          props.disabled &&
+            "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
           className
         )}
       >
         {indeterminate && !checked && !props.disabled && (
           <MinusHeavyIcon size={12} color="#FFFFFF" />
         )}
-        {checked && !props.disabled && <TickThinIcon size={12} color="#FFFFFF" />}
+        {checked && !props.disabled && (
+          <TickThinIcon size={12} color="#FFFFFF" />
+        )}
 
         <input
           type="checkbox"

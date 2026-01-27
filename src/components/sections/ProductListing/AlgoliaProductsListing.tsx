@@ -38,16 +38,19 @@ export const AlgoliaProductsListing = ({
   const facetFilters: string = getFacedFilters(searchParams)
   const query: string = searchParams.get("query") || ""
 
-  const filters = `${seller_handle
-    ? `NOT seller:null AND seller.handle:${seller_handle} AND `
-    : "NOT seller:null AND "
-    }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${category_id
-      ? ` AND categories.id:${category_id}${collection_id !== undefined
-        ? ` AND collections.id:${collection_id}`
-        : ""
-      } ${facetFilters}`
+  const filters = `${
+    seller_handle
+      ? `NOT seller:null AND seller.handle:${seller_handle} AND `
+      : "NOT seller:null AND "
+  }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${
+    category_id
+      ? ` AND categories.id:${category_id}${
+          collection_id !== undefined
+            ? ` AND collections.id:${collection_id}`
+            : ""
+        } ${facetFilters}`
       : ` ${facetFilters}`
-    }`
+  }`
 
   return (
     <InstantSearchNext searchClient={client} indexName="products">
@@ -87,7 +90,11 @@ const ProductsListing = ({
 
   // Create a stable string of item IDs to detect changes
   const currentItemIds = useMemo(
-    () => items.map((item) => item.objectID).sort().join(","),
+    () =>
+      items
+        .map((item) => item.objectID)
+        .sort()
+        .join(","),
     [items]
   )
 
@@ -236,19 +243,23 @@ const ProductsListing = ({
   const pages = Math.ceil(count / PRODUCT_LIMIT) || 1
 
   // Show skeleton only on initial load when we have no data
-  const showSkeleton = !hasInitialLoad.current && (!results?.processingTimeMS || isLoading)
+  const showSkeleton =
+    !hasInitialLoad.current && (!results?.processingTimeMS || isLoading)
 
   if (showSkeleton) {
     return <ProductListingSkeleton />
   }
 
   return (
-    <div className="min-h-[70vh] md:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 md:flex-row flex-col md:pb-sop-40px pb-10">
+    <div className="min-h-[70vh] lg:px-20 px-4 md:pt-sop-40px pt-0 flex gap-4 lg:flex-row flex-col lg:pb-sop-40px pb-10">
       {/* NOTE - Sidebar */}
       <div className="lg:block hidden">
-        <div className="md:flex gap-4">
-          <div className="md:w-[290px] w-full md:shrink-0">
-            <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
+        <div className="lg:flex gap-4">
+          <div className="lg:w-[290px] w-full lg:shrink-0">
+            <AlgoliaProductSidebar
+              currency_code={currency_code}
+              locale={locale}
+            />
           </div>
         </div>
       </div>
@@ -270,7 +281,10 @@ const ProductsListing = ({
         </div>
 
         <div className="md:hidden block">
-          <AlgoliaProductSidebar currency_code={currency_code} locale={locale} />
+          <AlgoliaProductSidebar
+            currency_code={currency_code}
+            locale={locale}
+          />
         </div>
 
         {/* NOTE - Content Right */}
@@ -290,7 +304,7 @@ const ProductsListing = ({
               </div>
             ) : (
               <div className="w-full">
-                <ul className="grid md:gap-4 gap-2 grid-cols-2 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 justify-items-center">
+                <ul className="grid md:gap-4 gap-2 justify-items-center grid-cols-[repeat(auto-fit,minmax(165px,1fr))] md:grid-cols-[repeat(auto-fit,minmax(223px,1fr))]">
                   {products.map((hit) => {
                     const apiProduct = apiProductsMap.get(hit.objectID)
                     if (!apiProduct) return null

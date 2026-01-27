@@ -19,13 +19,14 @@ const config: StorybookConfig = {
     options: {},
   },
   staticDirs: ["../public"],
-  
+
   typescript: {
     check: false,
-    reactDocgen: 'react-docgen-typescript',
+    reactDocgen: "react-docgen-typescript",
     reactDocgenTypescriptOptions: {
       shouldExtractLiteralValuesFromEnum: true,
-      propFilter: (prop) => (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true),
+      propFilter: (prop) =>
+        prop.parent ? !/node_modules/.test(prop.parent.fileName) : true,
     },
   },
 
@@ -34,14 +35,14 @@ const config: StorybookConfig = {
     if (config.resolve) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        '@': path.resolve(__dirname, '../src'),
+        "@": path.resolve(__dirname, "../src"),
       }
 
       // Add extensions
       config.resolve.extensions = [
         ...(config.resolve.extensions || []),
-        '.ts',
-        '.tsx',
+        ".ts",
+        ".tsx",
       ]
     }
 
@@ -52,12 +53,12 @@ const config: StorybookConfig = {
         exclude: /node_modules/,
         use: [
           {
-            loader: 'babel-loader',
+            loader: "babel-loader",
             options: {
               presets: [
-                '@babel/preset-env',
-                ['@babel/preset-react', { runtime: 'automatic' }],
-                '@babel/preset-typescript',
+                "@babel/preset-env",
+                ["@babel/preset-react", { runtime: "automatic" }],
+                "@babel/preset-typescript",
               ],
             },
           },
@@ -66,17 +67,17 @@ const config: StorybookConfig = {
 
       // Override CSS handling for Tailwind v4 with PostCSS
       config.module.rules = config.module.rules.map((rule: any) => {
-        if (rule.test && rule.test.toString().includes('css')) {
+        if (rule.test && rule.test.toString().includes("css")) {
           return {
             ...rule,
             use: [
-              'style-loader',
-              'css-loader',
+              "style-loader",
+              "css-loader",
               {
-                loader: 'postcss-loader',
+                loader: "postcss-loader",
                 options: {
                   postcssOptions: {
-                    config: path.resolve(__dirname, '../postcss.config.mjs'),
+                    config: path.resolve(__dirname, "../postcss.config.mjs"),
                   },
                 },
               },

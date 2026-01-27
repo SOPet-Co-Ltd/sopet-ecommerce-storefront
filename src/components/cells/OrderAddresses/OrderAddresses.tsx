@@ -1,9 +1,9 @@
 import { Card } from "@/components/atoms"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
 
 export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
   const region = await getRegion(singleOrder.shipping_address.country_code)
 
   if (!user) return null

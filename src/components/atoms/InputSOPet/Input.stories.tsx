@@ -18,14 +18,7 @@ const meta: Meta<typeof Input> = {
     },
     state: {
       control: "select",
-      options: [
-        "default",
-        "hovered",
-        "filled",
-        "selected",
-        "disabled",
-        "error",
-      ],
+      options: ["default", "hover", "filled", "disabled", "error"],
       description: "Input state",
     },
     variant: {
@@ -33,33 +26,25 @@ const meta: Meta<typeof Input> = {
       options: ["flat", "bordered", "underlined"],
       description: "Input variant style",
     },
-    hasTitle: {
-      control: "boolean",
-      description: "Whether to show the title/label",
-    },
     title: {
       control: "text",
-      description: "Title/label text",
+      description: "Title/label text (shown if provided)",
     },
-    isRequired: {
+    isRequire: {
       control: "boolean",
       description: "Whether the field is required (shows asterisk)",
     },
-    hasStartIcon: {
-      control: "boolean",
-      description: "Whether to show start icon",
+    startIcon: {
+      control: false,
+      description: "Start icon (shown if provided)",
     },
-    hasEndIcon: {
-      control: "boolean",
-      description: "Whether to show end icon",
+    endIcon: {
+      control: false,
+      description: "End icon (shown if provided, hidden for password type)",
     },
-    withDescription: {
-      control: "boolean",
-      description: "Whether to show description text",
-    },
-    descriptionText: {
+    description: {
       control: "text",
-      description: "Description/helper text",
+      description: "Description/helper text (shown if provided)",
     },
     type: {
       control: "select",
@@ -86,7 +71,6 @@ export const Default: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Email Address",
     placeholder: "Enter your email",
     type: "text",
@@ -99,10 +83,8 @@ export const WithStartIcon: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Search",
     placeholder: "Search products...",
-    hasStartIcon: true,
     startIcon: <MagnifyingGlass />,
     type: "text",
   },
@@ -114,10 +96,8 @@ export const WithEndIcon: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Search",
     placeholder: "Search...",
-    hasEndIcon: true,
     endIcon: <MagnifyingGlass />,
     type: "text",
   },
@@ -129,7 +109,6 @@ export const Password: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Password",
     placeholder: "Enter your password",
     value: "secretpassword123",
@@ -143,11 +122,9 @@ export const WithError: Story = {
     size: "md",
     variant: "flat",
     state: "error",
-    hasTitle: true,
     title: "Email",
     value: "invalid-email",
-    withDescription: true,
-    descriptionText: "Please enter a valid email address",
+    description: "Please enter a valid email address",
     type: "email",
   },
   render: (args) => <ControlledInput {...args} />,
@@ -158,7 +135,6 @@ export const Disabled: Story = {
     size: "md",
     variant: "flat",
     state: "disabled",
-    hasTitle: true,
     title: "Disabled Input",
     value: "Cannot edit this",
     type: "text",
@@ -171,9 +147,8 @@ export const Required: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Username",
-    isRequired: true,
+    isRequire: true,
     placeholder: "Enter username",
     type: "text",
   },
@@ -185,12 +160,24 @@ export const WithDescription: Story = {
     size: "md",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Password",
     placeholder: "Enter password",
-    withDescription: true,
-    descriptionText: "Must be at least 8 characters",
+    description: "Must be at least 8 characters",
     type: "password",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const WithDescriptionAndError: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "error",
+    title: "Email",
+    placeholder: "Enter your email",
+    value: "invalid-email",
+    description: "Please enter a valid email address",
+    type: "email",
   },
   render: (args) => <ControlledInput {...args} />,
 }
@@ -200,7 +187,6 @@ export const SmallSize: Story = {
     size: "sm",
     variant: "flat",
     state: "default",
-    hasTitle: true,
     title: "Small Input",
     placeholder: "Small size",
     type: "text",
@@ -213,7 +199,6 @@ export const Bordered: Story = {
     size: "md",
     variant: "bordered",
     state: "default",
-    hasTitle: true,
     title: "Bordered Input",
     placeholder: "Bordered variant",
     type: "text",
@@ -226,7 +211,6 @@ export const Underlined: Story = {
     size: "md",
     variant: "underlined",
     state: "default",
-    hasTitle: true,
     title: "Underlined Input",
     placeholder: "Underlined variant",
     type: "text",
@@ -239,10 +223,140 @@ export const Filled: Story = {
     size: "md",
     variant: "flat",
     state: "filled",
-    hasTitle: true,
     title: "Email",
     value: "user@example.com",
     type: "email",
   },
   render: (args) => <ControlledInput {...args} />,
+}
+
+export const Hover: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "hover",
+    title: "Email",
+    placeholder: "Hover state",
+    type: "email",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const WithoutTitle: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "default",
+    placeholder: "Input without title",
+    type: "text",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const WithoutPlaceholder: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "default",
+    title: "Input without placeholder",
+    type: "text",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const FullFeatured: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "default",
+    title: "Full Name",
+    isRequire: true,
+    placeholder: "Enter your full name",
+    startIcon: <MagnifyingGlass />,
+    description: "Enter your first and last name",
+    type: "text",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const PasswordWithToggle: Story = {
+  args: {
+    size: "md",
+    variant: "flat",
+    state: "default",
+    title: "Password",
+    placeholder: "Enter your password",
+    description: "Password must be at least 8 characters",
+    type: "password",
+  },
+  render: (args) => <ControlledInput {...args} />,
+}
+
+export const AllVariants: Story = {
+  render: () => (
+    <div className="space-y-8 w-[400px]">
+      <div>
+        <h3 className="text-sm font-medium mb-4">Flat Variant</h3>
+        <ControlledInput
+          size="md"
+          variant="flat"
+          state="default"
+          title="Flat Input"
+          placeholder="Flat variant"
+          type="text"
+        />
+      </div>
+      <div>
+        <h3 className="text-sm font-medium mb-4">Bordered Variant</h3>
+        <ControlledInput
+          size="md"
+          variant="bordered"
+          state="default"
+          title="Bordered Input"
+          placeholder="Bordered variant"
+          type="text"
+        />
+      </div>
+      <div>
+        <h3 className="text-sm font-medium mb-4">Underlined Variant</h3>
+        <ControlledInput
+          size="md"
+          variant="underlined"
+          state="default"
+          title="Underlined Input"
+          placeholder="Underlined variant"
+          type="text"
+        />
+      </div>
+    </div>
+  ),
+}
+
+export const AllSizes: Story = {
+  render: () => (
+    <div className="space-y-6 w-[400px]">
+      <div>
+        <h3 className="text-sm font-medium mb-4">Small Size</h3>
+        <ControlledInput
+          size="sm"
+          variant="flat"
+          state="default"
+          title="Small Input"
+          placeholder="Small size"
+          type="text"
+        />
+      </div>
+      <div>
+        <h3 className="text-sm font-medium mb-4">Medium Size</h3>
+        <ControlledInput
+          size="md"
+          variant="flat"
+          state="default"
+          title="Medium Input"
+          placeholder="Medium size"
+          type="text"
+        />
+      </div>
+    </div>
+  ),
 }

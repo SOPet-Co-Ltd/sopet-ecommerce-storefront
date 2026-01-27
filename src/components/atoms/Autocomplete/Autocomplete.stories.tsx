@@ -1,5 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { Autocomplete, AutocompleteOption, OptionComponentProps } from "./Autocomplete"
+import {
+  Autocomplete,
+  AutocompleteOption,
+  OptionComponentProps,
+} from "./Autocomplete"
 import { MagnifyingGlass, MapPin, Tag, User } from "@medusajs/icons"
 
 const meta: Meta<typeof Autocomplete> = {
@@ -222,10 +226,12 @@ export const CustomStyles: Story = {
     },
     styleType: "custom",
     customStyles: {
-      dropdown: "absolute z-50 w-full mt-2 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl shadow-2xl max-h-60 overflow-auto",
+      dropdown:
+        "absolute z-50 w-full mt-2 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 rounded-2xl shadow-2xl max-h-60 overflow-auto",
       option: "px-5 py-4 cursor-pointer transition-all duration-200",
       optionHovered: "bg-purple-100 scale-[0.98] mx-1 rounded-xl",
-      optionSelected: "bg-gradient-to-r from-purple-500 to-blue-500 text-white mx-1 rounded-xl",
+      optionSelected:
+        "bg-gradient-to-r from-purple-500 to-blue-500 text-white mx-1 rounded-xl",
       noResults: "px-5 py-4 text-purple-400 text-center font-semibold",
     },
   },
@@ -235,7 +241,7 @@ export const CustomStyles: Story = {
 export const WithoutIcons: Story = {
   args: {
     ...Default.args,
-    options: productOptions.map(opt => ({
+    options: productOptions.map((opt) => ({
       value: opt.value,
       label: opt.label,
       description: opt.description,
@@ -318,7 +324,8 @@ export const CustomContainer: Story = {
     className: "max-w-md",
     styleType: "custom",
     customStyles: {
-      dropdown: "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto backdrop-blur-sm",
+      dropdown:
+        "absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-60 overflow-auto backdrop-blur-sm",
       option: "px-4 py-3 cursor-pointer transition-all duration-150 hover:pl-5",
       optionHovered: "bg-blue-50 border-l-4 border-blue-500",
       optionSelected: "bg-green-50 border-l-4 border-green-500 font-semibold",
@@ -328,8 +335,16 @@ export const CustomContainer: Story = {
 }
 
 // Custom Option Component - Compact Layout
-const CompactOptionComponent = ({ option, onClick, onMouseEnter }: OptionComponentProps) => (
-  <div className="flex items-center justify-between gap-2" onClick={onClick} onMouseEnter={onMouseEnter}>
+const CompactOptionComponent = ({
+  option,
+  onClick,
+  onMouseEnter,
+}: OptionComponentProps) => (
+  <div
+    className="flex items-center justify-between gap-2"
+    onClick={onClick}
+    onMouseEnter={onMouseEnter}
+  >
     <div className="flex items-center gap-2 flex-1 min-w-0">
       {option.icon && <span className="shrink-0">{option.icon}</span>}
       <span className="font-medium text-sm truncate">{option.label}</span>
@@ -352,10 +367,15 @@ export const CustomOptionComponent: Story = {
 }
 
 // Custom Option Component - Card Style
-const CardOptionComponent = ({ option, isHovered, onClick, onMouseEnter }: OptionComponentProps) => (
-  <div 
-    className={`p-3 rounded-lg border transition-all ${isHovered ? 'border-sop-primary-500 shadow-md' : 'border-transparent'}`}
-    onClick={onClick} 
+const CardOptionComponent = ({
+  option,
+  isHovered,
+  onClick,
+  onMouseEnter,
+}: OptionComponentProps) => (
+  <div
+    className={`p-3 rounded-lg border transition-all ${isHovered ? "border-sop-primary-500 shadow-md" : "border-transparent"}`}
+    onClick={onClick}
     onMouseEnter={onMouseEnter}
   >
     <div className="flex items-start gap-3">
@@ -367,7 +387,9 @@ const CardOptionComponent = ({ option, isHovered, onClick, onMouseEnter }: Optio
       <div className="flex-1 min-w-0">
         <div className="font-semibold text-sm mb-1">{option.label}</div>
         {option.description && (
-          <div className="text-xs text-sop-neutral-gray-400">{option.description}</div>
+          <div className="text-xs text-sop-neutral-gray-400">
+            {option.description}
+          </div>
         )}
       </div>
     </div>
@@ -383,7 +405,8 @@ export const CardStyleOption: Story = {
     },
     OptionComponent: CardOptionComponent,
     customStyles: {
-      dropdown: "absolute z-50 w-full mt-1 bg-white border border-sop-neutral-gray-400 rounded-lg shadow-lg max-h-96 overflow-auto p-2",
+      dropdown:
+        "absolute z-50 w-full mt-1 bg-white border border-sop-neutral-gray-400 rounded-lg shadow-lg max-h-96 overflow-auto p-2",
       option: "mb-2 last:mb-0",
       optionHovered: "",
       optionSelected: "ring-2 ring-sop-primary-500",
@@ -393,13 +416,23 @@ export const CardStyleOption: Story = {
 }
 
 // Custom Option Component - With Badge
-const BadgeOptionComponent = ({ option, onClick, onMouseEnter }: OptionComponentProps) => (
-  <div className="flex items-center gap-3" onClick={onClick} onMouseEnter={onMouseEnter}>
+const BadgeOptionComponent = ({
+  option,
+  onClick,
+  onMouseEnter,
+}: OptionComponentProps) => (
+  <div
+    className="flex items-center gap-3"
+    onClick={onClick}
+    onMouseEnter={onMouseEnter}
+  >
     {option.icon && <span className="shrink-0">{option.icon}</span>}
     <div className="flex-1 min-w-0">
       <div className="font-medium text-sm">{option.label}</div>
       {option.description && (
-        <div className="text-xs text-sop-neutral-gray-400 mt-0.5">{option.description}</div>
+        <div className="text-xs text-sop-neutral-gray-400 mt-0.5">
+          {option.description}
+        </div>
       )}
     </div>
     {option.badge && (
@@ -410,10 +443,12 @@ const BadgeOptionComponent = ({ option, onClick, onMouseEnter }: OptionComponent
   </div>
 )
 
-const productOptionsWithBadges: AutocompleteOption[] = productOptions.map(opt => ({
-  ...opt,
-  badge: opt.value.includes('pro') ? 'Pro' : 'New',
-}))
+const productOptionsWithBadges: AutocompleteOption[] = productOptions.map(
+  (opt) => ({
+    ...opt,
+    badge: opt.value.includes("pro") ? "Pro" : "New",
+  })
+)
 
 export const WithBadges: Story = {
   args: {

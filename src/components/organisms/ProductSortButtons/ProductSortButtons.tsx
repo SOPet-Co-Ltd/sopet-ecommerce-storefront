@@ -33,16 +33,16 @@ export const ProductSortButtons = () => {
 
   const handleSortChange = (sortValue: SortOption) => {
     const params = new URLSearchParams(searchParams.toString())
-    
+
     if (sortValue === "relevance") {
       params.delete("sortBy")
     } else {
       params.set("sortBy", sortValue)
     }
-    
+
     // Reset to page 1 when sorting changes
     params.delete("page")
-    
+
     router.push(`${pathname}?${params.toString()}`)
   }
 
@@ -77,4 +77,3 @@ export const ProductSortButtons = () => {
     </div>
   )
 }
-

@@ -8,46 +8,36 @@ export interface InputProps extends Omit<
   React.InputHTMLAttributes<HTMLInputElement>,
   "size"
 > {
-  // Variant props from Figma
   size?: "md" | "sm"
-  state?: "default" | "hovered" | "filled" | "selected" | "disabled" | "error"
+  state?: "default" | "hover" | "filled" | "disabled" | "error"
   variant?: "flat" | "bordered" | "underlined"
-  textSize?: "sm" | "xs"
 
   // Title props
-  hasTitle?: boolean
   title?: string
-  isRequired?: boolean
+  isRequire?: boolean
 
   // Icon props
-  hasStartIcon?: boolean
   startIcon?: React.ReactNode
-  hasEndIcon?: boolean
   endIcon?: React.ReactNode
 
   // Description props
-  withDescription?: boolean
-  descriptionText?: string
+  description?: string
 }
 
 export function Input({
   size = "md",
   state = "default",
   variant = "flat",
-  textSize = "sm",
-  hasTitle = true,
-  title = "Title",
-  isRequired = false,
-  hasStartIcon = false,
+  title,
+  isRequire = false,
   startIcon,
-  hasEndIcon = false,
   endIcon,
-  withDescription = false,
-  descriptionText = "กรุณากรอกข้อมูลของคุณ",
+  description,
   className,
   id,
   type = "text",
   disabled,
+  placeholder,
   ...props
 }: InputProps) {
   const [showPassword, setShowPassword] = useState(false)
@@ -61,42 +51,33 @@ export function Input({
   const actualType = isPassword ? (showPassword ? "text" : "password") : type
 
   // Check if icons should be displayed
-  const showStartIcon = hasStartIcon && startIcon
-  const showEndIcon = hasEndIcon && endIcon && !isPassword
+  const showStartIcon = !!startIcon
+  const showEndIcon = !!endIcon && !isPassword
 
   // Compute padding classes
-  const paddingClasses = useMemo(() => {
-    const left = showStartIcon ? "pl-10" : "pl-3"
-    const right = showEndIcon || isPassword ? "pr-10" : "pr-3"
-    return { left, right }
-  }, [showStartIcon, showEndIcon, isPassword])
+  const paddingLeft = showStartIcon ? "pl-10" : "pl-3"
+  const paddingRight = showEndIcon || isPassword ? "pr-10" : "pr-3"
 
   // Size variants
   const sizeClasses = {
-    sm: "text-xs h-8",
-    md: "text-sm h-10",
-  } as const
-
-  // Text size variants
-  const textSizeClasses = {
-    sm: "sop-body-sm-regular",
-    xs: "sop-body-xs-regular",
+    sm: "text-xs h-[44px]",
+    md: "text-sm h-[48px]",
   } as const
 
   // Variant styles
   const variantClasses = {
     flat: "bg-sop-neutral-gray-500 border border-solid border-sop-neutral-gray-500",
-    bordered: "bg-transparent border border-solid border-sop-neutral-gray-400",
+    bordered:
+      "bg-sop-neutral-gray-600 border border-solid border-sop-neutral-grayalpha-100",
     underlined:
-      "bg-transparent border-b border-solid border-sop-neutral-gray-400 rounded-none",
+      "bg-transparent border-b border-solid border-sop-neutral-grayalpha-100 rounded-none",
   } as const
 
   // State styles
   const stateClasses = {
     default: "",
-    hovered: "border-sop-neutral-grayalpha-300",
+    hover: "border-sop-neutral-grayalpha-300",
     filled: "border-sop-neutral-grayalpha-300",
-    selected: "border-sop-primary-500 ring-1 ring-sop-primary-500",
     disabled:
       "bg-sop-neutral-grayalpha-200 cursor-not-allowed text-sop-neutral-gray-400 border-sop-neutral-grayalpha-300",
     error: "border-sop-system-error-400 ring-1 ring-sop-system-error-400",
@@ -108,49 +89,35 @@ export function Input({
   }, [])
 
   // Build input className
-  const inputClassName = useMemo(
-    () =>
-      cn(
-        "w-full p-2 rounded-[8px]",
-        textSizeClasses[textSize],
-        "text-sop-neutral-gray-400",
-        "focus:border-sop-primary-500 focus:outline-none focus:ring-1 focus:ring-sop-primary-500",
-        "placeholder:text-sop-neutral-gray-400",
-        "transition-all duration-150",
-        sizeClasses[size],
-        variantClasses[variant],
-        stateClasses[state],
-        isError &&
-          !isDisabled &&
-          "border-sop-system-error-400 ring-1 ring-sop-system-error-400",
-        isDisabled &&
-          "bg-sop-neutral-grayalpha-200 cursor-not-allowed text-sop-neutral-gray-400 border-sop-neutral-grayalpha-300",
-        paddingClasses.left,
-        paddingClasses.right,
-        className
-      ),
-    [
-      textSize,
-      size,
-      variant,
-      state,
-      isError,
-      isDisabled,
-      paddingClasses.left,
-      paddingClasses.right,
-      className,
-    ]
+  const inputClassName = cn(
+    "w-full p-2 rounded-[8px]",
+    "sop-body-sm-regular",
+    "text-sop-neutral-gray-400",
+    "focus:border-sop-primary-500 focus:outline-none focus:ring-1 focus:ring-sop-primary-500",
+    "placeholder:text-sop-neutral-gray-400",
+    "transition-all duration-150",
+    sizeClasses[size],
+    variantClasses[variant],
+    stateClasses[state],
+    isError &&
+      !isDisabled &&
+      "border-sop-system-error-400 ring-1 ring-sop-system-error-400",
+    isDisabled &&
+      "bg-sop-neutral-grayalpha-200 cursor-not-allowed text-sop-neutral-gray-400 border-sop-neutral-grayalpha-300",
+    paddingLeft,
+    paddingRight,
+    className
   )
 
   return (
     <div className="w-full">
-      {hasTitle && title && (
+      {title !== undefined && (
         <label
           htmlFor={finalId}
-          className="label-md flex items-center gap-1 mb-2"
+          className="sop-body-xs-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
         >
           {title}
-          {isRequired && <span className="text-sop-system-error-400">*</span>}
+          {isRequire && <span className="text-sop-system-error-400">*</span>}
         </label>
       )}
 
@@ -167,6 +134,7 @@ export function Input({
           type={actualType}
           className={inputClassName}
           disabled={isDisabled}
+          placeholder={placeholder}
         />
 
         {showEndIcon && (
@@ -188,15 +156,12 @@ export function Input({
         )}
       </div>
 
-      {withDescription && descriptionText && (
+      {description !== undefined && (
         <p
           id={`${finalId}-description`}
-          className={cn(
-            "text-xs mt-1",
-            isError ? "text-sop-system-error-400" : "text-sop-neutral-gray-400"
-          )}
+          className="sop-body-xs-regular text-sop-system-error-400 mt-1"
         >
-          {descriptionText}
+          {description}
         </p>
       )}
     </div>

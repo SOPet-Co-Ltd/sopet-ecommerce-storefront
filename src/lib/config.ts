@@ -6,7 +6,9 @@ const MEDUSA_BACKEND_URL =
 
 // Get publishable key - ensure it's a string and never undefined
 // This is critical as the Medusa SDK requires a valid publishable key
-const PUBLISHABLE_KEY = (process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "").trim()
+const PUBLISHABLE_KEY = (
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+).trim()
 
 // Debug log to diagnose Vercel deployment issues
 console.error("[DEBUG] NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:", PUBLISHABLE_KEY ? `${PUBLISHABLE_KEY.substring(0, 10)}...` : "NOT SET")
@@ -52,7 +54,7 @@ export async function fetchQuery(
   )
 
   const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
-  
+
   const res = await fetch(
     `${MEDUSA_BACKEND_URL}${url}${params && `?${params}`}`,
     {
