@@ -53,7 +53,7 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "sopet.co",
-      }
+      },
     ],
   },
 }

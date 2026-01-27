@@ -18,7 +18,14 @@ const meta: Meta<typeof Input> = {
     },
     state: {
       control: "select",
-      options: ["default", "hovered", "filled", "selected", "disabled", "error"],
+      options: [
+        "default",
+        "hovered",
+        "filled",
+        "selected",
+        "disabled",
+        "error",
+      ],
       description: "Input state",
     },
     variant: {
@@ -69,7 +76,9 @@ type Story = StoryObj<typeof Input>
 const ControlledInput = (args: any) => {
   const [value, setValue] = useState(args.value || "")
 
-  return <Input {...args} value={value} onChange={(e) => setValue(e.target.value)} />
+  return (
+    <Input {...args} value={value} onChange={(e) => setValue(e.target.value)} />
+  )
 }
 
 export const Default: Story = {

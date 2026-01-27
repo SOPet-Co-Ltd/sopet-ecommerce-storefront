@@ -311,7 +311,7 @@ export const getProductReviewStats = async (
       console.log(`[REVIEWS] Stats response for product ${productId}:`, {
         sold_count: data.sold_count,
         soldCount: data.soldCount,
-        fullData: data
+        fullData: data,
       })
     }
 
@@ -339,7 +339,10 @@ export const getProductReviewStats = async (
 
     // Debug logging
     if (process.env.NODE_ENV === "development") {
-      console.log(`[REVIEWS] Extracted soldCount for product ${productId}:`, soldCount)
+      console.log(
+        `[REVIEWS] Extracted soldCount for product ${productId}:`,
+        soldCount
+      )
     }
 
     return {

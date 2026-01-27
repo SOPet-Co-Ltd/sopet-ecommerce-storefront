@@ -52,12 +52,12 @@ export const ProductCardShowPrice = ({
         )
       )
     )?.id || ""
-    
-    // get variant price
-    const { variantPrice } = getProductPrice({
-      product,
-      variantId,
-    })
+
+  // get variant price
+  const { variantPrice } = getProductPrice({
+    product,
+    variantId,
+  })
 
   // Determine which price to display
   const displayPrice = variantPrice || cheapestPrice

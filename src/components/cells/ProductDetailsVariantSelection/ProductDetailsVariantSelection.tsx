@@ -91,9 +91,10 @@ const getProductShareContent = (
 ): string => {
   const productName = product.title || ""
   const shortDescription = getShortDescription(product)
-  const productLink = typeof window !== "undefined"
-    ? window.location.href
-    : `/${locale}/products/${product.handle}`
+  const productLink =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `/${locale}/products/${product.handle}`
 
   return `${productName}\n${shortDescription}\n${productLink}`
 }
@@ -110,9 +111,10 @@ const ShareModal = ({
   locale: string
 }) => {
   // Get product share data
-  const productLink = typeof window !== "undefined"
-    ? window.location.href
-    : `/${locale}/products/${product.handle}`
+  const productLink =
+    typeof window !== "undefined"
+      ? window.location.href
+      : `/${locale}/products/${product.handle}`
 
   // Handler to copy link to clipboard
   const handleCopyLink = async () => {
@@ -312,9 +314,9 @@ export const ProductDetailsVariantSelection = ({
   // set default variant
   const selectedVariant = hasAnyPrice
     ? {
-      ...optionsAsKeymap(cheapestVariant.options ?? null),
-      ...allSearchParams,
-    }
+        ...optionsAsKeymap(cheapestVariant.options ?? null),
+        ...allSearchParams,
+      }
     : allSearchParams
 
   // get selected variant id
@@ -418,7 +420,7 @@ export const ProductDetailsVariantSelection = ({
         {/* Buy now action */}
         <Button
           // TODO: Handle Buy Now action
-          onClick={() => { }}
+          onClick={() => {}}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           size="fill"
           className="md:py-sop-12px py-sop-8px"
