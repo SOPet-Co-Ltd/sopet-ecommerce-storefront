@@ -61,7 +61,9 @@ type Story = StoryObj<typeof Input>
 const ControlledInput = (args: any) => {
   const [value, setValue] = useState(args.value || "")
 
-  return <Input {...args} value={value} onChange={(e) => setValue(e.target.value)} />
+  return (
+    <Input {...args} value={value} onChange={(e) => setValue(e.target.value)} />
+  )
 }
 
 export const Default: Story = {

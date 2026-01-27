@@ -5,7 +5,12 @@ import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedL
 import { useRouter } from "next/navigation"
 import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
 import { initiateOAuth } from "@/lib/data/oauth"
-import { SOPetLogo, FacebookCustomIcon, GoogleIcon, LineCustomIcon } from "@/icons"
+import {
+  SOPetLogo,
+  FacebookCustomIcon,
+  GoogleIcon,
+  LineCustomIcon,
+} from "@/icons"
 
 export const LoginForm = () => {
   return <Form />
@@ -28,10 +33,13 @@ const Form = () => {
     const trimmedValue = value.trim()
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    
+
     const phoneRegex = /^(\+?66|0)[0-9]{9,10}$/
 
-    return emailRegex.test(trimmedValue) || phoneRegex.test(trimmedValue.replace(/\s+/g, ""))
+    return (
+      emailRegex.test(trimmedValue) ||
+      phoneRegex.test(trimmedValue.replace(/\s+/g, ""))
+    )
   }
 
   const handleRequestOtp = async () => {
@@ -135,11 +143,7 @@ const Form = () => {
               </Button>
             </div>
           </div>
-          {error && (
-            <p className="text-red-500 text-sm">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
             variant="default"
             style={{ width: "100%", minHeight: "48px" }}
@@ -183,8 +187,10 @@ const Form = () => {
         {/* Link to Sign Up */}
         <div className="flex justify-center items-center gap-1">
           {/* TODO - Fix color */}
-          <p className="sop-body-lg-regular text-[#888888]">หากยังไม่มีบัญชีผู้ใช้งาน กรุณา</p>
-          <LocalizedClientLink href="/register" className="underline"  >
+          <p className="sop-body-lg-regular text-[#888888]">
+            หากยังไม่มีบัญชีผู้ใช้งาน กรุณา
+          </p>
+          <LocalizedClientLink href="/register" className="underline">
             <button className="sop-link-lg-regular text-sop-primary-500 cursor-pointer">
               สร้างบัญชีใหม่
             </button>

@@ -17,29 +17,31 @@ import {
  * Verify that the current user is logged in using the custom /store/auth/me route.
  * Returns the customer on 200, or null if unauthorized / not logged in.
  */
-export const verifyCustomer = async (): Promise<HttpTypes.StoreCustomer | null> => {
-  const headers = await getAuthHeaders()
+export const verifyCustomer =
+  async (): Promise<HttpTypes.StoreCustomer | null> => {
+    const headers = await getAuthHeaders()
 
-  // No auth headers means there's no token; treat as not logged in.
-  if (!headers || Object.keys(headers).length === 0) {
-    return null
-  }
+    // No auth headers means there's no token; treat as not logged in.
+    if (!headers || Object.keys(headers).length === 0) {
+      return null
+    }
 
-  try {
-    const result = await sdk.client
-      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/auth/me`, {
+    try {
+      const result = await sdk.client.fetch<{
+        customer: HttpTypes.StoreCustomer
+      }>(`/store/auth/me`, {
         method: "GET",
         headers,
         cache: "no-store",
       })
-    console.log(result);
+      console.log(result)
 
-    return result.customer
-  } catch {
-    // If the backend returns 401/404 or any error, treat as not logged in.
-    return null
+      return result.customer
+    } catch {
+      // If the backend returns 401/404 or any error, treat as not logged in.
+      return null
+    }
   }
-}
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {

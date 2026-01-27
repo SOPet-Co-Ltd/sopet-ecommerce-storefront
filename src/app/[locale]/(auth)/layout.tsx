@@ -18,12 +18,11 @@ export default async function AuthLayout({
 
   return (
     <>
-    <div className="flex flex-col h-dvh">
-      <Header />
-      {children}
-      <Footer />
-    </div>
+      <div className="flex flex-col h-dvh">
+        <Header />
+        {children}
+        <Footer />
+      </div>
     </>
   )
 }
-
