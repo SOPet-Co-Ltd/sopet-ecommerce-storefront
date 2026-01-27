@@ -29,6 +29,8 @@ import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
 import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
 import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
+import { Input as InputSOPet } from "./InputSOPet/Input"
+import type { InputProps as InputSOPetProps } from "./InputSOPet/Input"
 
 export {
   Button,
@@ -54,6 +56,7 @@ export {
   LogoutButton,
   MarkdownRender,
   PriceRangeSlider,
+  InputSOPet,
 }
 
 export type {
@@ -61,4 +64,5 @@ export type {
   AutocompleteStyleConfig,
   OptionComponentProps,
   PriceRangeSliderProps,
+  InputSOPetProps,
 }

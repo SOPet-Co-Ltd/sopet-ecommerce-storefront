@@ -1,12 +1,12 @@
 import { Avatar } from "@/components/atoms"
 import { Chat } from "../Chat/Chat"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { OrderParcelItems } from "@/components/molecules/OrderParcelItems/OrderParcelItems"
 import { OrderParcelStatus } from "@/components/molecules/OrderParcelStatus/OrderParcelStatus"
 import { OrderParcelActions } from "@/components/molecules/OrderParcelActions/OrderParcelActions"
 
 export const OrderParcels = async ({ orders }: { orders: any[] }) => {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   return (
     <>

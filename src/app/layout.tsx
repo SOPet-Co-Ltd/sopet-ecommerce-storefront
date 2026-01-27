@@ -94,7 +94,7 @@ export default async function RootLayout({
   return (
     <html lang={htmlLang} className="" suppressHydrationWarning>
       <body
-        className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative`}
+        className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
         <Providers cart={cart}>{children}</Providers>
         <Toaster position="top-right" />

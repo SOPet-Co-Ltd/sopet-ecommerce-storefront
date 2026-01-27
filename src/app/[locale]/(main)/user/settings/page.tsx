@@ -1,10 +1,10 @@
 import { LoginForm, ProfileDetails } from "@/components/molecules"
 import { UserNavigation } from "@/components/molecules"
 import { ProfilePassword } from "@/components/molecules/ProfileDetails/ProfilePassword"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 
 export default async function ReviewsPage() {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   if (!user) return <LoginForm />
 

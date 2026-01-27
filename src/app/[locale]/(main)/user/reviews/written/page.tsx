@@ -1,11 +1,11 @@
 import { LoginForm, UserNavigation } from "@/components/molecules"
 import { ReviewsWritten } from "@/components/organisms"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"
 import { getReviews } from "@/lib/data/reviews"
 
 export default async function Page() {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   const reviewsRes = await getReviews()
   const orders = await listOrders()

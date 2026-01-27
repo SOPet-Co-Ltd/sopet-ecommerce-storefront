@@ -5,7 +5,7 @@ import CartReview from "@/components/sections/CartReview/CartReview"
 
 import CartShippingMethodsSection from "@/components/sections/CartShippingMethodsSection/CartShippingMethodsSection"
 import { retrieveCart } from "@/lib/data/cart"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import { retrieveRegion } from "@/lib/data/regions"
@@ -41,7 +41,7 @@ async function CheckoutPageContent({}) {
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
   const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
-  const customer = await retrieveCustomer()
+  const customer = await verifyCustomer()
 
   return (
     <PaymentWrapper cart={cart}>

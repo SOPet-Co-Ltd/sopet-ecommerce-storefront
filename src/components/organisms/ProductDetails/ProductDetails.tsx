@@ -12,7 +12,7 @@ import { ProductShowPrice } from "@/components/sections/ProductShowPrice/Product
 import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
 import { ClipboardAddIcon, LinkIcon, SaleIcon, ShieldCheckIcon } from "@/icons"
 
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { getProductReviewStats } from "@/lib/data/reviews"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { AdditionalAttributeProps } from "@/types/product"
@@ -30,7 +30,7 @@ export const ProductDetails = async ({
   }
   locale: string
 }) => {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   let wishlist: Wishlist[] = []
   if (user) {

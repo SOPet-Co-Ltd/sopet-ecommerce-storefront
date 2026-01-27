@@ -1,4 +1,4 @@
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { redirect } from "next/navigation"
 import { isEmpty } from "lodash"
 import { Wishlist as WishlistType } from "@/types/wishlist"
@@ -10,7 +10,7 @@ import { HttpTypes } from "@medusajs/types"
 import { UserNavigation } from "@/components/molecules"
 
 export default async function Wishlist() {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   let wishlist: WishlistType[] = []
   if (user) {

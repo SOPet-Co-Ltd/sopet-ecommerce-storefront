@@ -1,6 +1,6 @@
 import { LoginForm, ParcelAccordion } from "@/components/molecules"
 import { UserNavigation } from "@/components/molecules"
-import { retrieveCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { OrdersPagination } from "@/components/sections"
 import { isEmpty } from "lodash"
 import { listOrders } from "@/lib/data/orders"
@@ -12,7 +12,7 @@ export default async function UserPage({
 }: {
   searchParams: Promise<{ page: string }>
 }) {
-  const user = await retrieveCustomer()
+  const user = await verifyCustomer()
 
   if (!user) return <LoginForm />
 
