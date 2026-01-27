@@ -97,7 +97,7 @@
   },
   "lint-staged": {
     "**/*.{ts,tsx,js,jsx,json,md,css}": [
-      "prettier --write --ignore-unknown"
+      "npx prettier --write --ignore-unknown"
     ]
   }
 }
