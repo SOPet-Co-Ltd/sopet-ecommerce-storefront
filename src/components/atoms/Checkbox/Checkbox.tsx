@@ -8,6 +8,7 @@ export interface CheckboxProps
   size?: "sm" | "lg"
   error?: boolean
   label?: React.ReactNode | false
+  checkboxPosition?: "top" | "middle" | "bottom"
   disable?: boolean
 }
 
@@ -15,6 +16,7 @@ export function Checkbox({
   label = false,
   size = "sm",
   error,
+  checkboxPosition = "middle",
   className,
   checked,
   onChange,
@@ -34,7 +36,23 @@ export function Checkbox({
 
   const iconSize = size === "lg" ? 12 : 10
   const boxSizeClasses = size === "lg" ? "w-5 h-5" : "w-4 h-4"
-  const boxAlignClasses = hasLabel ? (size === "sm" ? "mt-[2px]" : "mt-0") : ""
+  const labelAlignClass =
+    checkboxPosition === "top"
+      ? "items-start"
+      : checkboxPosition === "bottom"
+        ? "items-end"
+        : "items-center"
+  const boxAlignClasses = hasLabel
+    ? checkboxPosition === "top"
+      ? size === "sm"
+        ? "mt-[2px]"
+        : "mt-0"
+      : checkboxPosition === "bottom"
+        ? size === "sm"
+          ? "mb-[2px]"
+          : "mb-0"
+        : ""
+    : ""
 
   const inputChecked =
     isIndeterminate ? false : typeof checked === "boolean" ? checked : undefined
@@ -84,7 +102,8 @@ export function Checkbox({
   return (
     <label
       className={cn(
-        "inline-flex items-start gap-2",
+        "inline-flex gap-2",
+        labelAlignClass,
         isDisabled ? "cursor-not-allowed" : "cursor-pointer"
       )}
     >
