@@ -37,7 +37,7 @@ export const HomeProductsCarousel = async ({
     products.map(async (product) => {
       const reviewStats = await getProductReviewStats(product.id.toString())
       // console.log({ reviewStats });
-      
+
       return { ...product, reviewStats }
     })
   )

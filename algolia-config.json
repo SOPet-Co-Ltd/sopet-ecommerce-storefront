@@ -28,10 +28,7 @@
     ],
     "unretrievableAttributes": null,
     "optionalWords": null,
-    "queryLanguages": [
-      "th",
-      "en"
-    ],
+    "queryLanguages": ["th", "en"],
     "attributesForFaceting": [
       "average_rating",
       "filterOnly(categories.id)",
@@ -69,13 +66,8 @@
     "queryType": "prefixLast",
     "highlightPreTag": "<em>",
     "highlightPostTag": "</em>",
-    "alternativesAsExact": [
-      "ignorePlurals",
-      "singleWordSynonym"
-    ],
-    "indexLanguages": [
-      "th"
-    ],
+    "alternativesAsExact": ["ignorePlurals", "singleWordSynonym"],
+    "indexLanguages": ["th"],
     "renderingContent": {
       "facetOrdering": {
         "facets": {

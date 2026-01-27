@@ -63,16 +63,18 @@ export function sortProducts(
 
   if (["rating_asc", "rating_desc"].includes(sortBy)) {
     sortedProducts.sort((a, b) => {
-      const ratingA = typeof a.average_rating === "number" 
-        ? a.average_rating 
-        : typeof a.average_rating === "string" 
-        ? parseFloat(a.average_rating) || 0 
-        : 0
-      const ratingB = typeof b.average_rating === "number" 
-        ? b.average_rating 
-        : typeof b.average_rating === "string" 
-        ? parseFloat(b.average_rating) || 0 
-        : 0
+      const ratingA =
+        typeof a.average_rating === "number"
+          ? a.average_rating
+          : typeof a.average_rating === "string"
+            ? parseFloat(a.average_rating) || 0
+            : 0
+      const ratingB =
+        typeof b.average_rating === "number"
+          ? b.average_rating
+          : typeof b.average_rating === "string"
+            ? parseFloat(b.average_rating) || 0
+            : 0
       return sortBy === "rating_asc" ? ratingA - ratingB : ratingB - ratingA
     })
   }

@@ -8,8 +8,15 @@ import { Chip } from "./Chip/Chip"
 import { Divider } from "./Divider/Divider"
 import { Indicator } from "./Indicator/Indicator"
 import { Input } from "./Input/Input"
-import { Autocomplete, DefaultOptionComponent } from "./Autocomplete/Autocomplete"
-import type { AutocompleteOption, AutocompleteStyleConfig, OptionComponentProps } from "./Autocomplete/Autocomplete"
+import {
+  Autocomplete,
+  DefaultOptionComponent,
+} from "./Autocomplete/Autocomplete"
+import type {
+  AutocompleteOption,
+  AutocompleteStyleConfig,
+  OptionComponentProps,
+} from "./Autocomplete/Autocomplete"
 import { Textarea } from "./Textarea/Textarea"
 import { PaginationButton } from "./PaginationButton/PaginationButton"
 import { Card } from "./Card/Card"

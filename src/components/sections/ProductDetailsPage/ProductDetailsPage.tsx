@@ -33,21 +33,22 @@ export const ProductDetailsPage = async ({
 
   const breadcrumbs = !prod.collection
     ? [
-      { label: "หน้าแรก", path: "/" },
-      { label: prod.title, path: `/products/${prod.handle}` },
-    ]
+        { label: "หน้าแรก", path: "/" },
+        { label: prod.title, path: `/products/${prod.handle}` },
+      ]
     : [
-      { label: "หน้าแรก", path: "/" },
-      {
-        label: prod.collection.title,
-        path: `/collections/${prod.collection.handle}`,
-      },
-      { label: prod.title, path: `/products/${prod.handle}` },
-    ]
+        { label: "หน้าแรก", path: "/" },
+        {
+          label: prod.collection.title,
+          path: `/collections/${prod.collection.handle}`,
+        },
+        { label: prod.title, path: `/products/${prod.handle}` },
+      ]
 
-  const productWarning: string | null = (prod as any).attribute_values?.find(
-    (attr: any) => attr?.attribute?.handle === "product_warning"
-  )?.value ?? null
+  const productWarning: string | null =
+    (prod as any).attribute_values?.find(
+      (attr: any) => attr?.attribute?.handle === "product_warning"
+    )?.value ?? null
 
   return (
     <>
