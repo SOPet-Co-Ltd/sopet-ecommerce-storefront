@@ -1,6 +1,5 @@
 "use client"
 
-import { Card, LogoutButton, NavigationItem } from "@/components/atoms"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
 import { usePathname } from "next/navigation"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
