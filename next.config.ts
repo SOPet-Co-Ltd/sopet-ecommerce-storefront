@@ -52,6 +52,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "r2.sopet.co",
+      },
+      {
+        protocol: "https",
         hostname: "sopet.co",
       },
     ],

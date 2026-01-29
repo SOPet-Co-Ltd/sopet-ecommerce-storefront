@@ -4,7 +4,7 @@ import {
   ProductCardReviewStars,
   ProductCardShowPrice,
 } from "@/components/sections"
-import Image from "next/image"
+import SmartImage from "@/components/atoms/SmartImage/SmartImage"
 import { HttpTypes } from "@medusajs/types"
 import { BaseHit, Hit } from "instantsearch.js"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
@@ -38,7 +38,7 @@ export const ProductCard = ({ product, api_product }: ProductCardProps) => {
       <div className="md:w-[223px] w-[168px] md:max-w-[223px] max-w-[168px] md:rounded-sop-24px rounded-sop-16px overflow-hidden bg-sop-base-white">
         <div className="md:w-[223px] w-[168px] md:h-[223px] h-[168px]">
           {product.thumbnail ? (
-            <Image
+            <SmartImage
               fetchPriority={"auto"}
               src={decodeURIComponent(product.thumbnail)}
               alt="Product image"
