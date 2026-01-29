@@ -1,5 +1,16 @@
 import React from "react"
 import { Cash, CreditCard } from "@medusajs/icons"
+import {
+  IconProps,
+  UserManagementBellIcon,
+  UserManagementBinIcon,
+  UserManagementCardIcon,
+  UserManagementClipboardIcon,
+  UserManagementHeartIcon,
+  UserManagementHelpIcon,
+  UserManagementLocationIcon,
+  UserManagementUserIcon,
+} from "@/icons"
 
 /* Map of payment provider_id to their title and icon. Add in any payment providers you want to use. */
 export const paymentInfoMap: Record<
@@ -68,3 +79,37 @@ export const noDivisionCurrencies = [
 ]
 
 export const PROTECTED_ROUTES = ["/user"]
+
+export const USER_SEGMENT_LABELS: Record<
+  string,
+  { label: string; icon: (props: IconProps) => React.JSX.Element }
+> = {
+  profile: {
+    label: "ข้อมูลส่วนตัว",
+    icon: UserManagementUserIcon,
+  },
+  orders: {
+    label: "คำสั่งซื้อสินค้า",
+    icon: UserManagementClipboardIcon,
+  },
+  addresses: {
+    label: "ที่อยู่สำหรับจัดส่ง",
+    icon: UserManagementLocationIcon,
+  },
+  credit: {
+    label: "บัตรเครดิต/เดบิต",
+    icon: UserManagementCardIcon,
+  },
+  notifications: {
+    label: "การแจ้งเตือน",
+    icon: UserManagementBellIcon,
+  },
+  help: {
+    label: "ศูนย์ช่วยเหลือ",
+    icon: UserManagementHelpIcon,
+  },
+  delete: {
+    label: "คำขอลบบัญชี",
+    icon: UserManagementBinIcon,
+  },
+}
