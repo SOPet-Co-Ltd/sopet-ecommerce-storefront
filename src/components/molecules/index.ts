@@ -27,6 +27,7 @@ import { Dropdown } from "./Dropdown/Dropdown"
 import { CartDropdownItem } from "./CartDropdownItem/CartDropdownItem"
 import { LoginForm } from "./LoginForm/LoginForm"
 import { RegisterForm } from "./RegisterForm/RegisterForm"
+import { UserBreadcrumbs } from "./UserBreadcrumbs/UserBreadcrumbs"
 import { UserNavigation } from "./UserNavigation/UserNavigation"
 import { ParcelAccordion } from "./ParcelAccordion/ParcelAccordion"
 import { AddressForm } from "./AddressForm/AddressForm"
@@ -63,6 +64,7 @@ export {
   CartDropdownItem,
   LoginForm,
   RegisterForm,
+  UserBreadcrumbs,
   UserNavigation,
   ParcelAccordion,
   AddressForm,
