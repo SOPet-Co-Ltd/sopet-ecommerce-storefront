@@ -2,21 +2,11 @@
 
 import { useParams, usePathname } from "next/navigation"
 import { Breadcrumbs } from "@/components/atoms"
+import { USER_SEGMENT_LABELS } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
-/** Path segment (after /user) to breadcrumb label. */
-const USER_SEGMENT_LABELS: Record<string, string> = {
-  profile: "ข้อมูลส่วนตัว",
-  orders: "คำสั่งซื้อสินค้า",
-  addresses: "ที่อยู่สำหรับจัดส่ง",
-  credit: "บัตรเครดิต/เดบิต",
-  notifications: "การแจ้งเตือน",
-  help: "ศูนย์ช่วยเหลือ",
-  delete: "คำขอลบบัญชี",
-}
-
 function getSegmentLabel(segment: string): string {
-  return USER_SEGMENT_LABELS[segment] ?? segment
+  return USER_SEGMENT_LABELS[segment]?.label ?? segment
 }
 
 export function UserBreadcrumbs({ className }: { className?: string }) {

@@ -1,70 +1,59 @@
 "use client"
-import {
-  Badge,
-  Card,
-  Divider,
-  LogoutButton,
-  NavigationItem,
-} from "@/components/atoms"
-import { useUnreads } from "@talkjs/react"
-import { usePathname } from "next/navigation"
 
-const navigationItems = [
-  {
-    label: "Orders",
-    href: "/user/orders",
-  },
-  {
-    label: "Messages",
-    href: "/user/messages",
-  },
-  {
-    label: "Returns",
-    href: "/user/returns",
-  },
-  {
-    label: "Addresses",
-    href: "/user/addresses",
-  },
-  {
-    label: "Reviews",
-    href: "/user/reviews",
-  },
-  {
-    label: "Wishlist",
-    href: "/user/wishlist",
-  },
-]
+import { Card, LogoutButton, NavigationItem } from "@/components/atoms"
+import { USER_SEGMENT_LABELS } from "@/lib/constants"
+import { usePathname } from "next/navigation"
+import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { cn } from "@/lib/utils"
+
+const getNavigationItems = () => {
+  return Object.entries(USER_SEGMENT_LABELS).map(([segment, config]) => {
+    return {
+      segment,
+      label: config?.label ?? segment,
+      Icon: config?.icon,
+      href: `/user/${segment}` as const,
+    }
+  })
+}
 
 export const UserNavigation = () => {
-  const unreads = useUnreads()
   const path = usePathname()
-
+  const navigationItems = getNavigationItems()
   return (
-    <Card className="h-min">
-      {navigationItems.map((item) => (
-        <NavigationItem
-          key={item.label}
-          href={item.href}
-          active={path === item.href}
-          className="relative"
-        >
-          {item.label}
-          {item.label === "Messages" && Boolean(unreads?.length) && (
-            <Badge className="absolute top-3 left-24 w-4 h-4 p-0">
-              {unreads?.length}
-            </Badge>
-          )}
-        </NavigationItem>
-      ))}
-      <Divider className="my-2" />
-      <NavigationItem
-        href={"/user/settings"}
-        active={path === "/user/settings"}
+    <div className={cn("bg-sop-base-white rounded-sop-8px")}>
+      <div
+        className={cn("px-sop-16px py-sop-12px flex items-center gap-sop-16px")}
       >
-        Settings
-      </NavigationItem>
-      <LogoutButton className="w-full text-left" />
-    </Card>
+        <div
+          className={cn(
+            "aspect-square rounded-full bg-sop-neutral-gray-500 p-1 w-sop-56px h-sop-56px"
+          )}
+        >
+          {/* TODO: Add user avatar */}
+        </div>
+        <span className="sop-body-sm-regular text-sop-neutral-gray-200">
+          บัญชีของฉัน
+        </span>
+      </div>
+      <div className="h-px bg-sop-neutral-gray-500" />
+      {navigationItems.map(({ segment, label, href, Icon }) => (
+        <LocalizedClientLink key={segment} href={href}>
+          <div className={cn("px-sop-16px py-[10px]")}>
+            <span className="flex items-center gap-sop-12px">
+              {Icon && <Icon size={16} color="#454547" />}
+              <span
+                className={cn(
+                  "sop-body-md-regular text-sop-neutral-gray-200",
+                  path === href && "text-sop-primary-500"
+                )}
+              >
+                {label}
+              </span>
+            </span>
+          </div>
+        </LocalizedClientLink>
+      ))}
+    </div>
   )
 }
