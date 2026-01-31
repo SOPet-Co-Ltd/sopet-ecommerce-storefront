@@ -7,8 +7,8 @@ export default function UserLayout({
   children: React.ReactNode
 }) {
   return (
-    <div className={cn("px-sop-80px py-[30px]")}>
-      <div className={cn("mb-sop-40px")}>
+    <div className={cn("md:px-sop-80px md:py-[30px] px-sop-16px py-sop-20px")}>
+      <div className={cn("mb-sop-40px md:block hidden")}>
         <UserBreadcrumbs />
       </div>
       <div className={cn("grid grid-cols-1 md:grid-cols-4 gap-5 md:gap-8")}>
