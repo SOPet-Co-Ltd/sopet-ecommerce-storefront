@@ -24,6 +24,7 @@ import ShippingAddressSummary from "@/components/molecules/ShippingAddressSummar
 import { GuestOTPDialog } from "@/components/organisms/GuestOTPDialog/GuestOTPDialog"
 import { AddressSelectionDialog } from "@/components/organisms/AddressSelectionDialog/AddressSelectionDialog"
 import { EditAddressDialog } from "@/components/organisms/EditAddressDialog/EditAddressDialog"
+import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
 
 export const CartAddressSection = ({
   cart,
@@ -53,6 +54,7 @@ export const CartAddressSection = ({
     useState<HttpTypes.StoreCustomerAddress | null>(null)
   const autoAppliedRef = useRef(false)
   const pendingNavigationRef = useRef<{ moveToDelivery: boolean } | null>(null)
+  const { setSelectedAddress, setSelectedEmail } = useCheckoutPayment()
 
   const isAddress = Boolean(
     cart?.shipping_address &&
@@ -131,6 +133,28 @@ export const CartAddressSection = ({
       setSelectedSavedAddress(defaultAddress)
     }
   }, [hasSavedAddresses, savedAddresses, cart?.shipping_address])
+
+  useEffect(() => {
+    if (selectedSavedAddress) {
+      setSelectedAddress(selectedSavedAddress)
+      return
+    }
+
+    if (cart?.billing_address || cart?.shipping_address) {
+      setSelectedAddress(cart.billing_address || cart.shipping_address || null)
+    }
+  }, [
+    cart?.billing_address,
+    cart?.shipping_address,
+    selectedSavedAddress,
+    setSelectedAddress,
+  ])
+
+  useEffect(() => {
+    if (customer?.email || cart?.email) {
+      setSelectedEmail(customer?.email || cart?.email || "")
+    }
+  }, [cart?.email, customer?.email, setSelectedEmail])
 
   const buildAddressFormData = useCallback(
     (address: HttpTypes.StoreCustomerAddress) => {

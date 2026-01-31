@@ -1,17 +1,10 @@
-import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
-import { CheckoutPaymentSection } from "@/components/sections/CheckoutPaymentSection"
-import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
-import { CartAddressSection } from "@/components/sections/CartAddressSection/CartAddressSection"
-import CartPaymentSection from "@/components/sections/CartPaymentSection/CartPaymentSection"
-import CartReview from "@/components/sections/CartReview/CartReview"
+import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
-import CartShippingMethodsSection from "@/components/sections/CartShippingMethodsSection/CartShippingMethodsSection"
 import { retrieveCart } from "@/lib/data/cart"
 import { listAddressesByPhone, retrieveCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
-import { retrieveRegion } from "@/lib/data/regions"
 import { getGuestPhone } from "@/lib/data/cookies"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
@@ -44,7 +37,8 @@ async function CheckoutPageContent({}) {
   }
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
-  const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
+  const regionId = cart.region_id ?? cart.region?.id
+  const paymentMethods = regionId ? await listCartPaymentMethods(regionId) : null
   const customer = await retrieveCustomer()
   const guestPhone = await getGuestPhone()
   const fallbackPhone = customer?.phone || (!customer ? guestPhone : "") || ""
@@ -58,23 +52,14 @@ async function CheckoutPageContent({}) {
       <main className="">
         <div className="flex w-full justify-center py-10">
           <div className="flex flex-col gap-4 w-full max-w-4xl">
-            <CartAddressSection
+            <CheckoutFlowClient
               cart={cart}
+              shippingMethods={shippingMethods || []}
+              paymentMethods={paymentMethods}
               customer={customer}
               phoneAddresses={phoneAddresses}
               guestPhone={guestPhone}
             />
-
-            <CartReview cart={cart} shippingMethods={shippingMethods || []} />
-
-            <CheckoutDiscountSection cart={cart} />
-
-            <CheckoutPaymentSection
-              cart={cart}
-              paymentMethods={paymentMethods}
-            />
-
-            <CheckoutSummarySection cart={cart} />
           </div>
         </div>
       </main>

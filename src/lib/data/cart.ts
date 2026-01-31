@@ -33,20 +33,20 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  const { data, error } = await fetchQuery(`/store/cart/${id}`, {
-    method: "GET",
-    headers,
-    cache: "no-store",
-  })
+  const { data, error } = await fetchQuery(
+    `/store/carts/${id}?fields=+items,+region,+payment_collection,+payment_collection.payment_sessions`,
+    {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    }
+  )
 
   if (error || !data?.cart) {
     console.error(`[retrieveCart] Error fetching cart ${id}:`, error)
     return null
   }
 
-  console.log(
-    `[retrieveCart] Success for ID ${id}, Items: ${data.cart.items?.length}`
-  )
   return data.cart as Cart
 }
 
@@ -210,16 +210,37 @@ export async function updateLineItem({
     ...(await getAuthHeaders()),
   }
 
-  const res = await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
-    body: { quantity },
-    method: "POST",
-    headers,
-  })
+  try {
+    const res = await fetchQuery(
+      `/store/carts/${cartId}/line-items/${lineId}`,
+      {
+        body: { quantity },
+        method: "POST",
+        headers,
+      }
+    )
 
-  const cartCacheTag = await getCacheTag("carts")
-  await revalidateTag(cartCacheTag)
+    const cartCacheTag = await getCacheTag("carts")
+    await revalidateTag(cartCacheTag)
 
-  return res
+    return res
+  } catch (e: any) {
+    const errorMessage = e?.message || ""
+    if (
+      errorMessage.includes("Could not delete all payment sessions") ||
+      errorMessage.includes("payment collection")
+    ) {
+      console.warn(
+        "[updateLineItem] Cart is locked by payment session. User needs to reset or complete order.",
+        e
+      )
+      throw new Error(
+        "Cannot modify cart because payment is processed. Please complete the order or start a new cart."
+      )
+    }
+    console.error(`[updateLineItem] Error updating line item ${lineId}:`, e)
+    throw e
+  }
 }
 
 export async function deleteLineItem(lineId: string) {
@@ -390,22 +411,40 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       throw new Error("No existing cart found when setting addresses")
     }
 
+    const normalizedEntries = new Map<string, FormDataEntryValue>()
+    for (const [key, value] of formData.entries()) {
+      if (key === "0") {
+        continue
+      }
+      const normalizedKey = key.replace(/^\d+_/, "")
+      if (!normalizedEntries.has(normalizedKey)) {
+        normalizedEntries.set(normalizedKey, value)
+      }
+    }
+
+    const getField = (field: string) => normalizedEntries.get(field) ?? null
+
+    const getText = (field: string, fallback = "") => {
+      const value = getField(field)
+      return typeof value === "string" ? value : fallback
+    }
+
     const data: HttpTypes.StoreUpdateCart = {
       shipping_address: {
-        first_name: formData.get("shipping_address.first_name") as string,
-        last_name: formData.get("shipping_address.last_name") as string,
-        address_1: formData.get("shipping_address.address_1") as string,
-        address_2: (formData.get("shipping_address.address_2") as string) || "",
-        company: (formData.get("shipping_address.company") as string) || "",
-        postal_code: formData.get("shipping_address.postal_code") as string,
-        city: formData.get("shipping_address.city") as string,
-        country_code: formData.get("shipping_address.country_code") as string,
-        province: formData.get("shipping_address.province") as string,
-        phone: formData.get("shipping_address.phone") as string,
+        first_name: getText("shipping_address.first_name"),
+        last_name: getText("shipping_address.last_name"),
+        address_1: getText("shipping_address.address_1"),
+        address_2: getText("shipping_address.address_2"),
+        company: getText("shipping_address.company"),
+        postal_code: getText("shipping_address.postal_code"),
+        city: getText("shipping_address.city"),
+        country_code: getText("shipping_address.country_code"),
+        province: getText("shipping_address.province"),
+        phone: getText("shipping_address.phone"),
       },
     }
 
-    const email = formData.get("email") as string
+    const email = getText("email")
     if (email) {
       data.email = email
     }

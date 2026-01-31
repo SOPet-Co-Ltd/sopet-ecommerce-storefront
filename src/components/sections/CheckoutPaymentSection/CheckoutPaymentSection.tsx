@@ -1,12 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Wallet, CreditCard, Plus, Check } from "lucide-react"
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
+import { Wallet, Plus, Check } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
 import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 import { initiatePaymentSession } from "@/lib/data/cart"
+import { useRouter } from "next/navigation"
+import {
+  CardCvcElement,
+  CardExpiryElement,
+  CardNumberElement,
+} from "@stripe/react-stripe-js"
+import type {
+  StripeCardCvcElementOptions,
+  StripeCardExpiryElementOptions,
+  StripeCardNumberElementOptions,
+} from "@stripe/stripe-js"
+import { isManual, isStripe } from "@/lib/constants"
+import { StripeContext } from "@/components/organisms/PaymentContainer/StripeWrapper"
+import { useCheckoutPayment } from "./CheckoutPaymentContext"
 
 type CheckoutPaymentSectionProps = {
   cart: Cart | null
@@ -17,49 +38,189 @@ export const CheckoutPaymentSection = ({
   cart,
   paymentMethods,
 }: CheckoutPaymentSectionProps) => {
-  const [method, setMethod] = useState<"qrcode" | "card">("card")
+  const {
+    method,
+    setMethod,
+    cardholderName,
+    setCardholderName,
+    setCardComplete,
+    setCardError,
+  } = useCheckoutPayment()
   const [isLoading, setIsLoading] = useState(false)
   const [isAddingCard, setIsAddingCard] = useState(false)
+  const [cardNumberComplete, setCardNumberComplete] = useState(false)
+  const [cardExpiryComplete, setCardExpiryComplete] = useState(false)
+  const [cardCvcComplete, setCardCvcComplete] = useState(false)
+  const [cardNumberError, setCardNumberError] = useState<string | null>(null)
+  const [cardExpiryError, setCardExpiryError] = useState<string | null>(null)
+  const [cardCvcError, setCardCvcError] = useState<string | null>(null)
+  const autoInitRef = useRef(false)
+
+  const router = useRouter()
+  const stripeReady = useContext(StripeContext)
+
+  const isStripeProvider = (providerId?: string) => isStripe(providerId)
+
+  const stripeProviderId = paymentMethods?.find((p) =>
+    isStripeProvider(p.id)
+  )?.id
+  const manualProviderId =
+    paymentMethods?.find((p) => isManual(p.id))?.id ||
+    paymentMethods?.find((p) => !isStripeProvider(p.id))?.id
+  const stripeSession = cart?.payment_collection?.payment_sessions?.find(
+    (session) => isStripeProvider(session.provider_id)
+  )
+  const nonStripeSession = cart?.payment_collection?.payment_sessions?.find(
+    (session) => !isStripeProvider(session.provider_id)
+  )
+
+  const baseElementStyles = useMemo(
+    () => ({
+      style: {
+        base: {
+          fontFamily: "inherit",
+          fontSize: "14px",
+          color: "#111827",
+          "::placeholder": {
+            color: "#9CA3AF",
+          },
+        },
+        invalid: {
+          color: "#ef4444",
+        },
+      },
+    }),
+    []
+  )
+
+  const cardNumberOptions = useMemo<StripeCardNumberElementOptions>(
+    () => ({
+      ...baseElementStyles,
+      placeholder: "หมายเลขบัตร",
+      disableLink: true,
+    }),
+    [baseElementStyles]
+  )
+
+  const cardExpiryOptions = useMemo<StripeCardExpiryElementOptions>(
+    () => ({
+      ...baseElementStyles,
+      placeholder: "วันหมดอายุ",
+    }),
+    [baseElementStyles]
+  )
+
+  const cardCvcOptions = useMemo<StripeCardCvcElementOptions>(
+    () => ({
+      ...baseElementStyles,
+      placeholder: "CVV",
+    }),
+    [baseElementStyles]
+  )
 
   useEffect(() => {
-    if (cart?.payment_collection?.payment_sessions?.length) {
-      const activeSession = cart.payment_collection.payment_sessions.find(
-        (s) => s.status === "pending"
-      )
-      if (activeSession) {
-        if (activeSession.provider_id === "stripe") {
-          setMethod("card")
-        } else {
-          setMethod("qrcode")
+    if (!cart?.payment_collection?.payment_sessions?.length) {
+      return
+    }
+
+    if (stripeSession) {
+      setMethod("card")
+      return
+    }
+
+    if (nonStripeSession) {
+      setMethod("qrcode")
+    }
+  }, [cart, nonStripeSession, setMethod, stripeSession])
+
+  useEffect(() => {
+    const isComplete =
+      method === "card" &&
+      (!isAddingCard || // Assume complete if using saved card/default
+        (isAddingCard &&
+          cardNumberComplete &&
+          cardExpiryComplete &&
+          cardCvcComplete))
+    setCardComplete(isComplete)
+  }, [
+    method,
+    isAddingCard,
+    cardNumberComplete,
+    cardExpiryComplete,
+    cardCvcComplete,
+    setCardComplete,
+  ])
+
+  useEffect(() => {
+    setCardError(cardNumberError || cardExpiryError || cardCvcError || null)
+  }, [cardNumberError, cardExpiryError, cardCvcError, setCardError])
+
+  useEffect(() => {
+    if (method !== "card" || !isAddingCard) {
+      setCardNumberComplete(false)
+      setCardExpiryComplete(false)
+      setCardCvcComplete(false)
+      setCardNumberError(null)
+      setCardExpiryError(null)
+      setCardCvcError(null)
+    }
+  }, [method, isAddingCard])
+
+  const handleMethodChange = useCallback(
+    async (newMethod: "qrcode" | "card") => {
+      setMethod(newMethod)
+      if (newMethod !== "card") {
+        setIsAddingCard(false)
+      }
+      setIsLoading(true)
+
+      const providerId =
+        newMethod === "card" ? stripeProviderId : manualProviderId
+
+      if (!providerId) {
+        console.error("Payment provider not available for method:", newMethod)
+        setIsLoading(false)
+        return
+      }
+
+      if (cart && providerId) {
+        try {
+          const res = await initiatePaymentSession(cart, {
+            provider_id: providerId,
+          })
+
+          router.refresh()
+        } catch (e) {
+          console.error("[CheckoutPaymentSection] Failed to init session:", e)
         }
       }
-    }
-  }, [cart])
+      setIsLoading(false)
+    },
+    [cart, manualProviderId, router, setMethod, stripeProviderId]
+  )
 
-  const handleMethodChange = async (newMethod: "qrcode" | "card") => {
-    setMethod(newMethod)
-    setIsLoading(true)
-
-    let providerId = ""
-    if (newMethod === "card") {
-      providerId =
-        paymentMethods?.find((p) => p.id === "stripe")?.id || "stripe"
-    } else {
-      providerId =
-        paymentMethods?.find((p) => p.id !== "stripe")?.id || "manual"
+  useEffect(() => {
+    if (
+      method !== "card" ||
+      !cart ||
+      isLoading ||
+      stripeSession ||
+      !stripeProviderId
+    ) {
+      return
     }
 
-    if (cart && providerId) {
-      try {
-        await initiatePaymentSession(cart, {
-          provider_id: providerId,
-        })
-      } catch (e) {
-        console.error(e)
-      }
+    if (autoInitRef.current) {
+      return
     }
-    setIsLoading(false)
-  }
+
+    autoInitRef.current = true
+    void handleMethodChange("card")
+  }, [method, cart, isLoading, stripeSession, handleMethodChange])
+
+  useEffect(() => {
+    autoInitRef.current = false
+  }, [cart?.id])
 
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col gap-6 relative">
@@ -143,29 +304,58 @@ export const CheckoutPaymentSection = ({
                 </>
               ) : (
                 <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
-                  <input
-                    type="text"
-                    placeholder="หมายเลขบัตร"
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
-                  />
+                  <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
+                    {stripeReady ? (
+                      <CardNumberElement
+                        className="w-full"
+                        options={cardNumberOptions}
+                        onChange={(event) => {
+                          setCardNumberComplete(event.complete)
+                          setCardNumberError(event.error?.message || null)
+                        }}
+                      />
+                    ) : (
+                      <span className="text-gray-400">หมายเลขบัตร</span>
+                    )}
+                  </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    <input
-                      type="text"
-                      placeholder="วันหมดอายุ"
-                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
-                    />
+                    <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
+                      {stripeReady ? (
+                        <CardExpiryElement
+                          className="w-full"
+                          options={cardExpiryOptions}
+                          onChange={(event) => {
+                            setCardExpiryComplete(event.complete)
+                            setCardExpiryError(event.error?.message || null)
+                          }}
+                        />
+                      ) : (
+                        <span className="text-gray-400">วันหมดอายุ</span>
+                      )}
+                    </div>
+                    <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
+                      {stripeReady ? (
+                        <CardCvcElement
+                          className="w-full"
+                          options={cardCvcOptions}
+                          onChange={(event) => {
+                            setCardCvcComplete(event.complete)
+                            setCardCvcError(event.error?.message || null)
+                          }}
+                        />
+                      ) : (
+                        <span className="text-gray-400">CVV</span>
+                      )}
+                    </div>
                   </div>
 
                   <input
                     type="text"
                     placeholder="ชื่อผู้ถือบัตร"
                     className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
+                    value={cardholderName}
+                    onChange={(event) => setCardholderName(event.target.value)}
                   />
 
                   <div className="flex gap-2 justify-end">

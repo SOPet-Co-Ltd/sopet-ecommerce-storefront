@@ -257,7 +257,9 @@ const ShippingAddress = ({
         name="shipping_address.last_name"
         value={formData["shipping_address.last_name"] || "-"}
       />
-      {customer && <input type="hidden" name="email" value={formData.email} />}
+      {customer?.email && (
+        <input type="hidden" name="email" value={customer.email} />
+      )}
     </>
   )
 }

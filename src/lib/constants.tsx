@@ -6,6 +6,10 @@ export const paymentInfoMap: Record<
   string,
   { title: string; icon: React.JSX.Element }
 > = {
+  "stripe-connect": {
+    title: "Credit card",
+    icon: <CreditCard />,
+  },
   "pp_card_stripe-connect": {
     title: "Credit card",
     icon: <CreditCard />,
@@ -35,7 +39,17 @@ export const paymentInfoMap: Record<
 
 // This only checks if it is native stripe for card payments, it ignores the other stripe-based providers
 export const isStripe = (providerId?: string) => {
-  return providerId?.startsWith("pp_card_stripe-connect")
+  if (!providerId) {
+    return false
+  }
+
+  return (
+    providerId === "stripe" ||
+    providerId === "stripe-connect" ||
+    providerId.startsWith("pp_card_stripe-connect") ||
+    providerId.startsWith("pp_card_stripe") ||
+    providerId.startsWith("pp_stripe_stripe")
+  )
 }
 export const isPaypal = (providerId?: string) => {
   return providerId?.startsWith("pp_paypal")

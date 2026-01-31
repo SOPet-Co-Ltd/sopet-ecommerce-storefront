@@ -3,24 +3,24 @@
 import PaymentButton from "./PaymentButton"
 import CheckoutItemPreview from "@/components/molecules/CheckoutItemPreview/CheckoutItemPreview"
 import { StoreCardShippingMethod, Cart } from "@/types/cart"
+import { HttpTypes } from "@medusajs/types"
 import { Heading } from "@medusajs/ui"
 import { ClipboardList } from "lucide-react"
 
 const Review = ({
   cart,
   shippingMethods,
+  customer,
 }: {
   cart: Cart
   shippingMethods: StoreCardShippingMethod[]
+  customer?: HttpTypes.StoreCustomer | null
 }) => {
   const paidByGiftcard =
     cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
 
   const previousStepsCompleted =
-    cart.shipping_address &&
-    cart.shipping_methods &&
-    cart.shipping_methods.length > 0 &&
-    (cart.payment_collection || paidByGiftcard)
+    cart.shipping_address && (cart.payment_collection || paidByGiftcard)
 
   return (
     <div>
@@ -39,9 +39,13 @@ const Review = ({
         />
       </div>
 
-      {previousStepsCompleted && (
-        <PaymentButton cart={cart} data-testid="submit-order-button" />
-      )}
+      {/* {previousStepsCompleted && (
+        <PaymentButton
+          cart={cart}
+          customer={customer}
+          data-testid="submit-order-button"
+        />
+      )} */}
     </div>
   )
 }
