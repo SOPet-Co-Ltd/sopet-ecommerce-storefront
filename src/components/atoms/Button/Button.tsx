@@ -81,7 +81,7 @@ export function Button({
     destructive:
       "bg-sop-system-error-400 text-sop-neutral-grayfixed-600 border-transparent hover:bg-sop-system-error-500",
     neutral:
-      "bg-transparent text-sop-neutral-gray-200 border border-sop-neutral-grayalpha-100",
+      "bg-transparent text-sop-neutral-gray-200 border border-sop-neutral-grayalpha-100 hover:bg-sop-neutral-grayalpha-100",
     ghost:
       "bg-transparent text-sop-neutral-gray-100 border-transparent hover:bg-sop-neutral-grayalpha-100",
     link: "bg-transparent text-sop-secondary-500 border-transparent underline underline-offset-4",

@@ -60,7 +60,7 @@ export const WishlistButton = ({
     }
   }
   return (
-    <Button
+    <button
       onClick={() => {
         if (!user) {
           router.push(`/${locale}/user`)
@@ -73,12 +73,9 @@ export const WishlistButton = ({
         }
       }}
       disabled={isWishlistAdding}
-      size="icon"
-      variant="icon"
-      className="md:py-sop-12px py-sop-8px"
-      loading={isWishlistAdding}
+      className="cursor-pointer"
     >
       <WishListHeartIcon size={30} filled={isWishlisted} />
-    </Button>
+    </button>
   )
 }

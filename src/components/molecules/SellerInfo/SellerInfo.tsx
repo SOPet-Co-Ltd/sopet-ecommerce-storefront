@@ -2,6 +2,7 @@ import { StarRating } from "@/components/atoms"
 import { SellerAvatar } from "@/components/cells/SellerAvatar/SellerAvatar"
 import { SellerProps } from "@/types/seller"
 import { SellerReview } from "../SellerReview/SellerReview"
+import LocalizedClientLink from "../LocalizedLink/LocalizedLink"
 
 export const SellerInfo = ({
   seller,
@@ -21,20 +22,26 @@ export const SellerInfo = ({
 
   return (
     <div className="flex justify-between items-center w-full">
-      <div className="flex items-center gap-4">
-        <div className="border rounded-full md:block hidden">
-          <SellerAvatar photo={photo} size={50} alt={name} />
+      <LocalizedClientLink href={`/sellers/${seller.handle}`}>
+        <div className="flex items-center gap-4">
+          <div className="border rounded-full md:block hidden">
+            <SellerAvatar photo={photo} size={50} alt={name} />
+          </div>
+          <div className="border rounded-full block md:hidden">
+            <SellerAvatar photo={photo} size={33} alt={name} />
+          </div>
+          <p className="md:sop-headline-sm-regular sop-body-sm-regular">
+            {name}
+          </p>
         </div>
-        <div className="border rounded-full block md:hidden">
-          <SellerAvatar photo={photo} size={33} alt={name} />
+      </LocalizedClientLink>
+      <LocalizedClientLink href={`/sellers/${seller.handle}`}>
+        <div className="">
+          <p className="sop-body-xs-regular md:sop-body-md-regular py-1 md:px-8 px-4 border rounded-full border-sop-secondary-500 text-sop-secondary-500">
+            ดูร้านค้า
+          </p>
         </div>
-        <p className="md:sop-headline-sm-regular sop-body-sm-regular">{name}</p>
-      </div>
-      <div className="">
-        <p className="sop-body-xs-regular md:sop-body-md-regular py-1 md:px-8 px-4 border rounded-full border-sop-secondary-500 text-sop-secondary-500">
-          ดูร้านค้า
-        </p>
-      </div>
+      </LocalizedClientLink>
       {/* <div className="relative h-12 w-12 overflow-hidden rounded-xs">
         <SellerAvatar photo={photo} size={56} alt={name} />
       </div>

@@ -8,7 +8,6 @@ import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { useState } from "react"
 import React from "react"
 import { addToCart } from "@/lib/data/cart"
-import { Chat } from "@/components/organisms/Chat/Chat"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
@@ -116,10 +115,24 @@ const ShareModal = ({
       ? window.location.href
       : `/${locale}/products/${product.handle}`
 
-  // Handler to copy link to clipboard
+  // Handler to copy link to clipboard (with fallback for non-secure contexts)
   const handleCopyLink = async () => {
+    const text = String(productLink ?? "")
     try {
-      await navigator.clipboard.writeText(productLink)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for HTTP or restricted contexts
+        const textarea = document.createElement("textarea")
+        textarea.value = text
+        textarea.style.position = "fixed"
+        textarea.style.left = "-9999px"
+        textarea.setAttribute("readonly", "")
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand("copy")
+        document.body.removeChild(textarea)
+      }
       toast.success({
         title: "คัดลอกลิงก์สำเร็จ",
         description: "ลิงก์สินค้าถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
@@ -135,9 +148,8 @@ const ShareModal = ({
 
   // Handler to open native share menu (mobile) or fallback to copy link (desktop)
   const handleNativeShare = async () => {
+    const shareText = getProductShareContent(product, locale)
     const productName = product.title || ""
-    const shortDescription = getShortDescription(product)
-    const shareText = `${productName}\n${shortDescription}\n${productLink}`
 
     // Check if Web Share API is available (mobile devices)
     if (navigator.share) {
@@ -267,7 +279,6 @@ const ShareModal = ({
                 ) : (
                   <button
                     type="button"
-                    disabled
                     onClick={button.handler || undefined}
                     className={button.buttonClassName}
                   >
@@ -406,9 +417,9 @@ export const ProductDetailsVariantSelection = ({
           onClick={handleAddToCart}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           loading={isAdding}
-          size="fill"
+          fill
+          size="lg"
           variant="secondary"
-          className="md:py-sop-12px py-sop-8px"
         >
           {!hasAnyPrice
             ? "NOT AVAILABLE IN YOUR REGION"
@@ -422,21 +433,20 @@ export const ProductDetailsVariantSelection = ({
           // TODO: Handle Buy Now action
           onClick={() => {}}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          size="fill"
+          fill
+          size="lg"
           className="md:py-sop-12px py-sop-8px"
         >
           ซื้อสินค้า
         </Button>
 
-        <Button
+        <button
           onClick={() => setIsShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          size="icon"
-          variant="icon"
-          className="md:py-sop-12px py-sop-8px"
+          className="cursor-pointer"
         >
           <ShareIcon size={24} color={"#9c6ade"} />
-        </Button>
+        </button>
 
         <WishlistButton
           productId={product.id}
