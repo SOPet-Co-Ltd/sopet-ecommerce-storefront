@@ -785,3 +785,38 @@ input[type="range"].slider-thumb:focus::-webkit-slider-thumb {
 input[type="range"].slider-thumb:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
 }
+
+/* ========================================================================== */
+/* Dropdown — height reveal animation (clip-path from top, no squishing)       */
+/* ========================================================================== */
+@keyframes dropdownOpen {
+  from {
+    clip-path: inset(0 0 100% 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+}
+
+@keyframes dropdownClose {
+  from {
+    clip-path: inset(0 0 0 0);
+    opacity: 1;
+  }
+  to {
+    clip-path: inset(0 0 100% 0);
+    opacity: 1;
+  }
+}
+
+/* Sweet spot for dropdowns: 150–250ms. Open slightly longer (200ms) for arrival; close 180ms for snappy dismiss. */
+.DropdownContent[data-state="open"] {
+  animation: dropdownOpen 200ms ease-out forwards;
+}
+
+/* Radix Select unmounts content when closed, so we run close animation via --closing class while keeping open=true */
+.DropdownContent.DropdownContent--closing {
+  animation: dropdownClose 180ms ease-in forwards;
+}

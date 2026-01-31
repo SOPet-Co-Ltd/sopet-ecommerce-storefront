@@ -9,6 +9,19 @@ import { Divider } from "./Divider/Divider"
 import { Indicator } from "./Indicator/Indicator"
 import { Input } from "./Input/Input"
 import {
+  Dropdown,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+  DropdownGroup,
+} from "./Dropdown/Dropdown"
+import type {
+  DropdownProps,
+  DropdownItemProps,
+  DropdownLabelProps,
+  DropdownSeparatorProps,
+} from "./Dropdown/Dropdown"
+import {
   Autocomplete,
   DefaultOptionComponent,
 } from "./Autocomplete/Autocomplete"
@@ -44,6 +57,11 @@ export {
   Divider,
   Indicator,
   Input,
+  Dropdown,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+  DropdownGroup,
   Autocomplete,
   DefaultOptionComponent,
   Textarea,
@@ -67,4 +85,8 @@ export type {
   OptionComponentProps,
   PriceRangeSliderProps,
   InputSOPetProps,
+  DropdownProps,
+  DropdownItemProps,
+  DropdownLabelProps,
+  DropdownSeparatorProps,
 }

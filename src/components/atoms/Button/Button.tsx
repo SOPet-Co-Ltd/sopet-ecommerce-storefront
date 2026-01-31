@@ -2,54 +2,170 @@ import { cn } from "@/lib/utils"
 
 import Spinner from "@/icons/spinner"
 
-type ButtonVariant = "default" | "secondary" | "icon" | "grey"
-type ButtonSize = "default" | "fill" | "icon"
+type SopButtonVariant =
+  | "primary"
+  | "outline"
+  | "filled"
+  | "destructive"
+  | "neutral"
+  | "ghost"
+  | "link"
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant
-  size?: ButtonSize
+type ButtonUiType = "button" | "icon"
+type ButtonRounded = "full" | "rounded"
+
+type ButtonSize = "sm" | "md" | "lg"
+type IconButtonSize = "sm" | "md"
+
+// Backward compatible values used across the codebase today.
+type LegacyButtonVariant = "default" | "secondary" | "icon" | "grey"
+type LegacyButtonSize = "default" | "fill" | "icon"
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /**
+   * SOP variant.
+   *
+   * Backward compatible mappings:
+   * - "default" -> "primary"
+   * - "secondary" -> "outline"
+   * - "grey" -> "filled"
+   * - "icon" -> uiType="icon" + variant defaults to "ghost"
+   */
+  variant?: SopButtonVariant | LegacyButtonVariant
+  /**
+   * Visual type (separate from HTML button type).
+   */
+  uiType?: ButtonUiType
+  /**
+   * Size depends on uiType:
+   * - uiType="button": sm | md | lg
+   * - uiType="icon": sm | md
+   *
+   * Backward compatible:
+   * - "fill" -> fill={true}
+   * - "icon" -> uiType="icon"
+   * - "default" -> md (or md icon)
+   */
+  size?: ButtonSize | IconButtonSize | LegacyButtonSize
+  rounded?: ButtonRounded
+  fill?: boolean
   loading?: boolean
 }
 
 export function Button({
   children,
-  variant = "default",
-  size = "default",
+  variant,
+  uiType,
+  size,
+  rounded = "full",
+  fill,
   loading = false,
   disabled = false,
   className,
   ...props
 }: ButtonProps) {
+  const isIconUiType =
+    uiType === "icon" || variant === "icon" || size === "icon"
+
+  const resolvedUiType: ButtonUiType = isIconUiType ? "icon" : "button"
+  const resolvedFill =
+    resolvedUiType === "button" ? (fill ?? size === "fill") : false
+
+  const variantClasses: Record<SopButtonVariant, string> = {
+    primary:
+      "bg-sop-primary-500 text-sop-neutral-grayfixed-600 border-transparent hover:bg-sop-primary-600",
+    outline:
+      "bg-transparent text-sop-secondary-500 border-sop-secondary-500 hover:bg-sop-secondary-100",
+    filled:
+      "bg-sop-neutral-gray-500 text-sop-neutral-gray-200 border-transparent",
+    destructive:
+      "bg-sop-system-error-400 text-sop-neutral-grayfixed-600 border-transparent hover:bg-sop-system-error-500",
+    neutral:
+      "bg-transparent text-sop-neutral-gray-200 border border-sop-neutral-grayalpha-100",
+    ghost:
+      "bg-transparent text-sop-neutral-gray-100 border-transparent hover:bg-sop-neutral-grayalpha-100",
+    link: "bg-transparent text-sop-secondary-500 border-transparent underline underline-offset-4",
+  }
+
+  const sizeButtonClasses: Record<ButtonSize, string> = {
+    sm: "min-w-[68px] min-h-[32px] py-sop-8px px-sop-12px sop-body-sm-medium",
+    md: "min-w-[76px] min-h-[36px] py-sop-8px px-sop-16px sop-body-sm-medium",
+    lg: "min-w-[114px] min-h-[48px] py-sop-4px px-sop-32px sop-body-md-medium",
+  }
+
+  const sizeIconClasses: Record<IconButtonSize, string> = {
+    sm: "min-h-[32px] min-w-[32px] aspect-square p-sop-8px [&_svg]:h-3 [&_svg]:w-3 [&_svg]:shrink-0",
+    md: "min-h-[36px] min-w-[36px] aspect-square p-sop-8px [&_svg]:h-3 [&_svg]:w-3 [&_svg]:shrink-0",
+  }
+
+  const resolvedVariant: SopButtonVariant = (() => {
+    if (typeof variant === "string" && variant in variantClasses) {
+      return variant as SopButtonVariant
+    }
+
+    switch (variant) {
+      case "default":
+        return "primary"
+      case "secondary":
+        return "outline"
+      case "grey":
+        return "filled"
+      case "icon":
+        return "ghost"
+      default:
+        return resolvedUiType === "icon" ? "ghost" : "primary"
+    }
+  })()
+
+  const resolvedSize: ButtonSize | IconButtonSize = (() => {
+    if (resolvedUiType === "icon") {
+      if (size === "sm" || size === "md") return size
+      return "md"
+    }
+
+    if (size === "sm" || size === "md" || size === "lg") return size
+    return "md"
+  })()
+
+  const resolvedRoundedClass = (() => {
+    if (rounded === "rounded") return "rounded-sop-8"
+
+    if (resolvedUiType === "icon") return "rounded-sop-36"
+    return resolvedSize === "lg" ? "rounded-sop-36" : "rounded-sop-32"
+  })()
+
   const baseClasses =
-    "md:sop-body-md-medium sop-body-sm-medium rounded-full transition-colors border flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+    "relative inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap border border-transparent transition-colors disabled:cursor-not-allowed disabled:opacity-40"
 
-  const variantClasses: Record<ButtonVariant, string> = {
-    default:
-      "bg-sop-primary-500 border-sop-primary-500 text-sop-neutral-grayfixed-600 hover:bg-sop-primary-600 hover:border-sop-primary-600 disabled:bg-sop-primary-500/50 disabled:border-sop-primary-500/50 disabled:text-sop-neutral-grayfixed-600/50",
-    secondary:
-      "bg-sop-secondary-100 border-sop-secondary-500 text-sop-secondary-500 hover:bg-sop-secondary-200 disabled:bg-sop-secondary-100/50 disabled:border-sop-secondary-500/50 disabled:text-sop-secondary-500/50",
-    icon: "bg-transparent border-transparent cursor-pointer",
-    grey: "bg-sop-neutral-grey-100 border-sop-neutral-grayalpha-200 text-sop-neutral-gray-200 hover:bg-sop-neutral-grey-200 disabled:bg-sop-neutral-grey-100/50 disabled:border-sop-neutral-grayalpha-200/50 disabled:text-sop-neutral-gray-200/50",
-  }
+  const resolvedSizeClass =
+    resolvedUiType === "icon"
+      ? sizeIconClasses[resolvedSize as IconButtonSize]
+      : sizeButtonClasses[resolvedSize as ButtonSize]
 
-  const sizeClasses: Record<ButtonSize, string> = {
-    default: "md:py-sop-4px md:px-sop-8px py-sop-2px px-sop-4px",
-    fill: "w-full",
-    icon: "h-fit w-fit aspect-square p-sop-8px",
-  }
+  const spinnerSize = resolvedUiType === "icon" ? 12 : 16
+  const isDisabled = disabled || loading
 
   return (
     <button
-      disabled={disabled}
+      disabled={isDisabled}
+      aria-busy={loading || undefined}
       className={cn(
-        className,
-        variantClasses[variant],
-        sizeClasses[size],
-        baseClasses
+        "shadow-xs",
+        baseClasses,
+        variantClasses[resolvedVariant],
+        resolvedSizeClass,
+        resolvedRoundedClass,
+        resolvedFill && "w-full",
+        className
       )}
       {...props}
     >
-      {loading ? <Spinner /> : children}
+      {loading && (
+        <span className="absolute inset-0 flex items-center justify-center">
+          <Spinner size={spinnerSize} />
+        </span>
+      )}
+      <span className={cn(loading && "opacity-0", "w-full")}>{children}</span>
     </button>
   )
 }

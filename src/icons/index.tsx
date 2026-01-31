@@ -3158,3 +3158,53 @@ export function UserManagementUserIcon({
     </svg>
   )
 }
+
+export function UpArrowIcon({
+  color = "#090909",
+  size = 24,
+  className = "",
+}: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1.25629 17.2734C1.6389 17.7198 2.31093 17.7715 2.75731 17.3889L12 9.46657L21.2427 17.3889C21.6891 17.7715 22.3611 17.7198 22.7437 17.2734C23.1263 16.827 23.0746 16.155 22.6282 15.7724L12.6928 7.25628C12.2941 6.91458 11.7059 6.91458 11.3072 7.25628L1.37176 15.7724C0.925378 16.155 0.873684 16.827 1.25629 17.2734Z"
+        fill={color}
+      />
+    </svg>
+  )
+}
+
+export function DownArrowIcon({
+  color = "#090909",
+  size = 24,
+  className = "",
+}: IconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M1.25629 7.37176C1.6389 6.92538 2.31093 6.87368 2.75731 7.25629L12 15.1786L21.2427 7.25629C21.6891 6.87368 22.3611 6.92538 22.7437 7.37176C23.1263 7.81814 23.0746 8.49016 22.6282 8.87277L12.6928 17.3889C12.2941 17.7306 11.7059 17.7306 11.3072 17.3889L1.37176 8.87277C0.925378 8.49016 0.873684 7.81814 1.25629 7.37176Z"
+        fill={color}
+      />
+    </svg>
+  )
+}
