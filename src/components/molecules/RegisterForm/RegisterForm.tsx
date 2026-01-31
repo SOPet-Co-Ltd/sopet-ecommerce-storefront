@@ -117,6 +117,7 @@ const Form = () => {
             placeholder="อีเมลล์/เบอร์โทรศัพท์"
             variant="bordered"
             value={identifier}
+            disabled={otpRequested}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setIdentifier(e.target.value)
             }
@@ -130,10 +131,11 @@ const Form = () => {
                 setOtp(e.target.value)
               }
             />
-            <div className="absolute right-0 md:-right-sop-80px md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-center">
+            <div className="absolute right-0 min-w-[190px] md:-right-[200px] md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-end md:justify-start">
               <Button
-                variant="secondary"
-                size="fill"
+                variant="outline"
+                size="sm"
+                rounded="rounded"
                 style={{ padding: "2px 8px", borderRadius: "8px" }}
                 disabled={isRequestingOtp || !isValidEmailOrPhone(identifier)}
                 onClick={handleRequestOtp}
@@ -142,11 +144,19 @@ const Form = () => {
               </Button>
             </div>
           </div>
+          {otpRequested && (
+            <p className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400 px-1">
+              รหัส OTP ถูกส่งไปยังเบอร์โทรศัพท์ของคุณ
+            </p>
+          )}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
-            variant="default"
-            style={{ width: "100%", minHeight: "48px" }}
-            disabled={isVerifying || !otpRequested || !otp.trim()}
+            variant="primary"
+            size="lg"
+            fill={true}
+            disabled={
+              isVerifying || !otpRequested || !otp.trim() || !identifier.trim()
+            }
             onClick={handleVerifyAndLogin}
           >
             {isVerifying ? "กำลังเข้าสู่ระบบ..." : "สร้างบัญชีใหม่"}
@@ -154,13 +164,14 @@ const Form = () => {
         </div>
         {/* Divider */}
         <div className="flex justify-center items-center gap-2">
-          {/* TODO - Fix color */}
           <span className="w-full h-px bg-[#DEDEDE]"></span>
-          <p className="sop-headline-sm-regular text-[#4C4C4C]">หรือ</p>
+          <p className="sop-headline-sm-regular text-sop-neutral-gray-300">
+            หรือ
+          </p>
           <span className="w-full h-px bg-[#DEDEDE]"></span>
         </div>
         {/* Media Login */}
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex justify-center items-center gap-8">
           <button
             onClick={() => initiateOAuth("facebook")}
             className="cursor-pointer hover:opacity-80 transition-opacity"
