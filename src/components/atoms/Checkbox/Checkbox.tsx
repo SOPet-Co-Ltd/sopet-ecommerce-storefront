@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 // but sticking to existing imports if they work intended.
 // Assuming MinusHeavyIcon/TickThinIcon are correct internal icons, changing styles primarily.
 import { MinusHeavyIcon, TickThinIcon } from "@/icons"
-import { Check } from "lucide-react"
 
 interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   indeterminate?: boolean
