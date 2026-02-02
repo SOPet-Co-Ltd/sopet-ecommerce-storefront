@@ -13,7 +13,7 @@ import { Heading, Text, clx } from "@medusajs/ui"
 import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
-import { initiatePaymentSession } from "@/lib/data/cart"
+import { initiatePaymentSession, setShippingMethod } from "@/lib/data/cart"
 import { useRouter } from "next/navigation"
 import {
   CardCvcElement,
@@ -32,11 +32,13 @@ import { useCheckoutPayment } from "./CheckoutPaymentContext"
 type CheckoutPaymentSectionProps = {
   cart: Cart | null
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
+  shippingMethods: { id: string }[]
 }
 
 export const CheckoutPaymentSection = ({
   cart,
   paymentMethods,
+  shippingMethods,
 }: CheckoutPaymentSectionProps) => {
   const {
     method,
@@ -180,23 +182,84 @@ export const CheckoutPaymentSection = ({
       if (!providerId) {
         console.error("Payment provider not available for method:", newMethod)
         setIsLoading(false)
-        return
+        return false
+      }
+
+      const getPreferredShippingOptionId = () => {
+        if (!cart) return ""
+
+        const storageKey = `checkout:selected_shipping_option:${cart.id}`
+        const selectedFromStorage =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem(storageKey) || ""
+            : ""
+        const validStorageSelection = selectedFromStorage
+          ? shippingMethods.some((sm) => sm.id === selectedFromStorage)
+          : false
+
+        return (
+          (validStorageSelection ? selectedFromStorage : "") ||
+          cart.shipping_methods?.[0]?.shipping_option_id ||
+          shippingMethods[0]?.id ||
+          ""
+        )
+      }
+
+      const preferredShippingOptionId = getPreferredShippingOptionId()
+
+      if (!preferredShippingOptionId) {
+        setCardError("กรุณาเลือกวิธีจัดส่งก่อน")
+        setIsLoading(false)
+        return false
+      }
+
+      const alreadySelected = (cart?.shipping_methods || []).some(
+        (method) => method.shipping_option_id === preferredShippingOptionId
+      )
+
+      if (!alreadySelected && cart) {
+        try {
+          await setShippingMethod({
+            cartId: cart.id,
+            shippingMethodId: preferredShippingOptionId,
+          })
+        } catch (error) {
+          console.error(
+            "[CheckoutPaymentSection] Failed to set shipping before payment session:",
+            error
+          )
+          setIsLoading(false)
+          return false
+        }
       }
 
       if (cart && providerId) {
         try {
-          const res = await initiatePaymentSession(cart, {
+          await initiatePaymentSession(cart, {
             provider_id: providerId,
           })
 
           router.refresh()
+          return true
         } catch (e) {
           console.error("[CheckoutPaymentSection] Failed to init session:", e)
+          return false
+        } finally {
+          setIsLoading(false)
         }
       }
       setIsLoading(false)
+      return false
     },
-    [cart, manualProviderId, router, setMethod, stripeProviderId]
+    [
+      cart,
+      manualProviderId,
+      router,
+      setCardError,
+      setMethod,
+      shippingMethods,
+      stripeProviderId,
+    ]
   )
 
   useEffect(() => {
@@ -215,7 +278,11 @@ export const CheckoutPaymentSection = ({
     }
 
     autoInitRef.current = true
-    void handleMethodChange("card")
+    void handleMethodChange("card").then((ok) => {
+      if (!ok) {
+        autoInitRef.current = false
+      }
+    })
   }, [method, cart, isLoading, stripeSession, handleMethodChange])
 
   useEffect(() => {
@@ -298,8 +365,10 @@ export const CheckoutPaymentSection = ({
                     className="w-fit flex items-center gap-2 text-red-500 border-red-200 hover:bg-red-50 px-4 py-2 h-auto rounded-full"
                     onClick={() => setIsAddingCard(true)}
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>เพิ่มบัตรใหม่</span>
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      <p>เพิ่มบัตรใหม่</p>
+                    </div>
                   </Button>
                 </>
               ) : (

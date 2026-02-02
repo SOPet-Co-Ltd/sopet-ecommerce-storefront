@@ -30,8 +30,6 @@ export const CartItem = ({
   isSelected,
   onSelect,
 }: CartItemProps) => {
-  // Use thumbnail if available, otherwise fallback to the first image
-  // Also encoding URI to handle spaces in filenames
   const displayImage = item.thumbnail
     ? decodeURIComponent(item.thumbnail)
     : "/images/placeholder.svg"
@@ -90,7 +88,7 @@ export const CartItem = ({
 
           <div className="relative w-20 h-20 bg-sop-neutral-grayalpha-200 overflow-hidden shrink-0 mr-3 md:mr-4">
             <Image
-              src={displayImage || "/images/placeholder.svg"}
+              src={displayImage}
               alt={item.product_title || "Product image"}
               fill
               className="object-cover"

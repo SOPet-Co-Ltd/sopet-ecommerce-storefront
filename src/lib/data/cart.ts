@@ -34,7 +34,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   }
 
   const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=+items,+region,+payment_collection,+payment_collection.payment_sessions`,
+    `/store/carts/${id}?fields=*items,+region,+payment_collection,+payment_collection.payment_sessions`,
     {
       method: "GET",
       headers,
@@ -303,6 +303,28 @@ export async function initiatePaymentSession(
     ...(await getAuthHeaders()),
   }
 
+  // If cart already has a payment collection, we must add a session to it
+  // instead of trying to create a new collection (which throws 500)
+  if (cart.payment_collection?.id) {
+    return fetchQuery(
+      `/store/payment-collections/${cart.payment_collection.id}/payment-sessions`,
+      {
+        method: "POST",
+        body: { provider_id: data.provider_id },
+        headers,
+      }
+    ).then(async (res) => {
+      if (!res.ok) {
+        throw new Error(
+          res.error?.message || "Failed to initiate payment session"
+        )
+      }
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+      return res.data
+    })
+  }
+
   return sdk.store.payment
     .initiatePaymentSession(
       cart as unknown as HttpTypes.StoreCart,
@@ -340,7 +362,13 @@ export async function applyPromotions(codes: string[]) {
       )
       return applied
     })
-    .catch(medusaError)
+    .catch((err) => {
+      console.error("[applyPromotions] Error applying promotion:", err)
+      // If the error is about invalid code, we just return false (not applied)
+      // The backend (Medusa v2) throws 500 or 400 for invalid codes often.
+      // We suppress this specific error to prevent frontend crashes/error boundaries.
+      return false
+    })
 }
 
 export async function removeShippingMethod(shippingMethodId: string) {
@@ -468,6 +496,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     //   }
 
     await updateCart(data)
+
     await revalidatePath("/cart")
   } catch (e: unknown) {
     return (e as Error).message

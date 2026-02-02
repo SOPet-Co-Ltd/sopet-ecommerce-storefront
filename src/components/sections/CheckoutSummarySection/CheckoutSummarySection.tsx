@@ -5,8 +5,8 @@ import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 import { convertToLocale } from "@/lib/helpers/money"
 import { Text } from "@medusajs/ui"
-import { placeOrder } from "@/lib/data/cart"
-import { useContext, useState } from "react"
+import { placeOrder, setShippingMethod } from "@/lib/data/cart"
+import { useContext, useEffect, useState } from "react"
 import {
   CardElement,
   CardNumberElement,
@@ -20,11 +20,13 @@ import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection
 type CheckoutSummarySectionProps = {
   cart: Cart | null
   customer?: HttpTypes.StoreCustomer | null
+  shippingMethods?: { id: string; amount?: number }[] | null
 }
 
 export const CheckoutSummarySection = ({
   cart,
   customer,
+  shippingMethods,
 }: CheckoutSummarySectionProps) => {
   const {
     method,
@@ -36,15 +38,70 @@ export const CheckoutSummarySection = ({
   } = useCheckoutPayment()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedShippingAmount, setSelectedShippingAmount] = useState(0)
   const stripeReady = useContext(StripeContext)
 
   if (!cart) return null
 
   const subtotal = cart.subtotal || 0
-  const shippingTotal = cart.shipping_total || 0
+  const shippingTotal = selectedShippingAmount
   const discountTotal = cart.discount_total || 0
-  const total = cart.total || subtotal + shippingTotal - discountTotal
+  const total = subtotal + shippingTotal - discountTotal
   const currencyCode = cart.currency_code || "thb"
+  const pendingShippingOptionKey = `checkout:selected_shipping_option:${cart.id}`
+
+  const syncShippingMethodBeforePayment = async () => {
+    if (typeof window === "undefined") return
+
+    const selectedOptionId =
+      window.localStorage.getItem(pendingShippingOptionKey) ||
+      cart.shipping_methods?.[0]?.shipping_option_id ||
+      ""
+
+    if (!selectedOptionId) {
+      throw new Error("กรุณาเลือกวิธีจัดส่งก่อนชำระเงิน")
+    }
+
+    const alreadySelected = (cart.shipping_methods || []).some(
+      (method) => method.shipping_option_id === selectedOptionId
+    )
+    if (alreadySelected) return
+
+    await setShippingMethod({
+      cartId: cart.id,
+      shippingMethodId: selectedOptionId,
+    })
+  }
+
+  useEffect(() => {
+    const key = `checkout:selected_shipping_option:${cart.id}`
+
+    const updateShippingAmount = (optionId?: string | null) => {
+      const selectedId =
+        optionId || window.localStorage.getItem(key) || cart.shipping_methods?.[0]?.shipping_option_id
+
+      if (!selectedId) {
+        setSelectedShippingAmount(cart.shipping_total || 0)
+        return
+      }
+
+      const selected = (shippingMethods || []).find((sm) => sm.id === selectedId)
+      setSelectedShippingAmount(selected?.amount || 0)
+    }
+
+    const onShippingOptionSelected = (event: Event) => {
+      const customEvent = event as CustomEvent<{ cartId?: string; optionId?: string }>
+      if (customEvent.detail?.cartId !== cart.id) return
+      updateShippingAmount(customEvent.detail?.optionId)
+    }
+
+    updateShippingAmount()
+    window.addEventListener("checkout:shipping-option-selected", onShippingOptionSelected)
+
+    return () => {
+      window.removeEventListener("checkout:shipping-option-selected", onShippingOptionSelected)
+    }
+  }, [cart.id, cart.shipping_methods, cart.shipping_total, shippingMethods])
 
   const isStripeProvider = (providerId?: string) =>
     providerId === "stripe" || isStripe(providerId)
@@ -127,6 +184,7 @@ export const CheckoutSummarySection = ({
                 cardholderName={cardholderName}
                 billingAddress={fallbackAddress}
                 email={fallbackEmail}
+                syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
                 disabled={
                   disabledBase ||
                   !stripeSessionReady ||
@@ -152,6 +210,7 @@ export const CheckoutSummarySection = ({
             submitting={submitting}
             setSubmitting={setSubmitting}
             setError={setError}
+            syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
           />
         )}
         {cardError && (
@@ -171,6 +230,7 @@ const StripeSummaryPayButton = ({
   cardholderName,
   billingAddress,
   email,
+  syncShippingMethodBeforePayment,
   disabled,
   submitting,
   setSubmitting,
@@ -184,6 +244,7 @@ const StripeSummaryPayButton = ({
     | HttpTypes.StoreCartAddress
     | null
   email?: string
+  syncShippingMethodBeforePayment: () => Promise<void>
   disabled: boolean
   submitting: boolean
   setSubmitting: (value: boolean) => void
@@ -197,6 +258,8 @@ const StripeSummaryPayButton = ({
     setError(null)
 
     try {
+      await syncShippingMethodBeforePayment()
+
       // If already authorized, just complete the order
       if (cart.payment_collection?.status === "authorized") {
         await placeOrder()
@@ -292,17 +355,20 @@ const ManualSummaryPayButton = ({
   submitting,
   setSubmitting,
   setError,
+  syncShippingMethodBeforePayment,
 }: {
   disabled: boolean
   submitting: boolean
   setSubmitting: (value: boolean) => void
   setError: (error: string | null) => void
+  syncShippingMethodBeforePayment: () => Promise<void>
 }) => {
   const handlePayment = async () => {
     setSubmitting(true)
     setError(null)
 
     try {
+      await syncShippingMethodBeforePayment()
       await placeOrder()
     } catch (e: unknown) {
       setError((e as Error)?.message || "Payment failed")

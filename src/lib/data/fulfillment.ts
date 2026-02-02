@@ -25,14 +25,16 @@ export const listCartShippingMethods = async (
         query: {
           cart_id: cartId,
           fields:
-            "+service_zone.fulfllment_set.type,*service_zone.fulfillment_set.location.address",
+            "+service_zone.fulfillment_set.type,*service_zone.fulfillment_set.location.address",
         },
         headers,
         next,
         cache: "no-cache",
       }
     )
-    .then(({ shipping_options }) => shipping_options)
+    .then(({ shipping_options }) => {
+      return shipping_options
+    })
     .catch((error) => {
       console.error("[listCartShippingMethods] Error:", error)
       return null

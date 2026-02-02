@@ -58,5 +58,4 @@ export {
   CartTemplate,
   ProductCard,
   ProductSortButtons,
-  CartTemplate,
 }

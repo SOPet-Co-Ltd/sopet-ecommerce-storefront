@@ -83,18 +83,3 @@ export const removeCartId = async () => {
     maxAge: -1,
   })
 }
-
-export const setGuestPhone = async (phone: string) => {
-  const cookies = await nextCookies()
-  cookies.set("_medusa_guest_phone", phone, {
-    maxAge: 60 * 60 * 24 * 7,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-  })
-}
-
-export const getGuestPhone = async () => {
-  const cookies = await nextCookies()
-  return cookies.get("_medusa_guest_phone")?.value
-}

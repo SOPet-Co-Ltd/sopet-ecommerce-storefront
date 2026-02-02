@@ -45,7 +45,7 @@ export const PhoneNumberForm = ({
                 if (value.length <= 10) setPhoneNumber(value)
               }}
               placeholder="เบอร์มือถือ"
-              className="h-10"
+              className="h-10 text-sop-base-black"
               state="default"
               hasTitle={false}
               autoFocus

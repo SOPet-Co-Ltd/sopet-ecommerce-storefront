@@ -33,7 +33,6 @@ import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 import { Input as InputSOPet } from "./InputSOPet/Input"
 import type { InputProps as InputSOPetProps } from "./InputSOPet/Input"
 import SmartImage from "./SmartImage/SmartImage"
-import { Spinner } from "./Spinner/Spinner"
 
 export {
   Button,
@@ -62,7 +61,6 @@ export {
   PriceRangeSlider,
   InputSOPet,
   SmartImage,
-  Spinner,
 }
 
 export type {

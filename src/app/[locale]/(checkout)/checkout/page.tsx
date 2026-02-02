@@ -1,6 +1,3 @@
-import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
-import { CheckoutPaymentSection } from "@/components/sections/CheckoutPaymentSection"
-import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
@@ -8,9 +5,9 @@ import { retrieveCart } from "@/lib/data/cart"
 import { listAddressesByPhone, retrieveCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
-import { getGuestPhone } from "@/lib/data/cookies"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { cookies } from "next/headers"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
@@ -40,13 +37,17 @@ async function CheckoutPageContent({}) {
   }
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
+
   const regionId = cart.region_id ?? cart.region?.id
   const paymentMethods = regionId
     ? await listCartPaymentMethods(regionId)
     : null
+
   const customer = await retrieveCustomer()
-  const guestPhone = await getGuestPhone()
-  const fallbackPhone = customer?.phone || (!customer ? guestPhone : "") || ""
+  const cookieStore = await cookies()
+  const hasAuthToken = Boolean(cookieStore.get("_medusa_jwt")?.value)
+  const fallbackPhone = customer?.phone || ""
+
   const phoneAddresses =
     !customer?.addresses?.length && fallbackPhone
       ? await listAddressesByPhone(fallbackPhone)
@@ -63,19 +64,8 @@ async function CheckoutPageContent({}) {
               paymentMethods={paymentMethods}
               customer={customer}
               phoneAddresses={phoneAddresses}
-              guestPhone={guestPhone}
+              hasAuthToken={hasAuthToken}
             />
-
-            <CartReview cart={cart} shippingMethods={shippingMethods || []} />
-
-            <CheckoutDiscountSection cart={cart} />
-
-            <CheckoutPaymentSection
-              cart={cart}
-              paymentMethods={paymentMethods}
-            />
-
-            <CheckoutSummarySection cart={cart} />
           </div>
         </div>
       </main>

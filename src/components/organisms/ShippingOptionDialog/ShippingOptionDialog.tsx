@@ -43,6 +43,7 @@ export const ShippingOptionDialog = ({
   cart,
   onSelectMethod,
 }: ShippingOptionDialogProps) => {
+  const storageKey = `checkout:selected_shipping_option:${cart.id}`
   const [selectedMethodId, setSelectedMethodId] = useState(
     cart.shipping_methods?.[0]?.shipping_option_id ||
       shippingMethods?.[0]?.id ||
@@ -53,6 +54,36 @@ export const ShippingOptionDialog = ({
     Record<string, number>
   >({})
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
+
+  // Keep the first option selected by default when there is no selected option in cart.
+  useEffect(() => {
+    if (!isOpen || !shippingMethods?.length) return
+
+    const selectedFromStorage =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(storageKey) || ""
+        : ""
+    const validStorageSelection = selectedFromStorage
+      ? shippingMethods.some((method) => method.id === selectedFromStorage)
+      : false
+
+    if (validStorageSelection) {
+      setSelectedMethodId(selectedFromStorage)
+      return
+    }
+
+    const cartSelected = cart.shipping_methods?.[0]?.shipping_option_id
+    const validCartSelection = cartSelected
+      ? shippingMethods.some((method) => method.id === cartSelected)
+      : false
+
+    if (validCartSelection && cartSelected) {
+      setSelectedMethodId(cartSelected)
+      return
+    }
+
+    setSelectedMethodId(shippingMethods[0].id)
+  }, [isOpen, shippingMethods, cart.shipping_methods, storageKey])
 
   // Fetch calculated prices if needed
   useEffect(() => {

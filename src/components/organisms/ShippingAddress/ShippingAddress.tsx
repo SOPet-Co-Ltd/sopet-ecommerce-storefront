@@ -7,20 +7,17 @@ import ThaiAddressSelect, {
   ThaiAddressValue,
 } from "@/components/cells/ThaiAddressSelect/ThaiAddressSelect"
 import { usePathname } from "next/navigation"
-import { Cart } from "@/types/cart"
 import { AddressSelectionDialog } from "../AddressSelectionDialog/AddressSelectionDialog"
 import { EditAddressDialog } from "../EditAddressDialog/EditAddressDialog"
 
 const ShippingAddress = ({
   customer,
-  cart,
   checked,
   onChange,
   prefilledPhone,
   showSaveAddress,
 }: {
   customer: HttpTypes.StoreCustomer | null
-  cart: Cart | null
   checked: boolean
   onChange: () => void
   prefilledPhone?: string
@@ -32,17 +29,26 @@ const ShippingAddress = ({
   if (!locale || locale.length !== 2) {
     locale = "th"
   }
-  const [formData, setFormData] = useState<Record<string, any>>({
-    "shipping_address.first_name": cart?.shipping_address?.first_name || "",
-    "shipping_address.last_name": cart?.shipping_address?.last_name || "",
-    "shipping_address.address_1": cart?.shipping_address?.address_1 || "",
-    "shipping_address.postal_code": cart?.shipping_address?.postal_code || "",
-    "shipping_address.city": cart?.shipping_address?.city || "",
-    "shipping_address.country_code":
-      cart?.shipping_address?.country_code || locale,
-    "shipping_address.province": cart?.shipping_address?.province || "",
-    "shipping_address.phone": cart?.shipping_address?.phone || "",
-    email: cart?.email || "",
+  const [formData, setFormData] = useState<Record<string, any>>(() => {
+    let sourceAddress: HttpTypes.StoreCustomerAddress | undefined
+
+    if (customer?.addresses?.length) {
+      sourceAddress =
+        customer.addresses.find((a) => a.is_default_shipping) ||
+        customer.addresses[0]
+    }
+
+    return {
+      "shipping_address.first_name": sourceAddress?.first_name || "",
+      "shipping_address.last_name": sourceAddress?.last_name || "",
+      "shipping_address.address_1": sourceAddress?.address_1 || "",
+      "shipping_address.postal_code": sourceAddress?.postal_code || "",
+      "shipping_address.city": sourceAddress?.city || "",
+      "shipping_address.country_code": sourceAddress?.country_code || locale,
+      "shipping_address.province": sourceAddress?.province || "",
+      "shipping_address.phone": sourceAddress?.phone || customer?.phone || "",
+      email: customer?.email || "",
+    }
   })
 
   // Dialog States
@@ -55,15 +61,16 @@ const ShippingAddress = ({
     address: null,
   })
 
-  const [shouldSaveAddress, setShouldSaveAddress] = useState(true)
-
-  const addressesInRegion = useMemo(
-    () =>
-      customer?.addresses.filter(
-        (a) => a.country_code && a.country_code === locale
-      ),
-    [customer?.addresses, locale]
-  )
+  const addressesInRegion = useMemo(() => {
+    const allAddresses = customer?.addresses || []
+    if (!allAddresses.length) {
+      return []
+    }
+    const inRegion = allAddresses.filter(
+      (a) => a.country_code && a.country_code === locale
+    )
+    return inRegion.length ? inRegion : allAddresses
+  }, [customer?.addresses, locale])
 
   const setFormAddress = (
     address?: HttpTypes.StoreCartAddress,
@@ -90,21 +97,16 @@ const ShippingAddress = ({
   }
 
   useEffect(() => {
-    if (cart && cart.shipping_address) {
-      setFormAddress(cart?.shipping_address, cart?.email)
-    }
-
-    if (cart && !cart.email && customer?.email) {
+    if (customer?.email) {
       setFormAddress(undefined, customer.email)
     }
-
     if (prefilledPhone) {
       setFormData((prev) => ({
         ...prev,
         "shipping_address.phone": prefilledPhone,
       }))
     }
-  }, [cart, prefilledPhone, customer?.email])
+  }, [prefilledPhone, customer?.email])
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -155,8 +157,6 @@ const ShippingAddress = ({
         }
         address={editDialogState.address}
         onSuccess={() => {
-          // Address updated logic handled by dialog (refresh)
-          // Optionally re-open selection dialog?
           setIsSelectionOpen(true)
         }}
       />
@@ -190,6 +190,7 @@ const ShippingAddress = ({
           onChange={handleChange}
           required
           data-testid="shipping-first-name-input"
+          className="text-sop-base-black"
         />
         <Input
           title="เบอร์โทรศัพท์"
@@ -200,6 +201,7 @@ const ShippingAddress = ({
           onChange={handleChange}
           required
           data-testid="shipping-phone-input"
+          className="text-sop-base-black"
         />
       </div>
 
@@ -223,6 +225,7 @@ const ShippingAddress = ({
           onChange={handleChange}
           required
           data-testid="shipping-address-input"
+          className="text-sop-base-black"
         />
       </div>
 

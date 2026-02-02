@@ -6,17 +6,13 @@ import {
   StoreCardShippingMethod,
   GroupedItems,
 } from "@/types/cart"
-import { ClipboardList, Percent, Truck } from "lucide-react"
-import { Heading, Text, clx } from "@medusajs/ui"
+import { Percent, Truck } from "lucide-react"
+import { Text } from "@medusajs/ui"
 import Image from "next/image"
 import { convertToLocale } from "@/lib/helpers/money"
-import { Button } from "@/components/atoms"
-import { HttpTypes } from "@medusajs/types"
 
 import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
-import { setShippingMethod } from "@/lib/data/cart"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 type CheckoutItemPreviewProps = {
   cart: Cart | null
@@ -28,16 +24,77 @@ const CheckoutItemPreview = ({
   availableShippingMethods,
 }: CheckoutItemPreviewProps) => {
   const [isShippingOpen, setIsShippingOpen] = useState(false)
-  const router = useRouter()
+  const [selectedShippingOptionId, setSelectedShippingOptionId] = useState("")
 
   if (!cart) return null
 
   const handleSelectShipping = async (methodId: string) => {
-    await setShippingMethod({ cartId: cart.id, shippingMethodId: methodId })
-    router.refresh()
+    setSelectedShippingOptionId(methodId)
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        `checkout:selected_shipping_option:${cart.id}`,
+        methodId
+      )
+      window.dispatchEvent(
+        new CustomEvent("checkout:shipping-option-selected", {
+          detail: { cartId: cart.id, optionId: methodId },
+        })
+      )
+    }
   }
 
   const groupedItems: GroupedItems = groupItemsBySeller(cart)
+  const shippingMethods = cart.shipping_methods || []
+  const storageKey = `checkout:selected_shipping_option:${cart.id}`
+  const shippingOptionsById = new Map(
+    (availableShippingMethods || []).map((option) => [option.id, option])
+  )
+  const defaultShippingOption = availableShippingMethods?.[0]
+  const selectedShippingOption = useMemo(() => {
+    if (selectedShippingOptionId) {
+      return shippingOptionsById.get(selectedShippingOptionId)
+    }
+
+    const selectedFromCart = shippingMethods[0]?.shipping_option_id
+    if (selectedFromCart) {
+      return shippingOptionsById.get(selectedFromCart)
+    }
+
+    return defaultShippingOption
+  }, [
+    defaultShippingOption,
+    selectedShippingOptionId,
+    shippingMethods,
+    shippingOptionsById,
+  ])
+
+  useEffect(() => {
+    let selectedFromStorage = ""
+    if (typeof window !== "undefined") {
+      selectedFromStorage = window.localStorage.getItem(storageKey) || ""
+    }
+
+    const isValidStorageSelection =
+      !!selectedFromStorage && shippingOptionsById.has(selectedFromStorage)
+    const selectedFromCart = shippingMethods[0]?.shipping_option_id
+    const nextId =
+      (isValidStorageSelection ? selectedFromStorage : "") ||
+      selectedFromCart ||
+      defaultShippingOption?.id ||
+      ""
+    if (!nextId) return
+
+    setSelectedShippingOptionId(nextId)
+
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(storageKey, nextId)
+      window.dispatchEvent(
+        new CustomEvent("checkout:shipping-option-selected", {
+          detail: { cartId: cart.id, optionId: nextId },
+        })
+      )
+    }
+  }, [cart.id, defaultShippingOption?.id, shippingMethods, shippingOptionsById, storageKey])
 
   return (
     <div className="flex flex-col gap-6">
@@ -49,27 +106,27 @@ const CheckoutItemPreview = ({
           return acc + item.unit_price * item.quantity
         }, 0)
 
-        const shippingMethods = cart.shipping_methods || []
-        const shippingTotal = shippingMethods.reduce(
-          (acc: number, m: any) => acc + (m.price || 0),
-          0
-        )
-        const discountTotal = 100
+        const shippingTotal = selectedShippingOption?.amount || 0
 
-        const sellerTotal = subtotal + shippingTotal - discountTotal * 100
+        // Keep fallback total aligned with displayed line-items; discount row is mock UI.
+        const sellerTotal = subtotal + shippingTotal
 
         return (
           <div key={key} className="bg-white rounded-lg  p-4 ">
             {/* Header */}
             <div className="border-b border-sop-neutral-gray-light mb-6">
-              <div className="hidden md:grid grid-cols-[1fr_100px_100px] gap-4 items-center mb-2  text-sop-neutral-gray-400 text-sm">
-                <div className="text-black font-normal text-lg">
+              <div className="hidden md:grid grid-cols-[80px_1fr_200px_100px_100px] gap-4 items-center mb-2  text-sop-neutral-gray-400 text-sm">
+                <div className="col-span-3 sop-body-lg-medium text-sop-base-black">
                   {seller.name}
                 </div>
-                <div className="text-center">จำนวน</div>
-                <div className="text-right">ราคา</div>
+                <div className="sop-body-lg-medium text-sop-neutral-gray-400 text-right">
+                  จำนวน
+                </div>
+                <div className="sop-body-lg-medium text-sop-neutral-gray-400 text-right">
+                  ราคา
+                </div>
               </div>
-              <div className="md:hidden font-normal text-lg text-black mb-2">
+              <div className="md:hidden sop-body-lg-medium text-sop-base-black">
                 {seller.name}
               </div>
             </div>
@@ -90,27 +147,32 @@ const CheckoutItemPreview = ({
                     />
                   </div>
                   <div className="flex flex-col gap-1 flex-1">
-                    <Text className="font-normal text-base line-clamp-2">
+                    <Text className="sop-body-md-medium line-clamp-2">
                       {item.title}
                     </Text>
-                    <Text className="md:hidden text-sop-neutral-gray-400 text-sm">
+                    <Text className="md:hidden text-sop-neutral-gray-400 sop-body-md-regular">
                       ตัวเลือกสินค้า : {item.variant?.title || "ปกติ"}
                     </Text>
                     {/* Mobile Price Row */}
-                    <div className="flex md:hidden items-center gap-2 mt-1">
-                      <Text className="font-normal text-base">
-                        {convertToLocale({
-                          amount: item.unit_price * item.quantity,
-                          currency_code: cart.currency_code,
-                        })}
-                      </Text>
-                      {/* Mock Original Price */}
-                      <Text className="text-sop-neutral-gray-medium text-sm line-through decoration-sop-neutral-gray-300">
-                        {convertToLocale({
-                          amount: item.unit_price * item.quantity * 1.15,
-                          currency_code: cart.currency_code,
-                        })}
-                      </Text>
+                    <div className="flex md:hidden items-center justify-between mt-1 w-full">
+                      <div className="flex items-center gap-2">
+                        <Text className="font-normal text-base ">
+                          {convertToLocale({
+                            amount: item.unit_price * item.quantity,
+                            currency_code: cart.currency_code,
+                          })}
+                        </Text>
+                        {/* Mock Original Price */}
+                        <Text className="text-sop-neutral-gray-medium text-sm line-through decoration-sop-neutral-gray-400">
+                          {convertToLocale({
+                            amount: item.unit_price * item.quantity * 1.15,
+                            currency_code: cart.currency_code,
+                          })}
+                        </Text>
+                      </div>
+                      <div className="text-sop-neutral-grayfixed-400 text-sm">
+                        {item.quantity}
+                      </div>
                     </div>
                   </div>
 
@@ -119,12 +181,9 @@ const CheckoutItemPreview = ({
                     ตัวเลือกสินค้า : {item.variant?.title || "ปกติ"}
                   </div>
 
-                  {/* Mobile Quantity */}
-                  <div className="md:hidden text-sop-neutral-grayfixed-400 text-sm self-end ">
-                    {item.quantity}
-                  </div>
-
-                  <div className="hidden md:block text-center text-sop-neutral-grayfixed-300 pt-1">
+                  {/* Desktop Qty and Price (Merged) */}
+                  {/* Desktop Qty and Price (Separated & Left Aligned) */}
+                  <div className="hidden md:block text-right text-sop-neutral-grayfixed-300 pt-1">
                     {item.quantity}
                   </div>
                   <div className="hidden md:block text-right pt-1 font-normal">
@@ -138,7 +197,7 @@ const CheckoutItemPreview = ({
             </div>
 
             {/* Discount Section */}
-            <div className="py-4 border-b border-sop-neutral-gray-light flex flex-row items-center gap-2 text-purple-600 font-normal">
+            <div className="py-4 border-b border-sop-neutral-gray-light flex flex-row items-center gap-2 text-color-sop-additionalblue-400 sop-body-lg-regular">
               <Percent className="w-5 h-5" />
               <span>ส่วนลด ฿100</span>
               {/* Replace with real cart logic later */}
@@ -169,15 +228,10 @@ const CheckoutItemPreview = ({
                   <span>ตัวเลือกการจัดส่ง</span>
                 </div>
 
-                {shippingMethods.length > 0 ? (
-                  shippingMethods.map((method: any) => (
-                    <div
-                      key={method.id}
-                      className="flex flex-1 md:justify-center text-gray-700"
-                    >
-                      {method.name} ({method.shipping_option?.name})
-                    </div>
-                  ))
+                {selectedShippingOption ? (
+                  <div className="flex flex-1 md:justify-center text-gray-700">
+                    {selectedShippingOption.name}
+                  </div>
                 ) : (
                   <div className="flex flex-1 md:justify-center text-gray-700">
                     ส่งธรรมดาในประเทศ
@@ -191,7 +245,7 @@ const CheckoutItemPreview = ({
                           amount: shippingTotal,
                           currency_code: cart.currency_code,
                         })
-                      : "฿29.00"}
+                      : "-"}
                   </span>
                   <button
                     onClick={() => setIsShippingOpen(true)}
@@ -236,7 +290,7 @@ function groupItemsBySeller(cart: Cart): GroupedItems {
   cart.items?.forEach((item) => {
     const extendedItem = item as ExtendedLineItem
     const seller = extendedItem.product?.seller
-    if (seller) {
+    if (seller?.id) {
       if (!groupedBySeller[seller.id]) {
         groupedBySeller[seller.id] = {
           seller: seller,

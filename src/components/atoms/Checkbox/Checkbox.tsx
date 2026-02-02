@@ -116,7 +116,7 @@ export function Checkbox({
           checked && "bg-sop-primary-500 border-sop-primary-500",
           !checked && "bg-transparent",
           error && "border-sop-negative-500",
-          props.disabled &&
+          isDisabled &&
             "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
           className
         )}
@@ -124,24 +124,20 @@ export function Checkbox({
           borderColor: !checked && !error ? "rgba(34,34,41,0.12)" : undefined,
         }}
       >
-        {isIndeterminate && !checked && !props.disabled && (
-          <MinusHeavyIcon size={12} color="#FFFFFF" />
-        )}
-        {isChecked && !props.disabled && (
-          <TickThinIcon size={12} color="#FFFFFF" />
-        )}
+        {isIndeterminate && <MinusHeavyIcon size={12} color="#FFFFFF" />}
+        {isChecked && <TickThinIcon size={12} color="#FFFFFF" />}
 
         <input
           type="checkbox"
-          checked={checked}
+          checked={inputChecked}
           onChange={handleChange}
           className={cn(
             "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
-            props.disabled && "cursor-not-allowed"
+            isDisabled && "cursor-not-allowed"
           )}
           ref={(input) => {
             if (input) {
-              input.indeterminate = !!indeterminate
+              input.indeterminate = isIndeterminate
             }
           }}
           {...props}

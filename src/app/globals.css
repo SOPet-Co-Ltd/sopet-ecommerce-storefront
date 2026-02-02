@@ -811,6 +811,7 @@ input[type="range"].slider-thumb:focus::-webkit-slider-thumb {
 
 input[type="range"].slider-thumb:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
+}
 @utility text-sop-neutral-gray-300 {
   color: var(--color-sop-neutral-gray-300);
 }

@@ -21,34 +21,16 @@ export const verifyCustomer =
   async (): Promise<HttpTypes.StoreCustomer | null> => {
     const headers = await getAuthHeaders()
 
-<<<<<<< HEAD
     // No auth headers means there's no token; treat as not logged in.
     if (!headers || Object.keys(headers).length === 0) {
       return null
     }
 
-<<<<<<< HEAD
     try {
       const result = await sdk.client.fetch<{
         customer: HttpTypes.StoreCustomer
       }>(`/store/auth/me`, {
         method: "GET",
-=======
-=======
-    if (!authHeaders) return null
-
-    const headers = {
-      ...authHeaders,
-    }
-
->>>>>>> a8d43473df956402a2e979d9bfc0c8e66c5ab722
-    return await sdk.client
-      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
-        method: "GET",
-        query: {
-          fields: "*orders,*addresses",
-        },
->>>>>>> 67b78c1 (update logic otp and dialog address)
         headers,
         cache: "no-store",
       })
@@ -60,30 +42,6 @@ export const verifyCustomer =
       return null
     }
   }
-
-export const listAddressesByPhone = async (
-  phone: string
-): Promise<HttpTypes.StoreCustomerAddress[]> => {
-  if (!phone) {
-    return []
-  }
-
-  const normalizedPhone = phone.replace(/\D/g, "")
-  if (!normalizedPhone) {
-    return []
-  }
-
-  const res = await fetchQuery("/store/phone-addresses", {
-    method: "GET",
-    query: { phone: normalizedPhone },
-  })
-
-  if (!res.ok || !res.data?.addresses) {
-    return []
-  }
-
-  return res.data.addresses as HttpTypes.StoreCustomerAddress[]
-}
 
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {
@@ -435,3 +393,58 @@ export const sendResetPasswordEmail = async (email: string) => {
 
   return res
 }
+
+export const listAddressesByPhone = async (
+  phone: string
+): Promise<HttpTypes.StoreCustomerAddress[]> => {
+  if (!phone) {
+    return []
+  }
+
+  const normalizedPhone = phone.replace(/\D/g, "")
+  if (!normalizedPhone) {
+    return []
+  }
+
+  const res = await fetchQuery("/store/phone-addresses", {
+    method: "GET",
+    query: { phone: normalizedPhone },
+  })
+
+  if (!res.ok || !res.data?.addresses) {
+    return []
+  }
+
+  return res.data.addresses as HttpTypes.StoreCustomerAddress[]
+}
+
+export const retrieveCustomer =
+  async (): Promise<HttpTypes.StoreCustomer | null> => {
+    const authHeaders = await getAuthHeaders()
+
+    if (!authHeaders) return null
+
+    const headers = {
+      ...authHeaders,
+      "x-publishable-api-key":
+        process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+    }
+
+    return await sdk.client
+      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
+        method: "GET",
+        query: {
+          fields: "*orders,*addresses",
+        },
+        headers,
+        cache: "no-store",
+      })
+      .then(({ customer }) => customer)
+      .catch((err) => {
+        // Quietly fail for 401s (expected if token expired)
+        if (err.status !== 401) {
+          // console.error("[retrieveCustomer] Error:", err)
+        }
+        return null
+      })
+  }

@@ -15,7 +15,7 @@ type CheckoutFlowClientProps = {
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   customer: HttpTypes.StoreCustomer | null
   phoneAddresses: HttpTypes.StoreCustomerAddress[]
-  guestPhone?: string | null
+  hasAuthToken?: boolean
 }
 
 export default function CheckoutFlowClient({
@@ -24,7 +24,7 @@ export default function CheckoutFlowClient({
   paymentMethods,
   customer,
   phoneAddresses,
-  guestPhone,
+  hasAuthToken = false,
 }: CheckoutFlowClientProps) {
   return (
     <CheckoutPaymentProvider>
@@ -32,7 +32,7 @@ export default function CheckoutFlowClient({
         cart={cart}
         customer={customer}
         phoneAddresses={phoneAddresses}
-        guestPhone={guestPhone}
+        hasAuthToken={hasAuthToken}
       />
 
       <CartReview
@@ -43,9 +43,17 @@ export default function CheckoutFlowClient({
 
       <CheckoutDiscountSection cart={cart} />
 
-      <CheckoutPaymentSection cart={cart} paymentMethods={paymentMethods} />
+      <CheckoutPaymentSection
+        cart={cart}
+        paymentMethods={paymentMethods}
+        shippingMethods={shippingMethods}
+      />
 
-      <CheckoutSummarySection cart={cart} customer={customer} />
+      <CheckoutSummarySection
+        cart={cart}
+        customer={customer}
+        shippingMethods={shippingMethods}
+      />
     </CheckoutPaymentProvider>
   )
 }

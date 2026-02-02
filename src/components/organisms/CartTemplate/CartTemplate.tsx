@@ -10,7 +10,7 @@ import { TicketSaleIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 
 type ProductWithSeller = HttpTypes.StoreProduct & {
-  seller?: { store_name: string }
+  seller?: { name?: string; store_name?: string }
 }
 
 // Using any for flexibility with mock data during this phase
@@ -59,7 +59,9 @@ export const CartTemplate = ({
   const itemsBySeller = sortedItems.reduce(
     (acc: Record<string, HttpTypes.StoreCartLineItem[]>, item) => {
       const sellerName =
-        (item.product as ProductWithSeller)?.seller?.store_name || "SOPet"
+        (item.product as ProductWithSeller)?.seller?.name ||
+        (item.product as ProductWithSeller)?.seller?.store_name ||
+        "SOPet"
       if (!acc[sellerName]) {
         acc[sellerName] = []
       }
@@ -96,11 +98,20 @@ export const CartTemplate = ({
     }
   }
 
+  useEffect(() => {
+    if (cart?.items?.length && selectedItems.length === 0) {
+      setSelectedItems(cart.items.map((i) => i.id))
+    }
+  }, [cart?.items?.length])
+
   // Calculate selected total
   const selectedTotal =
     sortedItems
       .filter((item) => selectedItems.includes(item.id))
-      .reduce((acc, item) => acc + (item.total ?? 0), 0) || 0
+      .reduce((acc, item) => {
+        const itemTotal = item.total ?? item.unit_price * item.quantity
+        return acc + itemTotal
+      }, 0) || 0
 
   if (!cart || !cart.items?.length) {
     return (

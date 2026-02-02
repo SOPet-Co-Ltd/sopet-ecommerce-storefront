@@ -2,7 +2,16 @@
 
 import { fetchQuery } from "@/lib/config"
 import { revalidateTag } from "next/cache"
-import { getCacheTag, setAuthToken, setGuestPhone } from "./cookies"
+import { getCacheTag, setAuthToken } from "./cookies"
+import { retrieveCustomer } from "./customer"
+
+export async function checkAuthStatus() {
+  const customer = await retrieveCustomer()
+  return {
+    isAuthenticated: !!customer,
+    customer,
+  }
+}
 
 export async function sendOTP(phone: string) {
   let res = await fetchQuery("/auth/customer/phone-auth", {
@@ -35,9 +44,10 @@ export async function sendOTP(phone: string) {
 }
 
 export async function verifyOTP(phone: string, otp: string) {
-  const res = await fetchQuery("/auth/customer/phone-auth/callback", {
-    method: "GET",
-    query: { phone, otp },
+  // Use our custom route that manually handles JWT generation with correct claims
+  const res = await fetchQuery("/store/auth/signin/verify", {
+    method: "POST", // Changed to POST
+    body: { phone, otp }, // Changed to body
   })
 
   if (!res.ok) {
@@ -46,11 +56,6 @@ export async function verifyOTP(phone: string, otp: string) {
 
   if (res.data?.token) {
     await setAuthToken(res.data.token)
-  }
-
-  const normalizedPhone = phone.replace(/\D/g, "")
-  if (normalizedPhone) {
-    await setGuestPhone(normalizedPhone)
   }
 
   const customerCacheTag = await getCacheTag("customers")
