@@ -734,6 +734,31 @@
   padding-bottom: var(--spacing-sop-12px);
 }
 
+@utility text-sop-neutral-gray-300 {
+  color: var(--color-sop-neutral-gray-300);
+}
+
+@utility text-sop-neutral-gray-light {
+  color: var(--color-sop-neutral-gray-light);
+}
+@utility text-sop-neutral-gray-medium {
+  color: var(--color-sop-neutral-gray-medium);
+}
+
+@utility border-sop-neutral-gray-light {
+  border-color: var(--color-sop-neutral-gray-light);
+}
+@utility border-sop-neutral-gray-medium {
+  border-color: var(--color-sop-neutral-gray-medium);
+}
+
+@utility bg-sop-neutral-gray-light {
+  background-color: var(--color-sop-neutral-gray-light);
+}
+@utility bg-sop-neutral-gray-medium {
+  background-color: var(--color-sop-neutral-gray-medium);
+}
+
 /* ========================================================================== */
 /* Range Slider Styles                                                        */
 /* ========================================================================== */

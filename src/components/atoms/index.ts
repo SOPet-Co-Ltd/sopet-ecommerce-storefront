@@ -27,6 +27,7 @@ import { TabsTrigger } from "./TabsTrigger/TabsTrigger"
 import { NavigationItem } from "./NavigationItem/NavigationItem"
 import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
+import { Spinner } from "./Spinner/Spinner"
 import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
 import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 import { Input as InputSOPet } from "./InputSOPet/Input"
@@ -57,6 +58,7 @@ export {
   NavigationItem,
   LogoutButton,
   MarkdownRender,
+  Spinner,
   PriceRangeSlider,
   InputSOPet,
   SmartImage,

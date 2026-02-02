@@ -55,6 +55,7 @@ export {
   ReviewsToWrite,
   ReviewsWritten,
   CartEmpty,
+  CartTemplate,
   ProductCard,
   ProductSortButtons,
   CartTemplate,

@@ -1,15 +1,12 @@
 "use client"
 
-import { Button, Checkbox } from "@/components/atoms"
+import { Checkbox } from "@/components/atoms"
 import { CartItem } from "@/components/molecules"
-import { convertToLocale } from "@/lib/helpers/money"
 import { CartSummary } from "../CartSummary/CartSummary"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { mockCart } from "@/lib/mocks/cart"
-import { Ticket, Trash } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
-import { TrashIcon, PlusLineIcon, MinusIcon } from "@/icons"
+import { TicketSaleIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 
 type ProductWithSeller = HttpTypes.StoreProduct & {
@@ -158,6 +155,7 @@ export const CartTemplate = ({
                   <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-100 flex items-center gap-3">
                     <Checkbox
                       checked={isSellerSelected}
+                      size="lg"
                       onChange={(e) =>
                         handleSelectSeller(sellerName, e.target.checked)
                       }
@@ -180,12 +178,12 @@ export const CartTemplate = ({
                   {/* Store Discount Section (Footer) */}
                   <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-5 h-5 bg-sop-primary-100 text-sop-primary-500 rounded p-0.5">
-                        <Ticket className="w-3.5 h-3.5" />
+                      <div className="flex items-center justify-center">
+                        <TicketSaleIcon size={26} color="#9C6ADE" />
                       </div>
-                      <span className="text-gray-900 font-medium">
+                      <p className="sop-body-lg-regular text-sop-primary-500">
                         ส่วนลดร้านค้า
-                      </span>
+                      </p>
                     </div>
                     <button className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline">
                       ดูส่วนลดอื่นๆ

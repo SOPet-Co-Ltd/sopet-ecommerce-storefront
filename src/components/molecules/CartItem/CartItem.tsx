@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, Checkbox, Input } from "@/components/atoms"
+import { Button, Checkbox } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 import Image from "next/image"
 import Link from "next/link"
@@ -30,12 +30,11 @@ export const CartItem = ({
   isSelected,
   onSelect,
 }: CartItemProps) => {
-  const { title, thumbnail, handle, images } = item.product || {}
-
   // Use thumbnail if available, otherwise fallback to the first image
   // Also encoding URI to handle spaces in filenames
-  const displayImage =
-    thumbnail || (images?.[0]?.url ? encodeURI(images[0].url) : null)
+  const displayImage = item.thumbnail
+    ? decodeURIComponent(item.thumbnail)
+    : "/images/placeholder.svg"
 
   const { options } = item.variant || {}
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -84,24 +83,19 @@ export const CartItem = ({
           <div className="pt-1 md:pt-auto md:self-center mr-3 md:mr-4 shrink-0">
             <Checkbox
               checked={isSelected}
+              size="lg"
               onChange={(e) => onSelect(item.id, e.target.checked)}
             />
           </div>
 
-          <div className="relative w-[100px] md:w-sop-100px aspect-square bg-sop-neutral-grayalpha-200 rounded-lg overflow-hidden shrink-0 border border-sop-neutral-grayalpha-200 mr-3 md:mr-4">
-            {displayImage ? (
-              <Image
-                src={displayImage}
-                alt={title || "Product image"}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100px, 120px"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 text-xs gap-1">
-                <span>No Image</span>
-              </div>
-            )}
+          <div className="relative w-20 h-20 bg-sop-neutral-grayalpha-200 overflow-hidden shrink-0 mr-3 md:mr-4">
+            <Image
+              src={displayImage || "/images/placeholder.svg"}
+              alt={item.product_title || "Product image"}
+              fill
+              className="object-cover"
+              sizes="80px"
+            />
           </div>
 
           <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center relative">
@@ -137,8 +131,8 @@ export const CartItem = ({
             <div className="flex-1 space-y-4 pr-6 md:pr-0 pl-1">
               <div className="flex justify-between items-start gap-2">
                 <Link
-                  href={`/products/${handle}`}
-                  className="text-sm font-medium text-gray-900 hover:text-primary transition-colors line-clamp-2 leading-tight"
+                  href={`/products/${item.product_handle || ""}`}
+                  className="sop-body-xs-regular md:sop-body-sm-medium text-sop-neutral-gray-300"
                 >
                   {item.product_title}
                 </Link>
@@ -231,7 +225,7 @@ export const CartItem = ({
                   disabled={Number(item.quantity) <= 1}
                   className="disabled:opacity-50 cursor-pointer"
                 >
-                  <MinusIcon size={28} />
+                  <MinusIcon size={24} />
                 </button>
                 <span className="text-body-md font-normal text-gray-900 w-6 text-center">
                   {updating ? "..." : item.quantity}
@@ -240,15 +234,15 @@ export const CartItem = ({
                   onClick={() => handleQuantityChange(item.quantity + 1)}
                   className="cursor-pointer"
                 >
-                  <PlusLineIcon size={28} />
+                  <PlusLineIcon size={24} />
                 </button>
               </div>
               <button
-                className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                className="text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
                 title="ลบรายการ"
                 onClick={() => setIsDeleteModalOpen(true)}
               >
-                <TrashIcon size={20} />
+                <TrashIcon size={24} />
               </button>
             </div>
           </div>

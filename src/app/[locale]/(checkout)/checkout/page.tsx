@@ -1,3 +1,6 @@
+import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
+import { CheckoutPaymentSection } from "@/components/sections/CheckoutPaymentSection"
+import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
@@ -38,7 +41,9 @@ async function CheckoutPageContent({}) {
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
   const regionId = cart.region_id ?? cart.region?.id
-  const paymentMethods = regionId ? await listCartPaymentMethods(regionId) : null
+  const paymentMethods = regionId
+    ? await listCartPaymentMethods(regionId)
+    : null
   const customer = await retrieveCustomer()
   const guestPhone = await getGuestPhone()
   const fallbackPhone = customer?.phone || (!customer ? guestPhone : "") || ""
@@ -60,6 +65,17 @@ async function CheckoutPageContent({}) {
               phoneAddresses={phoneAddresses}
               guestPhone={guestPhone}
             />
+
+            <CartReview cart={cart} shippingMethods={shippingMethods || []} />
+
+            <CheckoutDiscountSection cart={cart} />
+
+            <CheckoutPaymentSection
+              cart={cart}
+              paymentMethods={paymentMethods}
+            />
+
+            <CheckoutSummarySection cart={cart} />
           </div>
         </div>
       </main>

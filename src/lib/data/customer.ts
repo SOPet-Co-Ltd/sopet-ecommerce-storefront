@@ -21,6 +21,7 @@ export const verifyCustomer =
   async (): Promise<HttpTypes.StoreCustomer | null> => {
     const headers = await getAuthHeaders()
 
+<<<<<<< HEAD
     // No auth headers means there's no token; treat as not logged in.
     if (!headers || Object.keys(headers).length === 0) {
       return null
@@ -33,6 +34,14 @@ export const verifyCustomer =
       }>(`/store/auth/me`, {
         method: "GET",
 =======
+=======
+    if (!authHeaders) return null
+
+    const headers = {
+      ...authHeaders,
+    }
+
+>>>>>>> a8d43473df956402a2e979d9bfc0c8e66c5ab722
     return await sdk.client
       .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
         method: "GET",

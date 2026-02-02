@@ -5,7 +5,6 @@ import React from "react"
 import StripeWrapper from "./StripeWrapper"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
-import { isStripe } from "@/lib/constants"
 
 type PaymentWrapperProps = {
   cart: Cart
@@ -17,7 +16,7 @@ const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 const PaymentWrapper: React.FC<PaymentWrapperProps> = ({ cart, children }) => {
   const paymentSession = cart.payment_collection?.payment_sessions?.find(
-    (session: HttpTypes.StorePaymentSession) => isStripe(session.provider_id)
+    (s: HttpTypes.StorePaymentSession) => s.status === "pending"
   )
 
   if (stripePromise) {
