@@ -296,12 +296,15 @@ export async function initiatePaymentSession(
   cart: Cart,
   data: {
     provider_id: string
+    data?: Record<string, unknown>
     context?: Record<string, unknown>
   }
 ) {
   const headers = {
     ...(await getAuthHeaders()),
   }
+
+  const sessionData = data.data || data.context
 
   // If cart already has a payment collection, we must add a session to it
   // instead of trying to create a new collection (which throws 500)
@@ -310,7 +313,10 @@ export async function initiatePaymentSession(
       `/store/payment-collections/${cart.payment_collection.id}/payment-sessions`,
       {
         method: "POST",
-        body: { provider_id: data.provider_id },
+        body: {
+          provider_id: data.provider_id,
+          ...(sessionData ? { data: sessionData } : {}),
+        },
         headers,
       }
     ).then(async (res) => {
@@ -328,7 +334,10 @@ export async function initiatePaymentSession(
   return sdk.store.payment
     .initiatePaymentSession(
       cart as unknown as HttpTypes.StoreCart,
-      data,
+      {
+        provider_id: data.provider_id,
+        ...(sessionData ? { data: sessionData } : {}),
+      },
       {},
       headers
     )
@@ -508,7 +517,10 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
  * @param cartId - optional - The ID of the cart to place an order for.
  * @returns The cart object if the order was successful, or null if not.
  */
-export async function placeOrder(cartId?: string) {
+export async function placeOrder(
+  cartId?: string,
+  options?: { redirect?: boolean }
+) {
   const id = cartId || (await getCartId())
 
   if (!id) {
@@ -531,7 +543,9 @@ export async function placeOrder(cartId?: string) {
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
     removeCartId()
-    redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
+    if (options?.redirect !== false) {
+      redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
+    }
   }
 
   return res

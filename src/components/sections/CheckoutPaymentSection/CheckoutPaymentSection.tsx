@@ -1,20 +1,11 @@
 "use client"
 
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
+import { useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { Wallet, Plus, Check } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
 import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
-import { initiatePaymentSession, setShippingMethod } from "@/lib/data/cart"
-import { useRouter } from "next/navigation"
 import {
   CardCvcElement,
   CardExpiryElement,
@@ -25,7 +16,7 @@ import type {
   StripeCardExpiryElementOptions,
   StripeCardNumberElementOptions,
 } from "@stripe/stripe-js"
-import { isManual, isStripe } from "@/lib/constants"
+import { isStripe } from "@/lib/constants"
 import { StripeContext } from "@/components/organisms/PaymentContainer/StripeWrapper"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
 
@@ -37,8 +28,6 @@ type CheckoutPaymentSectionProps = {
 
 export const CheckoutPaymentSection = ({
   cart,
-  paymentMethods,
-  shippingMethods,
 }: CheckoutPaymentSectionProps) => {
   const {
     method,
@@ -48,7 +37,6 @@ export const CheckoutPaymentSection = ({
     setCardComplete,
     setCardError,
   } = useCheckoutPayment()
-  const [isLoading, setIsLoading] = useState(false)
   const [isAddingCard, setIsAddingCard] = useState(false)
   const [cardNumberComplete, setCardNumberComplete] = useState(false)
   const [cardExpiryComplete, setCardExpiryComplete] = useState(false)
@@ -56,21 +44,15 @@ export const CheckoutPaymentSection = ({
   const [cardNumberError, setCardNumberError] = useState<string | null>(null)
   const [cardExpiryError, setCardExpiryError] = useState<string | null>(null)
   const [cardCvcError, setCardCvcError] = useState<string | null>(null)
-  const autoInitRef = useRef(false)
-
-  const router = useRouter()
   const stripeReady = useContext(StripeContext)
 
   const isStripeProvider = (providerId?: string) => isStripe(providerId)
 
-  const stripeProviderId = paymentMethods?.find((p) =>
-    isStripeProvider(p.id)
-  )?.id
-  const manualProviderId =
-    paymentMethods?.find((p) => isManual(p.id))?.id ||
-    paymentMethods?.find((p) => !isStripeProvider(p.id))?.id
   const stripeSession = cart?.payment_collection?.payment_sessions?.find(
     (session) => isStripeProvider(session.provider_id)
+  )
+  const promptpaySession = cart?.payment_collection?.payment_sessions?.find(
+    (session) => session.provider_id?.toLowerCase().includes("promptpay")
   )
   const nonStripeSession = cart?.payment_collection?.payment_sessions?.find(
     (session) => !isStripeProvider(session.provider_id)
@@ -125,6 +107,22 @@ export const CheckoutPaymentSection = ({
       return
     }
 
+    const storageKey = `checkout:selected_payment_method:${cart.id}`
+    const selectedFromStorage =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(storageKey)
+        : null
+
+    if (selectedFromStorage === "qrcode" || selectedFromStorage === "card") {
+      setMethod(selectedFromStorage)
+      return
+    }
+
+    if (promptpaySession) {
+      setMethod("qrcode")
+      return
+    }
+
     if (stripeSession) {
       setMethod("card")
       return
@@ -133,7 +131,7 @@ export const CheckoutPaymentSection = ({
     if (nonStripeSession) {
       setMethod("qrcode")
     }
-  }, [cart, nonStripeSession, setMethod, stripeSession])
+  }, [cart, nonStripeSession, promptpaySession, setMethod, stripeSession])
 
   useEffect(() => {
     const isComplete =
@@ -169,133 +167,23 @@ export const CheckoutPaymentSection = ({
   }, [method, isAddingCard])
 
   const handleMethodChange = useCallback(
-    async (newMethod: "qrcode" | "card") => {
+    (newMethod: "qrcode" | "card") => {
       setMethod(newMethod)
+      if (cart && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          `checkout:selected_payment_method:${cart.id}`,
+          newMethod
+        )
+      }
       if (newMethod !== "card") {
         setIsAddingCard(false)
       }
-      setIsLoading(true)
-
-      const providerId =
-        newMethod === "card" ? stripeProviderId : manualProviderId
-
-      if (!providerId) {
-        console.error("Payment provider not available for method:", newMethod)
-        setIsLoading(false)
-        return false
-      }
-
-      const getPreferredShippingOptionId = () => {
-        if (!cart) return ""
-
-        const storageKey = `checkout:selected_shipping_option:${cart.id}`
-        const selectedFromStorage =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem(storageKey) || ""
-            : ""
-        const validStorageSelection = selectedFromStorage
-          ? shippingMethods.some((sm) => sm.id === selectedFromStorage)
-          : false
-
-        return (
-          (validStorageSelection ? selectedFromStorage : "") ||
-          cart.shipping_methods?.[0]?.shipping_option_id ||
-          shippingMethods[0]?.id ||
-          ""
-        )
-      }
-
-      const preferredShippingOptionId = getPreferredShippingOptionId()
-
-      if (!preferredShippingOptionId) {
-        setCardError("กรุณาเลือกวิธีจัดส่งก่อน")
-        setIsLoading(false)
-        return false
-      }
-
-      const alreadySelected = (cart?.shipping_methods || []).some(
-        (method) => method.shipping_option_id === preferredShippingOptionId
-      )
-
-      if (!alreadySelected && cart) {
-        try {
-          await setShippingMethod({
-            cartId: cart.id,
-            shippingMethodId: preferredShippingOptionId,
-          })
-        } catch (error) {
-          console.error(
-            "[CheckoutPaymentSection] Failed to set shipping before payment session:",
-            error
-          )
-          setIsLoading(false)
-          return false
-        }
-      }
-
-      if (cart && providerId) {
-        try {
-          await initiatePaymentSession(cart, {
-            provider_id: providerId,
-          })
-
-          router.refresh()
-          return true
-        } catch (e) {
-          console.error("[CheckoutPaymentSection] Failed to init session:", e)
-          return false
-        } finally {
-          setIsLoading(false)
-        }
-      }
-      setIsLoading(false)
-      return false
     },
-    [
-      cart,
-      manualProviderId,
-      router,
-      setCardError,
-      setMethod,
-      shippingMethods,
-      stripeProviderId,
-    ]
+    [cart, setMethod]
   )
-
-  useEffect(() => {
-    if (
-      method !== "card" ||
-      !cart ||
-      isLoading ||
-      stripeSession ||
-      !stripeProviderId
-    ) {
-      return
-    }
-
-    if (autoInitRef.current) {
-      return
-    }
-
-    autoInitRef.current = true
-    void handleMethodChange("card").then((ok) => {
-      if (!ok) {
-        autoInitRef.current = false
-      }
-    })
-  }, [method, cart, isLoading, stripeSession, handleMethodChange])
-
-  useEffect(() => {
-    autoInitRef.current = false
-  }, [cart?.id])
 
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col gap-6 relative">
-      {isLoading && (
-        <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center rounded-lg">
-          <Text className="text-purple-600 font-bold">Processing...</Text>
-        </div>
-      )}
       <div className="flex items-center gap-2 border-b border-sop-neutral-gray-light pb-4">
         <Wallet className="w-6 h-6 text-purple-600" />
         <Heading level="h2" className="text-xl text-purple-600 font-bold">

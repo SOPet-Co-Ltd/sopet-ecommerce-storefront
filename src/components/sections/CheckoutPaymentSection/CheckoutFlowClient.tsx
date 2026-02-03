@@ -53,6 +53,7 @@ export default function CheckoutFlowClient({
         cart={cart}
         customer={customer}
         shippingMethods={shippingMethods}
+        paymentMethods={paymentMethods}
       />
     </CheckoutPaymentProvider>
   )

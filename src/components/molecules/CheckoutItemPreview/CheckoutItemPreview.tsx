@@ -94,7 +94,13 @@ const CheckoutItemPreview = ({
         })
       )
     }
-  }, [cart.id, defaultShippingOption?.id, shippingMethods, shippingOptionsById, storageKey])
+  }, [
+    cart.id,
+    defaultShippingOption?.id,
+    shippingMethods,
+    shippingOptionsById,
+    storageKey,
+  ])
 
   return (
     <div className="flex flex-col gap-6">
@@ -106,9 +112,10 @@ const CheckoutItemPreview = ({
           return acc + item.unit_price * item.quantity
         }, 0)
 
-        const shippingTotal = selectedShippingOption?.amount || 0
+        const shippingTotal =
+          selectedShippingOption?.amount ?? cart.shipping_total ?? 0
 
-        // Keep fallback total aligned with displayed line-items; discount row is mock UI.
+        // Keep total aligned with displayed line-items; discount row is mock UI.
         const sellerTotal = subtotal + shippingTotal
 
         return (
@@ -197,8 +204,8 @@ const CheckoutItemPreview = ({
             </div>
 
             {/* Discount Section */}
-            <div className="py-4 border-b border-sop-neutral-gray-light flex flex-row items-center gap-2 text-color-sop-additionalblue-400 sop-body-lg-regular">
-              <Percent className="w-5 h-5" />
+            <div className="py-4 border-b border-sop-neutral-gray-light text-sop-additionalblue-400 flex flex-row items-center gap-2  sop-body-lg-regular">
+              <Percent className="w-5 h-5 " />
               <span>ส่วนลด ฿100</span>
               {/* Replace with real cart logic later */}
             </div>
@@ -262,7 +269,7 @@ const CheckoutItemPreview = ({
               <span className="font-normal text-gray-900">รวมทั้งสิ้น</span>
               <span className="font-normal text-lg text-red-500">
                 {convertToLocale({
-                  amount: cart.total || sellerTotal,
+                  amount: sellerTotal,
                   currency_code: cart.currency_code,
                 })}
               </span>

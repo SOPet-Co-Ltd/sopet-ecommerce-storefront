@@ -46,6 +46,7 @@ export const isStripe = (providerId?: string) => {
   return (
     providerId === "stripe" ||
     providerId === "stripe-connect" ||
+    providerId === "pp_card_stripe-connect" ||
     providerId.startsWith("pp_card_stripe-connect") ||
     providerId.startsWith("pp_card_stripe") ||
     providerId.startsWith("pp_stripe_stripe")
