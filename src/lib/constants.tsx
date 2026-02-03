@@ -80,13 +80,30 @@ export const noDivisionCurrencies = [
 
 export const PROTECTED_ROUTES = ["/user"]
 
-export const USER_SEGMENT_LABELS: Record<
-  string,
-  { label: string; icon: (props: IconProps) => React.JSX.Element }
-> = {
+export type UserSegmentConfig = {
+  label: string
+  icon: (props: IconProps) => React.JSX.Element
+  routes?: Record<string, { label: string }>
+}
+
+export const USER_SEGMENT_LABELS: Record<string, UserSegmentConfig> = {
   profile: {
     label: "ข้อมูลส่วนตัว",
     icon: UserManagementUserIcon,
+    routes: {
+      "email/change": {
+        label: "เปลี่ยนอีเมล",
+      },
+      "email/add": {
+        label: "อีเมลใหม่",
+      },
+      "phone/change": {
+        label: "เปลี่ยนเบอร์โทรศัพท์",
+      },
+      "phone/add": {
+        label: "เพิ่มเบอร์โทรศัพท์",
+      },
+    },
   },
   orders: {
     label: "คำสั่งซื้อสินค้า",
@@ -95,6 +112,14 @@ export const USER_SEGMENT_LABELS: Record<
   addresses: {
     label: "ที่อยู่สำหรับจัดส่ง",
     icon: UserManagementLocationIcon,
+    routes: {
+      new: {
+        label: "เพิ่มที่อยู่",
+      },
+      edit: {
+        label: "แก้ไขที่อยู่",
+      },
+    },
   },
   credit: {
     label: "บัตรเครดิต/เดบิต",
@@ -113,3 +138,6 @@ export const USER_SEGMENT_LABELS: Record<
     icon: UserManagementBinIcon,
   },
 }
+
+/** Path suffixes to hide from breadcrumbs (e.g. "phone/change", "new"). Current path is shortened by removing the matching suffix. */
+export const USER_BREADCRUMB_HIDDEN_SUFFIXES: string[] = []
