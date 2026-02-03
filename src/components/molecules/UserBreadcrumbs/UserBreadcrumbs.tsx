@@ -26,14 +26,31 @@ export function UserBreadcrumbs({ className }: { className?: string }) {
   ]
 
   if (isUserPath && pathWithoutLocale !== "/user") {
-    const segments = pathWithoutLocale.split("/").filter(Boolean).slice(1)
-    let cumulativePath = "/user"
-
-    for (let i = 0; i < segments.length; i++) {
+    const segments = pathWithoutLocale
+      .replace(/^\/user\/?/, "")
+      .split("/")
+      .filter(Boolean)
+    let i = 0
+    while (i < segments.length) {
       const segment = segments[i]
-      cumulativePath += `/${segment}`
-      const label = getSegmentLabel(segment)
-      items.push({ label, path: cumulativePath })
+      const config = USER_SEGMENT_LABELS[segment]
+      const parentPath = "/user/" + segments.slice(0, i + 1).join("/")
+      const remainingPath = segments.slice(i + 1).join("/")
+
+      if (config?.routes && remainingPath && config.routes[remainingPath]) {
+        items.push({ label: config.label, path: parentPath })
+        items.push({
+          label: config.routes[remainingPath].label,
+          path: parentPath + "/" + remainingPath,
+        })
+        i += 1 + remainingPath.split("/").length
+      } else {
+        items.push({
+          label: config?.label ?? segment,
+          path: parentPath,
+        })
+        i += 1
+      }
     }
   }
 

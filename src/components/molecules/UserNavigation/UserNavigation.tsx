@@ -1,14 +1,16 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
 import { useParams, usePathname } from "next/navigation"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { cn } from "@/lib/utils"
 import {
+  Avatar,
   Dropdown,
   DropdownGroup,
   DropdownItem,
-} from "@/components/atoms/Dropdown/Dropdown"
+} from "@/components/atoms"
 import { DownArrowIcon } from "@/icons"
 
 const getNavigationItems = () => {
@@ -22,7 +24,11 @@ const getNavigationItems = () => {
   })
 }
 
-export const UserNavigation = () => {
+type UserNavigationProps = {
+  user?: HttpTypes.StoreCustomer | null
+}
+
+export const UserNavigation = ({ user }: UserNavigationProps) => {
   const pathname = usePathname()
   const { locale } = useParams()
   const localeStr = String(locale ?? "")
@@ -35,9 +41,11 @@ export const UserNavigation = () => {
     (item) => item.href === pathWithoutLocale
   )
   const dropdownValue = matchedItem ? matchedItem.href : ""
+  const avatarUrl = (user as { metadata?: { avatar_url?: string } } | undefined)
+    ?.metadata?.avatar_url
   return (
     <>
-      <div className="md:hidden block">
+      <div className="lg:hidden block">
         <Dropdown
           value={dropdownValue}
           placeholder="บัญชีของฉัน"
@@ -54,20 +62,14 @@ export const UserNavigation = () => {
         </Dropdown>
       </div>
       <div
-        className={cn("bg-sop-base-white rounded-sop-8px", "md:block hidden")}
+        className={cn("bg-sop-base-white rounded-sop-8px", "lg:block hidden")}
       >
         <div
           className={cn(
             "px-sop-16px py-sop-12px flex items-center gap-sop-16px"
           )}
         >
-          <div
-            className={cn(
-              "aspect-square rounded-full bg-sop-neutral-gray-500 p-1 w-sop-56px h-sop-56px"
-            )}
-          >
-            {/* TODO: Add user avatar */}
-          </div>
+          <Avatar size="small" src={avatarUrl} />
           <span className="sop-body-sm-regular text-sop-neutral-gray-200">
             บัญชีของฉัน
           </span>
