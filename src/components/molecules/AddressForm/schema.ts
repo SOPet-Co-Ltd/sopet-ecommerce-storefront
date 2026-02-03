@@ -2,20 +2,17 @@ import { z } from "zod"
 
 export const addressSchema = z.object({
   addressId: z.string().optional(),
-  addressName: z.string().nonempty("Address name is required"),
-  firstName: z.string().nonempty("First name is required"),
-  lastName: z.string().nonempty("Last name is required"),
-  address: z.string().nonempty("Address is required"),
-  city: z.string().nonempty("City is required"),
-  countryCode: z.string().nonempty("Country is required"),
-  postalCode: z.string().nonempty("Postal code is required"),
-  company: z.string().optional(),
-  province: z.string().optional(),
+  recipientFullName: z.string().min(1, "ชื่อ-นามสกุล ผู้รับสินค้า is required"),
   phone: z
     .string()
-    .nonempty("Phone number is required")
+    .min(1, "เบอร์โทรศัพท์ is required")
     .regex(/^\+?[0-9\s\-()]+$/, "Invalid phone number format"),
-  metadata: z.record(z.any()).optional(),
+  province: z.string().min(1, "จังหวัด is required"),
+  district: z.string().min(1, "เขต/อำเภอ is required"),
+  subDistrict: z.string().min(1, "แขวง/ตำบล is required"),
+  postalCode: z.string().min(1, "รหัสไปรษณีย์ is required"),
+  address: z.string().min(1, "ที่อยู่ is required"),
+  setAsDefault: z.boolean().optional().default(false),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>

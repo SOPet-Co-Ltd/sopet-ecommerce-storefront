@@ -34,7 +34,6 @@ export const verifyCustomer =
         headers,
         cache: "no-store",
       })
-      console.log(result)
 
       return result.customer
     } catch {
@@ -59,6 +58,253 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   revalidateTag(cacheTag)
 
   return updateRes
+}
+
+export type UpdateProfileInput = {
+  name?: string
+  birth_date?: string
+}
+
+/**
+ * Update logged-in customer profile (name and/or date of birth).
+ * Uses POST /store/customers/me/profile; data is stored in customer.metadata.
+ */
+export async function updateProfile(
+  input: UpdateProfileInput
+): Promise<
+  | { success: true; customer: HttpTypes.StoreCustomer }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const result = await sdk.client.fetch<{
+      customer: HttpTypes.StoreCustomer
+    }>("/store/customers/me/profile", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: input,
+    })
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, customer: result.customer }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+/**
+ * Request OTP for adding or changing email/phone (logged-in user).
+ * Uses POST /store/customers/me/request-otp. Does not create a new customer.
+ * Body is sent by type so change-email always sends email, change-phone always sends phone.
+ */
+export async function requestOtpForUpdate(
+  identifier: string,
+  type: "email" | "phone"
+): Promise<{ success: true } | { success: false; error: string }> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const body =
+    type === "email"
+      ? { email: identifier.trim() }
+      : { phone: identifier.trim() }
+
+  try {
+    const res = await sdk.client.fetch<{ success: boolean; error?: string }>(
+      "/store/customers/me/request-otp",
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body,
+      }
+    )
+    if (!res.success) {
+      return { success: false, error: res.error ?? "ไม่สามารถส่ง OTP ได้" }
+    }
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export type VerifyOtpUpdateInput = {
+  email?: string
+  phone?: string
+  otp: string
+}
+
+/**
+ * Verify OTP and update logged-in customer's email or phone.
+ * Uses POST /store/customers/me/verify-otp-update. Stores new JWT if returned.
+ */
+export async function verifyOtpAndUpdateContact(
+  input: VerifyOtpUpdateInput
+): Promise<
+  | { success: true; token?: string; customer?: HttpTypes.StoreCustomer }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const { email, phone, otp } = input
+  if ((email && phone) || (!email && !phone)) {
+    return {
+      success: false,
+      error: "Exactly one of email or phone is required",
+    }
+  }
+  if (!otp || !/^\d{6}$/.test(otp)) {
+    return { success: false, error: "กรุณากรอก OTP 6 หลักให้ถูกต้อง" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      success: boolean
+      error?: string
+      token?: string
+      customer?: HttpTypes.StoreCustomer
+    }>("/store/customers/me/verify-otp-update", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: { email, phone, otp },
+    })
+
+    if (!res.success) {
+      return { success: false, error: res.error ?? "ไม่สามารถยืนยัน OTP ได้" }
+    }
+
+    if (res.token) {
+      await setAuthToken(res.token)
+    }
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return {
+      success: true,
+      token: res.token,
+      customer: res.customer,
+    }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+/**
+ * Upload avatar for the logged-in customer.
+ * Uses POST /store/customers/me/avatar (multipart/form-data, field "avatar").
+ */
+export async function uploadAvatar(
+  file: File
+): Promise<
+  | { success: true; avatar_url: string; avatar_blurhash?: string }
+  | { success: false; error: string }
+> {
+  console.log("[uploadAvatar] 1. Starting", {
+    filename: file.name,
+    size: file.size,
+    type: file.type,
+  })
+
+  const headers = await getAuthHeaders()
+  console.log("[uploadAvatar] 2. Auth headers", {
+    hasHeaders: !!headers,
+    keyCount: headers ? Object.keys(headers).length : 0,
+  })
+  if (!headers || Object.keys(headers).length === 0) {
+    console.warn("[uploadAvatar] No auth headers available")
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const formData = new FormData()
+  formData.append("avatar", file)
+
+  try {
+    const baseUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+    console.log("[uploadAvatar] 3. Sending request", {
+      url: `${baseUrl}/store/customers/me/avatar`,
+    })
+
+    const res = await fetch(`${baseUrl}/store/customers/me/avatar`, {
+      method: "POST",
+      headers: {
+        "x-publishable-api-key": publishableKey,
+        ...(headers as Record<string, string>),
+      },
+      body: formData,
+    })
+
+    console.log("[uploadAvatar] 4. Response received", {
+      status: res.status,
+      ok: res.ok,
+    })
+
+    const data = await res.json().catch((parseErr) => {
+      console.error("[uploadAvatar] Failed to parse response JSON", parseErr)
+      return {}
+    })
+    console.log("[uploadAvatar] 5. Body parsed", {
+      hasData: !!data,
+      keys: data ? Object.keys(data) : [],
+    })
+
+    if (!res.ok) {
+      console.error("[uploadAvatar] Upload failed", {
+        status: res.status,
+        error: data?.message ?? data?.error,
+        responseData: data,
+      })
+      return {
+        success: false,
+        error: data?.message ?? data?.error ?? "Upload failed",
+      }
+    }
+
+    const avatarUrl = data.avatar_url ?? data.customer?.metadata?.avatar_url
+    if (!avatarUrl) {
+      console.error("[uploadAvatar] No avatar URL in response", {
+        responseData: data,
+        hasAvatarUrl: !!data.avatar_url,
+        hasCustomerMetadata: !!data.customer?.metadata?.avatar_url,
+      })
+      return { success: false, error: "No avatar URL returned" }
+    }
+
+    const avatarBlurhash =
+      data.avatar_blurhash ?? data.customer?.metadata?.avatar_blurhash
+
+    console.log("[uploadAvatar] 6. Upload successful", {
+      avatarUrl: avatarUrl?.slice(0, 50),
+      hasBlurhash: !!avatarBlurhash,
+    })
+
+    console.log("[uploadAvatar] 7. Revalidating cache…")
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    console.log("[uploadAvatar] 8. Done")
+
+    return {
+      success: true,
+      avatar_url: avatarUrl,
+      ...(avatarBlurhash && { avatar_blurhash: avatarBlurhash }),
+    }
+  } catch (err: any) {
+    console.error("[uploadAvatar] Exception during upload", {
+      error: err?.message ?? String(err),
+      stack: err?.stack,
+      name: err?.name,
+    })
+    return { success: false, error: err?.message ?? String(err) }
+  }
 }
 
 // Legacy email/password signup - kept for backwards compatibility
@@ -261,8 +507,9 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
     address_name: formData.get("address_name") as string,
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
-    company: formData.get("company") as string,
+    company: (formData.get("company") as string) || "",
     address_1: formData.get("address_1") as string,
+    address_2: (formData.get("address_2") as string) || "",
     city: formData.get("city") as string,
     postal_code: formData.get("postal_code") as string,
     country_code: formData.get("country_code") as string,
@@ -320,13 +567,15 @@ export const updateCustomerAddress = async (
     address_name: formData.get("address_name") as string,
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
-    company: formData.get("company") as string,
+    company: (formData.get("company") as string) || "",
     address_1: formData.get("address_1") as string,
-    address_2: formData.get("address_2") as string,
+    address_2: (formData.get("address_2") as string) || "",
     city: formData.get("city") as string,
     postal_code: formData.get("postal_code") as string,
     province: formData.get("province") as string,
     country_code: formData.get("country_code") as string,
+    is_default_billing: Boolean(formData.get("isDefaultBilling")),
+    is_default_shipping: Boolean(formData.get("isDefaultShipping")),
   } as HttpTypes.StoreUpdateCustomerAddress
 
   const phone = formData.get("phone") as string
@@ -335,20 +584,43 @@ export const updateCustomerAddress = async (
     address.phone = phone
   }
 
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
+  const headers = await getAuthHeaders()
+  const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-  return sdk.store.customer
-    .updateAddress(addressId, address, {}, headers)
-    .then(async () => {
-      const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag)
-      return { success: true, error: null }
-    })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+  try {
+    const response = await fetch(
+      `${backendUrl}/store/customers/me/addresses/${addressId}/update`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key": publishableKey,
+          ...headers,
+        },
+        body: JSON.stringify(address),
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: response.statusText || "Failed to update address",
+      }))
+      return {
+        success: false,
+        error: errorData.message || "Failed to update address",
+      }
+    }
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, error: null }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
 }
 
 export const updateCustomerPassword = async (
