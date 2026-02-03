@@ -14,7 +14,7 @@ type SopButtonVariant =
 type ButtonUiType = "button" | "icon"
 type ButtonRounded = "full" | "rounded"
 
-type ButtonSize = "sm" | "md" | "lg"
+type ButtonSize = "sm" | "md" | "lg" | "xl"
 type IconButtonSize = "sm" | "md"
 
 // Backward compatible values used across the codebase today.
@@ -88,9 +88,10 @@ export function Button({
   }
 
   const sizeButtonClasses: Record<ButtonSize, string> = {
-    sm: "min-w-[68px] min-h-[32px] py-sop-8px px-sop-12px sop-body-sm-medium",
-    md: "min-w-[76px] min-h-[36px] py-sop-8px px-sop-16px sop-body-sm-medium",
-    lg: "min-w-[114px] min-h-[48px] py-sop-4px px-sop-32px sop-body-md-medium",
+    sm: "min-w-[68px] h-[32px] py-sop-8px px-sop-12px sop-body-sm-medium",
+    md: "min-w-[76px] h-[36px] py-sop-8px px-sop-16px sop-body-sm-medium",
+    lg: "min-w-[76px] h-[44px] py-sop-4px px-sop-16px sop-body-sm-medium",
+    xl: "min-w-[114px] h-[48px] py-sop-4px px-sop-32px sop-body-md-medium",
   }
 
   const sizeIconClasses: Record<IconButtonSize, string> = {

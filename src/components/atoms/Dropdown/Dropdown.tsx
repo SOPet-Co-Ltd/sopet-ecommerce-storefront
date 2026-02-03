@@ -5,7 +5,7 @@ import * as SelectPrimitive from "@radix-ui/react-select"
 
 import { cn } from "@/lib/utils"
 import { Button, ButtonProps } from "../Button/Button"
-import { DownArrowIcon, TickHeavyIcon, UpArrowIcon } from "@/icons"
+import { DownArrowIcon, TickHeavyIcon } from "@/icons"
 
 /** Shared padding for content items (label, item, scroll buttons). */
 const DROPDOWN_ITEM_PADDING = "px-[14px] py-[10px]"
@@ -14,8 +14,8 @@ const DROPDOWN_ITEM_PADDING = "px-[14px] py-[10px]"
 const DROPDOWN_CONTENT_CLASSES =
   "bg-sop-neutral-gray-600 overflow-clip border-sop-neutral-gray-500 rounded-sop-8px w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
 
-/** Close animation duration (ms) — keep in sync with globals.css dropdownClose */
-const DROPDOWN_CLOSE_DURATION_MS = 180
+/** Viewport max height and scroll (native overflow; no Scroll Area to avoid overflow/overflowY conflict). */
+const DROPDOWN_VIEWPORT_CLASSES = "max-h-60 overflow-x-hidden overflow-y-auto"
 
 /**
  * Radix Select-based dropdown.
@@ -56,40 +56,13 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
     const isControlled = openProp !== undefined
     const [openState, setOpenState] = React.useState(defaultOpen ?? false)
     const open = isControlled ? openProp : openState
-    const [isClosing, setIsClosing] = React.useState(false)
-    const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
-      null
-    )
 
     const handleOpenChange = React.useCallback(
       (value: boolean) => {
-        if (value === false) {
-          setIsClosing(true)
-          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current)
-          closeTimeoutRef.current = setTimeout(() => {
-            closeTimeoutRef.current = null
-            if (!isControlled) setOpenState(false)
-            onOpenChange?.(false)
-            setIsClosing(false)
-          }, DROPDOWN_CLOSE_DURATION_MS)
-        } else {
-          if (closeTimeoutRef.current) {
-            clearTimeout(closeTimeoutRef.current)
-            closeTimeoutRef.current = null
-          }
-          setIsClosing(false)
-          if (!isControlled) setOpenState(true)
-          onOpenChange?.(true)
-        }
+        if (!isControlled) setOpenState(value)
+        onOpenChange?.(value)
       },
       [isControlled, onOpenChange]
-    )
-
-    React.useEffect(
-      () => () => {
-        if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current)
-      },
-      []
     )
 
     return (
@@ -116,34 +89,18 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
         <SelectPrimitive.Portal>
           <SelectPrimitive.Content
             className={cn(
+              "shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
               DROPDOWN_CONTENT_CLASSES,
               "DropdownContent",
-              isClosing && "DropdownContent--closing",
               contentClassName
             )}
             position="popper"
             alignOffset={0}
             sideOffset={5}
           >
-            <SelectPrimitive.ScrollUpButton
-              className={cn(
-                "flex justify-center items-center",
-                DROPDOWN_ITEM_PADDING
-              )}
-            >
-              <UpArrowIcon size={16} />
-            </SelectPrimitive.ScrollUpButton>
-
-            <SelectPrimitive.Viewport>{children}</SelectPrimitive.Viewport>
-
-            <SelectPrimitive.ScrollDownButton
-              className={cn(
-                "flex justify-center items-center",
-                DROPDOWN_ITEM_PADDING
-              )}
-            >
-              <DownArrowIcon size={16} />
-            </SelectPrimitive.ScrollDownButton>
+            <SelectPrimitive.Viewport className={DROPDOWN_VIEWPORT_CLASSES}>
+              {children}
+            </SelectPrimitive.Viewport>
           </SelectPrimitive.Content>
         </SelectPrimitive.Portal>
       </SelectPrimitive.Root>
