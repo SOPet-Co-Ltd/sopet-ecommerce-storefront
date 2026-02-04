@@ -36,6 +36,8 @@ import { ReviewForm } from "./ReviewForm/ReviewForm"
 import { ProfileDetails } from "./ProfileDetails/ProfileDetails"
 import { ProfileDetailsSection } from "./ProfileDetailsSection/ProfileDetailsSection"
 import { ProfileContactOtpForm } from "./ProfileContactOtpForm/ProfileContactOtpForm"
+import { SaveQRCodeButton } from "./SaveQRCodeButton/SaveQRCodeButton"
+import { DeleteAccountButton } from "./DeleteAccountButton/DeleteAccountButton"
 
 export {
   PrimeCategoryNavbar,
@@ -76,4 +78,6 @@ export {
   ProfileDetails,
   ProfileDetailsSection,
   ProfileContactOtpForm,
+  SaveQRCodeButton,
+  DeleteAccountButton,
 }

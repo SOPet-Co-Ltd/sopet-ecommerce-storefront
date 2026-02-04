@@ -45,6 +45,7 @@ import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 import { Input as InputSOPet } from "./InputSOPet/Input"
 import type { InputProps as InputSOPetProps } from "./InputSOPet/Input"
 import SmartImage from "./SmartImage/SmartImage"
+import { PaymentProviderIcon } from "./PaymentProviderIcon/PaymentProviderIcon"
 
 export {
   Button,
@@ -77,6 +78,7 @@ export {
   PriceRangeSlider,
   InputSOPet,
   SmartImage,
+  PaymentProviderIcon,
 }
 
 export type {
@@ -90,3 +92,8 @@ export type {
   DropdownLabelProps,
   DropdownSeparatorProps,
 }
+
+export type {
+  PaymentBrand,
+  PaymentProviderIconProps,
+} from "./PaymentProviderIcon/PaymentProviderIcon"
