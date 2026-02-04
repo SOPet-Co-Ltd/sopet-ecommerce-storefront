@@ -185,8 +185,8 @@ export const CheckoutPaymentSection = ({
   return (
     <div className="bg-white rounded-lg p-6 flex flex-col gap-6 relative">
       <div className="flex items-center gap-2 border-b border-sop-neutral-gray-light pb-4">
-        <Wallet className="w-6 h-6 text-purple-600" />
-        <Heading level="h2" className="text-xl text-purple-600 font-bold">
+        <Wallet className="w-6 h-6 text-sop-primary-500" />
+        <Heading level="h2" className="text-xl text-sop-primary-500 font-bold">
           วิธีการชำระเงิน
         </Heading>
       </div>

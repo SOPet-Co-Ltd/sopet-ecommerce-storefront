@@ -5,7 +5,7 @@ import CheckoutItemPreview from "@/components/molecules/CheckoutItemPreview/Chec
 import { StoreCardShippingMethod, Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 import { Heading } from "@medusajs/ui"
-import { ClipboardList } from "lucide-react"
+import { ClipboardListIcon } from "@/icons"
 
 const Review = ({
   cart,
@@ -20,7 +20,7 @@ const Review = ({
     <div>
       <div className="bg-sop-base-white pt-2 px-4 ">
         <div className="flex flex-row items-center gap-2 border-b border-sop-neutral-gray-light py-2 ">
-          <ClipboardList className="text-sop-primary-500 w-6 h-6" />
+          <ClipboardListIcon className="w-6 h-6" />
           <Heading
             level="h2"
             className="sop-headline-sm-medium text-sop-primary-500"

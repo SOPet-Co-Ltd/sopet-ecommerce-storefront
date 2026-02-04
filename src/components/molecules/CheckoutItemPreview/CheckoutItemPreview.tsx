@@ -6,13 +6,14 @@ import {
   StoreCardShippingMethod,
   GroupedItems,
 } from "@/types/cart"
-import { Percent, Truck } from "lucide-react"
+import { Truck } from "lucide-react"
 import { Text } from "@medusajs/ui"
 import Image from "next/image"
 import { convertToLocale } from "@/lib/helpers/money"
 
 import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
 import { useEffect, useMemo, useState } from "react"
+import { DeliveryTruckIcon, DiscountIcon } from "@/icons"
 
 type CheckoutItemPreviewProps = {
   cart: Cart | null
@@ -205,7 +206,7 @@ const CheckoutItemPreview = ({
 
             {/* Discount Section */}
             <div className="py-4 border-b border-sop-neutral-gray-light text-sop-additionalblue-400 flex flex-row items-center gap-2  sop-body-lg-regular">
-              <Percent className="w-5 h-5 " />
+              <DiscountIcon size={24} active />
               <span>ส่วนลด ฿100</span>
               {/* Replace with real cart logic later */}
             </div>
@@ -215,8 +216,8 @@ const CheckoutItemPreview = ({
               {/* Mobile Layout */}
               <div className="md:hidden flex flex-col gap-3">
                 <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-blue-600 font-normal">
-                    <Truck className="w-5 h-5" />
+                  <div className="flex items-center gap-2 text-sop-additionalblue-400 font-normal">
+                    <DeliveryTruckIcon size={24} />
                     <span>ตัวเลือกการจัดส่ง</span>
                   </div>
                   <button
@@ -230,8 +231,8 @@ const CheckoutItemPreview = ({
 
               {/* Desktop Layout */}
               <div className="hidden md:flex flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-blue-600 font-normal">
-                  <Truck className="w-5 h-5" />
+                <div className="flex items-center gap-2 text-sop-additionalblue-400 font-normal">
+                  <DeliveryTruckIcon size={24} />
                   <span>ตัวเลือกการจัดส่ง</span>
                 </div>
 
@@ -267,7 +268,7 @@ const CheckoutItemPreview = ({
             {/* Total Section */}
             <div className="pt-4 flex justify-between items-center">
               <span className="font-normal text-gray-900">รวมทั้งสิ้น</span>
-              <span className="font-normal text-lg text-red-500">
+              <span className="font-normal text-lg text-sop-secondary-500">
                 {convertToLocale({
                   amount: sellerTotal,
                   currency_code: cart.currency_code,

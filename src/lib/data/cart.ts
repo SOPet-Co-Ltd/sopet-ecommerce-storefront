@@ -486,23 +486,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       data.email = email
     }
 
-    // const sameAsBilling = formData.get("same_as_billing")
-    // if (sameAsBilling === "on") data.billing_address = data.shipping_address
-    data.billing_address = data.shipping_address as HttpTypes.StoreCartAddress
-
-    // if (sameAsBilling !== "on")
-    //   data.billing_address = {
-    //     first_name: formData.get("billing_address.first_name"),
-    //     last_name: formData.get("billing_address.last_name"),
-    //     address_1: formData.get("billing_address.address_1"),
-    //     address_2: "",
-    //     company: formData.get("billing_address.company"),
-    //     postal_code: formData.get("billing_address.postal_code"),
-    //     city: formData.get("billing_address.city"),
-    //     country_code: formData.get("billing_address.country_code"),
-    //     province: formData.get("billing_address.province"),
-    //     phone: formData.get("billing_address.phone"),
-    //   }
+    // Note: Only set billing_address when a separate billing form is provided.
 
     await updateCart(data)
 

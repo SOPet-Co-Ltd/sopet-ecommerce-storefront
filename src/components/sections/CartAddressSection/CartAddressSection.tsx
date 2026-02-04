@@ -17,7 +17,7 @@ import {
 import { Button, Spinner } from "@/components/atoms"
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
 import ShippingAddress from "@/components/organisms/ShippingAddress/ShippingAddress"
-import { MapPin } from "lucide-react"
+import { MapPinIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 import ShippingAddressSummary from "@/components/molecules/ShippingAddressSummary/ShippingAddressSummary"
 
@@ -104,6 +104,9 @@ export const CartAddressSection = ({
 
     const { moveToDelivery } = pendingNavigationRef.current
     pendingNavigationRef.current = null
+
+    // Mark as applied to prevent subsequent auto-apply effects
+    autoAppliedRef.current = true
 
     if (pendingAddress && !selectedSavedAddress) {
       setSelectedSavedAddress(pendingAddress)
@@ -198,7 +201,9 @@ export const CartAddressSection = ({
       !hasSavedAddresses ||
       cart?.shipping_address ||
       !selectedSavedAddress ||
-      autoAppliedRef.current
+      autoAppliedRef.current ||
+      pendingAddress ||
+      isPending
     ) {
       return
     }
@@ -243,7 +248,7 @@ export const CartAddressSection = ({
           level="h2"
           className="flex flex-row gap-x-2  items-center text-ui-fg-base"
         >
-          <MapPin className="text-sop-primary-500" />
+          <MapPinIcon className="w-6 h-6" />
           <span className="sop-headline-sm-medium text-sop-primary-500">
             ที่อยู่ในการจัดส่ง
           </span>
@@ -257,6 +262,10 @@ export const CartAddressSection = ({
           const data = new FormData(form)
           const toText = (value: FormDataEntryValue | null) =>
             typeof value === "string" ? value : ""
+          // Prevent auto-apply from firing a second submit for this manual save.
+          autoAppliedRef.current = true
+          const shouldSetGuestDefault =
+            !hasAuthToken && !customer && !hasSavedAddresses
           setPendingAddress({
             id: "pending-address",
             first_name: toText(data.get("shipping_address.first_name")),
@@ -268,7 +277,7 @@ export const CartAddressSection = ({
             postal_code: toText(data.get("shipping_address.postal_code")),
             country_code: toText(data.get("shipping_address.country_code")),
             phone: toText(data.get("shipping_address.phone")),
-            is_default_shipping: false,
+            is_default_shipping: shouldSetGuestDefault,
             is_default_billing: false,
             created_at: "",
             updated_at: "",
@@ -279,6 +288,8 @@ export const CartAddressSection = ({
             company: toText(data.get("shipping_address.company")),
           } as unknown as HttpTypes.StoreCustomerAddress)
           pendingNavigationRef.current = { moveToDelivery: true }
+          // Prevent auto-apply from running for this manual submission
+          autoAppliedRef.current = true
         }}
       >
         {hasSavedAddresses ? (
