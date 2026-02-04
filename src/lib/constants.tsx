@@ -124,10 +124,19 @@ export const USER_SEGMENT_LABELS: Record<string, UserSegmentConfig> = {
   credit: {
     label: "บัตรเครดิต/เดบิต",
     icon: UserManagementCardIcon,
+    routes: {
+      add: {
+        label: "เพิ่มบัตรเครดิต/เดบิต",
+      },
+    },
   },
   notifications: {
     label: "การแจ้งเตือน",
     icon: UserManagementBellIcon,
+  },
+  favorites: {
+    label: "รายการโปรด",
+    icon: UserManagementHeartIcon,
   },
   help: {
     label: "ศูนย์ช่วยเหลือ",

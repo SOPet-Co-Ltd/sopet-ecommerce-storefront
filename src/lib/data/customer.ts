@@ -487,6 +487,53 @@ export async function signout() {
   redirect(`/`)
 }
 
+/**
+ * Request account deletion (soft delete). Calls DELETE /store/customers/me/delete.
+ * On success, clears session and redirects to "/". On failure, returns { success: false, error }.
+ * redirect() is called outside try so its throw is not caught (Next.js uses throw for redirects).
+ */
+export async function requestDeleteAccount(): Promise<
+  { success: true } | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const result = await sdk.client.fetch<{ success?: boolean }>(
+      "/store/customers/me/delete",
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
+    )
+
+    if (result?.success !== true) {
+      return { success: false, error: "Request failed" }
+    }
+
+    await sdk.auth.logout()
+    await removeAuthToken()
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    await removeCartId()
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : err != null
+          ? String(err)
+          : "Request failed"
+    return { success: false, error: message }
+  }
+
+  redirect("/")
+}
+
 export async function transferCart() {
   const cartId = await getCartId()
 
@@ -664,4 +711,187 @@ export const sendResetPasswordEmail = async (email: string) => {
     })
 
   return res
+}
+
+export type CustomerPaymentMethod = {
+  id: string
+  brand: string | null
+  last4: string | null
+  exp_month: number | null
+  exp_year: number | null
+  funding: string | null
+  country: string | null
+  is_default: boolean
+}
+
+export async function getCustomerPaymentMethods(): Promise<
+  | { success: true; paymentMethods: CustomerPaymentMethod[] }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_methods: CustomerPaymentMethod[]
+    }>("/store/customers/me/payment-methods", {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    return { success: true, paymentMethods: res.payment_methods ?? [] }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export async function addCustomerPaymentMethod(options: {
+  paymentMethodId: string
+  makeDefault?: boolean
+}): Promise<
+  | { success: true; paymentMethod: CustomerPaymentMethod }
+  | { success: false; error: string; type?: string; code?: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!options.paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_method: CustomerPaymentMethod
+    }>("/store/customers/me/payment-methods", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: {
+        payment_method_id: options.paymentMethodId,
+        make_default: options.makeDefault ?? false,
+      },
+    })
+
+    // Revalidate customer cache for any UI depending on customer data
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true, paymentMethod: res.payment_method }
+  } catch (err: any) {
+    // Extract error message, type, and code from API response
+    let errorMessage = err?.message ?? String(err)
+    let errorType: string | undefined
+    let errorCode: string | undefined
+
+    // Check if error response contains structured error fields (from backend error format)
+    if (err?.body) {
+      if (typeof err.body === "object") {
+        if (err.body.message) {
+          errorMessage = err.body.message
+        }
+        if (err.body.type) {
+          errorType = err.body.type
+        }
+        if (err.body.code) {
+          errorCode = err.body.code
+        }
+      } else if (typeof err.body === "string") {
+        try {
+          const parsed = JSON.parse(err.body)
+          if (parsed.message) {
+            errorMessage = parsed.message
+          }
+          if (parsed.type) {
+            errorType = parsed.type
+          }
+          if (parsed.code) {
+            errorCode = parsed.code
+          }
+        } catch {
+          // Not JSON, use as is
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      type: errorType,
+      code: errorCode,
+    }
+  }
+}
+
+export async function updateCustomerPaymentMethod(
+  paymentMethodId: string,
+  makeDefault: boolean
+): Promise<
+  | { success: true; paymentMethod: CustomerPaymentMethod }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_method: CustomerPaymentMethod
+    }>(`/store/customers/me/payment-methods/${paymentMethodId}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: {
+        make_default: makeDefault,
+      },
+    })
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true, paymentMethod: res.payment_method }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export async function deleteCustomerPaymentMethod(
+  paymentMethodId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    await sdk.client.fetch<{ success: boolean; error?: string }>(
+      `/store/customers/me/payment-methods/${paymentMethodId}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    )
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
 }
