@@ -1,6 +1,7 @@
 import { UserBreadcrumbs, UserNavigation } from "@/components/molecules"
 import { verifyCustomer } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
+import { redirect } from "next/navigation"
 
 export default async function UserLayout({
   children,
@@ -8,6 +9,10 @@ export default async function UserLayout({
   children: React.ReactNode
 }) {
   const customer = await verifyCustomer()
+
+  if (!customer) {
+    redirect("/login")
+  }
   return (
     <div className={cn("md:px-sop-80px md:py-[30px] px-sop-16px py-sop-20px")}>
       <div className={cn("mb-sop-40px lg:block hidden")}>
