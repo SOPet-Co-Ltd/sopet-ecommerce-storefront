@@ -1,15 +1,18 @@
 "use client"
 
-import { Button, Checkbox } from "@/components/atoms"
+import { Button, Checkbox, SmartImage } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
-import Image from "next/image"
 import Link from "next/link"
-import { useState } from "react"
-import { TrashIcon, PlusLineIcon, MinusIcon } from "@/icons"
-import { MoreVertical, ChevronDown } from "lucide-react"
+import { useState, useEffect } from "react"
+import { TrashIcon, PlusLineIcon, MinusIcon, DownArrowIcon } from "@/icons"
+import { MoreVertical, ChevronDownIcon } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
 import { Modal } from "@/components/molecules/Modal/Modal"
-import { deleteLineItem, updateLineItem } from "@/lib/data/cart"
+import { deleteLineItem, updateLineItem, addToCart } from "@/lib/data/cart"
+import { VariantReselectionModal } from "./VariantReselectionModal"
+import { listProducts } from "@/lib/data/products"
+import { useParams } from "next/navigation"
+import { toast } from "@/lib/helpers/toast"
 
 // Using any for mock flexibility
 type ExtendedCartItem = HttpTypes.StoreCartLineItem & {
@@ -34,11 +37,21 @@ export const CartItem = ({
     ? decodeURIComponent(item.thumbnail)
     : "/images/placeholder.svg"
 
-  const { options } = item.variant || {}
+  // Safely extract variant options, handling cases where variant might not exist
+  const options = item.variant?.options
+
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isVariantModalOpen, setIsVariantModalOpen] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [updatingVariant, setUpdatingVariant] = useState(false)
+  const [product, setProduct] = useState<
+    (HttpTypes.StoreProduct & { seller?: any }) | null
+  >(null)
+  const [loadingProduct, setLoadingProduct] = useState(false)
+  const params = useParams()
+  const locale = (params?.locale as string) || "th"
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1) return
@@ -69,6 +82,96 @@ export const CartItem = ({
     }
   }
 
+  // Fetch product data when modal opens
+  useEffect(() => {
+    if (isVariantModalOpen && item.product_handle && !product) {
+      setLoadingProduct(true)
+      listProducts({
+        countryCode: locale,
+        queryParams: { handle: [item.product_handle], limit: 1 },
+        forceCache: false,
+      })
+        .then(({ response }) => {
+          setProduct(response.products[0] || null)
+        })
+        .catch((error) => {
+          console.error("Error fetching product:", error)
+          toast.error({
+            title: "เกิดข้อผิดพลาด",
+            description: "ไม่สามารถโหลดข้อมูลสินค้าได้",
+          })
+        })
+        .finally(() => {
+          setLoadingProduct(false)
+        })
+    }
+  }, [isVariantModalOpen, item.product_handle, locale, product])
+
+  // Reset product when modal closes
+  useEffect(() => {
+    if (!isVariantModalOpen) {
+      setProduct(null)
+    }
+  }, [isVariantModalOpen])
+
+  const handleVariantUpdate = async (variantId: string, quantity: number) => {
+    if (updatingVariant) return
+    if (variantId === item.variant_id && quantity === item.quantity) {
+      setIsVariantModalOpen(false)
+      return
+    }
+
+    setUpdatingVariant(true)
+    try {
+      // Delete the old line item
+      await deleteLineItem(item.id)
+
+      // Add new line item with new variant
+      await addToCart({
+        variantId,
+        quantity,
+        countryCode: locale,
+      })
+
+      setIsVariantModalOpen(false)
+      toast.success({
+        title: "อัปเดตสำเร็จ",
+        description: "อัปเดตสินค้าในตะกร้าเรียบร้อยแล้ว",
+      })
+    } catch (error: any) {
+      console.error("Error updating variant:", error)
+      toast.error({
+        title: "เกิดข้อผิดพลาด",
+        description:
+          error?.message || "ไม่สามารถอัปเดตสินค้าได้ กรุณาลองใหม่อีกครั้ง",
+      })
+    } finally {
+      setUpdatingVariant(false)
+    }
+  }
+
+  // Format current variant options for display
+  const getVariantDisplayText = () => {
+    // Try variant options first
+    if (options && options.length > 0) {
+      return options
+        .map((opt) => {
+          const title = opt.option?.title || ""
+          const value = opt.value || ""
+          return title && value ? `${title}: ${value}` : value
+        })
+        .filter(Boolean)
+        .join(", ")
+    }
+
+    // Fallback to variant_title if options are not available
+    if (item.variant_title) {
+      return item.variant_title
+    }
+
+    return ""
+  }
+
   return (
     <>
       <div className="flex flex-col py-sop-20 border-b border-sop-neutral-grayalpha-300 last:border-0 gap-4 md:gap-0 py-4 relative">
@@ -87,7 +190,7 @@ export const CartItem = ({
           </div>
 
           <div className="relative w-20 h-20 bg-sop-neutral-grayalpha-200 overflow-hidden shrink-0 mr-3 md:mr-4">
-            <Image
+            <SmartImage
               src={displayImage}
               alt={item.product_title || "Product image"}
               fill
@@ -136,26 +239,26 @@ export const CartItem = ({
                 </Link>
               </div>
 
-              {options && (
-                <div className="flex flex-wrap gap-2">
-                  {options.map((opt) => (
-                    <div key={opt.id} className="relative inline-block">
-                      <select
-                        className="appearance-none w-full bg-white border border-gray-200 rounded-md px-2 py-1.5 pr-6 text-xs text-gray-700 shadow-sm focus:outline-none focus:border-gray-300 transition-colors cursor-pointer"
-                        defaultValue={opt.value}
-                      >
-                        <option value={opt.value}>
-                          {opt.option?.title === "Color"
-                            ? opt.value
-                            : opt.value}
-                        </option>
-                        <option value="other">Other Option</option>
-                      </select>
-                      <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400 pointer-events-none" />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Only show variant button if variant data exists (options or variant_title) */}
+              {(options && options.length > 0) || item.variant_title ? (
+                <Button
+                  variant="neutral"
+                  rounded="rounded"
+                  size="sm"
+                  onClick={() => setIsVariantModalOpen(true)}
+                  disabled={updating || deleting}
+                >
+                  <div
+                    className="flex items-center gap-1 w-full justify-between"
+                    title={getVariantDisplayText()}
+                  >
+                    <span className="sop-body-xs-regular text-sop-neutral-gray-200">
+                      {getVariantDisplayText()}
+                    </span>
+                    <DownArrowIcon size={14} />
+                  </div>
+                </Button>
+              ) : null}
 
               <div className="flex items-end justify-between mt-4 md:hidden pt-2">
                 <div className="flex flex-col">
@@ -249,11 +352,11 @@ export const CartItem = ({
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <Modal
-          heading="ยืนยันการลบ"
-          onClose={() => setIsDeleteModalOpen(false)}
-        >
+        <Modal width={400} onClose={() => setIsDeleteModalOpen(false)}>
           <div className="flex flex-col items-center gap-6 px-4 pb-4">
+            <h2 className="sop-headline-lg-medium text-sop-neutral-gray-300">
+              ยืนยันการลบ
+            </h2>
             <p className="text-body-lg text-gray-700 text-center">
               คุณต้องการลบสินค้านี้ออกจากตะกร้า
             </p>
@@ -275,6 +378,19 @@ export const CartItem = ({
             </div>
           </div>
         </Modal>
+      )}
+
+      {/* Variant Reselection Modal */}
+      {isVariantModalOpen && (
+        <VariantReselectionModal
+          isOpen={isVariantModalOpen}
+          onClose={() => setIsVariantModalOpen(false)}
+          product={product}
+          currentVariantId={item.variant_id || ""}
+          onConfirm={handleVariantUpdate}
+          currencyCode={currencyCode}
+          isLoading={updatingVariant || loadingProduct}
+        />
       )}
     </>
   )

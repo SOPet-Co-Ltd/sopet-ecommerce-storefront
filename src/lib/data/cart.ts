@@ -34,7 +34,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   }
 
   const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=*items,+region,+payment_collection,+payment_collection.payment_sessions`,
+    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title`,
     {
       method: "GET",
       headers,
@@ -192,9 +192,11 @@ export async function addToCart({
 export async function updateLineItem({
   lineId,
   quantity,
+  variantId,
 }: {
   lineId: string
   quantity: number
+  variantId?: string
 }) {
   if (!lineId) {
     throw new Error("Missing lineItem ID when updating line item")
@@ -211,10 +213,16 @@ export async function updateLineItem({
   }
 
   try {
+    const body: Record<string, unknown> = { quantity }
+
+    if (variantId) {
+      body.variant_id = variantId
+    }
+
     const res = await fetchQuery(
       `/store/carts/${cartId}/line-items/${lineId}`,
       {
-        body: { quantity },
+        body,
         method: "POST",
         headers,
       }

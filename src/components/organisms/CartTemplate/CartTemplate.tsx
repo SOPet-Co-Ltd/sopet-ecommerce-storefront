@@ -6,7 +6,7 @@ import { CartSummary } from "../CartSummary/CartSummary"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
-import { TicketSaleIcon } from "@/icons"
+import { DiscountIcon, TicketSaleIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 
 type ProductWithSeller = HttpTypes.StoreProduct & {
@@ -46,14 +46,87 @@ export const CartTemplate = ({
     }
   }, [router])
 
-  const sortedItems = useMemo(() => {
-    const items = [...(cart?.items || [])]
-    return items.sort((a, b) => {
-      const aKey = String(a.created_at || a.id || "")
-      const bKey = String(b.created_at || b.id || "")
-      return aKey.localeCompare(bKey)
+  // Track a stable order of line item IDs so variant changes (implemented as delete+create)
+  // can keep the visual order by replacing the old ID with the new one.
+  const [lineOrder, setLineOrder] = useState<string[]>([])
+
+  useEffect(() => {
+    const items = cart?.items || []
+    const newIds = items.map((i) => i.id)
+
+    if (!newIds.length) {
+      setLineOrder([])
+      setSelectedItems([])
+      return
+    }
+
+    setLineOrder((prevOrder) => {
+      if (!prevOrder.length) {
+        return newIds
+      }
+
+      const prevSet = new Set(prevOrder)
+      const removed = prevOrder.filter((id) => !newIds.includes(id))
+      const added = newIds.filter((id) => !prevSet.has(id))
+
+      // If the set of IDs hasn't changed, treat as a pure update (e.g. quantity change)
+      // and keep the existing visual order.
+      if (removed.length === 0 && added.length === 0) {
+        return prevOrder
+      }
+
+      // Heuristic: one removed + one added -> treat as in-place replacement (e.g. variant change)
+      if (removed.length === 1 && added.length === 1) {
+        const [removedId] = removed
+        const [addedId] = added
+
+        const nextOrder = prevOrder.map((id) =>
+          id === removedId ? addedId : id
+        )
+
+        // Migrate selection from old ID to new ID
+        setSelectedItems((prevSelected) => {
+          if (!prevSelected.includes(removedId)) return prevSelected
+          const nextSelected = prevSelected.map((id) =>
+            id === removedId ? addedId : id
+          )
+          return Array.from(new Set(nextSelected))
+        })
+
+        return nextOrder
+      }
+
+      // For other changes (e.g. new items added/removed), fall back to current backend order
+      return newIds
     })
   }, [cart?.items])
+
+  const sortedItems = useMemo(() => {
+    const items = cart?.items || []
+    if (!items.length) return []
+
+    const byId = new Map(items.map((i) => [i.id, i]))
+    const ordered: HttpTypes.StoreCartLineItem[] = []
+    const seen = new Set<string>()
+
+    // First, respect our tracked lineOrder
+    for (const id of lineOrder) {
+      const item = byId.get(id)
+      if (item) {
+        ordered.push(item)
+        seen.add(id)
+      }
+    }
+
+    // Then append any items not yet in lineOrder (e.g. brand new items)
+    for (const item of items) {
+      if (!seen.has(item.id)) {
+        ordered.push(item)
+      }
+    }
+
+    return ordered
+  }, [cart?.items, lineOrder])
 
   // Group items by seller
   const itemsBySeller = sortedItems.reduce(
@@ -104,6 +177,14 @@ export const CartTemplate = ({
     }
   }, [cart?.items?.length])
 
+  // Ensure selectedItems only contains IDs that still exist in the cart
+  useEffect(() => {
+    if (!sortedItems.length) return
+
+    const currentIds = new Set(sortedItems.map((i) => i.id))
+    setSelectedItems((prev) => prev.filter((id) => currentIds.has(id)))
+  }, [sortedItems])
+
   // Calculate selected total
   const selectedTotal =
     sortedItems
@@ -133,27 +214,6 @@ export const CartTemplate = ({
 
         <div className="flex gap-6">
           <div className=" flex flex-col gap-4 w-full">
-            {/* Select All Header */}
-            {/* <div className="bg-white px-4 md:px-6 py-4 rounded-xl border border-gray-100 flex items-center gap-3 shadow-sm">
-              <Checkbox
-                checked={
-                  selectedItems.length === allItemIds.length &&
-                  allItemIds.length > 0
-                }
-                onChange={(e) => handleSelectAll(e.target.checked)}
-              />
-              <span className="text-body-lg font-medium text-gray-900">
-                เลือกทั้งหมด
-              </span>
-              <div className="ml-auto">
-                <button className="flex items-center gap-1 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors">
-                  <Trash className="w-4 h-4 md:hidden" />
-                  <span className="hidden md:inline">ลบรายการที่เลือก</span>
-                </button>
-              </div>
-            </div> */}
-
-            {/* Cart Items Grouped by Seller */}
             {Object.entries(itemsBySeller).map(([sellerName, items]) => {
               const isSellerSelected = items.every((i) =>
                 selectedItems.includes(i.id)
@@ -161,7 +221,7 @@ export const CartTemplate = ({
               return (
                 <div
                   key={sellerName}
-                  className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm"
+                  className="bg-white overflow-hidden shadow-sm"
                 >
                   <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-100 flex items-center gap-3">
                     <Checkbox
@@ -190,12 +250,13 @@ export const CartTemplate = ({
                   <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
                     <div className="flex items-center gap-2">
                       <div className="flex items-center justify-center">
-                        <TicketSaleIcon size={26} color="#9C6ADE" />
+                        <DiscountIcon size={26} color="#9C6ADE" />
                       </div>
                       <p className="sop-body-lg-regular text-sop-primary-500">
                         ส่วนลดร้านค้า
                       </p>
                     </div>
+                    {/* TODO - Add function to show other discounts */}
                     <button className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline">
                       ดูส่วนลดอื่นๆ
                     </button>
