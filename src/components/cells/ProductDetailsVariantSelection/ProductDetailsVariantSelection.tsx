@@ -5,7 +5,7 @@ import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import React from "react"
 import { addToCart } from "@/lib/data/cart"
 import { SellerProps } from "@/types/seller"
@@ -308,6 +308,37 @@ export const ProductDetailsVariantSelection = ({
   user: HttpTypes.StoreCustomer | null
   wishlist?: Wishlist[]
 }) => {
+  // Sync the selected variant into the URL query string without triggering
+  // a Next.js navigation, so sharing the URL preserves the selected variant
+  const syncVariantToUrl = (nextSelectedVariant: Record<string, string>) => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const url = new URL(window.location.href)
+    const params = url.searchParams
+
+    // Collect option keys based on the product options (e.g. color, size)
+    const optionKeys =
+      product.options
+        ?.map((opt: any) => opt.title?.toLowerCase())
+        .filter(Boolean) || []
+
+    // Update only the variant-related params, keep other params intact
+    optionKeys.forEach((key) => {
+      params.delete(key as string)
+      const value = nextSelectedVariant[key as string]
+      if (value) {
+        params.set(key as string, value)
+      }
+    })
+
+    const newSearch = params.toString()
+    const newUrl = newSearch ? `${url.pathname}?${newSearch}` : url.pathname
+
+    window.history.replaceState(null, "", newUrl)
+  }
+
   const [productQuantity, setProductQuantity] = useState(1)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
@@ -322,13 +353,24 @@ export const ProductDetailsVariantSelection = ({
   // Check if product has any valid prices in current region
   const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
-  // set default variant
-  const selectedVariant = hasAnyPrice
+  // Build default selected variant from the cheapest variant and current URL params
+  const defaultSelectedVariant = hasAnyPrice
     ? {
         ...optionsAsKeymap(cheapestVariant.options ?? null),
         ...allSearchParams,
       }
     : allSearchParams
+
+  // Keep selected variant purely in client state so changing variants
+  // doesn't trigger a Next.js navigation (and therefore no refetch).
+  const [selectedVariant, setSelectedVariant] = useState(defaultSelectedVariant)
+
+  // When URL search params change due to navigation (e.g. deep link),
+  // sync them into local state.
+  useEffect(() => {
+    setSelectedVariant(defaultSelectedVariant)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cheapestVariant?.id, JSON.stringify(allSearchParams)])
 
   // get selected variant id
   const variantId =
@@ -339,6 +381,11 @@ export const ProductDetailsVariantSelection = ({
         )
       )
     )?.id || ""
+
+  // Reset quantity when selected variant changes
+  useEffect(() => {
+    setProductQuantity(1)
+  }, [variantId])
 
   // get variant price
   const { variantPrice } = getProductPrice({
@@ -401,7 +448,20 @@ export const ProductDetailsVariantSelection = ({
     <>
       {/* Product Variants Selection */}
       {hasAnyPrice && (
-        <ProductVariants product={product} selectedVariant={selectedVariant} />
+        <ProductVariants
+          product={product}
+          selectedVariant={selectedVariant}
+          onVariantChange={(optionId, value) =>
+            setSelectedVariant((prev) => {
+              const next = {
+                ...prev,
+                [optionId]: value,
+              }
+              syncVariantToUrl(next)
+              return next
+            })
+          }
+        />
       )}
 
       {/* Product Quantity Selection */}
