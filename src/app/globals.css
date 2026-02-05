@@ -183,7 +183,8 @@
 
   /* ================= Typography ================= */
   /* Font family */
-  --font-sans: Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
+  --font-sans:
+    Mitr, ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji",
     "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Font weights (labels retained for reference; Tailwind utilities used in practice) */
@@ -812,27 +813,7 @@ input[type="range"].slider-thumb:focus::-webkit-slider-thumb {
 input[type="range"].slider-thumb:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
 }
-@utility text-sop-neutral-gray-300 {
-  color: var(--color-sop-neutral-gray-300);
-}
 
-@utility text-sop-neutral-gray-light {
-  color: var(--color-sop-neutral-gray-light);
-}
-@utility text-sop-neutral-gray-medium {
-  color: var(--color-sop-neutral-gray-medium);
-}
-
-@utility border-sop-neutral-gray-light {
-  border-color: var(--color-sop-neutral-gray-light);
-}
-@utility border-sop-neutral-gray-medium {
-  border-color: var(--color-sop-neutral-gray-medium);
-}
-
-@utility bg-sop-neutral-gray-light {
-  background-color: var(--color-sop-neutral-gray-light);
-}
-@utility bg-sop-neutral-gray-medium {
-  background-color: var(--color-sop-neutral-gray-medium);
-}
+/* ========================================================================== */
+/* Dropdown                                                                    */
+/* ========================================================================== */

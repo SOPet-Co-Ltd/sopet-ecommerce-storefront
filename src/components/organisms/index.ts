@@ -21,6 +21,7 @@ import { ProductGallery } from "./ProductGallery/ProductGallery"
 import { ProductDetails } from "./ProductDetails/ProductDetails"
 import { AlgoliaProductSidebar } from "./ProductSidebar/AlgoliaProductSidebar"
 import { Addresses } from "./Addressess/Addresses"
+import { CreditCards } from "./CreditCards/CreditCards"
 import { ReviewsToWrite } from "./Reviews/ReviewsToWrite"
 import { ReviewsWritten } from "./Reviews/ReviewsWritten"
 import { CartEmpty } from "./CartEmpty/CartEmpty"
@@ -52,6 +53,7 @@ export {
   ProductDetails,
   AlgoliaProductSidebar,
   Addresses,
+  CreditCards,
   ReviewsToWrite,
   ReviewsWritten,
   CartEmpty,

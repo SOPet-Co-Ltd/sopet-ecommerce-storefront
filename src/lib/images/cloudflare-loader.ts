@@ -50,7 +50,8 @@ export const cloudflareImageLoader: ImageLoader = ({
   // Dev: Transform on a zone you control, using the absolute URL as the source.
   if (isR2DevHost(url.hostname)) {
     const zone =
-      (process.env.NEXT_PUBLIC_CF_IMAGE_ZONE || "").trim() || "https://sopet.co"
+      (process.env.NEXT_PUBLIC_CF_IMAGE_ZONE || "").trim() ||
+      "https://sopet.org"
     const zoneOrigin = zone.startsWith("http") ? zone : `https://${zone}`
     return `${zoneOrigin}/cdn-cgi/image/${options}/${src}`
   }

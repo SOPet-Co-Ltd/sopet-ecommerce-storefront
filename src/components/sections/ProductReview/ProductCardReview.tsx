@@ -30,7 +30,7 @@ export const ProductCardReviewStars = ({
       <div className="flex gap-2 md:hidden">
         <StarIcon color="#ffb514" size={14} />
       </div>
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between">
         <p className="md:sop-body-sm-regular sop-body-xs-regular text-sop-neutral-gray-400">
           {averageRating} ({totalReviews} รีวิว)
         </p>

@@ -14,7 +14,7 @@ type SopButtonVariant =
 type ButtonUiType = "button" | "icon"
 type ButtonRounded = "full" | "rounded"
 
-type ButtonSize = "sm" | "md" | "lg"
+type ButtonSize = "sm" | "md" | "lg" | "xl"
 type IconButtonSize = "sm" | "md"
 
 // Backward compatible values used across the codebase today.
@@ -81,16 +81,17 @@ export function Button({
     destructive:
       "bg-sop-system-error-400 text-sop-neutral-grayfixed-600 border-transparent hover:bg-sop-system-error-500",
     neutral:
-      "bg-transparent text-sop-neutral-gray-200 border-t border-sop-neutral-grayalpha-100 border-x-0 border-b-0",
+      "bg-transparent text-sop-neutral-gray-200 border border-sop-neutral-grayalpha-100 hover:bg-sop-neutral-grayalpha-100",
     ghost:
       "bg-transparent text-sop-neutral-gray-100 border-transparent hover:bg-sop-neutral-grayalpha-100",
     link: "bg-transparent text-sop-secondary-500 border-transparent underline underline-offset-4",
   }
 
   const sizeButtonClasses: Record<ButtonSize, string> = {
-    sm: "min-w-[68px] min-h-[32px] py-sop-8px px-sop-12px sop-body-sm-medium",
-    md: "min-w-[76px] min-h-[36px] py-sop-8px px-sop-16px sop-body-sm-medium",
-    lg: "min-w-[114px] min-h-[48px] py-sop-4px px-sop-32px sop-body-md-medium",
+    sm: "min-w-[68px] h-[32px] py-sop-8px px-sop-12px sop-body-sm-medium",
+    md: "min-w-[76px] h-[36px] py-sop-8px px-sop-16px sop-body-sm-medium",
+    lg: "min-w-[76px] h-[44px] py-sop-4px px-sop-16px sop-body-sm-medium",
+    xl: "min-w-[114px] h-[48px] py-sop-4px px-sop-32px sop-body-md-medium",
   }
 
   const sizeIconClasses: Record<IconButtonSize, string> = {
@@ -150,6 +151,7 @@ export function Button({
       disabled={isDisabled}
       aria-busy={loading || undefined}
       className={cn(
+        "shadow-xs",
         baseClasses,
         variantClasses[resolvedVariant],
         resolvedSizeClass,
@@ -164,7 +166,7 @@ export function Button({
           <Spinner size={spinnerSize} />
         </span>
       )}
-      <span className={cn(loading && "opacity-0")}>{children}</span>
+      <span className={cn(loading && "opacity-0", "w-full")}>{children}</span>
     </button>
   )
 }

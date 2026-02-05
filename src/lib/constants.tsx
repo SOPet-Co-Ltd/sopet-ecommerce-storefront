@@ -1,5 +1,16 @@
 import React from "react"
 import { Cash, CreditCard } from "@medusajs/icons"
+import {
+  IconProps,
+  UserManagementBellIcon,
+  UserManagementBinIcon,
+  UserManagementCardIcon,
+  UserManagementClipboardIcon,
+  UserManagementHeartIcon,
+  UserManagementHelpIcon,
+  UserManagementLocationIcon,
+  UserManagementUserIcon,
+} from "@/icons"
 
 /* Map of payment provider_id to their title and icon. Add in any payment providers you want to use. */
 export const paymentInfoMap: Record<
@@ -82,13 +93,75 @@ export const noDivisionCurrencies = [
   "xau",
 ]
 
-export const PROTECTED_ROUTES = [
-  "/user",
-  "/user/wishlist",
-  "/user/orders",
-  "/user/settings",
-  "/user/addresses",
-  "/user/messages",
-  "/user/reviews",
-  "/user/returns",
-]
+export const PROTECTED_ROUTES = ["/user"]
+
+export type UserSegmentConfig = {
+  label: string
+  icon: (props: IconProps) => React.JSX.Element
+  routes?: Record<string, { label: string }>
+}
+
+export const USER_SEGMENT_LABELS: Record<string, UserSegmentConfig> = {
+  profile: {
+    label: "ข้อมูลส่วนตัว",
+    icon: UserManagementUserIcon,
+    routes: {
+      "email/change": {
+        label: "เปลี่ยนอีเมล",
+      },
+      "email/add": {
+        label: "อีเมลใหม่",
+      },
+      "phone/change": {
+        label: "เปลี่ยนเบอร์โทรศัพท์",
+      },
+      "phone/add": {
+        label: "เพิ่มเบอร์โทรศัพท์",
+      },
+    },
+  },
+  orders: {
+    label: "คำสั่งซื้อสินค้า",
+    icon: UserManagementClipboardIcon,
+  },
+  addresses: {
+    label: "ที่อยู่สำหรับจัดส่ง",
+    icon: UserManagementLocationIcon,
+    routes: {
+      new: {
+        label: "เพิ่มที่อยู่",
+      },
+      edit: {
+        label: "แก้ไขที่อยู่",
+      },
+    },
+  },
+  credit: {
+    label: "บัตรเครดิต/เดบิต",
+    icon: UserManagementCardIcon,
+    routes: {
+      add: {
+        label: "เพิ่มบัตรเครดิต/เดบิต",
+      },
+    },
+  },
+  notifications: {
+    label: "การแจ้งเตือน",
+    icon: UserManagementBellIcon,
+  },
+  favorites: {
+    label: "รายการโปรด",
+    icon: UserManagementHeartIcon,
+  },
+  help: {
+    label: "ศูนย์ช่วยเหลือ",
+    icon: UserManagementHelpIcon,
+  },
+  delete: {
+    label: "คำขอลบบัญชี",
+    icon: UserManagementBinIcon,
+  },
+}
+
+/** Path suffixes to hide from breadcrumbs (e.g. "phone/change", "new"). Current path is shortened by removing the matching suffix. */
+export const USER_BREADCRUMB_HIDDEN_SUFFIXES: string[] = []

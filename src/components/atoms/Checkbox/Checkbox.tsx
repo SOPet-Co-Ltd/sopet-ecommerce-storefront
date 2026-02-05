@@ -148,6 +148,10 @@ export function Checkbox({
           {label}
         </span>
       )}
+      {checkboxNode}
+      <span className="sop-body-sm-regular text-sop-neutral-gray-200">
+        {label}
+      </span>
     </label>
   )
 }

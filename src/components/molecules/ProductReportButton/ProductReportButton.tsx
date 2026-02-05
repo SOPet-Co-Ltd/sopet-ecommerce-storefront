@@ -17,7 +17,10 @@ export const ProductReportButton = () => {
         Report listing
       </Button>
       {openModal && (
-        <Modal heading="Report listing" onClose={() => setOpenModal(false)}>
+        <Modal
+          header={<h2 className="text-primary label-lg">Report listing</h2>}
+          onClose={() => setOpenModal(false)}
+        >
           <ReportListingForm onClose={() => setOpenModal(false)} />
         </Modal>
       )}

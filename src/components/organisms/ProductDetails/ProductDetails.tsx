@@ -1,16 +1,7 @@
-import {
-  ProductDetailsFooter,
-  ProductDetailsHeader,
-  ProductDetailsSeller,
-  ProductDetailsShipping,
-  ProductPageDetails,
-  ProductAdditionalAttributes,
-} from "@/components/cells"
 import { ProductDetailsVariantSelection } from "@/components/cells/ProductDetailsVariantSelection/ProductDetailsVariantSelection"
 import ProductReviewStars from "@/components/sections/ProductReview/ProductReview"
 import { ProductShowPrice } from "@/components/sections/ProductShowPrice/ProductShowPrice"
 import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
-import { ClipboardAddIcon, LinkIcon, SaleIcon, ShieldCheckIcon } from "@/icons"
 
 import { verifyCustomer } from "@/lib/data/customer"
 import { getProductReviewStats } from "@/lib/data/reviews"
@@ -80,26 +71,6 @@ export const ProductDetails = async ({
         user={user}
         wishlist={wishlist}
       />
-
-      {/* Section Product Rating */}
-      {/* 
-      <ProductDetailsHeader
-        product={product}
-        locale={locale}
-        user={user}
-        wishlist={wishlist}
-      /> */}
-
-      {/* <ProductPageDetails details={product?.description || ""} /> */}
-      {/* <ProductAdditionalAttributes
-        attributes={product?.attribute_values || []}
-      /> */}
-      {/* <ProductDetailsShipping /> */}
-      {/* <ProductDetailsSeller seller={product?.seller} /> */}
-      {/* <ProductDetailsFooter`
-        tags={product?.tags || []}
-        posted={product?.created_at}
-      /> */}
     </div>
   )
 }

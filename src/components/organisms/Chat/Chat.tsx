@@ -39,7 +39,10 @@ export const Chat = ({
         {icon ? <MessageIcon size={20} /> : "Write to seller"}
       </Button>
       {modal && (
-        <Modal heading="Chat" onClose={() => setModal(false)}>
+        <Modal
+          header={<h2 className="text-primary label-lg">Chat</h2>}
+          onClose={() => setModal(false)}
+        >
           <div className="px-4">
             <ChatBox
               order_id={order_id}

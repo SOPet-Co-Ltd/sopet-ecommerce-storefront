@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button, InputSOPet } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { useRouter } from "next/navigation"
@@ -23,7 +23,24 @@ const Form = () => {
   const [isRequestingOtp, setIsRequestingOtp] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState("")
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0)
   const router = useRouter()
+
+  const OTP_COOLDOWN_SECONDS = 180 // 3 minutes
+
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) return
+    const timer = setInterval(() => {
+      setOtpCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [otpCooldownSeconds])
+
+  const formatCooldown = (seconds: number) => {
+    const m = Math.floor(seconds / 60)
+    const s = seconds % 60
+    return `${m}:${s.toString().padStart(2, "0")}`
+  }
 
   const isValidEmailOrPhone = (value: string | null | undefined): boolean => {
     if (!value || value.trim() === "") {
@@ -62,6 +79,7 @@ const Form = () => {
     }
 
     setOtpRequested(true)
+    setOtpCooldownSeconds(OTP_COOLDOWN_SECONDS)
     setIsRequestingOtp(false)
   }
 
@@ -118,6 +136,7 @@ const Form = () => {
             placeholder="อีเมลล์/เบอร์โทรศัพท์"
             variant="bordered"
             value={identifier}
+            disabled={otpRequested}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setIdentifier(e.target.value)
             }
@@ -131,23 +150,38 @@ const Form = () => {
                 setOtp(e.target.value)
               }
             />
-            <div className="absolute right-0 md:-right-sop-80px md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-center">
+            <div className="absolute right-0 min-w-[190px] md:-right-[200px] md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-end md:justify-start">
               <Button
-                variant="secondary"
-                size="fill"
+                variant="outline"
+                size="sm"
+                rounded="rounded"
                 style={{ padding: "2px 8px", borderRadius: "8px" }}
-                disabled={isRequestingOtp || !isValidEmailOrPhone(identifier)}
+                disabled={
+                  isRequestingOtp ||
+                  !isValidEmailOrPhone(identifier) ||
+                  otpCooldownSeconds > 0
+                }
                 onClick={handleRequestOtp}
               >
-                ขอ OTP
+                {otpCooldownSeconds > 0
+                  ? `ขอ OTP อีกครั้ง (${formatCooldown(otpCooldownSeconds)})`
+                  : "ขอ OTP"}
               </Button>
             </div>
           </div>
+          {otpRequested && (
+            <p className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400 px-1">
+              รหัส OTP ถูกส่งไปยังเบอร์โทรศัพท์ของคุณ
+            </p>
+          )}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
-            variant="default"
-            style={{ width: "100%", minHeight: "48px" }}
-            disabled={!otpRequested || isVerifying}
+            variant="primary"
+            size="lg"
+            fill={true}
+            disabled={
+              isVerifying || !otpRequested || !otp.trim() || !identifier.trim()
+            }
             onClick={handleVerifyAndLogin}
           >
             {isVerifying ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
@@ -155,13 +189,14 @@ const Form = () => {
         </div>
         {/* Divider */}
         <div className="flex justify-center items-center gap-2">
-          {/* TODO - Fix color */}
           <span className="w-full h-px bg-[#DEDEDE]"></span>
-          <p className="sop-headline-sm-regular text-[#4C4C4C]">หรือ</p>
+          <p className="sop-headline-sm-regular text-sop-neutral-gray-300">
+            หรือ
+          </p>
           <span className="w-full h-px bg-[#DEDEDE]"></span>
         </div>
         {/* Media Login */}
-        <div className="flex justify-center items-center gap-2">
+        <div className="flex justify-center items-center gap-8">
           <button
             onClick={() => initiateOAuth("facebook")}
             className="cursor-pointer hover:opacity-80 transition-opacity"

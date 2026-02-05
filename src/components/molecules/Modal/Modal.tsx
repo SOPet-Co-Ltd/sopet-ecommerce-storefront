@@ -1,25 +1,65 @@
-import { CloseIcon } from "@/icons"
+"use client"
+
+import { useEffect, useCallback } from "react"
+import { cn } from "@/lib/utils"
+
+type ModalProps = {
+  header?: React.ReactNode
+  children?: React.ReactNode
+  footer?: React.ReactNode
+  onClose?: () => void
+  className?: string
+}
 
 export const Modal = ({
+  header,
   children,
-  heading,
+  footer,
   onClose,
-}: {
-  children: React.ReactNode
-  heading: string
-  onClose: () => void
-}) => {
+  className,
+}: ModalProps) => {
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose?.()
+    },
+    [onClose]
+  )
+
+  useEffect(() => {
+    if (!onClose) return
+    document.addEventListener("keydown", handleEscape)
+    return () => document.removeEventListener("keydown", handleEscape)
+  }, [onClose, handleEscape])
+
+  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose?.()
+  }
+
   return (
-    <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center z-60 px-4">
+    <div
+      className="fixed inset-0 z-50 flex h-screen items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="bg-black/40 w-full h-full absolute backdrop-blur-xs"
-        onClick={onClose}
+        className="absolute inset-0 bg-black/50"
+        aria-hidden="true"
+        onClick={handleBackdropClick}
       />
-      <div className="relative bg-white z-20 py-5 rounded-3xl max-w-[600px] w-full max-h-[80vh] overflow-y-auto shadow-lg">
-        <div className="uppercase flex justify-center items-center text-2xl heading-md px-6">
-          {heading}
+      <div
+        className={cn(
+          "relative z-10 flex min-h-0 w-full max-w-[600px] max-h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[20px] bg-sop-base-white",
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 gap-sop-20px pt-sop-20px">
+          {header != null && <div className="shrink-0">{header}</div>}
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            {children}
+          </div>
+          {footer != null && <div className="shrink-0">{footer}</div>}
         </div>
-        <div className="pt-5">{children}</div>
       </div>
     </div>
   )
