@@ -1,8 +1,5 @@
 "use client"
 import { cn } from "@/lib/utils"
-// Using standard SVGs or Lucide icons if custom icons aren't perfectly matching,
-// but sticking to existing imports if they work intended.
-// Assuming MinusHeavyIcon/TickThinIcon are correct internal icons, changing styles primarily.
 import { MinusHeavyIcon, TickThinIcon } from "@/icons"
 
 export interface CheckboxProps extends Omit<
@@ -39,7 +36,7 @@ export function Checkbox({
   // Provide a no-op onChange if controlled but none is provided to prevent React warning
   const handleChange = onChange ?? (isControlled ? () => {} : undefined)
 
-  const iconSize = size === "lg" ? 12 : 10
+  const iconSize = size === "lg" ? 11 : 10
   const boxSizeClasses = size === "lg" ? "w-5 h-5" : "w-4 h-4"
   const labelAlignClass =
     checkboxPosition === "top"
@@ -108,32 +105,41 @@ export function Checkbox({
   if (!hasLabel) return checkboxNode
 
   return (
-    <label>
+    <label
+      className={cn(
+        "inline-flex gap-2",
+        labelAlignClass,
+        isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+      )}
+    >
       <span
         className={cn(
-          "relative flex items-center justify-center w-4 h-4 border-2 rounded transition-colors",
+          "relative flex items-center justify-center border-2 rounded transition-colors shrink-0",
+          boxSizeClasses,
+          boxAlignClasses,
           "border-sop-primary-500",
-          checked && "bg-sop-primary-500 border-sop-primary-500",
-          !checked && "bg-transparent",
-          error && "border-sop-negative-500",
-          isDisabled &&
-            "bg-sop-disabled border-sop-disabled cursor-not-allowed opacity-50",
+          isOn && "bg-sop-primary-500 border-sop-primary-500",
+          !isOn && "bg-transparent",
+          error && "border-sop-system-error-400",
+          isDisabled && "cursor-not-allowed opacity-50",
           className
         )}
         style={{
-          borderColor: !checked && !error ? "rgba(34,34,41,0.12)" : undefined,
+          borderColor: !isOn && !error ? "rgba(34,34,41,0.12)" : undefined,
         }}
       >
-        {isIndeterminate && <MinusHeavyIcon size={12} color="#FFFFFF" />}
-        {isChecked && <TickThinIcon size={12} color="#FFFFFF" />}
+        {isIndeterminate && <MinusHeavyIcon size={iconSize} color="#FFFFFF" />}
+        {isChecked && <TickThinIcon size={iconSize} color="#FFFFFF" />}
 
         <input
           type="checkbox"
           checked={inputChecked}
           onChange={handleChange}
+          disabled={isDisabled}
+          aria-checked={isIndeterminate ? "mixed" : isChecked}
           className={cn(
-            "absolute inset-0 w-full h-full opacity-0 cursor-pointer",
-            isDisabled && "cursor-not-allowed"
+            "absolute inset-0 w-full h-full opacity-0",
+            isDisabled ? "cursor-not-allowed" : "cursor-pointer"
           )}
           ref={(input) => {
             if (input) {
@@ -148,10 +154,6 @@ export function Checkbox({
           {label}
         </span>
       )}
-      {checkboxNode}
-      <span className="sop-body-sm-regular text-sop-neutral-gray-200">
-        {label}
-      </span>
     </label>
   )
 }

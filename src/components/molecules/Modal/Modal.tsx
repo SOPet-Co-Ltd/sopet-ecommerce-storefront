@@ -9,6 +9,7 @@ type ModalProps = {
   footer?: React.ReactNode
   onClose?: () => void
   className?: string
+  width?: number
 }
 
 export const Modal = ({
@@ -17,6 +18,7 @@ export const Modal = ({
   footer,
   onClose,
   className,
+  width = 600,
 }: ModalProps) => {
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -48,7 +50,8 @@ export const Modal = ({
       />
       <div
         className={cn(
-          "relative z-10 flex min-h-0 w-full max-w-[600px] max-h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[20px] bg-sop-base-white",
+          "relative z-10 flex min-h-0 w-full max-h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[20px] bg-sop-base-white",
+          `max-w-[${width}px]`,
           className
         )}
         onClick={(e) => e.stopPropagation()}
