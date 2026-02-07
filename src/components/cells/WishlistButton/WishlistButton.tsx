@@ -1,7 +1,6 @@
 "use client"
 
-import { Button } from "@/components/atoms"
-import { HeartFilledIcon, HeartIcon, WishListHeartIcon } from "@/icons"
+import { WishListHeartIcon } from "@/icons"
 import { addWishlistItem, removeWishlistItem } from "@/lib/data/wishlist"
 import { Wishlist } from "@/types/wishlist"
 import { useEffect, useState } from "react"
@@ -49,10 +48,7 @@ export const WishlistButton = ({
     try {
       setIsWishlistAdding(true)
 
-      await removeWishlistItem({
-        wishlist_id: wishlist?.[0].id!,
-        product_id: productId,
-      })
+      await removeWishlistItem({ product_id: productId })
     } catch (error) {
       console.error(error)
     } finally {
