@@ -1,50 +1,46 @@
 "use client"
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { Wallet, Plus, Check } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
 import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
-import {
-  CardCvcElement,
-  CardExpiryElement,
-  CardNumberElement,
-} from "@stripe/react-stripe-js"
-import type {
-  StripeCardCvcElementOptions,
-  StripeCardExpiryElementOptions,
-  StripeCardNumberElementOptions,
-} from "@stripe/stripe-js"
 import { isStripe } from "@/lib/constants"
-import { StripeContext } from "@/components/organisms/PaymentContainer/StripeWrapper"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
+import { getCustomerPaymentMethods } from "@/lib/data/customer"
+import { CreditCardCheckoutForm } from "@/components/molecules/CreditCardForm/CreditCardCheckoutForm"
 
 type CheckoutPaymentSectionProps = {
   cart: Cart | null
+  customer: HttpTypes.StoreCustomer | null
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   shippingMethods: { id: string }[]
 }
 
+const cardBrandLabel: Record<string, string> = {
+  visa: "Visa",
+  mastercard: "Mastercard",
+  amex: "Amex",
+}
+
 export const CheckoutPaymentSection = ({
   cart,
+  customer,
 }: CheckoutPaymentSectionProps) => {
   const {
     method,
     setMethod,
-    cardholderName,
-    setCardholderName,
     setCardComplete,
-    setCardError,
+    savedPaymentMethods,
+    setSavedPaymentMethods,
+    selectedPaymentMethodId,
+    setSelectedPaymentMethodId,
+    useNewCard,
+    setUseNewCard,
   } = useCheckoutPayment()
-  const [isAddingCard, setIsAddingCard] = useState(false)
-  const [cardNumberComplete, setCardNumberComplete] = useState(false)
-  const [cardExpiryComplete, setCardExpiryComplete] = useState(false)
-  const [cardCvcComplete, setCardCvcComplete] = useState(false)
-  const [cardNumberError, setCardNumberError] = useState<string | null>(null)
-  const [cardExpiryError, setCardExpiryError] = useState<string | null>(null)
-  const [cardCvcError, setCardCvcError] = useState<string | null>(null)
-  const stripeReady = useContext(StripeContext)
+  const selectedPmIdRef = useRef<string | null>(null)
+  selectedPmIdRef.current = selectedPaymentMethodId
 
   const isStripeProvider = (providerId?: string) => isStripe(providerId)
 
@@ -58,49 +54,30 @@ export const CheckoutPaymentSection = ({
     (session) => !isStripeProvider(session.provider_id)
   )
 
-  const baseElementStyles = useMemo(
-    () => ({
-      style: {
-        base: {
-          fontFamily: "inherit",
-          fontSize: "14px",
-          color: "#111827",
-          "::placeholder": {
-            color: "#9CA3AF",
-          },
-        },
-        invalid: {
-          color: "#ef4444",
-        },
-      },
-    }),
-    []
-  )
-
-  const cardNumberOptions = useMemo<StripeCardNumberElementOptions>(
-    () => ({
-      ...baseElementStyles,
-      placeholder: "หมายเลขบัตร",
-      disableLink: true,
-    }),
-    [baseElementStyles]
-  )
-
-  const cardExpiryOptions = useMemo<StripeCardExpiryElementOptions>(
-    () => ({
-      ...baseElementStyles,
-      placeholder: "วันหมดอายุ",
-    }),
-    [baseElementStyles]
-  )
-
-  const cardCvcOptions = useMemo<StripeCardCvcElementOptions>(
-    () => ({
-      ...baseElementStyles,
-      placeholder: "CVV",
-    }),
-    [baseElementStyles]
-  )
+  // Fetch saved payment methods when customer exists and method is card
+  useEffect(() => {
+    if (method !== "card" || !customer) {
+      return
+    }
+    getCustomerPaymentMethods().then((result) => {
+      if (result.success) {
+        setSavedPaymentMethods(result.paymentMethods)
+        const currentId = selectedPmIdRef.current
+        const stillValid =
+          result.paymentMethods.length > 0 &&
+          result.paymentMethods.some((pm) => pm.id === currentId)
+        if (!stillValid && result.paymentMethods.length > 0) {
+          const defaultPm =
+            result.paymentMethods.find((pm) => pm.is_default) ||
+            result.paymentMethods[0]
+          if (defaultPm) setSelectedPaymentMethodId(defaultPm.id)
+        }
+      } else {
+        setSavedPaymentMethods([])
+        setSelectedPaymentMethodId(null)
+      }
+    })
+  }, [method, customer, setSavedPaymentMethods, setSelectedPaymentMethodId])
 
   useEffect(() => {
     if (!cart?.payment_collection?.payment_sessions?.length) {
@@ -133,38 +110,11 @@ export const CheckoutPaymentSection = ({
     }
   }, [cart, nonStripeSession, promptpaySession, setMethod, stripeSession])
 
-  useEffect(() => {
-    const isComplete =
-      method === "card" &&
-      (!isAddingCard || // Assume complete if using saved card/default
-        (isAddingCard &&
-          cardNumberComplete &&
-          cardExpiryComplete &&
-          cardCvcComplete))
-    setCardComplete(isComplete)
-  }, [
-    method,
-    isAddingCard,
-    cardNumberComplete,
-    cardExpiryComplete,
-    cardCvcComplete,
-    setCardComplete,
-  ])
+  const showNewCardForm = useNewCard || savedPaymentMethods.length === 0
 
   useEffect(() => {
-    setCardError(cardNumberError || cardExpiryError || cardCvcError || null)
-  }, [cardNumberError, cardExpiryError, cardCvcError, setCardError])
-
-  useEffect(() => {
-    if (method !== "card" || !isAddingCard) {
-      setCardNumberComplete(false)
-      setCardExpiryComplete(false)
-      setCardCvcComplete(false)
-      setCardNumberError(null)
-      setCardExpiryError(null)
-      setCardCvcError(null)
-    }
-  }, [method, isAddingCard])
+    setCardComplete(method === "card" && Boolean(selectedPaymentMethodId))
+  }, [method, selectedPaymentMethodId, setCardComplete])
 
   const handleMethodChange = useCallback(
     (newMethod: "qrcode" | "card") => {
@@ -176,14 +126,27 @@ export const CheckoutPaymentSection = ({
         )
       }
       if (newMethod !== "card") {
-        setIsAddingCard(false)
+        setUseNewCard(false)
       }
     },
-    [cart, setMethod]
+    [cart, setMethod, setUseNewCard]
   )
 
+  const handleNewCardSuccess = useCallback(() => {
+    getCustomerPaymentMethods().then((result) => {
+      if (result.success && result.paymentMethods.length > 0) {
+        setSavedPaymentMethods(result.paymentMethods)
+        const defaultPm =
+          result.paymentMethods.find((pm) => pm.is_default) ||
+          result.paymentMethods[0]
+        if (defaultPm) setSelectedPaymentMethodId(defaultPm.id)
+        setUseNewCard(false)
+      }
+    })
+  }, [setSavedPaymentMethods, setSelectedPaymentMethodId, setUseNewCard])
+
   return (
-    <div className="bg-white rounded-lg p-6 flex flex-col gap-6 relative">
+    <div className="bg-white p-6 flex flex-col gap-6 relative">
       <div className="flex items-center gap-2 border-b border-sop-neutral-gray-light pb-4">
         <Wallet className="w-6 h-6 text-sop-primary-500" />
         <Heading level="h2" className="text-xl text-sop-primary-500 font-bold">
@@ -231,101 +194,49 @@ export const CheckoutPaymentSection = ({
 
           {method === "card" && (
             <div className="pl-8 flex flex-col gap-4">
-              {/* Toggle Logic: For demo, showing saved card if !isAddingCard. User can toggle. */}
-              {!isAddingCard ? (
+              {!showNewCardForm ? (
                 <>
-                  <div
-                    className="flex items-center justify-between p-3 border border-sop-neutral-gray-light rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => setIsAddingCard(false)} // Select existing
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-5 bg-orange-100 rounded flex items-center justify-center relative overflow-hidden">
-                        <div className="w-4 h-4 rounded-full bg-red-500 opacity-80 -mr-2 z-10"></div>
-                        <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-80"></div>
+                  {savedPaymentMethods.map((pm) => (
+                    <div
+                      key={pm.id}
+                      className={clx(
+                        "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors",
+                        selectedPaymentMethodId === pm.id
+                          ? "border-purple-600 bg-purple-50"
+                          : "border-sop-neutral-gray-light hover:bg-gray-50"
+                      )}
+                      onClick={() => setSelectedPaymentMethodId(pm.id)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-5 bg-orange-100 rounded flex items-center justify-center relative overflow-hidden">
+                          <div className="w-4 h-4 rounded-full bg-red-500 opacity-80 -mr-2 z-10" />
+                          <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-80" />
+                        </div>
+                        <Text className="text-gray-700">
+                          {cardBrandLabel[pm.brand ?? ""] ?? pm.brand ?? "Card"}{" "}
+                          ****{pm.last4 ?? "****"}
+                        </Text>
                       </div>
-                      <Text className="text-gray-700">****9999</Text>
-                    </div>
-                    <Check className="w-4 h-4 text-purple-600" />
-                  </div>
-
-                  <Button
-                    variant="secondary"
-                    className="w-fit flex items-center gap-2 text-red-500 border-red-200 hover:bg-red-50 px-4 py-2 h-auto rounded-full"
-                    onClick={() => setIsAddingCard(true)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Plus className="w-4 h-4" />
-                      <p>เพิ่มบัตรใหม่</p>
-                    </div>
-                  </Button>
-                </>
-              ) : (
-                <div className="flex flex-col gap-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
-                    {stripeReady ? (
-                      <CardNumberElement
-                        className="w-full"
-                        options={cardNumberOptions}
-                        onChange={(event) => {
-                          setCardNumberComplete(event.complete)
-                          setCardNumberError(event.error?.message || null)
-                        }}
-                      />
-                    ) : (
-                      <span className="text-gray-400">หมายเลขบัตร</span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
-                      {stripeReady ? (
-                        <CardExpiryElement
-                          className="w-full"
-                          options={cardExpiryOptions}
-                          onChange={(event) => {
-                            setCardExpiryComplete(event.complete)
-                            setCardExpiryError(event.error?.message || null)
-                          }}
-                        />
-                      ) : (
-                        <span className="text-gray-400">วันหมดอายุ</span>
+                      {selectedPaymentMethodId === pm.id && (
+                        <Check className="w-4 h-4 text-purple-600" />
                       )}
                     </div>
-                    <div className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm transition-colors focus-within:border-purple-600">
-                      {stripeReady ? (
-                        <CardCvcElement
-                          className="w-full"
-                          options={cardCvcOptions}
-                          onChange={(event) => {
-                            setCardCvcComplete(event.complete)
-                            setCardCvcError(event.error?.message || null)
-                          }}
-                        />
-                      ) : (
-                        <span className="text-gray-400">CVV</span>
-                      )}
-                    </div>
-                  </div>
+                  ))}
 
-                  <input
-                    type="text"
-                    placeholder="ชื่อผู้ถือบัตร"
-                    className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-purple-600 transition-colors placeholder:text-gray-400"
-                    value={cardholderName}
-                    onChange={(event) => setCardholderName(event.target.value)}
-                  />
-
-                  <div className="flex gap-2 justify-end">
+                  <div>
                     <Button
                       variant="secondary"
-                      className="text-gray-500 hover:text-gray-700 border-none bg-transparent shadow-none"
-                      onClick={() => setIsAddingCard(false)}
+                      onClick={() => setUseNewCard(true)}
                     >
-                      ยกเลิก
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        <p>เพิ่มบัตรใหม่</p>
+                      </div>
                     </Button>
-                    {/* Add Card Action would go here */}
                   </div>
-                </div>
+                </>
+              ) : (
+                <CreditCardCheckoutForm onSuccess={handleNewCardSuccess} />
               )}
             </div>
           )}

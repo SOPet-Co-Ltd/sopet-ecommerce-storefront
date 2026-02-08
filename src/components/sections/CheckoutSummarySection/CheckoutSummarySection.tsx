@@ -8,8 +8,14 @@ import { Text } from "@medusajs/ui"
 import {
   initiatePaymentSession,
   placeOrder,
+  setAddresses,
   setShippingMethod,
 } from "@/lib/data/cart"
+import {
+  addCustomerAddress,
+  addCustomerPaymentMethod,
+} from "@/lib/data/customer"
+import { toast } from "@/lib/helpers/toast"
 import { useContext, useEffect, useRef, useState } from "react"
 import {
   CardElement,
@@ -41,9 +47,14 @@ export const CheckoutSummarySection = ({
     method,
     cardholderName,
     cardComplete,
+    getCardComplete,
     cardError,
     selectedAddress,
     selectedEmail,
+    shippingAddressIsDraft,
+    draftAddress,
+    useNewCard,
+    selectedPaymentMethodId,
   } = useCheckoutPayment()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -106,9 +117,7 @@ export const CheckoutSummarySection = ({
         (sm) => sm.id === selectedId
       )
       setSelectedShippingOptionId(selectedId)
-      setSelectedShippingAmount(
-        selected?.amount ?? cart.shipping_total ?? 0
-      )
+      setSelectedShippingAmount(selected?.amount ?? cart.shipping_total ?? 0)
     }
 
     const onShippingOptionSelected = (event: Event) => {
@@ -216,8 +225,7 @@ export const CheckoutSummarySection = ({
     methodType: "card" | "promptpay"
   ) => {
     if (!providerId) {
-      const fallback =
-        methodType === "card" ? stripeSession : promptpaySession
+      const fallback = methodType === "card" ? stripeSession : promptpaySession
       if (fallback) {
         return fallback
       }
@@ -261,7 +269,6 @@ export const CheckoutSummarySection = ({
     return secret
   }
 
-
   const fallbackAddress: HttpTypes.StoreCartAddress | null =
     (cart.billing_address ||
       cart.shipping_address ||
@@ -272,8 +279,100 @@ export const CheckoutSummarySection = ({
 
   const disabledBase = submitting || notReady
 
+  const pendingShippingOptionKeyForValidate = `checkout:selected_shipping_option:${cart.id}`
+
+  /** Runs before payment: validate, then create address if draft. Returns error message or null. */
+  const runBeforePaymentSteps = async (): Promise<string | null> => {
+    if (!fallbackAddress) {
+      return "กรุณากรอกที่อยู่ในการจัดส่ง"
+    }
+    if (shippingAddressIsDraft) {
+      const hasRequired =
+        draftAddress.first_name?.trim() &&
+        draftAddress.address_1?.trim() &&
+        draftAddress.city?.trim() &&
+        draftAddress.postal_code?.trim() &&
+        draftAddress.phone?.trim()
+      if (!hasRequired) {
+        return "กรุณากรอกที่อยู่ให้ครบถ้วน"
+      }
+    }
+    const selectedOptionId =
+      typeof window !== "undefined"
+        ? window.localStorage.getItem(pendingShippingOptionKeyForValidate)
+        : null
+    if (!selectedOptionId) {
+      return "กรุณาเลือกวิธีจัดส่ง"
+    }
+    if (method === "card") {
+      const hasCard =
+        selectedPaymentMethodId || (useNewCard && getCardComplete())
+      if (!hasCard) {
+        return "กรุณาเลือกบัตรหรือกรอกรายละเอียดบัตร"
+      }
+    }
+
+    if (shippingAddressIsDraft && draftAddress) {
+      const addressFormData = new FormData()
+      addressFormData.set("first_name", draftAddress.first_name)
+      addressFormData.set("last_name", draftAddress.last_name)
+      addressFormData.set("address_1", draftAddress.address_1)
+      addressFormData.set("address_2", draftAddress.address_2 || "")
+      addressFormData.set("city", draftAddress.city)
+      addressFormData.set("province", draftAddress.province || "")
+      addressFormData.set("postal_code", draftAddress.postal_code)
+      addressFormData.set("country_code", "th")
+      addressFormData.set("phone", draftAddress.phone)
+      addressFormData.set("company", "")
+      addressFormData.set("address_name", "")
+      addressFormData.set("isDefaultBilling", "false")
+      addressFormData.set("isDefaultShipping", "true")
+      const createResult = await addCustomerAddress(addressFormData)
+      if (createResult?.success === false && createResult?.error) {
+        return createResult.error
+      }
+      const cartAddressFormData = new FormData()
+      cartAddressFormData.set(
+        "shipping_address.first_name",
+        draftAddress.first_name
+      )
+      cartAddressFormData.set(
+        "shipping_address.last_name",
+        draftAddress.last_name
+      )
+      cartAddressFormData.set(
+        "shipping_address.address_1",
+        draftAddress.address_1
+      )
+      cartAddressFormData.set(
+        "shipping_address.address_2",
+        draftAddress.address_2 || ""
+      )
+      cartAddressFormData.set("shipping_address.city", draftAddress.city)
+      cartAddressFormData.set(
+        "shipping_address.province",
+        draftAddress.province || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.postal_code",
+        draftAddress.postal_code
+      )
+      cartAddressFormData.set("shipping_address.country_code", "th")
+      cartAddressFormData.set("shipping_address.phone", draftAddress.phone)
+      cartAddressFormData.set("shipping_address.company", "")
+      if (customer?.email || cart?.email) {
+        cartAddressFormData.set("email", customer?.email || cart?.email || "")
+      }
+      const setAddrResult = await setAddresses(null, cartAddressFormData)
+      if (typeof setAddrResult === "string") {
+        return setAddrResult
+      }
+    }
+    return null
+  }
+
   return (
-    <div className="bg-white rounded-lg p-6">
+    <div className="bg-white p-6">
       <div className="flex flex-col gap-4 w-full md:w-1/2 ml-auto">
         <div className="flex justify-between items-center text-gray-900">
           <Text className="font-normal">รายการสั่งซื้อทั้งหมด</Text>
@@ -337,6 +436,10 @@ export const CheckoutSummarySection = ({
                 submitting={submitting}
                 setSubmitting={setSubmitting}
                 setError={setError}
+                onBeforePayment={runBeforePaymentSteps}
+                useNewCard={useNewCard}
+                selectedPaymentMethodId={selectedPaymentMethodId}
+                toastError={toast.error}
               />
             </>
           ) : (
@@ -361,6 +464,8 @@ export const CheckoutSummarySection = ({
               setError={setError}
               syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
               ensureClientSecret={ensurePromptpayClientSecret}
+              onBeforePayment={runBeforePaymentSteps}
+              toastError={toast.error}
             />
           ) : (
             <Button
@@ -377,6 +482,8 @@ export const CheckoutSummarySection = ({
             setSubmitting={setSubmitting}
             setError={setError}
             syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
+            onBeforePayment={runBeforePaymentSteps}
+            toastError={toast.error}
           />
         )}
         {cardError && (
@@ -427,6 +534,10 @@ const StripeSummaryPayButton = ({
   submitting,
   setSubmitting,
   setError,
+  onBeforePayment,
+  useNewCard,
+  selectedPaymentMethodId,
+  toastError,
 }: {
   cart: Cart
   clientSecret?: string
@@ -442,6 +553,10 @@ const StripeSummaryPayButton = ({
   submitting: boolean
   setSubmitting: (value: boolean) => void
   setError: (error: string | null) => void
+  onBeforePayment?: () => Promise<string | null>
+  useNewCard?: boolean
+  selectedPaymentMethodId?: string | null
+  toastError?: (opts: { title: string; description?: string }) => void
 }) => {
   const stripe = useStripe()
   const elements = useElements()
@@ -466,9 +581,16 @@ const StripeSummaryPayButton = ({
     setError(null)
 
     try {
+      if (onBeforePayment) {
+        const validationError = await onBeforePayment()
+        if (validationError) {
+          toastError?.({ title: validationError })
+          return
+        }
+      }
+
       await syncShippingMethodBeforePayment()
 
-      // If already authorized, just complete the order
       if (cart.payment_collection?.status === "authorized") {
         await completeOrderAndRedirect()
         return
@@ -479,46 +601,102 @@ const StripeSummaryPayButton = ({
       }
 
       const activeClientSecret = clientSecret || (await ensureClientSecret())
-
-      const cardElement =
-        elements.getElement(CardNumberElement) ||
-        elements.getElement(CardElement)
-
-      if (!cardElement) {
-        throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
-      }
-
       const billingNameFromCart = [
         billingAddress?.first_name,
         billingAddress?.last_name,
       ]
         .filter(Boolean)
         .join(" ")
-
       const billingName =
         cardholderName?.trim() || billingNameFromCart || undefined
       const billingEmail = resolveBillingEmail(email)
+      const billingDetails = {
+        name: billingName,
+        address: {
+          city: billingAddress?.city ?? undefined,
+          country: billingAddress?.country_code ?? undefined,
+          line1: billingAddress?.address_1 ?? undefined,
+          line2: billingAddress?.address_2 ?? undefined,
+          postal_code: billingAddress?.postal_code ?? undefined,
+          state: billingAddress?.province ?? undefined,
+        },
+        email: billingEmail,
+        phone: billingAddress?.phone ?? undefined,
+      }
 
+      let paymentMethodIdToUse: string | null = useNewCard
+        ? null
+        : (selectedPaymentMethodId ?? null)
+
+      if (useNewCard) {
+        const cardElement =
+          elements.getElement(CardNumberElement) ||
+          elements.getElement(CardElement)
+        if (!cardElement) {
+          throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
+        }
+        const { paymentMethod, error: createError } =
+          await stripe.createPaymentMethod({
+            type: "card",
+            card: cardElement,
+            billing_details: billingDetails,
+          })
+        if (createError) {
+          throw new Error(
+            createError.message ?? "ไม่สามารถสร้างวิธีการชำระเงินได้"
+          )
+        }
+        if (!paymentMethod?.id) {
+          throw new Error("ไม่สามารถสร้างวิธีการชำระเงินได้")
+        }
+        const addResult = await addCustomerPaymentMethod({
+          paymentMethodId: paymentMethod.id,
+          makeDefault: false,
+        })
+        if (!addResult.success) {
+          throw new Error(addResult.error ?? "ไม่สามารถบันทึกบัตรได้")
+        }
+        paymentMethodIdToUse = paymentMethod.id
+      }
+
+      if (paymentMethodIdToUse) {
+        const { error: stripeError, paymentIntent } =
+          await stripe.confirmCardPayment(activeClientSecret, {
+            payment_method: paymentMethodIdToUse,
+          })
+        if (stripeError) {
+          const pi = stripeError.payment_intent
+          if (
+            (pi && pi.status === "requires_capture") ||
+            (pi && pi.status === "succeeded")
+          ) {
+            await completeOrderAndRedirect()
+            return
+          }
+          throw new Error(stripeError.message || "Payment failed")
+        }
+        if (
+          (paymentIntent && paymentIntent.status === "requires_capture") ||
+          paymentIntent?.status === "succeeded"
+        ) {
+          await completeOrderAndRedirect()
+        }
+        return
+      }
+
+      const cardElement =
+        elements.getElement(CardNumberElement) ||
+        elements.getElement(CardElement)
+      if (!cardElement) {
+        throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
+      }
       const { error: stripeError, paymentIntent } =
         await stripe.confirmCardPayment(activeClientSecret, {
           payment_method: {
             card: cardElement,
-            billing_details: {
-              name: billingName,
-              address: {
-                city: billingAddress?.city ?? undefined,
-                country: billingAddress?.country_code ?? undefined,
-                line1: billingAddress?.address_1 ?? undefined,
-                line2: billingAddress?.address_2 ?? undefined,
-                postal_code: billingAddress?.postal_code ?? undefined,
-                state: billingAddress?.province ?? undefined,
-              },
-              email: billingEmail,
-              phone: billingAddress?.phone ?? undefined,
-            },
+            billing_details: billingDetails,
           },
         })
-
       if (stripeError) {
         const pi = stripeError.payment_intent
         if (
@@ -528,10 +706,8 @@ const StripeSummaryPayButton = ({
           await completeOrderAndRedirect()
           return
         }
-
         throw new Error(stripeError.message || "Payment failed")
       }
-
       if (
         (paymentIntent && paymentIntent.status === "requires_capture") ||
         paymentIntent?.status === "succeeded"
@@ -563,18 +739,29 @@ const ManualSummaryPayButton = ({
   setSubmitting,
   setError,
   syncShippingMethodBeforePayment,
+  onBeforePayment,
+  toastError,
 }: {
   disabled: boolean
   submitting: boolean
   setSubmitting: (value: boolean) => void
   setError: (error: string | null) => void
   syncShippingMethodBeforePayment: () => Promise<void>
+  onBeforePayment?: () => Promise<string | null>
+  toastError?: (opts: { title: string; description?: string }) => void
 }) => {
   const handlePayment = async () => {
     setSubmitting(true)
     setError(null)
 
     try {
+      if (onBeforePayment) {
+        const validationError = await onBeforePayment()
+        if (validationError) {
+          toastError?.({ title: validationError })
+          return
+        }
+      }
       await syncShippingMethodBeforePayment()
       await placeOrder()
     } catch (e: unknown) {
@@ -608,6 +795,8 @@ const QrSummaryPayButton = ({
   setError,
   syncShippingMethodBeforePayment,
   ensureClientSecret,
+  onBeforePayment,
+  toastError,
 }: {
   clientSecret?: string
   billingAddress?:
@@ -623,6 +812,8 @@ const QrSummaryPayButton = ({
   setError: (error: string | null) => void
   syncShippingMethodBeforePayment: () => Promise<void>
   ensureClientSecret: () => Promise<string>
+  onBeforePayment?: () => Promise<string | null>
+  toastError?: (opts: { title: string; description?: string }) => void
 }) => {
   const stripe = useStripe()
   const router = useRouter()
@@ -660,6 +851,13 @@ const QrSummaryPayButton = ({
     setError(null)
 
     try {
+      if (onBeforePayment) {
+        const validationError = await onBeforePayment()
+        if (validationError) {
+          toastError?.({ title: validationError })
+          return
+        }
+      }
       await syncShippingMethodBeforePayment()
 
       if (!stripe) {
@@ -782,7 +980,10 @@ const QrSummaryPayButton = ({
       </div>
 
       {isQrModalOpen && qrImageUrl && (
-        <Modal heading="PromptPay QR" onClose={() => setIsQrModalOpen(false)}>
+        <Modal
+          header={<span>PromptPay QR</span>}
+          onClose={() => setIsQrModalOpen(false)}
+        >
           <div className="px-6 pb-6 space-y-4">
             <div className="rounded-lg bg-sop-primary-50 px-4 py-3 flex items-center justify-between">
               <Text className="font-medium">ชำระภายใน</Text>
