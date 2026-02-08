@@ -9,6 +9,60 @@ import ThaiAddressSelect, {
 import { usePathname } from "next/navigation"
 import { AddressSelectionDialog } from "../AddressSelectionDialog/AddressSelectionDialog"
 import { EditAddressDialog } from "../EditAddressDialog/EditAddressDialog"
+import type { DraftShippingAddress } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
+
+/** Split full name into first segment and rest; last_name is "" if only one segment. */
+function splitFullName(fullName: string): {
+  first_name: string
+  last_name: string
+} {
+  const trimmed = (fullName ?? "").trim()
+  if (!trimmed) return { first_name: "", last_name: "" }
+  const parts = trimmed.split(/\s+/)
+  const first_name = parts[0] ?? ""
+  const last_name = parts.slice(1).join(" ").trim() ?? ""
+  return { first_name, last_name }
+}
+
+function formDataToDraft(
+  formData: Record<string, any>,
+  countryCode = "th"
+): DraftShippingAddress {
+  const fullName = formData["shipping_address.first_name"] ?? ""
+  const { first_name, last_name } = splitFullName(fullName)
+  return {
+    first_name,
+    last_name,
+    address_1: formData["shipping_address.address_1"] ?? "",
+    address_2: formData["shipping_address.address_2"] ?? "",
+    city: formData["shipping_address.city"] ?? "",
+    province: formData["shipping_address.province"] ?? "",
+    postal_code: formData["shipping_address.postal_code"] ?? "",
+    country_code: formData["shipping_address.country_code"] ?? countryCode,
+    phone: formData["shipping_address.phone"] ?? "",
+  }
+}
+
+function draftToFormData(
+  draft: DraftShippingAddress,
+  email = ""
+): Record<string, any> {
+  const fullNameDisplay = [draft.first_name, draft.last_name]
+    .filter(Boolean)
+    .join(" ")
+  return {
+    "shipping_address.first_name": fullNameDisplay,
+    "shipping_address.last_name": draft.last_name ?? "",
+    "shipping_address.address_1": draft.address_1,
+    "shipping_address.address_2": draft.address_2,
+    "shipping_address.city": draft.city,
+    "shipping_address.province": draft.province,
+    "shipping_address.postal_code": draft.postal_code,
+    "shipping_address.country_code": draft.country_code || "th",
+    "shipping_address.phone": draft.phone,
+    email,
+  }
+}
 
 const ShippingAddress = ({
   customer,
@@ -16,20 +70,29 @@ const ShippingAddress = ({
   onChange,
   prefilledPhone,
   showSaveAddress,
+  controlledDraft,
+  onDraftChange,
 }: {
   customer: HttpTypes.StoreCustomer | null
   checked: boolean
   onChange: () => void
   prefilledPhone?: string
   showSaveAddress?: boolean
+  /** When provided, form is controlled by checkout context (draft only; no save until proceed). */
+  controlledDraft?: DraftShippingAddress
+  onDraftChange?: (draft: DraftShippingAddress) => void
 }) => {
   const pathname = usePathname()
+  const isControlled = controlledDraft != null && onDraftChange != null
 
   let locale = pathname.split("/")[1]
   if (!locale || locale.length !== 2) {
     locale = "th"
   }
   const [formData, setFormData] = useState<Record<string, any>>(() => {
+    if (isControlled && controlledDraft) {
+      return draftToFormData(controlledDraft, customer?.email ?? "")
+    }
     let sourceAddress: HttpTypes.StoreCustomerAddress | undefined
 
     if (customer?.addresses?.length) {
@@ -97,7 +160,25 @@ const ShippingAddress = ({
   }
 
   useEffect(() => {
-    if (customer?.email) {
+    if (isControlled && controlledDraft) {
+      setFormData(draftToFormData(controlledDraft, customer?.email ?? ""))
+    }
+  }, [
+    isControlled,
+    controlledDraft?.first_name,
+    controlledDraft?.last_name,
+    controlledDraft?.address_1,
+    controlledDraft?.address_2,
+    controlledDraft?.city,
+    controlledDraft?.province,
+    controlledDraft?.postal_code,
+    controlledDraft?.country_code,
+    controlledDraft?.phone,
+    customer?.email,
+  ])
+
+  useEffect(() => {
+    if (customer?.email && !isControlled) {
       setFormAddress(undefined, customer.email)
     }
     if (prefilledPhone) {
@@ -106,27 +187,32 @@ const ShippingAddress = ({
         "shipping_address.phone": prefilledPhone,
       }))
     }
-  }, [prefilledPhone, customer?.email])
+  }, [prefilledPhone, customer?.email, isControlled])
 
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLInputElement | HTMLSelectElement
     >
   ) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    const next = { ...formData, [e.target.name]: e.target.value }
+    setFormData(next)
+    if (isControlled && onDraftChange) {
+      onDraftChange(formDataToDraft(next, locale))
+    }
   }
 
   const handleThaiAddressChange = (value: ThaiAddressValue) => {
-    setFormData((prev) => ({
-      ...prev,
+    const next = {
+      ...formData,
       "shipping_address.province": value.province,
       "shipping_address.city": value.district,
       "shipping_address.address_2": value.subdistrict,
       "shipping_address.postal_code": value.zipCode,
-    }))
+    }
+    setFormData(next)
+    if (isControlled && onDraftChange) {
+      onDraftChange(formDataToDraft(next, locale))
+    }
   }
 
   return (
@@ -161,7 +247,7 @@ const ShippingAddress = ({
         }}
       />
 
-      {customer && (addressesInRegion?.length || 0) > 0 && (
+      {!isControlled && customer && (addressesInRegion?.length || 0) > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-gray-700">
@@ -258,7 +344,7 @@ const ShippingAddress = ({
       <input
         type="hidden"
         name="shipping_address.last_name"
-        value={formData["shipping_address.last_name"] || "-"}
+        value={formData["shipping_address.last_name"] ?? ""}
       />
       {customer && <input type="hidden" name="email" value={formData.email} />}
     </>
