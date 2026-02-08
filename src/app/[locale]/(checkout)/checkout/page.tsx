@@ -55,19 +55,15 @@ async function CheckoutPageContent({}) {
 
   return (
     <PaymentWrapper cart={cart}>
-      <main className="">
-        <div className="flex w-full justify-center py-10">
-          <div className="flex flex-col gap-4 w-full max-w-4xl">
-            <CheckoutFlowClient
-              cart={cart}
-              shippingMethods={shippingMethods || []}
-              paymentMethods={paymentMethods}
-              customer={customer}
-              phoneAddresses={phoneAddresses}
-              hasAuthToken={hasAuthToken}
-            />
-          </div>
-        </div>
+      <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+        <CheckoutFlowClient
+          cart={cart}
+          shippingMethods={shippingMethods || []}
+          paymentMethods={paymentMethods}
+          customer={customer}
+          phoneAddresses={phoneAddresses}
+          hasAuthToken={hasAuthToken}
+        />
       </main>
     </PaymentWrapper>
   )
