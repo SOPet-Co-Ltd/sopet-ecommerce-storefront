@@ -120,7 +120,7 @@ const CheckoutItemPreview = ({
         const sellerTotal = subtotal + shippingTotal
 
         return (
-          <div key={key} className="bg-white rounded-lg  p-4 ">
+          <div key={key} className="bg-white p-4">
             {/* Header */}
             <div className="border-b border-sop-neutral-gray-light mb-6">
               <div className="hidden md:grid grid-cols-[80px_1fr_200px_100px_100px] gap-4 items-center mb-2  text-sop-neutral-gray-400 text-sm">

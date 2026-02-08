@@ -153,23 +153,23 @@ export const Addresses = ({
               </div>
             )
           })}
-          {sortedAddresses.length < 6 && (
-            <div className="flex justify-center pt-6">
-              <Button
-                type="button"
-                onClick={goToNewAddress}
-                variant="secondary"
-                rounded="rounded"
-                size="md"
-              >
-                <div className="flex items-center gap-2">
-                  <PlusIcon size={16} color="currentColor" />
-                  เพิ่มที่อยู่
-                </div>
-              </Button>
-            </div>
-          )}
         </>
+      )}
+      {sortedAddresses.length < 6 && (
+        <div className="flex justify-center pt-6">
+          <Button
+            type="button"
+            onClick={goToNewAddress}
+            variant="secondary"
+            rounded="rounded"
+            size="md"
+          >
+            <div className="flex items-center gap-2">
+              <PlusIcon size={16} color="currentColor" />
+              เพิ่มที่อยู่
+            </div>
+          </Button>
+        </div>
       )}
       {deleteAddress && (
         <Modal
