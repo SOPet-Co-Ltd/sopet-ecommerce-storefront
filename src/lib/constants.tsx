@@ -45,6 +45,15 @@ export const paymentInfoMap: Record<
     title: "Manual Payment",
     icon: <Cash />,
   },
+  "pp_promptpay_stripe-promptpay-connect": {
+    title: "PromptPay",
+    icon: <Cash />,
+  },
+  // Unified provider mappings - handles both card and promptpay
+  "pp_stripe-connect_stripe-connect": {
+    title: "Stripe",
+    icon: <CreditCard />,
+  },
   // Add more payment providers here
 }
 

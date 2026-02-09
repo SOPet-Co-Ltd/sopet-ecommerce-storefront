@@ -148,13 +148,20 @@ export const CheckoutSummarySection = ({
   const isPromptpayProvider = (providerId?: string) =>
     providerId?.toLowerCase().includes("promptpay")
 
-  const stripeProviderId = paymentMethods?.find(
-    (provider) =>
-      isStripeProvider(provider.id) && !isPromptpayProvider(provider.id)
+  // Find unified Stripe Connect provider (handles both card and promptpay)
+  const unifiedStripeProviderId = paymentMethods?.find((provider) =>
+    isStripeProvider(provider.id)
   )?.id
-  const promptpayProviderId = paymentMethods?.find((provider) =>
-    isPromptpayProvider(provider.id)
-  )?.id
+
+  // For backward compatibility, try to find separate providers first
+  const stripeProviderId =
+    paymentMethods?.find(
+      (provider) =>
+        isStripeProvider(provider.id) && !isPromptpayProvider(provider.id)
+    )?.id || unifiedStripeProviderId
+  const promptpayProviderId =
+    paymentMethods?.find((provider) => isPromptpayProvider(provider.id))?.id ||
+    unifiedStripeProviderId
 
   const getSessionForProvider = (providerId?: string) => {
     if (!providerId) return undefined
@@ -168,15 +175,24 @@ export const CheckoutSummarySection = ({
 
   const fallbackStripeSession = cart.payment_collection?.payment_sessions?.find(
     (session) => {
+      // Check if it's a Stripe provider (unified or separate)
       if (!isStripeProvider(session.provider_id)) return false
       const data = session.data as any
+      // Check if payment method type is card
       return data?.payment_method_types?.includes?.("card")
     }
   )
   const fallbackPromptpaySession =
     cart.payment_collection?.payment_sessions?.find((session) => {
-      if (!isPromptpayProvider(session.provider_id)) return false
+      // Check if it's a Stripe provider (unified or separate)
+      // Unified provider will match isStripeProvider, separate promptpay provider will match isPromptpayProvider
+      if (
+        !isStripeProvider(session.provider_id) &&
+        !isPromptpayProvider(session.provider_id)
+      )
+        return false
       const data = session.data as any
+      // Check if payment method type is promptpay
       return data?.payment_method_types?.includes?.("promptpay")
     })
 
