@@ -206,9 +206,14 @@ const CheckoutItemPreview = ({
 
             {/* Discount Section */}
             <div className="py-4 border-b border-sop-neutral-gray-light text-sop-additionalblue-400 flex flex-row items-center gap-2  sop-body-lg-regular">
-              <DiscountIcon size={24} active />
-              <span>ส่วนลด ฿100</span>
-              {/* Replace with real cart logic later */}
+              <DiscountIcon className="w-sop-20px h-sop-20px md:w-sop-28px md:h-sop-28px text-sop-additionalblue-400" />
+              <span className="sop-body-sm-regular md:sop-body-lg-regular text-sop-additionalblue-400">
+                {/* TODO - Replace with real cart logic later */}
+                {convertToLocale({
+                  amount: 100,
+                  currency_code: cart.currency_code,
+                })}
+              </span>
             </div>
 
             {/* Shipping Section */}
@@ -217,12 +222,12 @@ const CheckoutItemPreview = ({
               <div className="md:hidden flex flex-col gap-3">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2 text-sop-additionalblue-400 font-normal">
-                    <DeliveryTruckIcon size={24} />
+                    <DeliveryTruckIcon className="w-[22px] h-[22px] md:w-[30px] md:h-[30px]" />
                     <span>ตัวเลือกการจัดส่ง</span>
                   </div>
                   <button
                     onClick={() => setIsShippingOpen(true)}
-                    className="text-gray-500 underline text-sm hover:text-gray-700"
+                    className="sop-link-xs-regular md:sop-link-md-regular text-sop-neutral-gray-300"
                   >
                     เปลี่ยน
                   </button>
@@ -237,11 +242,11 @@ const CheckoutItemPreview = ({
                 </div>
 
                 {selectedShippingOption ? (
-                  <div className="flex flex-1 md:justify-center text-gray-700">
+                  <div className="flex flex-1 justify-end text-sop-neutral-gray-300 sop-body-xs-regular md:sop-body-md-regular">
                     {selectedShippingOption.name}
                   </div>
                 ) : (
-                  <div className="flex flex-1 md:justify-center text-gray-700">
+                  <div className="flex flex-1 justify-end text-sop-neutral-gray-300 sop-body-xs-regular md:sop-body-md-regular">
                     ส่งธรรมดาในประเทศ
                   </div>
                 )}
@@ -267,8 +272,10 @@ const CheckoutItemPreview = ({
 
             {/* Total Section */}
             <div className="pt-4 flex justify-between items-center">
-              <span className="font-normal text-gray-900">รวมทั้งสิ้น</span>
-              <span className="font-normal text-lg text-sop-secondary-500">
+              <span className="sop-body-sm-regular md:sop-body-lg-regular text-sop-neutral-gray-300">
+                รวมทั้งสิ้น
+              </span>
+              <span className="sop-body-xs-regular md:sop-body-md-regular text-sop-secondary-500">
                 {convertToLocale({
                   amount: sellerTotal,
                   currency_code: cart.currency_code,

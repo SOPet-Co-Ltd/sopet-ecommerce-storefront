@@ -391,8 +391,10 @@ export const CheckoutSummarySection = ({
     <div className="bg-white p-6">
       <div className="flex flex-col gap-4 w-full md:w-1/2 ml-auto">
         <div className="flex justify-between items-center text-gray-900">
-          <Text className="font-normal">รายการสั่งซื้อทั้งหมด</Text>
-          <Text className="font-medium">
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+            รายการสั่งซื้อทั้งหมด
+          </Text>
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
             {convertToLocale({
               amount: itemSubtotal,
               currency_code: currencyCode,
@@ -401,8 +403,10 @@ export const CheckoutSummarySection = ({
         </div>
 
         <div className="flex justify-between items-center text-gray-900">
-          <Text className="font-normal">ค่าจัดส่ง</Text>
-          <Text className="font-medium">
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+            ค่าจัดส่ง
+          </Text>
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
             {convertToLocale({
               amount: shippingTotal,
               currency_code: currencyCode,
@@ -412,8 +416,10 @@ export const CheckoutSummarySection = ({
 
         {discountTotal > 0 && (
           <div className="flex justify-between items-center text-green-600">
-            <Text className="font-normal">ส่วนลด</Text>
-            <Text className="font-medium">
+            <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+              ส่วนลด
+            </Text>
+            <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
               -{" "}
               {convertToLocale({
                 amount: discountTotal,
@@ -426,8 +432,10 @@ export const CheckoutSummarySection = ({
         <div className="border-b border-gray-100 my-2" />
 
         <div className="flex justify-between items-center">
-          <Text className="font-normal text-gray-900">ยอดชำระเงินทั้งหมด</Text>
-          <div className="bg-red-400 text-white px-4 py-1 rounded-xl font-bold text-lg shadow-sm">
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+            ยอดชำระเงินทั้งหมด
+          </Text>
+          <div className="bg-red-400 text-white px-4 py-1 rounded-xl sop-body-md-medium md:sop-body-lg-medium">
             {convertToLocale({
               amount: total,
               currency_code: currencyCode,
@@ -459,10 +467,7 @@ export const CheckoutSummarySection = ({
               />
             </>
           ) : (
-            <Button
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-full py-3 h-auto text-lg font-bold mt-4 shadow-md transition-all"
-              disabled
-            >
+            <Button size="lg" variant="primary" fill disabled>
               Loading Stripe...
             </Button>
           )
@@ -484,10 +489,7 @@ export const CheckoutSummarySection = ({
               toastError={toast.error}
             />
           ) : (
-            <Button
-              className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-full py-3 h-auto text-lg font-bold mt-4 shadow-md transition-all"
-              disabled
-            >
+            <Button size="lg" variant="primary" fill disabled>
               Loading Stripe...
             </Button>
           )
@@ -739,7 +741,9 @@ const StripeSummaryPayButton = ({
 
   return (
     <Button
-      className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-full py-3 h-auto text-lg font-bold mt-4 shadow-md transition-all"
+      size="lg"
+      variant="primary"
+      fill
       onClick={handlePayment}
       loading={submitting}
       disabled={disabled}
@@ -789,7 +793,9 @@ const ManualSummaryPayButton = ({
 
   return (
     <Button
-      className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-full py-3 h-auto text-lg font-bold mt-4 shadow-md transition-all"
+      size="lg"
+      variant="primary"
+      fill
       onClick={handlePayment}
       loading={submitting}
       disabled={disabled}
@@ -888,25 +894,29 @@ const QrSummaryPayButton = ({
       const billingEmail = resolveBillingEmail(email)
 
       const { error: stripeError, paymentIntent } =
-        await stripe.confirmPromptPayPayment(resolvedClientSecret, {
-          payment_method: {
-            billing_details: {
-              name: [billingAddress?.first_name, billingAddress?.last_name]
-                .filter(Boolean)
-                .join(" "),
-              email: billingEmail,
-              phone: billingAddress?.phone || undefined,
-              address: {
-                city: billingAddress?.city ?? undefined,
-                country: billingAddress?.country_code ?? undefined,
-                line1: billingAddress?.address_1 ?? undefined,
-                line2: billingAddress?.address_2 ?? undefined,
-                postal_code: billingAddress?.postal_code ?? undefined,
-                state: billingAddress?.province ?? undefined,
+        await stripe.confirmPromptPayPayment(
+          resolvedClientSecret,
+          {
+            payment_method: {
+              billing_details: {
+                name: [billingAddress?.first_name, billingAddress?.last_name]
+                  .filter(Boolean)
+                  .join(" "),
+                email: billingEmail,
+                phone: billingAddress?.phone || undefined,
+                address: {
+                  city: billingAddress?.city ?? undefined,
+                  country: billingAddress?.country_code ?? undefined,
+                  line1: billingAddress?.address_1 ?? undefined,
+                  line2: billingAddress?.address_2 ?? undefined,
+                  postal_code: billingAddress?.postal_code ?? undefined,
+                  state: billingAddress?.province ?? undefined,
+                },
               },
             },
           },
-        })
+          { handleActions: false }
+        )
 
       if (stripeError) {
         throw new Error(stripeError.message || "QR payment failed")
@@ -986,7 +996,9 @@ const QrSummaryPayButton = ({
     <>
       <div className="mt-4 space-y-3">
         <Button
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white rounded-full py-3 h-auto text-lg font-bold shadow-md transition-all"
+          size="lg"
+          variant="primary"
+          fill
           onClick={handleGenerateQr}
           loading={submitting}
           disabled={disabled}

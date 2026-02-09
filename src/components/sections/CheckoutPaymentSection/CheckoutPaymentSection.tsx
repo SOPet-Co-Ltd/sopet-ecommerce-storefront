@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef } from "react"
 import { Wallet, Plus, Check } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
-import { Button } from "@/components/atoms"
+import { Button, PaymentProviderIcon } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 import { isStripe } from "@/lib/constants"
@@ -148,8 +148,11 @@ export const CheckoutPaymentSection = ({
   return (
     <div className="bg-white p-6 flex flex-col gap-6 relative">
       <div className="flex items-center gap-2 border-b border-sop-neutral-gray-light pb-4">
-        <Wallet className="w-6 h-6 text-sop-primary-500" />
-        <Heading level="h2" className="text-xl text-sop-primary-500 font-bold">
+        <Wallet className="w-[18px] md:w-[25px] h-[18px] md:h-[25px] text-sop-primary-500" />
+        <Heading
+          level="h2"
+          className="sop-body-sm-regular md:sop-headline-sm-medium text-sop-primary-500"
+        >
           วิธีการชำระเงิน
         </Heading>
       </div>
@@ -161,15 +164,17 @@ export const CheckoutPaymentSection = ({
         >
           <div
             className={clx(
-              "w-5 h-5 rounded-full border flex items-center justify-center mt-0.5",
+              "w-sop-16px md:w-sop-20px h-sop-16px md:h-sop-20px rounded-full border flex items-center justify-center mt-0.5",
               method === "qrcode" ? "border-purple-600" : "border-gray-300"
             )}
           >
             {method === "qrcode" && (
-              <div className="w-3 h-3 rounded-full bg-purple-600" />
+              <div className="w-[6px] md:w-2 h-[6px] md:h-2 rounded-full bg-purple-600" />
             )}
           </div>
-          <Text className="text-gray-900 font-medium">QR Code</Text>
+          <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-black">
+            QR Code
+          </Text>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -179,15 +184,15 @@ export const CheckoutPaymentSection = ({
           >
             <div
               className={clx(
-                "w-5 h-5 rounded-full border flex items-center justify-center mt-0.5",
+                "w-sop-16px md:w-sop-20px h-sop-16px md:h-sop-20px rounded-full border flex items-center justify-center mt-0.5",
                 method === "card" ? "border-purple-600" : "border-gray-300"
               )}
             >
               {method === "card" && (
-                <div className="w-3 h-3 rounded-full bg-purple-600" />
+                <div className="w-[6px] md:w-2 h-[6px] md:h-2 rounded-full bg-purple-600" />
               )}
             </div>
-            <Text className="text-gray-900 font-medium">
+            <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-black">
               บัตรเครดิต/บัตรเดบิต
             </Text>
           </div>
@@ -200,25 +205,22 @@ export const CheckoutPaymentSection = ({
                     <div
                       key={pm.id}
                       className={clx(
-                        "flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors",
-                        selectedPaymentMethodId === pm.id
-                          ? "border-purple-600 bg-purple-50"
-                          : "border-sop-neutral-gray-light hover:bg-gray-50"
+                        "flex items-center justify-between py-3 cursor-pointer"
                       )}
                       onClick={() => setSelectedPaymentMethodId(pm.id)}
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-5 bg-orange-100 rounded flex items-center justify-center relative overflow-hidden">
-                          <div className="w-4 h-4 rounded-full bg-red-500 opacity-80 -mr-2 z-10" />
-                          <div className="w-4 h-4 rounded-full bg-yellow-500 opacity-80" />
-                        </div>
-                        <Text className="text-gray-700">
-                          {cardBrandLabel[pm.brand ?? ""] ?? pm.brand ?? "Card"}{" "}
-                          ****{pm.last4 ?? "****"}
+                        <PaymentProviderIcon
+                          brand={pm.brand}
+                          size={40}
+                          className="shrink-0"
+                        />
+                        <Text className="md:sop-body-lg-regular sop-body-md-regular text-sop-neutral-gray-300">
+                          {pm.last4 ? `****${pm.last4}` : "บัตรที่บันทึกไว้"}
                         </Text>
                       </div>
                       {selectedPaymentMethodId === pm.id && (
-                        <Check className="w-4 h-4 text-purple-600" />
+                        <Check className="w-4 h-4 text-sop-primary-500" />
                       )}
                     </div>
                   ))}

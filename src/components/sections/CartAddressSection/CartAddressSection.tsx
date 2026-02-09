@@ -134,15 +134,13 @@ export const CartAddressSection = ({
 
   return (
     <div className="p-4 bg-sop-base-white relative">
-      <div className="flex flex-row items-center justify-between mb-6 border-b border-sop-neutral-gray-light py-2">
+      <div className="flex flex-row items-center gap-2 border-b border-sop-neutral-gray-light py-2 mb-4">
+        <MapPinIcon className="w-[18px] md:w-[25px] h-[18px] md:h-[25px] text-sop-primary-500" />
         <Heading
           level="h2"
-          className="flex flex-row gap-x-2  items-center text-ui-fg-base"
+          className="sop-body-sm-regular md:sop-headline-sm-medium text-sop-primary-500"
         >
-          <MapPinIcon className="w-6 h-6" />
-          <span className="sop-headline-sm-medium text-sop-primary-500">
-            ที่อยู่ในการจัดส่ง
-          </span>
+          ที่อยู่ในการจัดส่ง
         </Heading>
       </div>
 

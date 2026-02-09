@@ -20,10 +20,10 @@ const Review = ({
     <div>
       <div className="bg-sop-base-white pt-2 px-4 ">
         <div className="flex flex-row items-center gap-2 border-b border-sop-neutral-gray-light py-2 ">
-          <ClipboardListIcon className="w-6 h-6" />
+          <ClipboardListIcon className="w-[18px] md:w-[25px] h-[18px] md:h-[25px] text-sop-primary-500" />
           <Heading
             level="h2"
-            className="sop-headline-sm-medium text-sop-primary-500"
+            className="sop-body-sm-regular md:sop-headline-sm-medium text-sop-primary-500"
           >
             คำสั่งซื้อสินค้า
           </Heading>

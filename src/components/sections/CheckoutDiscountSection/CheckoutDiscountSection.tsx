@@ -14,11 +14,15 @@ export const CheckoutDiscountSection = ({ cart }: { cart: Cart | null }) => {
         className="bg-white p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 border border-transparent hover:border-purple-100 transition-colors"
         onClick={() => setIsOpen(true)}
       >
-        <div className="flex items-center gap-2 text-gray-700">
-          <DiscountIcon className="w-6 h-6" />
-          <span className="font-medium">ส่วนลด SOPet</span>
+        <div className="flex items-center gap-2">
+          <DiscountIcon className="w-sop-20px h-sop-20px md:w-sop-28px md:h-sop-28px text-sop-additionalblue-400" />
+          <span className="sop-body-sm-regular md:sop-body-lg-regular text-sop-additionalblue-400">
+            ส่วนลด SOPet
+          </span>
         </div>
-        <div className="text-gray-400">{">"}</div>
+        <div className="sop-body-sm-regular md:sop-body-lg-regular text-sop-neutral-gray-300">
+          {">"}
+        </div>
       </div>
 
       <DiscountModal
