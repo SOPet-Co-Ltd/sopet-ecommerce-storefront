@@ -58,7 +58,7 @@ export const VariantReselectionModal = ({
         (v) => v.id === currentVariantId
       )
       if (currentVariant) {
-        const variantMap = optionsAsKeymap(currentVariant.options ?? null)
+        const variantMap = optionsAsKeymap(currentVariant.options ?? null) ?? {}
         setSelectedVariant(variantMap)
         setProductQuantity(1)
         setSelectedVariantId(currentVariantId)

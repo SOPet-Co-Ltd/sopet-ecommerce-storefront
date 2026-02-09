@@ -92,7 +92,7 @@ export const DiscountModal = ({ isOpen, close, cart }: DiscountModalProps) => {
   const appliedPromotions = cart?.promotions || []
 
   return (
-    <Modal heading="คูปองส่วนลดของ SOPet" onClose={close}>
+    <Modal header={<span>คูปองส่วนลดของ SOPet</span>} onClose={close}>
       <div className="px-4 pb-4 flex flex-col gap-4">
         {/* Input Section */}
         <div className="flex gap-2 items-center">

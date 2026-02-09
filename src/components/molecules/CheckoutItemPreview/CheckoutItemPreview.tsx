@@ -27,31 +27,19 @@ const CheckoutItemPreview = ({
   const [isShippingOpen, setIsShippingOpen] = useState(false)
   const [selectedShippingOptionId, setSelectedShippingOptionId] = useState("")
 
-  if (!cart) return null
-
-  const handleSelectShipping = async (methodId: string) => {
-    setSelectedShippingOptionId(methodId)
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        `checkout:selected_shipping_option:${cart.id}`,
-        methodId
-      )
-      window.dispatchEvent(
-        new CustomEvent("checkout:shipping-option-selected", {
-          detail: { cartId: cart.id, optionId: methodId },
-        })
-      )
-    }
-  }
-
-  const groupedItems: GroupedItems = groupItemsBySeller(cart)
-  const shippingMethods = cart.shipping_methods || []
-  const storageKey = `checkout:selected_shipping_option:${cart.id}`
-  const shippingOptionsById = new Map(
-    (availableShippingMethods || []).map((option) => [option.id, option])
+  const shippingMethods = cart?.shipping_methods || []
+  const storageKey = cart ? `checkout:selected_shipping_option:${cart.id}` : ""
+  const shippingOptionsById = useMemo(
+    () =>
+      new Map(
+        (availableShippingMethods || []).map((option) => [option.id, option])
+      ),
+    [availableShippingMethods]
   )
   const defaultShippingOption = availableShippingMethods?.[0]
+
   const selectedShippingOption = useMemo(() => {
+    if (!cart) return undefined
     if (selectedShippingOptionId) {
       return shippingOptionsById.get(selectedShippingOptionId)
     }
@@ -63,6 +51,7 @@ const CheckoutItemPreview = ({
 
     return defaultShippingOption
   }, [
+    cart,
     defaultShippingOption,
     selectedShippingOptionId,
     shippingMethods,
@@ -70,6 +59,8 @@ const CheckoutItemPreview = ({
   ])
 
   useEffect(() => {
+    if (!cart) return
+
     let selectedFromStorage = ""
     if (typeof window !== "undefined") {
       selectedFromStorage = window.localStorage.getItem(storageKey) || ""
@@ -96,12 +87,32 @@ const CheckoutItemPreview = ({
       )
     }
   }, [
-    cart.id,
+    cart,
+    cart?.id,
     defaultShippingOption?.id,
     shippingMethods,
     shippingOptionsById,
     storageKey,
   ])
+
+  if (!cart) return null
+
+  const handleSelectShipping = async (methodId: string) => {
+    setSelectedShippingOptionId(methodId)
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(
+        `checkout:selected_shipping_option:${cart.id}`,
+        methodId
+      )
+      window.dispatchEvent(
+        new CustomEvent("checkout:shipping-option-selected", {
+          detail: { cartId: cart.id, optionId: methodId },
+        })
+      )
+    }
+  }
+
+  const groupedItems: GroupedItems = groupItemsBySeller(cart)
 
   return (
     <div className="flex flex-col gap-6">

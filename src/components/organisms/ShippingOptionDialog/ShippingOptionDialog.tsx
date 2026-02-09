@@ -131,7 +131,7 @@ export const ShippingOptionDialog = ({
   if (!isOpen) return null
 
   return (
-    <Modal heading="ตัวเลือกการจัดส่ง" onClose={onClose}>
+    <Modal header={<span>ตัวเลือกการจัดส่ง</span>} onClose={onClose}>
       <div className="px-4 pb-4 flex flex-col gap-6">
         <RadioGroup value={selectedMethodId} onChange={setSelectedMethodId}>
           <div className="space-y-4">

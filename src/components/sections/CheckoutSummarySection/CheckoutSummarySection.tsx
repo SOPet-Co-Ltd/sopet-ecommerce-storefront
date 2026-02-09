@@ -63,42 +63,9 @@ export const CheckoutSummarySection = ({
   const [localSessions, setLocalSessions] = useState<Record<string, any>>({})
   const stripeReady = useContext(StripeContext)
 
-  if (!cart) return null
-
-  const itemSubtotal = cart.item_subtotal ?? cart.subtotal ?? 0
-  const shippingTotal =
-    selectedShippingOptionId !== ""
-      ? selectedShippingAmount
-      : cart.shipping_total || 0
-  const discountTotal = cart.discount_total || 0
-  const total = itemSubtotal + shippingTotal - discountTotal
-  const currencyCode = cart.currency_code || "thb"
-  const pendingShippingOptionKey = `checkout:selected_shipping_option:${cart.id}`
-
-  const syncShippingMethodBeforePayment = async () => {
-    if (typeof window === "undefined") return
-
-    const selectedOptionId =
-      window.localStorage.getItem(pendingShippingOptionKey) ||
-      cart.shipping_methods?.[0]?.shipping_option_id ||
-      ""
-
-    if (!selectedOptionId) {
-      throw new Error("กรุณาเลือกวิธีจัดส่งก่อนชำระเงิน")
-    }
-
-    const alreadySelected = (cart.shipping_methods || []).some(
-      (method) => method.shipping_option_id === selectedOptionId
-    )
-    if (alreadySelected) return
-
-    await setShippingMethod({
-      cartId: cart.id,
-      shippingMethodId: selectedOptionId,
-    })
-  }
-
   useEffect(() => {
+    if (!cart) return
+
     const key = `checkout:selected_shipping_option:${cart.id}`
 
     const updateShippingAmount = (optionId?: string | null) => {
@@ -141,7 +108,48 @@ export const CheckoutSummarySection = ({
         onShippingOptionSelected
       )
     }
-  }, [cart.id, cart.shipping_methods, cart.shipping_total, shippingMethods])
+  }, [
+    cart,
+    cart?.id,
+    cart?.shipping_methods,
+    cart?.shipping_total,
+    shippingMethods,
+  ])
+
+  if (!cart) return null
+
+  const itemSubtotal = cart.item_subtotal ?? cart.subtotal ?? 0
+  const shippingTotal =
+    selectedShippingOptionId !== ""
+      ? selectedShippingAmount
+      : cart.shipping_total || 0
+  const discountTotal = cart.discount_total || 0
+  const total = itemSubtotal + shippingTotal - discountTotal
+  const currencyCode = cart.currency_code || "thb"
+  const pendingShippingOptionKey = `checkout:selected_shipping_option:${cart.id}`
+
+  const syncShippingMethodBeforePayment = async () => {
+    if (typeof window === "undefined") return
+
+    const selectedOptionId =
+      window.localStorage.getItem(pendingShippingOptionKey) ||
+      cart.shipping_methods?.[0]?.shipping_option_id ||
+      ""
+
+    if (!selectedOptionId) {
+      throw new Error("กรุณาเลือกวิธีจัดส่งก่อนชำระเงิน")
+    }
+
+    const alreadySelected = (cart.shipping_methods || []).some(
+      (method) => method.shipping_option_id === selectedOptionId
+    )
+    if (alreadySelected) return
+
+    await setShippingMethod({
+      cartId: cart.id,
+      shippingMethodId: selectedOptionId,
+    })
+  }
 
   const isStripeProvider = (providerId?: string) =>
     providerId === "stripe" || isStripe(providerId)
