@@ -5,6 +5,10 @@ import { getAuthHeaders, getCacheOptions } from "./cookies"
 import { HttpTypes } from "@medusajs/types"
 
 export const listCartPaymentMethods = async (regionId: string) => {
+  if (!regionId) {
+    return null
+  }
+
   const headers = {
     ...(await getAuthHeaders()),
   }
@@ -13,6 +17,8 @@ export const listCartPaymentMethods = async (regionId: string) => {
     ...(await getCacheOptions("payment_providers")),
   }
 
+  const useNoStore = process.env.NODE_ENV === "development"
+
   return sdk.client
     .fetch<HttpTypes.StorePaymentProviderListResponse>(
       `/store/payment-providers`,
@@ -20,8 +26,7 @@ export const listCartPaymentMethods = async (regionId: string) => {
         method: "GET",
         query: { region_id: regionId },
         headers,
-        next,
-        cache: "force-cache",
+        ...(useNoStore ? { cache: "no-store" } : { next, cache: "force-cache" }),
       }
     )
     .then(({ payment_providers }) =>

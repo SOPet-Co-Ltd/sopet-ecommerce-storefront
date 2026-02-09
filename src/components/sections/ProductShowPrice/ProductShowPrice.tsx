@@ -23,8 +23,10 @@ const optionsAsKeymap = (
 
 export const ProductShowPrice = ({
   product,
+  selectedVariant: externalSelectedVariant,
 }: {
   product: HttpTypes.StoreProduct & { seller?: SellerProps }
+  selectedVariant?: Record<string, string>
 }) => {
   const { allSearchParams } = useGetAllSearchParams()
 
@@ -35,13 +37,15 @@ export const ProductShowPrice = ({
   // Check if product has any valid prices in current region
   const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
-  // set default variant
-  const selectedVariant = hasAnyPrice
-    ? {
-        ...optionsAsKeymap(cheapestVariant.options ?? null),
-        ...allSearchParams,
-      }
-    : allSearchParams
+  // set default variant - use external if provided, otherwise use search params
+  const selectedVariant = externalSelectedVariant
+    ? externalSelectedVariant
+    : hasAnyPrice
+      ? {
+          ...optionsAsKeymap(cheapestVariant.options ?? null),
+          ...allSearchParams,
+        }
+      : allSearchParams
 
   // get selected variant id
   const variantId =

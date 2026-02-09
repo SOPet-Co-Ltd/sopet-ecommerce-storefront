@@ -1,13 +1,15 @@
 "use client"
-import { Button, Card } from "@/components/atoms"
-import { AddressForm, Modal } from "@/components/molecules"
-import { emptyDefaultAddressValues } from "@/components/molecules/AddressForm/AddressForm"
-import { AddressFormData } from "@/components/molecules/AddressForm/schema"
+import { Button } from "@/components/atoms"
+import { AddressForm } from "@/components/molecules/AddressForm/AddressForm"
+import { Modal } from "@/components/molecules"
+import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
+import { PlusIcon } from "@/icons"
 import { deleteCustomerAddress } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
 import { HttpTypes } from "@medusajs/types"
 import { isEmpty } from "lodash"
-import { useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import { useMemo, useState } from "react"
 
 export const Addresses = ({
   user,
@@ -16,146 +18,230 @@ export const Addresses = ({
   user: HttpTypes.StoreCustomer
   regions: HttpTypes.StoreRegion[]
 }) => {
-  const [showForm, setShowForm] = useState(false)
+  const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) ?? ""
   const [deleteAddress, setDeleteAddress] = useState<string | null>(null)
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
 
-  const [defaultValues, setDefaultValues] = useState<AddressFormData | null>(
-    null
-  )
+  const addresses = user.addresses ?? []
 
-  const countries = regions.flatMap((region) => region.countries)
+  // Sort addresses: default first, then by creation date (or ID as fallback)
+  const sortedAddresses = useMemo(() => {
+    return [...addresses].sort((a, b) => {
+      const aIsDefault = !!(a as { is_default_shipping?: boolean })
+        .is_default_shipping
+      const bIsDefault = !!(b as { is_default_shipping?: boolean })
+        .is_default_shipping
 
-  const handleEdit = (addressId: string) => {
-    const address = user.addresses.find((address) => address.id === addressId)
-    if (address) {
-      setDefaultValues({
-        addressId: addressId,
-        addressName: address.address_name || "",
-        firstName: address.first_name || "",
-        lastName: address.last_name || "",
-        address: address.address_1 || "",
-        city: address.city || "",
-        countryCode: address.country_code || "",
-        postalCode: address.postal_code || "",
-        company: address.company || "",
-        province: address.province || "",
-        phone: address.phone || user.phone || "",
-      })
-      setShowForm(true)
-    }
-  }
+      // Default addresses first
+      if (aIsDefault !== bIsDefault) {
+        return aIsDefault ? -1 : 1
+      }
+
+      // Then sort by creation date or ID
+      const aCreated = (a as { created_at?: string }).created_at || a.id
+      const bCreated = (b as { created_at?: string }).created_at || b.id
+      return aCreated.localeCompare(bCreated)
+    })
+  }, [addresses])
+
+  const editingAddress =
+    editingAddressId != null
+      ? addresses.find((a) => a.id === editingAddressId)
+      : null
+
+  const goToNewAddress = () => router.push(`/${locale}/user/addresses/new`)
+
+  const editDefaultValues: AddressFormData | null =
+    editingAddress != null
+      ? {
+          addressId: editingAddress.id,
+          recipientFullName: [
+            editingAddress.first_name,
+            editingAddress.last_name,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .trim(),
+          phone: editingAddress.phone || user.phone || "",
+          province: editingAddress.province || "",
+          district: editingAddress.address_2 || "",
+          subDistrict: editingAddress.city || "",
+          postalCode: editingAddress.postal_code || "",
+          address: editingAddress.address_1 || "",
+          setAsDefault: !!(editingAddress as { is_default_shipping?: boolean })
+            .is_default_shipping,
+        }
+      : null
 
   const handleDelete = async (addressId: string) => {
     await deleteCustomerAddress(addressId)
     setDeleteAddress(null)
   }
 
-  const handleAdd = () => {
-    setDefaultValues(emptyDefaultAddressValues)
-    setDeleteAddress(null)
-    setShowForm(true)
+  const formatAddressLine = (address: (typeof addresses)[0]) => {
+    const parts = [
+      address.address_1,
+      address.city,
+      address.address_2,
+      address.province,
+      address.postal_code,
+    ].filter(Boolean)
+    return parts.join(" ")
   }
 
   return (
     <>
-      <div
-        className={cn(
-          "md:col-span-3",
-          isEmpty(user.addresses) ? "space-y-8" : "space-y-4"
-        )}
-      >
-        <h1 className="heading-md uppercase">Addresses</h1>
-        {isEmpty(user.addresses) ? (
-          <div className="text-center">
-            <h3 className="heading-lg text-primary uppercase">
-              No saved shipping addresses
-            </h3>
-            <p className="text-lg text-secondary mt-2">
-              You currently have no saved shipping addresses. <br />
-              Add an address to make your checkout process quicker and easier.
-            </p>
-            <Button onClick={handleAdd} className="mt-4">
-              Add address
-            </Button>
-          </div>
-        ) : (
-          <>
-            {user.addresses.map((address) => (
-              <Card
-                className="px-4 flex justify-between items-start gap-4 max-w-2xl"
+      {isEmpty(sortedAddresses) ? (
+        <div className="text-center pt-8">
+          <p className="sop-body-md-regular text-sop-neutral-gray-300">
+            คุณยังไม่มีที่อยู่จัดส่งที่บันทึกไว้ <br />
+            เพิ่มที่อยู่เพื่อให้การสั่งซื้อสะดวกขึ้น
+          </p>
+        </div>
+      ) : (
+        <>
+          {sortedAddresses.map((address) => {
+            const isDefault = !!(address as { is_default_shipping?: boolean })
+              .is_default_shipping
+            const contactName = [address.first_name, address.last_name]
+              .filter(Boolean)
+              .join(" ")
+            const phone = address.phone || user.phone || ""
+            return (
+              <div
                 key={address.id}
+                className="flex flex-col items-start pb-sop-20px mb-sop-20px gap-2 border-b border-sop-neutral-grayalpha-300 relative"
               >
-                <div className="flex flex-col ">
-                  <h4 className="label-md text-primary">
-                    {address.address_name}
-                  </h4>
-                  <p className="label-md text-secondary">
-                    {`${address.first_name} ${address.last_name}`}
-                  </p>
-                  {address.company && (
-                    <p className="label-md text-secondary">{address.company}</p>
-                  )}
-                  <p className="label-md text-secondary">
-                    {`${address.address_1}, ${address.postal_code} ${
-                      address.city
-                    }${address.province ? `, ${address.province}` : ""}${`, ${
-                      countries.find(
-                        (country) =>
-                          country && country.iso_2 === address.country_code
-                      )?.display_name || address.country_code?.toUpperCase()
-                    }`}`}
-                  </p>
-                  <p className="label-md text-secondary">
-                    {`${user.email}, ${address.phone || user.phone}`}
-                  </p>
+                <div className="flex flex-col md:flex-row md:gap-2">
+                  <span className="sop-body-md-regular md:sop-headline-sm-regular text-sop-base-black">
+                    {contactName}
+                  </span>
+                  <span className="sop-body-md-regular md:sop-headline-sm-regular text-sop-neutral-gray-300">
+                    {phone}
+                  </span>
                 </div>
-                <div className="flex gap-2 sm:gap-4 flex-col-reverse sm:flex-row">
-                  <Button
-                    className="text-negative"
-                    onClick={() => setDeleteAddress(address.id)}
+                <div>
+                  <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+                    {formatAddressLine(address)}
+                  </span>
+                </div>
+                {isDefault && (
+                  <div>
+                    <span className="sop-body-xs-regular md:sop-body-md-regular text-sop-secondary-500">
+                      ค่าเริ่มต้น
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 shrink-0 absolute right-0">
+                  <button
+                    type="button"
+                    onClick={() => setEditingAddressId(address.id)}
+                    className="sop-link-md-regular text-sop-additionalblue-500"
                   >
-                    Delete
-                  </Button>
-                  <Button onClick={() => handleEdit(address.id)}>Edit</Button>
+                    แก้ไข
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteAddress(address.id)}
+                    className="sop-link-md-regular text-sop-additionalblue-500"
+                  >
+                    ลบ
+                  </button>
                 </div>
-              </Card>
-            ))}
-            {user.addresses.length < 6 && (
-              <Button onClick={handleAdd}>Add address</Button>
-            )}
-          </>
-        )}
-      </div>
-      {showForm && (
-        <Modal
-          heading={
-            defaultValues?.addressId
-              ? `Edit adddress: ${defaultValues.addressName}`
-              : "Add address"
-          }
-          onClose={() => setShowForm(false)}
-        >
-          <AddressForm
-            regions={regions}
-            handleClose={() => setShowForm(false)}
-            defaultValues={defaultValues || emptyDefaultAddressValues}
-          />
-        </Modal>
+              </div>
+            )
+          })}
+        </>
+      )}
+      {sortedAddresses.length < 6 && (
+        <div className="flex justify-center pt-6">
+          <Button
+            type="button"
+            onClick={goToNewAddress}
+            variant="secondary"
+            rounded="rounded"
+            size="md"
+          >
+            <div className="flex items-center gap-2">
+              <PlusIcon size={16} color="currentColor" />
+              เพิ่มที่อยู่
+            </div>
+          </Button>
+        </div>
       )}
       {deleteAddress && (
         <Modal
-          heading="Confirm your action"
           onClose={() => setDeleteAddress(null)}
-        >
-          <div className="px-4 flex flex-col gap-4">
-            <p>Are you sure you want to delete this address?</p>
-            <div className="flex justify-end gap-4">
-              <Button onClick={() => setDeleteAddress(null)}>Cancel</Button>
-              <Button onClick={() => handleDelete(deleteAddress)}>
-                Delete
+          header={
+            <h2 className="md:sop-headline-lg-medium sop-headline-sm-medium text-[#232323] w-full text-center">
+              ยืนยันการลบ
+            </h2>
+          }
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button
+                onClick={() => setDeleteAddress(null)}
+                variant="outline"
+                fill
+                size="lg"
+              >
+                ยกเลิก
+              </Button>
+              <Button
+                onClick={() => handleDelete(deleteAddress)}
+                fill
+                size="lg"
+              >
+                ลบ
               </Button>
             </div>
-          </div>
+          }
+        >
+          <p className="md:sop-headline-sm-regular sop-body-md-regular text-[#232323] w-full text-center">
+            คุณต้องการลบที่อยู่นี้
+          </p>
+        </Modal>
+      )}
+      {editingAddressId != null && editDefaultValues != null && (
+        <Modal
+          onClose={() => setEditingAddressId(null)}
+          header={
+            <div className="border-b border-sop-neutral-grayalpha-300 pb-3">
+              <h2 className="sop-body-lg-regular text-sop-primary-500">
+                แก้ไขที่อยู่
+              </h2>
+            </div>
+          }
+        >
+          <AddressForm
+            key={editingAddressId}
+            mode="edit"
+            regions={regions}
+            defaultValues={editDefaultValues}
+            handleClose={() => {
+              setEditingAddressId(null)
+              router.refresh()
+            }}
+            submitButton={({ onSubmit, isSubmitting }) => (
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setEditingAddressId(null)
+                    router.refresh()
+                  }}
+                  variant="secondary"
+                  fill
+                >
+                  ยกเลิก
+                </Button>
+                <Button onClick={onSubmit} disabled={isSubmitting} fill>
+                  {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
+                </Button>
+              </div>
+            )}
+          />
         </Modal>
       )}
     </>

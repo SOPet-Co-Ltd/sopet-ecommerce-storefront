@@ -27,7 +27,10 @@ export const SellerFooter = ({ seller }: { seller: SellerProps }) => {
         Report
       </Button>
       {openModal && (
-        <Modal heading="Report seller" onClose={() => setOpenModal(false)}>
+        <Modal
+          header={<h2 className="text-primary label-lg">Report seller</h2>}
+          onClose={() => setOpenModal(false)}
+        >
           <ReportSellerForm onClose={() => setOpenModal(false)} />
         </Modal>
       )}

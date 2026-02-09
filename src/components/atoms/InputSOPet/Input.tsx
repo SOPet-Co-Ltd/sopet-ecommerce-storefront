@@ -60,8 +60,8 @@ export function Input({
 
   // Size variants
   const sizeClasses = {
-    sm: "text-xs h-[44px]",
-    md: "text-sm h-[48px]",
+    sm: "sop-body-sm-regular h-[44px]",
+    md: "sop-body-sm-regular h-[48px]",
   } as const
 
   // Variant styles
@@ -92,7 +92,7 @@ export function Input({
   const inputClassName = cn(
     "w-full p-2 rounded-[8px]",
     "sop-body-sm-regular",
-    "text-sop-neutral-gray-400",
+    "text-sop-neutral-gray-200",
     "focus:border-sop-primary-500 focus:outline-none focus:ring-1 focus:ring-sop-primary-500",
     "placeholder:text-sop-neutral-gray-400",
     "transition-all duration-150",
@@ -110,7 +110,7 @@ export function Input({
   )
 
   return (
-    <div className="w-full">
+    <div className="">
       {title !== undefined && (
         <label
           htmlFor={finalId}

@@ -10,6 +10,7 @@ import {
   ProductDetailWarning,
 } from ".."
 import { Suspense } from "react"
+import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
 
 export const ProductDetailsPage = async ({
   handle,
@@ -52,6 +53,7 @@ export const ProductDetailsPage = async ({
 
   return (
     <>
+      <ProductDetailsCacheHydrator product={prod} locale={locale} />
       {/* Section - Breadcrumb */}
       <div className="py-4 lg:block hidden">
         <Breadcrumbs items={breadcrumbs} />

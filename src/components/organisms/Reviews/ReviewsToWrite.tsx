@@ -53,7 +53,10 @@ export const ReviewsToWrite = ({ orders }: { orders: Array<Order> }) => {
         )}
       </div>
       {showForm && (
-        <Modal heading="Write review" onClose={() => setShowForm(null)}>
+        <Modal
+          header={<h2 className="text-primary label-lg">Write review</h2>}
+          onClose={() => setShowForm(null)}
+        >
           <ReviewForm seller={showForm} handleClose={() => setShowForm(null)} />
         </Modal>
       )}

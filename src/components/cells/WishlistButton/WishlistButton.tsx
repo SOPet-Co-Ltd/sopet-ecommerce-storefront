@@ -1,7 +1,6 @@
 "use client"
 
-import { Button } from "@/components/atoms"
-import { HeartFilledIcon, HeartIcon, WishListHeartIcon } from "@/icons"
+import { WishListHeartIcon } from "@/icons"
 import { addWishlistItem, removeWishlistItem } from "@/lib/data/wishlist"
 import { Wishlist } from "@/types/wishlist"
 import { useEffect, useState } from "react"
@@ -49,10 +48,7 @@ export const WishlistButton = ({
     try {
       setIsWishlistAdding(true)
 
-      await removeWishlistItem({
-        wishlist_id: wishlist?.[0].id!,
-        product_id: productId,
-      })
+      await removeWishlistItem({ product_id: productId })
     } catch (error) {
       console.error(error)
     } finally {
@@ -60,7 +56,7 @@ export const WishlistButton = ({
     }
   }
   return (
-    <Button
+    <button
       onClick={() => {
         if (!user) {
           router.push(`/${locale}/user`)
@@ -73,12 +69,9 @@ export const WishlistButton = ({
         }
       }}
       disabled={isWishlistAdding}
-      size="icon"
-      variant="icon"
-      className="md:py-sop-12px py-sop-8px"
-      loading={isWishlistAdding}
+      className="cursor-pointer"
     >
       <WishListHeartIcon size={30} filled={isWishlisted} />
-    </Button>
+    </button>
   )
 }

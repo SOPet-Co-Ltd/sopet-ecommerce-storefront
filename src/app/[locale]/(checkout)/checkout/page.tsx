@@ -1,16 +1,13 @@
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
-import { CartAddressSection } from "@/components/sections/CartAddressSection/CartAddressSection"
-import CartPaymentSection from "@/components/sections/CartPaymentSection/CartPaymentSection"
-import CartReview from "@/components/sections/CartReview/CartReview"
+import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
-import CartShippingMethodsSection from "@/components/sections/CartShippingMethodsSection/CartShippingMethodsSection"
 import { retrieveCart } from "@/lib/data/cart"
-import { verifyCustomer } from "@/lib/data/customer"
+import { listAddressesByPhone, retrieveCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
-import { retrieveRegion } from "@/lib/data/regions"
 import { Metadata } from "next"
 import { notFound } from "next/navigation"
+import { cookies } from "next/headers"
 import { Suspense } from "react"
 
 export const metadata: Metadata = {
@@ -40,29 +37,33 @@ async function CheckoutPageContent({}) {
   }
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)
-  const paymentMethods = await listCartPaymentMethods(cart.region?.id ?? "")
-  const customer = await verifyCustomer()
+
+  const regionId = cart.region_id ?? cart.region?.id
+  const paymentMethods = regionId
+    ? await listCartPaymentMethods(regionId)
+    : null
+
+  const customer = await retrieveCustomer()
+  const cookieStore = await cookies()
+  const hasAuthToken = Boolean(cookieStore.get("_medusa_jwt")?.value)
+  const fallbackPhone = customer?.phone || ""
+
+  const phoneAddresses =
+    !customer?.addresses?.length && fallbackPhone
+      ? await listAddressesByPhone(fallbackPhone)
+      : []
 
   return (
     <PaymentWrapper cart={cart}>
-      <main className="container">
-        <div className="grid lg:grid-cols-11 gap-8">
-          <div className="flex flex-col gap-4 lg:col-span-6">
-            <CartAddressSection cart={cart} customer={customer} />
-            <CartShippingMethodsSection
-              cart={cart}
-              availableShippingMethods={shippingMethods as any}
-            />
-            <CartPaymentSection
-              cart={cart}
-              availablePaymentMethods={paymentMethods}
-            />
-          </div>
-
-          <div className="lg:col-span-5">
-            <CartReview cart={cart} />
-          </div>
-        </div>
+      <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+        <CheckoutFlowClient
+          cart={cart}
+          shippingMethods={shippingMethods || []}
+          paymentMethods={paymentMethods}
+          customer={customer}
+          phoneAddresses={phoneAddresses}
+          hasAuthToken={hasAuthToken}
+        />
       </main>
     </PaymentWrapper>
   )

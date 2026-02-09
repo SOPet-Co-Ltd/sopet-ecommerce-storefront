@@ -29,7 +29,7 @@ export function SmartImage(props: ImageProps) {
     return <Image {...props} />
   }
 
-  if (!isR2Host(url.hostname)) {
+  if (process.env.NODE_ENV === "development") {
     return <Image {...props} />
   }
 

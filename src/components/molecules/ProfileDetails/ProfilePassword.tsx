@@ -52,7 +52,10 @@ export const ProfilePassword = ({
         </div>
       </Card>
       {showForm && (
-        <Modal heading="Change password" onClose={() => setShowForm(false)}>
+        <Modal
+          header={<h2 className="text-primary label-lg">Change password</h2>}
+          onClose={() => setShowForm(false)}
+        >
           <div className="flex p-4 justify-center">
             <Button
               className="uppercase py-3 px-6 font-semibold!"

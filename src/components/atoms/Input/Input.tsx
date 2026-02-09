@@ -25,6 +25,12 @@ export interface InputProps extends Omit<
   hasEndIcon?: boolean
   endIcon?: React.ReactNode
 
+  // Content props
+  hasContent?: boolean
+  contentText?: string
+  hasPlaceholder?: boolean
+  placeholderText?: string
+
   // Description props
   withDescription?: boolean
   descriptionText?: string

@@ -16,7 +16,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useState } from "react"
 import { Button } from "@/components/atoms"
 
-type StoreCardPaymentMethod = any & {
+import { Cart } from "@/types/cart"
+import { HttpTypes } from "@medusajs/types"
+
+type StoreCardPaymentMethod = HttpTypes.StorePaymentProvider & {
   service_zone?: {
     fulfillment_set: {
       type: string
@@ -28,7 +31,7 @@ const CartPaymentSection = ({
   cart,
   availablePaymentMethods,
 }: {
-  cart: any
+  cart: Cart
   availablePaymentMethods: StoreCardPaymentMethod[] | null
 }) => {
   const activeSession = cart.payment_collection?.payment_sessions?.find(
@@ -55,7 +58,7 @@ const CartPaymentSection = ({
     setError(null)
     setSelectedPaymentMethod(method)
     if (isStripeFunc(method)) {
-      await initiatePaymentSession(cart, {
+      await initiatePaymentSession(cart as any, {
         provider_id: method,
       })
     }
@@ -65,7 +68,10 @@ const CartPaymentSection = ({
     cart?.gift_cards && cart?.gift_cards?.length > 0 && cart?.total === 0
 
   const paymentReady =
-    (activeSession && cart?.shipping_methods.length !== 0) || paidByGiftcard
+    (activeSession &&
+      cart?.shipping_methods &&
+      cart?.shipping_methods.length !== 0) ||
+    paidByGiftcard
 
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -93,7 +99,7 @@ const CartPaymentSection = ({
         activeSession?.provider_id === selectedPaymentMethod
 
       if (!checkActiveSession) {
-        await initiatePaymentSession(cart, {
+        await initiatePaymentSession(cart as any, {
           provider_id: selectedPaymentMethod,
         })
       }

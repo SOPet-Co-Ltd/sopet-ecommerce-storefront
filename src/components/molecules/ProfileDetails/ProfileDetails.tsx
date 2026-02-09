@@ -45,7 +45,9 @@ export const ProfileDetails = ({ user }: { user: HttpTypes.StoreCustomer }) => {
       </Card>
       {showForm && (
         <Modal
-          heading="Edit profile details"
+          header={
+            <h2 className="text-primary label-lg">Edit profile details</h2>
+          }
           onClose={() => setShowForm(false)}
         >
           <ProfileDetailsForm

@@ -13,7 +13,7 @@ export const getUserWishlists = async () => {
   }
 
   return sdk.client
-    .fetch<{ wishlists: Wishlist[]; count: number }>(`/store/wishlist`, {
+    .fetch<{ wishlists: Wishlist[]; count: number }>(`/store/wishlists`, {
       cache: "no-cache",
       headers,
       method: "GET",
@@ -53,10 +53,8 @@ export const addWishlistItem = async ({
 }
 
 export const removeWishlistItem = async ({
-  wishlist_id,
   product_id,
 }: {
-  wishlist_id: string
   product_id: string
 }) => {
   const headers = {
@@ -67,12 +65,13 @@ export const removeWishlistItem = async ({
   }
 
   const response = await fetch(
-    `${process.env.MEDUSA_BACKEND_URL}/store/wishlist/${wishlist_id}/product/${product_id}`,
+    `${process.env.MEDUSA_BACKEND_URL}/store/wishlist/product/${product_id}`,
     {
       headers,
       method: "DELETE",
     }
-  ).then(() => {
+  )
+  if (response.ok) {
     revalidatePath("/wishlist")
-  })
+  }
 }

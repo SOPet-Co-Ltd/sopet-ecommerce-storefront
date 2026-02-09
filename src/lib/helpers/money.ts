@@ -13,7 +13,7 @@ export const convertToLocale = ({
   currency_code,
   minimumFractionDigits,
   maximumFractionDigits,
-  locale = "en-US",
+  locale = "th-TH",
 }: ConvertToLocaleParams) => {
   return currency_code && !isEmpty(currency_code)
     ? new Intl.NumberFormat(locale, {
@@ -21,6 +21,7 @@ export const convertToLocale = ({
         currency: currency_code,
         minimumFractionDigits,
         maximumFractionDigits,
+        currencyDisplay: "symbol",
       }).format(amount)
     : amount.toString()
 }
