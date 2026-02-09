@@ -6,7 +6,7 @@ import { HttpTypes } from "@medusajs/types"
 import { createContext } from "react"
 
 type StripeWrapperProps = {
-  paymentSession: HttpTypes.StorePaymentSession
+  paymentSession?: HttpTypes.StorePaymentSession
   stripeKey?: string
   stripePromise: Promise<Stripe | null> | null
   children: React.ReactNode
@@ -20,9 +20,12 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
   stripePromise,
   children,
 }) => {
-  const options: StripeElementsOptions = {
-    clientSecret: paymentSession!.data?.client_secret as string | undefined,
-  }
+  const clientSecret = paymentSession?.data?.client_secret as
+    | string
+    | undefined
+  const options: StripeElementsOptions | undefined = clientSecret
+    ? { clientSecret }
+    : undefined
 
   if (!stripeKey) {
     throw new Error(
@@ -36,15 +39,12 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
     )
   }
 
-  if (!paymentSession?.data?.client_secret) {
-    throw new Error(
-      "Stripe client secret is missing. Cannot initialize Stripe."
-    )
-  }
-
   return (
     <StripeContext.Provider value={true}>
-      <Elements options={options} stripe={stripePromise}>
+      <Elements
+        {...(options ? { options } : {})}
+        stripe={stripePromise}
+      >
         {children}
       </Elements>
     </StripeContext.Provider>

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 import { ProfileIcon } from "@/icons"
+import SmartImage from "../SmartImage/SmartImage"
 
 interface AvatarProps {
   src?: string
@@ -18,15 +18,20 @@ export function Avatar({
   className,
 }: AvatarProps) {
   const baseClasses =
-    "inline-flex items-center justify-center rounded-xs text-primary font-medium border"
+    "aspect-square rounded-full bg-sop-neutral-gray-500 flex items-center justify-center"
   const sizeClasses = {
-    small: "w-8 h-8 text-sm",
-    large: "w-12 h-12 text-lg font-semibold!",
+    small: "w-sop-56px h-sop-56px text-sm",
+    large: "w-[83px] h-[83px] font-semibold!",
+  }
+
+  const iconSize = {
+    small: 24,
+    large: 40,
   }
 
   if (src) {
     return (
-      <Image
+      <SmartImage
         width={150}
         height={150}
         src={src}
@@ -43,7 +48,7 @@ export function Avatar({
 
   return (
     <div className={cn(baseClasses, sizeClasses[size], className)}>
-      {initials || <ProfileIcon />}
+      {initials || <ProfileIcon size={iconSize[size]} />}
     </div>
   )
 }

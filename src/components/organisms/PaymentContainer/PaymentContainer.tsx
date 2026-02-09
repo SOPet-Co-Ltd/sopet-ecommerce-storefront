@@ -79,6 +79,7 @@ export const StripeCardContainer = ({
 
   const useOptions: StripeCardElementOptions = useMemo(() => {
     return {
+      disableLink: true,
       style: {
         base: {
           fontFamily: "Inter, sans-serif",

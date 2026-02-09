@@ -51,7 +51,11 @@ export const OrderCancel = ({ order }: { order: any }) => {
       </div>
       {open && (
         <Modal
-          heading="Select items you want to cancel"
+          header={
+            <h2 className="text-primary label-lg">
+              Select items you want to cancel
+            </h2>
+          }
           onClose={() => setOpen(false)}
         >
           <div>

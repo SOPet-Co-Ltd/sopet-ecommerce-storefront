@@ -2,44 +2,83 @@
 
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
 import { isManual, isStripe } from "../../../lib/constants"
-import { placeOrder } from "@/lib/data/cart"
-import { useElements, useStripe } from "@stripe/react-stripe-js"
+import { placeOrder, setShippingMethod } from "@/lib/data/cart"
+import { CardElement, CardNumberElement, useElements, useStripe } from "@stripe/react-stripe-js"
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/atoms"
-import { orderErrorFormatter } from "@/lib/helpers/order-error-formatter"
-import { toast } from "@/lib/helpers/toast"
 import { Cart } from "@/types/cart"
+import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
+import { HttpTypes } from "@medusajs/types"
 
 type PaymentButtonProps = {
   cart: Cart
+  customer?: HttpTypes.StoreCustomer | null
   "data-testid": string
 }
 
+  const isStripeProvider = (providerId?: string) =>
+    providerId === "stripe" || isStripe(providerId)
+
 const PaymentButton: React.FC<PaymentButtonProps> = ({
   cart,
+  customer,
   "data-testid": dataTestId,
 }) => {
+  const { selectedAddress, selectedEmail } = useCheckoutPayment()
+  const fallbackAddress:
+    | HttpTypes.StoreCustomerAddress
+    | HttpTypes.StoreCartAddress
+    | null =
+    cart.billing_address || cart.shipping_address || selectedAddress || null
+  const fallbackEmail =
+    cart.email || customer?.email || selectedEmail || ""
   const notReady =
     !cart ||
-    !cart.shipping_address ||
-    !cart.billing_address ||
-    !cart.email ||
-    (cart.shipping_methods?.length ?? 0) < 1
+    !fallbackAddress
 
-  const paymentSession = cart.payment_collection?.payment_sessions?.[0]
+  const stripeSession = cart.payment_collection?.payment_sessions?.find(
+    (session) => isStripeProvider(session.provider_id)
+  )
+  const paymentSession =
+    stripeSession || cart.payment_collection?.payment_sessions?.[0]
+  const pendingShippingOptionKey = `checkout:selected_shipping_option:${cart.id}`
+
+  const syncShippingMethodBeforePayment = async () => {
+    if (typeof window === "undefined") return
+
+    const selectedOptionId = window.localStorage.getItem(pendingShippingOptionKey)
+    if (!selectedOptionId) return
+
+    const alreadySelected = (cart.shipping_methods || []).some(
+      (method) => method.shipping_option_id === selectedOptionId
+    )
+    if (alreadySelected) return
+
+    await setShippingMethod({
+      cartId: cart.id,
+      shippingMethodId: selectedOptionId,
+    })
+  }
 
   switch (true) {
-    case isStripe(paymentSession?.provider_id):
+    case isStripeProvider(paymentSession?.provider_id):
       return (
         <StripePaymentButton
           notReady={notReady}
           cart={cart}
+          billingAddress={fallbackAddress}
+          email={fallbackEmail}
+          syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
           data-testid={dataTestId}
         />
       )
     case isManual(paymentSession?.provider_id):
       return (
-        <ManualTestPaymentButton notReady={notReady} data-testid={dataTestId} />
+        <ManualTestPaymentButton
+          notReady={notReady}
+          syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
+          data-testid={dataTestId}
+        />
       )
     default:
       return (
@@ -53,12 +92,22 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
 const StripePaymentButton = ({
   cart,
   notReady,
+  billingAddress,
+  email,
+  syncShippingMethodBeforePayment,
   "data-testid": dataTestId,
 }: {
   cart: Cart
   notReady: boolean
+  billingAddress?: 
+    | HttpTypes.StoreCustomerAddress
+    | HttpTypes.StoreCartAddress
+    | null
+  email?: string
+  syncShippingMethodBeforePayment: () => Promise<void>
   "data-testid"?: string
 }) => {
+  const { cardComplete } = useCheckoutPayment()
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [disabled, setDisabled] = useState(true)
@@ -82,21 +131,37 @@ const StripePaymentButton = ({
 
   const stripe = useStripe()
   const elements = useElements()
-  const card = elements?.getElement("card")
+  const cardNumberElement = elements?.getElement(CardNumberElement)
+  const card =
+    cardNumberElement || elements?.getElement(CardElement)
 
-  const session = cart.payment_collection?.payment_sessions?.find(
-    (s) => s.status === "pending"
-  )
+  const session =
+    cart.payment_collection?.payment_sessions?.find((s) =>
+      isStripeProvider(s.provider_id)
+    ) || cart.payment_collection?.payment_sessions?.[0]
 
   useEffect(() => {
+    if (cardNumberElement) {
+      setDisabled(!cardComplete)
+      return
+    }
+
     //@ts-ignore
     setDisabled(!card?._complete)
-  }, [card, stripe, elements, cart])
+  }, [cardComplete, cardNumberElement, card])
 
   const handlePayment = async () => {
     setSubmitting(true)
 
     if (!stripe || !elements || !card || !cart) {
+      setSubmitting(false)
+      return
+    }
+
+    try {
+      await syncShippingMethodBeforePayment()
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Unable to set shipping method")
       setSubmitting(false)
       return
     }
@@ -111,15 +176,15 @@ const StripePaymentButton = ({
               " " +
               cart.billing_address?.last_name,
             address: {
-              city: cart.billing_address?.city ?? undefined,
-              country: cart.billing_address?.country_code ?? undefined,
-              line1: cart.billing_address?.address_1 ?? undefined,
-              line2: cart.billing_address?.address_2 ?? undefined,
-              postal_code: cart.billing_address?.postal_code ?? undefined,
-              state: cart.billing_address?.province ?? undefined,
+              city: billingAddress?.city ?? undefined,
+              country: billingAddress?.country_code ?? undefined,
+              line1: billingAddress?.address_1 ?? undefined,
+              line2: billingAddress?.address_2 ?? undefined,
+              postal_code: billingAddress?.postal_code ?? undefined,
+              state: billingAddress?.province ?? undefined,
             },
-            email: cart.email,
-            phone: cart.billing_address?.phone ?? undefined,
+            email: email || undefined,
+            phone: billingAddress?.phone ?? undefined,
           },
         },
       })
@@ -167,7 +232,13 @@ const StripePaymentButton = ({
   )
 }
 
-const ManualTestPaymentButton = ({ notReady }: { notReady: boolean }) => {
+const ManualTestPaymentButton = ({
+  notReady,
+  syncShippingMethodBeforePayment,
+}: {
+  notReady: boolean
+  syncShippingMethodBeforePayment: () => Promise<void>
+}) => {
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -188,8 +259,15 @@ const ManualTestPaymentButton = ({ notReady }: { notReady: boolean }) => {
     }
   }
 
-  const handlePayment = () => {
-    onPaymentCompleted()
+  const handlePayment = async () => {
+    setSubmitting(true)
+    try {
+      await syncShippingMethodBeforePayment()
+      await onPaymentCompleted()
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Unable to set shipping method")
+      setSubmitting(false)
+    }
   }
 
   return (

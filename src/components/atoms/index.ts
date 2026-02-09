@@ -9,6 +9,19 @@ import { Divider } from "./Divider/Divider"
 import { Indicator } from "./Indicator/Indicator"
 import { Input } from "./Input/Input"
 import {
+  Dropdown,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+  DropdownGroup,
+} from "./Dropdown/Dropdown"
+import type {
+  DropdownProps,
+  DropdownItemProps,
+  DropdownLabelProps,
+  DropdownSeparatorProps,
+} from "./Dropdown/Dropdown"
+import {
   Autocomplete,
   DefaultOptionComponent,
 } from "./Autocomplete/Autocomplete"
@@ -27,10 +40,13 @@ import { TabsTrigger } from "./TabsTrigger/TabsTrigger"
 import { NavigationItem } from "./NavigationItem/NavigationItem"
 import { LogoutButton } from "./LogoutButton/LogoutButton"
 import { MarkdownRender } from "./MarkdownRender/MarkdownRender"
+import { Spinner } from "./Spinner/Spinner"
 import { PriceRangeSlider } from "./PriceRangeSlider/PriceRangeSlider"
 import type { PriceRangeSliderProps } from "./PriceRangeSlider/PriceRangeSlider"
 import { Input as InputSOPet } from "./InputSOPet/Input"
 import type { InputProps as InputSOPetProps } from "./InputSOPet/Input"
+import SmartImage from "./SmartImage/SmartImage"
+import { PaymentProviderIcon } from "./PaymentProviderIcon/PaymentProviderIcon"
 
 export {
   Button,
@@ -43,6 +59,11 @@ export {
   Divider,
   Indicator,
   Input,
+  Dropdown,
+  DropdownItem,
+  DropdownLabel,
+  DropdownSeparator,
+  DropdownGroup,
   Autocomplete,
   DefaultOptionComponent,
   Textarea,
@@ -55,8 +76,11 @@ export {
   NavigationItem,
   LogoutButton,
   MarkdownRender,
+  Spinner,
   PriceRangeSlider,
   InputSOPet,
+  SmartImage,
+  PaymentProviderIcon,
 }
 
 export type {
@@ -65,4 +89,13 @@ export type {
   OptionComponentProps,
   PriceRangeSliderProps,
   InputSOPetProps,
+  DropdownProps,
+  DropdownItemProps,
+  DropdownLabelProps,
+  DropdownSeparatorProps,
 }
+
+export type {
+  PaymentBrand,
+  PaymentProviderIconProps,
+} from "./PaymentProviderIcon/PaymentProviderIcon"

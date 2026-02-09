@@ -23,14 +23,7 @@ export const Cart = async () => {
           <CartPromotionCode cart={{ ...cart, promotions: [] }} />
         </div>
         <div className="border rounded-xs p-4 h-fit">
-          <CartSummary
-            item_total={cart?.item_subtotal || 0}
-            shipping_total={cart?.shipping_subtotal || 0}
-            total={cart?.total || 0}
-            currency_code={cart?.currency_code || ""}
-            tax={cart?.tax_total || 0}
-            discount_total={cart?.discount_total || 0}
-          />
+          <CartSummary cart={cart} />
           <LocalizedClientLink href="/checkout?step=address">
             <Button className="w-full py-3 flex justify-center items-center">
               Go to checkout

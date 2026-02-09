@@ -3,6 +3,11 @@ import type { NextConfig } from "next"
 const nextConfig: NextConfig = {
   trailingSlash: false,
   reactStrictMode: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "5mb",
+    },
+  },
   logging: {
     fetches: {
       fullUrl: true,
@@ -49,6 +54,10 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "pub-849fbf4cb4b24d67870e260db84b0412.r2.dev",
+      },
+      {
+        protocol: "https",
+        hostname: "r2.sopet.co",
       },
       {
         protocol: "https",

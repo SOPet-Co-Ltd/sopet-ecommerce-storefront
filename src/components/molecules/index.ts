@@ -25,13 +25,20 @@ import { HeaderCategoryNavbar } from "./HeaderCategoryNavbar/HeaderCategoryNavba
 import { DeleteCartItemButton } from "./DeleteCartItemButton/DeleteCartItemButton"
 import { Dropdown } from "./Dropdown/Dropdown"
 import { CartDropdownItem } from "./CartDropdownItem/CartDropdownItem"
+import { CartItem } from "./CartItem/CartItem"
 import { LoginForm } from "./LoginForm/LoginForm"
 import { RegisterForm } from "./RegisterForm/RegisterForm"
+import { UserBreadcrumbs } from "./UserBreadcrumbs/UserBreadcrumbs"
+import { UserContainer } from "./UserContainer/UserContainer"
 import { UserNavigation } from "./UserNavigation/UserNavigation"
 import { ParcelAccordion } from "./ParcelAccordion/ParcelAccordion"
 import { AddressForm } from "./AddressForm/AddressForm"
 import { ReviewForm } from "./ReviewForm/ReviewForm"
 import { ProfileDetails } from "./ProfileDetails/ProfileDetails"
+import { ProfileDetailsSection } from "./ProfileDetailsSection/ProfileDetailsSection"
+import { ProfileContactOtpForm } from "./ProfileContactOtpForm/ProfileContactOtpForm"
+import { SaveQRCodeButton } from "./SaveQRCodeButton/SaveQRCodeButton"
+import { DeleteAccountButton } from "./DeleteAccountButton/DeleteAccountButton"
 
 export {
   PrimeCategoryNavbar,
@@ -61,11 +68,18 @@ export {
   DeleteCartItemButton,
   Dropdown,
   CartDropdownItem,
+  CartItem,
   LoginForm,
   RegisterForm,
+  UserBreadcrumbs,
+  UserContainer,
   UserNavigation,
   ParcelAccordion,
   AddressForm,
   ReviewForm,
   ProfileDetails,
+  ProfileDetailsSection,
+  ProfileContactOtpForm,
+  SaveQRCodeButton,
+  DeleteAccountButton,
 }

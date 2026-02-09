@@ -1,6 +1,6 @@
 "use server"
 
-import { sdk } from "../config"
+import { fetchQuery, sdk } from "../config"
 import { HttpTypes } from "@medusajs/types"
 import { revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
@@ -34,7 +34,6 @@ export const verifyCustomer =
         headers,
         cache: "no-store",
       })
-      console.log(result)
 
       return result.customer
     } catch {
@@ -59,6 +58,253 @@ export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   revalidateTag(cacheTag)
 
   return updateRes
+}
+
+export type UpdateProfileInput = {
+  name?: string
+  birth_date?: string
+}
+
+/**
+ * Update logged-in customer profile (name and/or date of birth).
+ * Uses POST /store/customers/me/profile; data is stored in customer.metadata.
+ */
+export async function updateProfile(
+  input: UpdateProfileInput
+): Promise<
+  | { success: true; customer: HttpTypes.StoreCustomer }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const result = await sdk.client.fetch<{
+      customer: HttpTypes.StoreCustomer
+    }>("/store/customers/me/profile", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: input,
+    })
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, customer: result.customer }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+/**
+ * Request OTP for adding or changing email/phone (logged-in user).
+ * Uses POST /store/customers/me/request-otp. Does not create a new customer.
+ * Body is sent by type so change-email always sends email, change-phone always sends phone.
+ */
+export async function requestOtpForUpdate(
+  identifier: string,
+  type: "email" | "phone"
+): Promise<{ success: true } | { success: false; error: string }> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const body =
+    type === "email"
+      ? { email: identifier.trim() }
+      : { phone: identifier.trim() }
+
+  try {
+    const res = await sdk.client.fetch<{ success: boolean; error?: string }>(
+      "/store/customers/me/request-otp",
+      {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body,
+      }
+    )
+    if (!res.success) {
+      return { success: false, error: res.error ?? "ไม่สามารถส่ง OTP ได้" }
+    }
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export type VerifyOtpUpdateInput = {
+  email?: string
+  phone?: string
+  otp: string
+}
+
+/**
+ * Verify OTP and update logged-in customer's email or phone.
+ * Uses POST /store/customers/me/verify-otp-update. Stores new JWT if returned.
+ */
+export async function verifyOtpAndUpdateContact(
+  input: VerifyOtpUpdateInput
+): Promise<
+  | { success: true; token?: string; customer?: HttpTypes.StoreCustomer }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const { email, phone, otp } = input
+  if ((email && phone) || (!email && !phone)) {
+    return {
+      success: false,
+      error: "Exactly one of email or phone is required",
+    }
+  }
+  if (!otp || !/^\d{6}$/.test(otp)) {
+    return { success: false, error: "กรุณากรอก OTP 6 หลักให้ถูกต้อง" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      success: boolean
+      error?: string
+      token?: string
+      customer?: HttpTypes.StoreCustomer
+    }>("/store/customers/me/verify-otp-update", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: { email, phone, otp },
+    })
+
+    if (!res.success) {
+      return { success: false, error: res.error ?? "ไม่สามารถยืนยัน OTP ได้" }
+    }
+
+    if (res.token) {
+      await setAuthToken(res.token)
+    }
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return {
+      success: true,
+      token: res.token,
+      customer: res.customer,
+    }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+/**
+ * Upload avatar for the logged-in customer.
+ * Uses POST /store/customers/me/avatar (multipart/form-data, field "avatar").
+ */
+export async function uploadAvatar(
+  file: File
+): Promise<
+  | { success: true; avatar_url: string; avatar_blurhash?: string }
+  | { success: false; error: string }
+> {
+  console.log("[uploadAvatar] 1. Starting", {
+    filename: file.name,
+    size: file.size,
+    type: file.type,
+  })
+
+  const headers = await getAuthHeaders()
+  console.log("[uploadAvatar] 2. Auth headers", {
+    hasHeaders: !!headers,
+    keyCount: headers ? Object.keys(headers).length : 0,
+  })
+  if (!headers || Object.keys(headers).length === 0) {
+    console.warn("[uploadAvatar] No auth headers available")
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const formData = new FormData()
+  formData.append("avatar", file)
+
+  try {
+    const baseUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+    console.log("[uploadAvatar] 3. Sending request", {
+      url: `${baseUrl}/store/customers/me/avatar`,
+    })
+
+    const res = await fetch(`${baseUrl}/store/customers/me/avatar`, {
+      method: "POST",
+      headers: {
+        "x-publishable-api-key": publishableKey,
+        ...(headers as Record<string, string>),
+      },
+      body: formData,
+    })
+
+    console.log("[uploadAvatar] 4. Response received", {
+      status: res.status,
+      ok: res.ok,
+    })
+
+    const data = await res.json().catch((parseErr) => {
+      console.error("[uploadAvatar] Failed to parse response JSON", parseErr)
+      return {}
+    })
+    console.log("[uploadAvatar] 5. Body parsed", {
+      hasData: !!data,
+      keys: data ? Object.keys(data) : [],
+    })
+
+    if (!res.ok) {
+      console.error("[uploadAvatar] Upload failed", {
+        status: res.status,
+        error: data?.message ?? data?.error,
+        responseData: data,
+      })
+      return {
+        success: false,
+        error: data?.message ?? data?.error ?? "Upload failed",
+      }
+    }
+
+    const avatarUrl = data.avatar_url ?? data.customer?.metadata?.avatar_url
+    if (!avatarUrl) {
+      console.error("[uploadAvatar] No avatar URL in response", {
+        responseData: data,
+        hasAvatarUrl: !!data.avatar_url,
+        hasCustomerMetadata: !!data.customer?.metadata?.avatar_url,
+      })
+      return { success: false, error: "No avatar URL returned" }
+    }
+
+    const avatarBlurhash =
+      data.avatar_blurhash ?? data.customer?.metadata?.avatar_blurhash
+
+    console.log("[uploadAvatar] 6. Upload successful", {
+      avatarUrl: avatarUrl?.slice(0, 50),
+      hasBlurhash: !!avatarBlurhash,
+    })
+
+    console.log("[uploadAvatar] 7. Revalidating cache…")
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    console.log("[uploadAvatar] 8. Done")
+
+    return {
+      success: true,
+      avatar_url: avatarUrl,
+      ...(avatarBlurhash && { avatar_blurhash: avatarBlurhash }),
+    }
+  } catch (err: any) {
+    console.error("[uploadAvatar] Exception during upload", {
+      error: err?.message ?? String(err),
+      stack: err?.stack,
+      name: err?.name,
+    })
+    return { success: false, error: err?.message ?? String(err) }
+  }
 }
 
 // Legacy email/password signup - kept for backwards compatibility
@@ -241,6 +487,53 @@ export async function signout() {
   redirect(`/`)
 }
 
+/**
+ * Request account deletion (soft delete). Calls DELETE /store/customers/me/delete.
+ * On success, clears session and redirects to "/". On failure, returns { success: false, error }.
+ * redirect() is called outside try so its throw is not caught (Next.js uses throw for redirects).
+ */
+export async function requestDeleteAccount(): Promise<
+  { success: true } | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const result = await sdk.client.fetch<{ success?: boolean }>(
+      "/store/customers/me/delete",
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
+    )
+
+    if (result?.success !== true) {
+      return { success: false, error: "Request failed" }
+    }
+
+    await sdk.auth.logout()
+    await removeAuthToken()
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    await removeCartId()
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : err != null
+          ? String(err)
+          : "Request failed"
+    return { success: false, error: message }
+  }
+
+  redirect("/")
+}
+
 export async function transferCart() {
   const cartId = await getCartId()
 
@@ -261,8 +554,9 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
     address_name: formData.get("address_name") as string,
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
-    company: formData.get("company") as string,
+    company: (formData.get("company") as string) || "",
     address_1: formData.get("address_1") as string,
+    address_2: (formData.get("address_2") as string) || "",
     city: formData.get("city") as string,
     postal_code: formData.get("postal_code") as string,
     country_code: formData.get("country_code") as string,
@@ -320,13 +614,15 @@ export const updateCustomerAddress = async (
     address_name: formData.get("address_name") as string,
     first_name: formData.get("first_name") as string,
     last_name: formData.get("last_name") as string,
-    company: formData.get("company") as string,
+    company: (formData.get("company") as string) || "",
     address_1: formData.get("address_1") as string,
-    address_2: formData.get("address_2") as string,
+    address_2: (formData.get("address_2") as string) || "",
     city: formData.get("city") as string,
     postal_code: formData.get("postal_code") as string,
     province: formData.get("province") as string,
     country_code: formData.get("country_code") as string,
+    is_default_billing: Boolean(formData.get("isDefaultBilling")),
+    is_default_shipping: Boolean(formData.get("isDefaultShipping")),
   } as HttpTypes.StoreUpdateCustomerAddress
 
   const phone = formData.get("phone") as string
@@ -335,20 +631,43 @@ export const updateCustomerAddress = async (
     address.phone = phone
   }
 
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
+  const headers = await getAuthHeaders()
+  const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-  return sdk.store.customer
-    .updateAddress(addressId, address, {}, headers)
-    .then(async () => {
-      const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag)
-      return { success: true, error: null }
-    })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+  try {
+    const response = await fetch(
+      `${backendUrl}/store/customers/me/addresses/${addressId}/update`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-publishable-api-key": publishableKey,
+          ...headers,
+        },
+        body: JSON.stringify(address),
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: response.statusText || "Failed to update address",
+      }))
+      return {
+        success: false,
+        error: errorData.message || "Failed to update address",
+      }
+    }
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, error: null }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
 }
 
 export const updateCustomerPassword = async (
@@ -392,4 +711,242 @@ export const sendResetPasswordEmail = async (email: string) => {
     })
 
   return res
+}
+
+export const listAddressesByPhone = async (
+  phone: string
+): Promise<HttpTypes.StoreCustomerAddress[]> => {
+  if (!phone) {
+    return []
+  }
+
+  const normalizedPhone = phone.replace(/\D/g, "")
+  if (!normalizedPhone) {
+    return []
+  }
+
+  const res = await fetchQuery("/store/phone-addresses", {
+    method: "GET",
+    query: { phone: normalizedPhone },
+  })
+
+  if (!res.ok || !res.data?.addresses) {
+    return []
+  }
+
+  return res.data.addresses as HttpTypes.StoreCustomerAddress[]
+}
+
+export const retrieveCustomer =
+  async (): Promise<HttpTypes.StoreCustomer | null> => {
+    const authHeaders = await getAuthHeaders()
+
+    if (!authHeaders) return null
+
+    const headers = {
+      ...authHeaders,
+      "x-publishable-api-key":
+        process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || "",
+    }
+
+    return await sdk.client
+      .fetch<{ customer: HttpTypes.StoreCustomer }>(`/store/customers/me`, {
+        method: "GET",
+        query: {
+          fields: "*orders,*addresses",
+        },
+        headers,
+        cache: "no-store",
+      })
+      .then(({ customer }) => customer)
+      .catch((err) => {
+        // Quietly fail for 401s (expected if token expired)
+        if (err.status !== 401) {
+          // console.error("[retrieveCustomer] Error:", err)
+        }
+        return null
+      })
+  }
+
+export type CustomerPaymentMethod = {
+  id: string
+  brand: string | null
+  last4: string | null
+  exp_month: number | null
+  exp_year: number | null
+  funding: string | null
+  country: string | null
+  is_default: boolean
+}
+
+export async function getCustomerPaymentMethods(): Promise<
+  | { success: true; paymentMethods: CustomerPaymentMethod[] }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_methods: CustomerPaymentMethod[]
+    }>("/store/customers/me/payment-methods", {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    return { success: true, paymentMethods: res.payment_methods ?? [] }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export async function addCustomerPaymentMethod(options: {
+  paymentMethodId: string
+  makeDefault?: boolean
+}): Promise<
+  | { success: true; paymentMethod: CustomerPaymentMethod }
+  | { success: false; error: string; type?: string; code?: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!options.paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_method: CustomerPaymentMethod
+    }>("/store/customers/me/payment-methods", {
+      method: "POST",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: {
+        payment_method_id: options.paymentMethodId,
+        make_default: options.makeDefault ?? false,
+      },
+    })
+
+    // Revalidate customer cache for any UI depending on customer data
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true, paymentMethod: res.payment_method }
+  } catch (err: any) {
+    // Extract error message, type, and code from API response
+    let errorMessage = err?.message ?? String(err)
+    let errorType: string | undefined
+    let errorCode: string | undefined
+
+    // Check if error response contains structured error fields (from backend error format)
+    if (err?.body) {
+      if (typeof err.body === "object") {
+        if (err.body.message) {
+          errorMessage = err.body.message
+        }
+        if (err.body.type) {
+          errorType = err.body.type
+        }
+        if (err.body.code) {
+          errorCode = err.body.code
+        }
+      } else if (typeof err.body === "string") {
+        try {
+          const parsed = JSON.parse(err.body)
+          if (parsed.message) {
+            errorMessage = parsed.message
+          }
+          if (parsed.type) {
+            errorType = parsed.type
+          }
+          if (parsed.code) {
+            errorCode = parsed.code
+          }
+        } catch {
+          // Not JSON, use as is
+        }
+      }
+    }
+
+    return {
+      success: false,
+      error: errorMessage,
+      type: errorType,
+      code: errorCode,
+    }
+  }
+}
+
+export async function updateCustomerPaymentMethod(
+  paymentMethodId: string,
+  makeDefault: boolean
+): Promise<
+  | { success: true; paymentMethod: CustomerPaymentMethod }
+  | { success: false; error: string }
+> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      payment_method: CustomerPaymentMethod
+    }>(`/store/customers/me/payment-methods/${paymentMethodId}`, {
+      method: "PATCH",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: {
+        make_default: makeDefault,
+      },
+    })
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true, paymentMethod: res.payment_method }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export async function deleteCustomerPaymentMethod(
+  paymentMethodId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  if (!paymentMethodId) {
+    return { success: false, error: "paymentMethodId is required" }
+  }
+
+  try {
+    await sdk.client.fetch<{ success: boolean; error?: string }>(
+      `/store/customers/me/payment-methods/${paymentMethodId}`,
+      {
+        method: "DELETE",
+        headers,
+      }
+    )
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
 }

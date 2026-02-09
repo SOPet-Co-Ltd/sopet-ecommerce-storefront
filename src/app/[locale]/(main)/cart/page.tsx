@@ -1,18 +1,24 @@
-import { Cart } from "@/components/sections"
-import { Metadata } from "next"
-import { Suspense } from "react"
+import { CartTemplate } from "@/components/organisms"
+import { restoreHiddenItems, retrieveCart } from "@/lib/data/cart"
+import { Cart } from "@/types/cart"
+import { redirect } from "next/navigation"
+// import { mockCart } from "@/lib/mocks/cart"
 
-export const metadata: Metadata = {
+export const dynamic = "force-dynamic"
+
+export const metadata = {
   title: "Cart",
-  description: "My cart page",
+  description: "View your cart",
 }
 
-export default function CartPage({}) {
-  return (
-    <main className="container grid grid-cols-12">
-      <Suspense fallback={<>Loading...</>}>
-        <Cart />
-      </Suspense>
-    </main>
-  )
+export default async function CartPage() {
+  const restored = await restoreHiddenItems()
+
+  if (restored) {
+    redirect("/cart")
+  }
+
+  const cart = await retrieveCart()
+
+  return <CartTemplate cart={cart as Cart} />
 }

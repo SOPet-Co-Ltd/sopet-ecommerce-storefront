@@ -20,3 +20,5 @@ export type SellerProps = SellerAddress & {
   email?: string
   store_status?: "ACTIVE" | "SUSPENDED" | "INACTIVE"
 }
+
+export type Seller = SellerProps

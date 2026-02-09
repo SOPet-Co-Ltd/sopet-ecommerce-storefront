@@ -1,7 +1,8 @@
 import type { Metadata } from "next"
 import { Mitr } from "next/font/google"
 import "./globals.css"
-import { Toaster } from "@medusajs/ui"
+import { Toaster as MedusaToaster } from "@medusajs/ui"
+import { Toaster as SonnerToaster } from "sonner"
 import { retrieveCart } from "@/lib/data/cart"
 import { Providers } from "./providers"
 
@@ -97,7 +98,8 @@ export default async function RootLayout({
         className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
         <Providers cart={cart}>{children}</Providers>
-        <Toaster position="top-right" />
+        <MedusaToaster position="top-right" />
+        <SonnerToaster position="top-right" richColors />
       </body>
     </html>
   )

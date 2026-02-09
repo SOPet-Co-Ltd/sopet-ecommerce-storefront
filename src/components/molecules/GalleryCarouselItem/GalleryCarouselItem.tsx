@@ -1,5 +1,5 @@
 import { SingleProductImage } from "@/types/product"
-import Image from "next/image"
+import SmartImage from "@/components/atoms/SmartImage/SmartImage"
 
 export const GalleryCarouselItem = ({
   image,
@@ -7,7 +7,7 @@ export const GalleryCarouselItem = ({
   image: SingleProductImage
 }) => {
   return (
-    <Image
+    <SmartImage
       key={image.id}
       src={decodeURIComponent(image.url)}
       alt={image.alt}

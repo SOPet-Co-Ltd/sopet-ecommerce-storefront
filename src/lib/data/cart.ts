@@ -33,20 +33,21 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  return await sdk.client
-    .fetch<HttpTypes.StoreCartResponse>(`/store/carts/${id}`, {
+  const { data, error } = await fetchQuery(
+    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title`,
+    {
       method: "GET",
-      query: {
-        fields:
-          "*items,*region, *items.product, *items.variant, *items.variant.options, items.variant.options.option.title," +
-          "*items.thumbnail, *items.metadata, +items.total, *promotions, +shipping_methods.name, *items.product.seller" +
-          "",
-      },
       headers,
-      cache: "no-cache",
-    })
-    .then(({ cart }) => cart as Cart)
-    .catch(() => null)
+      cache: "no-store",
+    }
+  )
+
+  if (error || !data?.cart) {
+    console.error(`[retrieveCart] Error fetching cart ${id}:`, error)
+    return null
+  }
+
+  return data.cart as Cart
 }
 
 export async function getOrSetCart(countryCode: string) {
@@ -56,6 +57,10 @@ export async function getOrSetCart(countryCode: string) {
     throw new Error(`Region not found for country code: ${countryCode}`)
   }
 
+  const salesChannelId =
+    process.env.NEXT_PUBLIC_MEDUSA_SALES_CHANNEL_ID ||
+    process.env.MEDUSA_SALES_CHANNEL_ID
+
   let cart = await retrieveCart()
 
   const headers = {
@@ -63,11 +68,15 @@ export async function getOrSetCart(countryCode: string) {
   }
 
   if (!cart) {
-    const cartResp = await sdk.store.cart.create(
-      { region_id: region.id },
-      {},
-      headers
-    )
+    const cartResp = await sdk.client.fetch<{ cart: Cart }>("/store/cart", {
+      method: "POST",
+      body: {
+        region_id: region.id,
+        currency_code: region.currency_code,
+        ...(salesChannelId ? { sales_channel_id: salesChannelId } : {}),
+      },
+      headers,
+    })
     cart = cartResp.cart as Cart
 
     await setCartId(cart.id)
@@ -76,10 +85,22 @@ export async function getOrSetCart(countryCode: string) {
     revalidateTag(cartCacheTag)
   }
 
-  if (cart && cart?.region_id !== region.id) {
-    await sdk.store.cart.update(cart.id, { region_id: region.id }, {}, headers)
-    const cartCacheTag = await getCacheTag("carts")
-    revalidateTag(cartCacheTag)
+  if (cart) {
+    const updateData: HttpTypes.StoreUpdateCart = {}
+
+    if (cart.region_id !== region.id) {
+      updateData.region_id = region.id
+    }
+
+    if (salesChannelId && cart.sales_channel_id !== salesChannelId) {
+      updateData.sales_channel_id = salesChannelId
+    }
+
+    if (Object.keys(updateData).length > 0) {
+      await sdk.store.cart.update(cart.id, updateData, {}, headers)
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+    }
   }
 
   return cart
@@ -171,9 +192,11 @@ export async function addToCart({
 export async function updateLineItem({
   lineId,
   quantity,
+  variantId,
 }: {
   lineId: string
   quantity: number
+  variantId?: string
 }) {
   if (!lineId) {
     throw new Error("Missing lineItem ID when updating line item")
@@ -189,16 +212,43 @@ export async function updateLineItem({
     ...(await getAuthHeaders()),
   }
 
-  const res = await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
-    body: { quantity },
-    method: "POST",
-    headers,
-  })
+  try {
+    const body: Record<string, unknown> = { quantity }
 
-  const cartCacheTag = await getCacheTag("carts")
-  await revalidateTag(cartCacheTag)
+    if (variantId) {
+      body.variant_id = variantId
+    }
 
-  return res
+    const res = await fetchQuery(
+      `/store/carts/${cartId}/line-items/${lineId}`,
+      {
+        body,
+        method: "POST",
+        headers,
+      }
+    )
+
+    const cartCacheTag = await getCacheTag("carts")
+    await revalidateTag(cartCacheTag)
+
+    return res
+  } catch (e: any) {
+    const errorMessage = e?.message || ""
+    if (
+      errorMessage.includes("Could not delete all payment sessions") ||
+      errorMessage.includes("payment collection")
+    ) {
+      console.warn(
+        "[updateLineItem] Cart is locked by payment session. User needs to reset or complete order.",
+        e
+      )
+      throw new Error(
+        "Cannot modify cart because payment is processed. Please complete the order or start a new cart."
+      )
+    }
+    console.error(`[updateLineItem] Error updating line item ${lineId}:`, e)
+    throw e
+  }
 }
 
 export async function deleteLineItem(lineId: string) {
@@ -216,8 +266,10 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.cart
-    .deleteLineItem(cartId, lineId, { fields: "*" }, headers)
+  await fetchQuery(`/store/cart/${cartId}/line-items/${lineId}`, {
+    method: "DELETE",
+    headers,
+  })
     .then(async () => {
       const cartCacheTag = await getCacheTag("carts")
       await revalidateTag(cartCacheTag)
@@ -249,9 +301,10 @@ export async function setShippingMethod({
 }
 
 export async function initiatePaymentSession(
-  cart: HttpTypes.StoreCart,
+  cart: Cart,
   data: {
     provider_id: string
+    data?: Record<string, unknown>
     context?: Record<string, unknown>
   }
 ) {
@@ -259,8 +312,43 @@ export async function initiatePaymentSession(
     ...(await getAuthHeaders()),
   }
 
+  const sessionData = data.data || data.context
+
+  // If cart already has a payment collection, we must add a session to it
+  // instead of trying to create a new collection (which throws 500)
+  if (cart.payment_collection?.id) {
+    return fetchQuery(
+      `/store/payment-collections/${cart.payment_collection.id}/payment-sessions`,
+      {
+        method: "POST",
+        body: {
+          provider_id: data.provider_id,
+          ...(sessionData ? { data: sessionData } : {}),
+        },
+        headers,
+      }
+    ).then(async (res) => {
+      if (!res.ok) {
+        throw new Error(
+          res.error?.message || "Failed to initiate payment session"
+        )
+      }
+      const cartCacheTag = await getCacheTag("carts")
+      revalidateTag(cartCacheTag)
+      return res.data
+    })
+  }
+
   return sdk.store.payment
-    .initiatePaymentSession(cart, data, {}, headers)
+    .initiatePaymentSession(
+      cart as unknown as HttpTypes.StoreCart,
+      {
+        provider_id: data.provider_id,
+        ...(sessionData ? { data: sessionData } : {}),
+      },
+      {},
+      headers
+    )
     .then(async (resp) => {
       const cartCacheTag = await getCacheTag("carts")
       revalidateTag(cartCacheTag)
@@ -291,7 +379,13 @@ export async function applyPromotions(codes: string[]) {
       )
       return applied
     })
-    .catch(medusaError)
+    .catch((err) => {
+      console.error("[applyPromotions] Error applying promotion:", err)
+      // If the error is about invalid code, we just return false (not applied)
+      // The backend (Medusa v2) throws 500 or 400 for invalid codes often.
+      // We suppress this specific error to prevent frontend crashes/error boundaries.
+      return false
+    })
 }
 
 export async function removeShippingMethod(shippingMethodId: string) {
@@ -362,44 +456,51 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       throw new Error("No existing cart found when setting addresses")
     }
 
-    const data = {
+    const normalizedEntries = new Map<string, FormDataEntryValue>()
+    for (const [key, value] of formData.entries()) {
+      if (key === "0") {
+        continue
+      }
+      const normalizedKey = key.replace(/^\d+_/, "")
+      if (!normalizedEntries.has(normalizedKey)) {
+        normalizedEntries.set(normalizedKey, value)
+      }
+    }
+
+    const getField = (field: string) => normalizedEntries.get(field) ?? null
+
+    const getText = (field: string, fallback = "") => {
+      const value = getField(field)
+      return typeof value === "string" ? value : fallback
+    }
+
+    const data: HttpTypes.StoreUpdateCart = {
       shipping_address: {
-        first_name: formData.get("shipping_address.first_name"),
-        last_name: formData.get("shipping_address.last_name"),
-        address_1: formData.get("shipping_address.address_1"),
-        address_2: "",
-        company: formData.get("shipping_address.company"),
-        postal_code: formData.get("shipping_address.postal_code"),
-        city: formData.get("shipping_address.city"),
-        country_code: formData.get("shipping_address.country_code"),
-        province: formData.get("shipping_address.province"),
-        phone: formData.get("shipping_address.phone"),
+        first_name: getText("shipping_address.first_name"),
+        last_name: getText("shipping_address.last_name"),
+        address_1: getText("shipping_address.address_1"),
+        address_2: getText("shipping_address.address_2"),
+        company: getText("shipping_address.company"),
+        postal_code: getText("shipping_address.postal_code"),
+        city: getText("shipping_address.city"),
+        country_code: getText("shipping_address.country_code"),
+        province: getText("shipping_address.province"),
+        phone: getText("shipping_address.phone"),
       },
-      email: formData.get("email"),
-    } as any
+    }
 
-    // const sameAsBilling = formData.get("same_as_billing")
-    // if (sameAsBilling === "on") data.billing_address = data.shipping_address
-    data.billing_address = data.shipping_address
+    const email = getText("email")
+    if (email) {
+      data.email = email
+    }
 
-    // if (sameAsBilling !== "on")
-    //   data.billing_address = {
-    //     first_name: formData.get("billing_address.first_name"),
-    //     last_name: formData.get("billing_address.last_name"),
-    //     address_1: formData.get("billing_address.address_1"),
-    //     address_2: "",
-    //     company: formData.get("billing_address.company"),
-    //     postal_code: formData.get("billing_address.postal_code"),
-    //     city: formData.get("billing_address.city"),
-    //     country_code: formData.get("billing_address.country_code"),
-    //     province: formData.get("billing_address.province"),
-    //     phone: formData.get("billing_address.phone"),
-    //   }
+    // Note: Only set billing_address when a separate billing form is provided.
 
     await updateCart(data)
+
     await revalidatePath("/cart")
-  } catch (e: any) {
-    return e.message
+  } catch (e: unknown) {
+    return (e as Error).message
   }
 }
 
@@ -408,7 +509,10 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
  * @param cartId - optional - The ID of the cart to place an order for.
  * @returns The cart object if the order was successful, or null if not.
  */
-export async function placeOrder(cartId?: string) {
+export async function placeOrder(
+  cartId?: string,
+  options?: { redirect?: boolean }
+) {
   const id = cartId || (await getCartId())
 
   if (!id) {
@@ -431,7 +535,9 @@ export async function placeOrder(cartId?: string) {
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
     removeCartId()
-    redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
+    if (options?.redirect !== false) {
+      redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
+    }
   }
 
   return res
@@ -493,22 +599,19 @@ export async function updateRegionWithValidation(
 
     try {
       await updateCart({ region_id: region.id })
-    } catch (error: any) {
-      // Check if error is about variants not having prices
-      if (!error?.message?.includes("do not have a price")) {
-        // Re-throw if it's a different error
+    } catch (error: unknown) {
+      if (!(error as Error)?.message?.includes("do not have a price")) {
         throw error
       }
 
-      // Parse variant IDs from error message
-      const problematicVariantIds = parseVariantIdsFromError(error.message)
+      const problematicVariantIds = parseVariantIdsFromError(
+        (error as Error).message
+      )
 
-      // Early return if no variant IDs found
       if (!problematicVariantIds.length) {
         throw new Error("Failed to parse variant IDs from error")
       }
 
-      // Fetch cart with minimal fields to get items
       try {
         const { cart } = await sdk.client.fetch<HttpTypes.StoreCartResponse>(
           `/store/carts/${cartId}`,
@@ -522,7 +625,6 @@ export async function updateRegionWithValidation(
           }
         )
 
-        // Iterate over problematic variants and remove corresponding items
         for (const variantId of problematicVariantIds) {
           const item = cart?.items?.find(
             (item) => item.variant_id === variantId
@@ -536,13 +638,10 @@ export async function updateRegionWithValidation(
                 headers
               )
               removedItems.push(item.product_title || "Unknown product")
-            } catch (deleteError) {
-              // Silent failure - item removal failed but continue
-            }
+            } catch (deleteError) {}
           }
         }
 
-        // Retry region update after removing problematic items
         if (removedItems.length > 0) {
           await updateCart({ region_id: region.id })
         }
@@ -585,4 +684,141 @@ export async function listCartOptions() {
     headers,
     cache: "force-cache",
   })
+}
+
+export async function checkoutWithSelection(selectedItemIds: string[]) {
+  const cartId = await getCartId()
+  console.log(
+    `[checkoutWithSelection] Starting for cartId: ${cartId}, selected:`,
+    selectedItemIds
+  )
+
+  if (!cartId) {
+    throw new Error("No existing cart found")
+  }
+
+  const cart = await retrieveCart(cartId)
+  if (!cart?.items) {
+    console.log("[checkoutWithSelection] No items in cart, redirecting")
+    redirect("/checkout")
+    return
+  }
+
+  const itemsToDelete = cart.items.filter(
+    (item) => !selectedItemIds.includes(item.id) && item.variant_id
+  )
+
+  console.log(
+    `[checkoutWithSelection] Items to delete/hide: ${itemsToDelete.length}`
+  )
+
+  if (itemsToDelete.length > 0) {
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    // Save hidden items to metadata
+    const hiddenItems = itemsToDelete.map((item) => ({
+      variant_id: item.variant_id,
+      quantity: item.quantity,
+    }))
+
+    console.log(
+      "[checkoutWithSelection] Saving hidden items to metadata:",
+      JSON.stringify(hiddenItems)
+    )
+
+    await sdk.store.cart.update(
+      cartId,
+      { metadata: { hidden_items: hiddenItems } },
+      {},
+      headers
+    )
+
+    console.log(
+      "[checkoutWithSelection] Metadata saved successfully. Proceeding to delete items."
+    )
+
+    await Promise.all(
+      itemsToDelete.map((item) =>
+        sdk.store.cart
+          .deleteLineItem(cartId, item.id, {}, headers)
+          .then(() =>
+            console.log(`[checkoutWithSelection] Deleted item ${item.id}`)
+          )
+          .catch((err) => {
+            console.error(`Failed to delete item ${item.id}`, err)
+          })
+      )
+    )
+
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
+
+  console.log("[checkoutWithSelection] Redirecting to checkout")
+  redirect("/checkout")
+}
+
+export async function restoreHiddenItems(): Promise<boolean> {
+  const cartId = await getCartId()
+  if (!cartId) return false
+
+  const cart = await retrieveCart(cartId)
+  const hidden = (cart?.metadata?.hidden_items as any[]) || []
+
+  console.log(
+    `[restoreHiddenItems] CartId: ${cartId}, Found hidden items:`,
+    hidden.length,
+    JSON.stringify(hidden)
+  )
+
+  if (hidden.length > 0) {
+    const headers = {
+      ...(await getAuthHeaders()),
+    }
+
+    const results = await Promise.all(
+      hidden.map(async (item) => {
+        try {
+          await sdk.store.cart.createLineItem(
+            cartId,
+            { variant_id: item.variant_id, quantity: item.quantity },
+            {},
+            headers
+          )
+          console.log(`[restoreHiddenItems] Restored item ${item.variant_id}`)
+          return { item, ok: true }
+        } catch (err) {
+          console.error(
+            `[restoreHiddenItems] Failed to restore item ${item.variant_id}`,
+            err
+          )
+          return { item, ok: false }
+        }
+      })
+    )
+
+    const remainingHidden = results.filter((r) => !r.ok).map((r) => r.item)
+
+    if (remainingHidden.length !== hidden.length) {
+      await sdk.store.cart
+        .update(
+          cartId,
+          { metadata: { hidden_items: remainingHidden } },
+          {},
+          headers
+        )
+        .then(() =>
+          console.log(
+            `[restoreHiddenItems] Metadata updated. Remaining hidden: ${remainingHidden.length}`
+          )
+        )
+        .catch(console.error)
+    }
+
+    return remainingHidden.length !== hidden.length
+  }
+
+  return false
 }

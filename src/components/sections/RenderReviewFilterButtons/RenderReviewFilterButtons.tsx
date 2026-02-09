@@ -79,8 +79,9 @@ export const RenderReviewFilterButtons = ({
         <Button
           key={String(allFilter.value ?? "all")}
           onClick={() => handleFilterClick(allFilter.value)}
-          variant={selectedRating === allFilter.value ? "secondary" : "grey"}
-          className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
+          variant={selectedRating === allFilter.value ? "secondary" : "neutral"}
+          size="sm"
+          // className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
         >
           {allFilter.label}
         </Button>
@@ -91,8 +92,9 @@ export const RenderReviewFilterButtons = ({
             <Button
               key={f.value}
               onClick={() => handleFilterClick(f.value)}
-              variant={isActive ? "secondary" : "grey"}
-              className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
+              variant={isActive ? "secondary" : "neutral"}
+              size="sm"
+              // className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
             >
               {f.label}
             </Button>
@@ -107,8 +109,9 @@ export const RenderReviewFilterButtons = ({
             <Button
               key={f.value}
               onClick={() => handleFilterClick(f.value)}
-              variant={isActive ? "secondary" : "grey"}
-              className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
+              variant={isActive ? "secondary" : "neutral"}
+              size="sm"
+              // className="sop-body-sm-medium px-sop-12px py-sop-4px lg:py-sop-8px lg:px-sop-16px"
             >
               {f.label}
             </Button>

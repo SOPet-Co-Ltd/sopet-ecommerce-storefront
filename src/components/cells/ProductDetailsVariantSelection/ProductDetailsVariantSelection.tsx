@@ -5,10 +5,9 @@ import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import React from "react"
 import { addToCart } from "@/lib/data/cart"
-import { Chat } from "@/components/organisms/Chat/Chat"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
@@ -116,10 +115,24 @@ const ShareModal = ({
       ? window.location.href
       : `/${locale}/products/${product.handle}`
 
-  // Handler to copy link to clipboard
+  // Handler to copy link to clipboard (with fallback for non-secure contexts)
   const handleCopyLink = async () => {
+    const text = String(productLink ?? "")
     try {
-      await navigator.clipboard.writeText(productLink)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        // Fallback for HTTP or restricted contexts
+        const textarea = document.createElement("textarea")
+        textarea.value = text
+        textarea.style.position = "fixed"
+        textarea.style.left = "-9999px"
+        textarea.setAttribute("readonly", "")
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand("copy")
+        document.body.removeChild(textarea)
+      }
       toast.success({
         title: "คัดลอกลิงก์สำเร็จ",
         description: "ลิงก์สินค้าถูกคัดลอกไปยังคลิปบอร์ดแล้ว",
@@ -135,9 +148,8 @@ const ShareModal = ({
 
   // Handler to open native share menu (mobile) or fallback to copy link (desktop)
   const handleNativeShare = async () => {
+    const shareText = getProductShareContent(product, locale)
     const productName = product.title || ""
-    const shortDescription = getShortDescription(product)
-    const shareText = `${productName}\n${shortDescription}\n${productLink}`
 
     // Check if Web Share API is available (mobile devices)
     if (navigator.share) {
@@ -267,7 +279,6 @@ const ShareModal = ({
                 ) : (
                   <button
                     type="button"
-                    disabled
                     onClick={button.handler || undefined}
                     className={button.buttonClassName}
                   >
@@ -297,6 +308,37 @@ export const ProductDetailsVariantSelection = ({
   user: HttpTypes.StoreCustomer | null
   wishlist?: Wishlist[]
 }) => {
+  // Sync the selected variant into the URL query string without triggering
+  // a Next.js navigation, so sharing the URL preserves the selected variant
+  const syncVariantToUrl = (nextSelectedVariant: Record<string, string>) => {
+    if (typeof window === "undefined") {
+      return
+    }
+
+    const url = new URL(window.location.href)
+    const params = url.searchParams
+
+    // Collect option keys based on the product options (e.g. color, size)
+    const optionKeys =
+      product.options
+        ?.map((opt: any) => opt.title?.toLowerCase())
+        .filter(Boolean) || []
+
+    // Update only the variant-related params, keep other params intact
+    optionKeys.forEach((key) => {
+      params.delete(key as string)
+      const value = nextSelectedVariant[key as string]
+      if (value) {
+        params.set(key as string, value)
+      }
+    })
+
+    const newSearch = params.toString()
+    const newUrl = newSearch ? `${url.pathname}?${newSearch}` : url.pathname
+
+    window.history.replaceState(null, "", newUrl)
+  }
+
   const [productQuantity, setProductQuantity] = useState(1)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
@@ -311,13 +353,24 @@ export const ProductDetailsVariantSelection = ({
   // Check if product has any valid prices in current region
   const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
-  // set default variant
-  const selectedVariant = hasAnyPrice
+  // Build default selected variant from the cheapest variant and current URL params
+  const defaultSelectedVariant = hasAnyPrice
     ? {
         ...optionsAsKeymap(cheapestVariant.options ?? null),
         ...allSearchParams,
       }
     : allSearchParams
+
+  // Keep selected variant purely in client state so changing variants
+  // doesn't trigger a Next.js navigation (and therefore no refetch).
+  const [selectedVariant, setSelectedVariant] = useState(defaultSelectedVariant)
+
+  // When URL search params change due to navigation (e.g. deep link),
+  // sync them into local state.
+  useEffect(() => {
+    setSelectedVariant(defaultSelectedVariant)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cheapestVariant?.id, JSON.stringify(allSearchParams)])
 
   // get selected variant id
   const variantId =
@@ -328,6 +381,11 @@ export const ProductDetailsVariantSelection = ({
         )
       )
     )?.id || ""
+
+  // Reset quantity when selected variant changes
+  useEffect(() => {
+    setProductQuantity(1)
+  }, [variantId])
 
   // get variant price
   const { variantPrice } = getProductPrice({
@@ -390,7 +448,20 @@ export const ProductDetailsVariantSelection = ({
     <>
       {/* Product Variants Selection */}
       {hasAnyPrice && (
-        <ProductVariants product={product} selectedVariant={selectedVariant} />
+        <ProductVariants
+          product={product}
+          selectedVariant={selectedVariant}
+          onVariantChange={(optionId, value) =>
+            setSelectedVariant((prev) => {
+              const next = {
+                ...prev,
+                [optionId]: value,
+              }
+              syncVariantToUrl(next)
+              return next
+            })
+          }
+        />
       )}
 
       {/* Product Quantity Selection */}
@@ -406,9 +477,9 @@ export const ProductDetailsVariantSelection = ({
           onClick={handleAddToCart}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           loading={isAdding}
-          size="fill"
+          fill
+          size="lg"
           variant="secondary"
-          className="md:py-sop-12px py-sop-8px"
         >
           {!hasAnyPrice
             ? "NOT AVAILABLE IN YOUR REGION"
@@ -422,21 +493,20 @@ export const ProductDetailsVariantSelection = ({
           // TODO: Handle Buy Now action
           onClick={() => {}}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          size="fill"
+          fill
+          size="lg"
           className="md:py-sop-12px py-sop-8px"
         >
           ซื้อสินค้า
         </Button>
 
-        <Button
+        <button
           onClick={() => setIsShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          size="icon"
-          variant="icon"
-          className="md:py-sop-12px py-sop-8px"
+          className="cursor-pointer"
         >
           <ShareIcon size={24} color={"#9c6ade"} />
-        </Button>
+        </button>
 
         <WishlistButton
           productId={product.id}

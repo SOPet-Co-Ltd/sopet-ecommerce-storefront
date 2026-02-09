@@ -2,7 +2,7 @@
 
 import useEmblaCarousel from "embla-carousel-react"
 import { HttpTypes } from "@medusajs/types"
-import Image from "next/image"
+import SmartImage from "@/components/atoms/SmartImage/SmartImage"
 import { ProductCarouselIndicator } from "@/components/molecules"
 import { Fragment, useEffect, useState, useCallback } from "react"
 import { CloseIcon, LeftArrowIcon, RightArrowIcon } from "@/icons"
@@ -119,7 +119,7 @@ export const ProductCarousel = ({
             {(slides || []).map((slide, idx) => (
               <Fragment key={slide.id}>
                 <div className="flex-[0_0_100%] min-w-0 relative">
-                  <Image
+                  <SmartImage
                     priority={idx === 0}
                     fetchPriority={idx === 0 ? "high" : "auto"}
                     src={decodeURIComponent(slide.url)}
@@ -210,7 +210,7 @@ export const ProductCarousel = ({
                     key={slide.id}
                     className="flex-[0_0_100%] min-w-0 flex items-center justify-center h-full"
                   >
-                    <Image
+                    <SmartImage
                       src={decodeURIComponent(slide.url)}
                       alt="Product image"
                       width={2000}

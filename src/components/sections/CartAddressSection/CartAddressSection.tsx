@@ -1,135 +1,231 @@
 "use client"
 
-import { Heading, Text, useToggleState } from "@medusajs/ui"
-import { setAddresses } from "@/lib/data/cart"
-import compareAddresses from "@/lib/helpers/compare-addresses"
+import { Heading } from "@medusajs/ui"
 import { HttpTypes } from "@medusajs/types"
-import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { useActionState, useEffect } from "react"
-import { Button } from "@/components/atoms"
-import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
-import Spinner from "@/icons/spinner"
-import ShippingAddress from "@/components/organisms/ShippingAddress/ShippingAddress"
-import { CheckCircleSolid } from "@medusajs/icons"
-import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { useRouter } from "next/navigation"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { MapPinIcon } from "@/icons"
 import { Cart } from "@/types/cart"
+import ShippingAddressSummary from "@/components/molecules/ShippingAddressSummary/ShippingAddressSummary"
+import ShippingAddress from "@/components/organisms/ShippingAddress/ShippingAddress"
+import { AddressSelectionDialog } from "@/components/organisms/AddressSelectionDialog/AddressSelectionDialog"
+import { EditAddressDialog } from "@/components/organisms/EditAddressDialog/EditAddressDialog"
+import {
+  useCheckoutPayment,
+  type DraftShippingAddress,
+} from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
+
+function draftToCartAddress(
+  draft: DraftShippingAddress
+): HttpTypes.StoreCartAddress {
+  return {
+    first_name: draft.first_name,
+    last_name: draft.last_name,
+    address_1: draft.address_1,
+    address_2: draft.address_2,
+    city: draft.city,
+    province: draft.province,
+    postal_code: draft.postal_code,
+    country_code: draft.country_code,
+    phone: draft.phone,
+  } as HttpTypes.StoreCartAddress
+}
 
 export const CartAddressSection = ({
   cart,
   customer,
+  phoneAddresses = [],
+  verifiedPhone,
 }: {
   cart: Cart | null
   customer: HttpTypes.StoreCustomer | null
+  phoneAddresses?: HttpTypes.StoreCustomerAddress[]
+  verifiedPhone?: string
 }) => {
-  const searchParams = useSearchParams()
   const router = useRouter()
-  const pathname = usePathname()
+  const [showAddressDialog, setShowAddressDialog] = useState(false)
+  const [editDialogState, setEditDialogState] = useState<{
+    isOpen: boolean
+    address: HttpTypes.StoreCustomerAddress | null
+  }>({
+    isOpen: false,
+    address: null,
+  })
+  const [selectedSavedAddress, setSelectedSavedAddress] =
+    useState<HttpTypes.StoreCustomerAddress | null>(null)
+  /** When true, show draft form even though user has saved addresses (e.g. "Add new" from dialog). */
+  const [addingNewAddress, setAddingNewAddress] = useState(false)
 
-  const isAddress = Boolean(
-    cart?.shipping_address &&
-    cart?.shipping_address.first_name &&
-    cart?.shipping_address.last_name &&
-    cart?.shipping_address.address_1 &&
-    cart?.shipping_address.city &&
-    cart?.shipping_address.postal_code &&
-    cart?.shipping_address.country_code
-  )
-  const isOpen = searchParams.get("step") === "address" || !isAddress
+  const {
+    setSelectedAddress,
+    setSelectedEmail,
+    shippingAddressIsDraft,
+    setShippingAddressIsDraft,
+    draftAddress,
+    setDraftAddress,
+  } = useCheckoutPayment()
 
-  const { state: sameAsBilling, toggle: toggleSameAsBilling } = useToggleState(
-    cart?.shipping_address && cart?.billing_address
-      ? compareAddresses(cart?.shipping_address, cart?.billing_address)
-      : true
-  )
+  const savedAddresses = useMemo(() => {
+    if (customer?.addresses?.length) {
+      return customer.addresses
+    }
+    return phoneAddresses
+  }, [customer?.addresses, phoneAddresses])
+  const hasSavedAddresses = savedAddresses.length > 0
 
-  const [message, formAction] = useActionState(setAddresses, sameAsBilling)
+  const showDraftForm =
+    !hasSavedAddresses || (hasSavedAddresses && addingNewAddress)
+
+  // Set default saved address in context when we have saved addresses and not showing draft form
+  useEffect(() => {
+    if (!hasSavedAddresses || showDraftForm) return
+    if (!selectedSavedAddress) {
+      const defaultAddress =
+        savedAddresses.find((addr) => addr.is_default_shipping) ||
+        savedAddresses[0] ||
+        null
+      setSelectedSavedAddress(defaultAddress)
+      return
+    }
+    setSelectedAddress(selectedSavedAddress)
+    setShippingAddressIsDraft(false)
+  }, [
+    hasSavedAddresses,
+    showDraftForm,
+    savedAddresses,
+    selectedSavedAddress,
+    setSelectedAddress,
+    setShippingAddressIsDraft,
+  ])
+
+  // When showing draft form, sync selectedAddress from draft (for summary/payment section)
+  useEffect(() => {
+    if (!showDraftForm) return
+    setShippingAddressIsDraft(true)
+    setSelectedAddress(draftToCartAddress(draftAddress))
+  }, [
+    showDraftForm,
+    draftAddress.first_name,
+    draftAddress.last_name,
+    draftAddress.address_1,
+    draftAddress.address_2,
+    draftAddress.city,
+    draftAddress.province,
+    draftAddress.postal_code,
+    draftAddress.country_code,
+    draftAddress.phone,
+    setSelectedAddress,
+    setShippingAddressIsDraft,
+  ])
 
   useEffect(() => {
-    if (!isAddress) {
-      router.replace(pathname + "?step=address")
+    if (customer?.email || cart?.email) {
+      setSelectedEmail(customer?.email || cart?.email || "")
     }
-  }, [isAddress])
+  }, [cart?.email, customer?.email, setSelectedEmail])
 
-  const handleEdit = () => {
-    router.replace(pathname + "?step=address")
-  }
+  const handleEdit = useCallback(() => {
+    if (hasSavedAddresses) {
+      setShowAddressDialog(true)
+      return
+    }
+    setAddingNewAddress(true)
+  }, [hasSavedAddresses])
 
   return (
-    <div className="border p-4 rounded-xs bg-ui-bg-interactive">
-      <div className="flex flex-row items-center justify-between mb-6">
+    <div className="p-4 bg-sop-base-white relative">
+      <div className="flex flex-row items-center gap-2 border-b border-sop-neutral-gray-light py-2 mb-4">
+        <MapPinIcon className="w-[18px] md:w-[25px] h-[18px] md:h-[25px] text-sop-primary-500" />
         <Heading
           level="h2"
-          className="flex flex-row text-3xl-regular gap-x-2 items-baseline items-center"
+          className="sop-body-sm-regular md:sop-headline-sm-medium text-sop-primary-500"
         >
-          {!isOpen && <CheckCircleSolid />} Shipping Address
+          ที่อยู่ในการจัดส่ง
         </Heading>
-        {!isOpen && isAddress && (
-          <Text>
-            <Button onClick={handleEdit}>Edit</Button>
-          </Text>
-        )}
       </div>
-      <form
-        action={async (data) => {
-          await formAction(data)
-          router.replace(`${pathname}?step=delivery`)
-          router.refresh()
-        }}
-      >
-        {isOpen ? (
-          <div className="pb-8">
-            <ShippingAddress
-              customer={customer}
-              checked={sameAsBilling}
-              onChange={toggleSameAsBilling}
-              cart={cart}
+
+      {hasSavedAddresses && !showDraftForm ? (
+        <div>
+          {selectedSavedAddress ? (
+            <ShippingAddressSummary
+              cart={
+                {
+                  ...(cart || {}),
+                  shipping_address:
+                    selectedSavedAddress as unknown as Cart["shipping_address"],
+                } as Cart
+              }
+              onEdit={handleEdit}
             />
-            <Button className="mt-6" data-testid="submit-address-button">
-              Save
-            </Button>
-            <ErrorMessage
-              error={message !== "success" && message}
-              data-testid="address-error-message"
-            />
-          </div>
-        ) : (
-          <div>
-            <div className="text-small-regular">
-              {cart && cart.shipping_address ? (
-                <div className="flex items-start gap-x-8">
-                  <div className="flex items-start gap-x-1 w-full">
-                    <div>
-                      <Text className="txt-medium-plus font-bold">
-                        {cart.shipping_address.first_name}{" "}
-                        {cart.shipping_address.last_name}
-                      </Text>
-                      <Text>
-                        {cart.shipping_address.address_1}{" "}
-                        {cart.shipping_address.address_2},{" "}
-                        {cart.shipping_address.postal_code}{" "}
-                        {cart.shipping_address.city},{" "}
-                        {cart.shipping_address.country_code?.toUpperCase()}
-                      </Text>
-                      <Text>
-                        {cart.email}, {cart.shipping_address.phone}
-                      </Text>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <Spinner />
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-        {isAddress && !searchParams.get("step") && (
-          <LocalizedClientLink href="/checkout?step=delivery">
-            <Button className="mt-6">Continue to Delivery</Button>
-          </LocalizedClientLink>
-        )}
-      </form>
+          ) : null}
+        </div>
+      ) : (
+        <div className="pb-8">
+          <ShippingAddress
+            customer={customer}
+            showSaveAddress={false}
+            checked={true}
+            onChange={() => {}}
+            prefilledPhone={verifiedPhone ?? customer?.phone ?? ""}
+            controlledDraft={draftAddress}
+            onDraftChange={setDraftAddress}
+          />
+          {hasSavedAddresses && addingNewAddress && (
+            <button
+              type="button"
+              className="mt-4 text-sm text-gray-500 hover:text-gray-700"
+              onClick={() => {
+                setAddingNewAddress(false)
+                setSelectedSavedAddress(
+                  savedAddresses.find((a) => a.is_default_shipping) ||
+                    savedAddresses[0] ||
+                    null
+                )
+              }}
+            >
+              ยกเลิก - ใช้ที่อยู่ที่บันทึกไว้
+            </button>
+          )}
+        </div>
+      )}
+
+      {showAddressDialog && (
+        <AddressSelectionDialog
+          isOpen={showAddressDialog}
+          onClose={() => setShowAddressDialog(false)}
+          addresses={savedAddresses}
+          currentAddressId={selectedSavedAddress?.id}
+          onSelect={(address) => {
+            setSelectedSavedAddress(address)
+            setSelectedAddress(address)
+            setShippingAddressIsDraft(false)
+            setShowAddressDialog(false)
+          }}
+          onEdit={(address) => {
+            setShowAddressDialog(false)
+            setEditDialogState({ isOpen: true, address })
+          }}
+          onAddNew={() => {
+            setShowAddressDialog(false)
+            setAddingNewAddress(true)
+          }}
+          allowEdit={!!customer}
+        />
+      )}
+
+      {editDialogState.isOpen && (
+        <EditAddressDialog
+          isOpen={editDialogState.isOpen}
+          onClose={() =>
+            setEditDialogState({ ...editDialogState, isOpen: false })
+          }
+          address={editDialogState.address}
+          onSuccess={() => {
+            router.refresh()
+            setShowAddressDialog(true)
+          }}
+        />
+      )}
     </div>
   )
 }

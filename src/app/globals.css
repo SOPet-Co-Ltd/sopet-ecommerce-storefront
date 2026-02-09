@@ -129,6 +129,9 @@
   --color-sop-neutral-grayfixed-500: #f5f5f5;
   --color-sop-neutral-grayfixed-600: #fdfdfd;
 
+  --color-sop-neutral-gray-light: #22222929;
+  --color-sop-neutral-gray-medium: #22222947;
+
   /* Neutral Orange Alpha (primary hue alpha ramp) */
   --color-sop-neutral-orangealpha-100: rgba(156, 106, 222, 0.08);
   --color-sop-neutral-orangealpha-200: rgba(156, 106, 222, 0.12);
@@ -730,6 +733,31 @@
 @utility py-sop-12 {
   padding-top: var(--spacing-sop-12px);
   padding-bottom: var(--spacing-sop-12px);
+}
+
+@utility text-sop-neutral-gray-300 {
+  color: var(--color-sop-neutral-gray-300);
+}
+
+@utility text-sop-neutral-gray-light {
+  color: var(--color-sop-neutral-gray-light);
+}
+@utility text-sop-neutral-gray-medium {
+  color: var(--color-sop-neutral-gray-medium);
+}
+
+@utility border-sop-neutral-gray-light {
+  border-color: var(--color-sop-neutral-gray-light);
+}
+@utility border-sop-neutral-gray-medium {
+  border-color: var(--color-sop-neutral-gray-medium);
+}
+
+@utility bg-sop-neutral-gray-light {
+  background-color: var(--color-sop-neutral-gray-light);
+}
+@utility bg-sop-neutral-gray-medium {
+  background-color: var(--color-sop-neutral-gray-medium);
 }
 
 /* ========================================================================== */

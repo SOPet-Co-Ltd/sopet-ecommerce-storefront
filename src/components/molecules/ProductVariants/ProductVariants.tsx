@@ -10,19 +10,27 @@ import { Fragment } from "react"
 export const ProductVariants = ({
   product,
   selectedVariant,
+  onVariantChange,
 }: {
   product: HttpTypes.StoreProduct
   selectedVariant: Record<string, string>
+  onVariantChange?: (optionId: string, value: string) => void
 }) => {
   const updateSearchParams = useUpdateSearchParams()
 
   // update the options when a variant is selected
   const setOptionValue = (optionId: string, value: string) => {
-    if (value) updateSearchParams(optionId, value)
+    if (value) {
+      if (onVariantChange) {
+        onVariantChange(optionId, value)
+      } else {
+        updateSearchParams(optionId, value)
+      }
+    }
   }
 
   return (
-    <div className="md:grid md:grid-cols-[8rem_1fr] flex flex-col md:gap-0 gap-4">
+    <div className="md:grid md:grid-cols-[8rem_1fr] flex flex-col gap-4">
       {(product.options || []).map(
         ({ id, title, values }: HttpTypes.StoreProductOption) => (
           <Fragment key={id}>
