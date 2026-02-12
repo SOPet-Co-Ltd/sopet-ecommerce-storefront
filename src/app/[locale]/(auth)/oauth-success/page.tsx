@@ -2,25 +2,27 @@ import { redirect } from "next/navigation"
 import { ensureStripeCustomer, verifyCustomer } from "@/lib/data/customer"
 
 type OAuthSuccessPageProps = {
-  params: {
+  params: Promise<{
     locale: string
-  }
-  searchParams?: {
+  }>
+  searchParams: Promise<{
     [key: string]: string | string[] | undefined
-  }
+  }>
 }
 
 export default async function OAuthSuccessPage({
   params,
   searchParams,
 }: OAuthSuccessPageProps) {
+  const { locale } = await params
+  const resolvedSearchParams = await searchParams
   const user = await verifyCustomer()
 
   if (!user) {
-    return redirect(`/${params.locale}/login`)
+    return redirect(`/${locale}/login`)
   }
 
-  const oauth = searchParams?.oauth
+  const oauth = resolvedSearchParams.oauth
 
   // Best-effort: ensure Stripe customer is created/linked after OAuth login.
   // The backend endpoint is idempotent, so repeated calls are safe, but
@@ -31,5 +33,5 @@ export default async function OAuthSuccessPage({
 
   // Redirect to the final signed-in destination without any oauth flag,
   // so this side effect will not re-run on normal navigation.
-  return redirect(`/${params.locale}/user/profile`)
+  return redirect(`/${locale}/user/profile`)
 }
