@@ -14,6 +14,37 @@ import {
 } from "./cookies"
 
 /**
+ * Ensure the logged-in customer has a Stripe customer linked.
+ * Calls POST /store/customers/me/stripe-customer idempotently.
+ * This is a best-effort side effect and should not block auth flows.
+ */
+export async function ensureStripeCustomer() {
+  const headers = await getAuthHeaders()
+
+  console.log({ headers })
+
+  if (!headers || Object.keys(headers).length === 0) {
+    // Not logged in; nothing to do.
+    return
+  }
+
+  try {
+    await sdk.client.fetch<{ stripe_customer_id: string }>(
+      "/store/customers/me/stripe-customer",
+      {
+        method: "POST",
+        headers,
+      }
+    )
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+  } catch {
+    // Swallow errors to avoid breaking login if Stripe is temporarily unavailable.
+  }
+}
+
+/**
  * Verify that the current user is logged in using the custom /store/auth/me route.
  * Returns the customer on 200, or null if unauthorized / not logged in.
  */
@@ -32,6 +63,10 @@ export const verifyCustomer =
       }>(`/store/auth/me`, {
         method: "GET",
         headers,
+        query: {
+          fields: "*orders,*addresses",
+          relations: "*orders,*addresses",
+        },
         cache: "no-store",
       })
 
@@ -347,6 +382,8 @@ export async function signup(formData: FormData) {
 
     await transferCart()
 
+    await ensureStripeCustomer()
+
     return createdCustomer
   } catch (error: any) {
     return error.toString()
@@ -375,6 +412,8 @@ export async function login(formData: FormData) {
   } catch (error: any) {
     return error.toString()
   }
+
+  await ensureStripeCustomer()
 }
 
 /**
@@ -465,6 +504,8 @@ export async function verifyOtpAndLogin(formData: FormData) {
     revalidateTag(customerCacheTag)
 
     await transferCart()
+
+    await ensureStripeCustomer()
 
     return null
   } catch (error: any) {

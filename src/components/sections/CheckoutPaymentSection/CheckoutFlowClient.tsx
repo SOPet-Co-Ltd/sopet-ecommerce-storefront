@@ -17,8 +17,6 @@ type CheckoutFlowClientProps = {
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   customer: HttpTypes.StoreCustomer | null
-  phoneAddresses: HttpTypes.StoreCustomerAddress[]
-  hasAuthToken?: boolean
 }
 
 export default function CheckoutFlowClient({
@@ -26,14 +24,12 @@ export default function CheckoutFlowClient({
   shippingMethods,
   paymentMethods,
   customer,
-  phoneAddresses,
-  hasAuthToken = false,
 }: CheckoutFlowClientProps) {
   const router = useRouter()
   const [isOTPVerified, setIsOTPVerified] = useState(false)
   const [verifiedPhone, setVerifiedPhone] = useState("")
 
-  const showGuestOTPDialog = !hasAuthToken && !customer && !isOTPVerified
+  const showGuestOTPDialog = !customer && !isOTPVerified
 
   const handleGuestVerified = useCallback(
     (phone: string) => {
@@ -54,7 +50,6 @@ export default function CheckoutFlowClient({
       <CartAddressSection
         cart={cart}
         customer={customer}
-        phoneAddresses={phoneAddresses}
         verifiedPhone={verifiedPhone}
       />
 

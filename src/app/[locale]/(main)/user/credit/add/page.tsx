@@ -12,7 +12,7 @@ export default async function AddCreditCardPage() {
 
   return (
     <UserContainer title="เพิ่มบัตรเครดิต/เดบิต" showBackButton>
-      <CreditCardFormPage />
+      <CreditCardFormPage customer={user} />
     </UserContainer>
   )
 }

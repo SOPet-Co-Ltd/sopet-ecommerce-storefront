@@ -53,8 +53,9 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
   const metadata = (user as { metadata?: Record<string, unknown> }).metadata
   const birthDate = metadata?.birth_date as string | undefined
   const displayName =
-    (metadata?.name as string) ||
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
+    user.email ||
+    user.phone ||
     ""
 
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
