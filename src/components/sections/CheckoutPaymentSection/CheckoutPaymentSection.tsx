@@ -10,6 +10,7 @@ import { isStripe } from "@/lib/constants"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
 import { getCustomerPaymentMethods } from "@/lib/data/customer"
 import { CreditCardCheckoutForm } from "@/components/molecules/CreditCardForm/CreditCardCheckoutForm"
+import { toast } from "@/lib/helpers/toast"
 
 type CheckoutPaymentSectionProps = {
   cart: Cart | null
@@ -111,6 +112,22 @@ export const CheckoutPaymentSection = ({
   }, [cart, nonStripeSession, promptpaySession, setMethod, stripeSession])
 
   const showNewCardForm = useNewCard || savedPaymentMethods.length === 0
+
+  useEffect(() => {
+    if (!customer) {
+      return
+    }
+    const stripeId =
+      typeof (customer.metadata as any)?.stripe_customer_id === "string"
+        ? ((customer.metadata as any).stripe_customer_id as string)
+        : ""
+    if (!stripeId.trim()) {
+      toast.error({
+        title: "ไม่สามารถเพิ่มบัตรได้",
+        description: "กรุณารีเฟรชหรือเข้าสู่ระบบใหม่",
+      })
+    }
+  }, [customer])
 
   useEffect(() => {
     setCardComplete(method === "card" && Boolean(selectedPaymentMethodId))

@@ -1,3 +1,4 @@
+import { SmartImage } from "@/components/atoms"
 import { ProfileFilledIcon, ProfileIcon } from "@/icons"
 import Image from "next/image"
 
@@ -11,7 +12,7 @@ export const SellerAvatar = ({
   alt?: string
 }) => {
   return photo ? (
-    <Image
+    <SmartImage
       src={decodeURIComponent(photo)}
       alt={alt}
       width={size}

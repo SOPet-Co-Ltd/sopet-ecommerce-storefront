@@ -523,6 +523,14 @@ export async function placeOrder(
     ...(await getAuthHeaders()),
   }
 
+  // Ensure cart is linked to a customer before completing the order
+  const cartBeforeComplete = await retrieveCart(id)
+  if (!cartBeforeComplete?.customer_id) {
+    throw new Error(
+      "Cart is not linked to a customer. Please sign in again before placing the order."
+    )
+  }
+
   const res = await fetchQuery(`/store/carts/${id}/complete`, {
     method: "POST",
     headers,

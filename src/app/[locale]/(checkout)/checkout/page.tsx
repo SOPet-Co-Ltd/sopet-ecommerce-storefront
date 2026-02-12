@@ -2,7 +2,11 @@ import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapp
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
 import { retrieveCart } from "@/lib/data/cart"
-import { listAddressesByPhone, retrieveCustomer } from "@/lib/data/customer"
+import {
+  listAddressesByPhone,
+  retrieveCustomer,
+  verifyCustomer,
+} from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import { Metadata } from "next"
@@ -43,15 +47,8 @@ async function CheckoutPageContent({}) {
     ? await listCartPaymentMethods(regionId)
     : null
 
-  const customer = await retrieveCustomer()
-  const cookieStore = await cookies()
-  const hasAuthToken = Boolean(cookieStore.get("_medusa_jwt")?.value)
-  const fallbackPhone = customer?.phone || ""
-
-  const phoneAddresses =
-    !customer?.addresses?.length && fallbackPhone
-      ? await listAddressesByPhone(fallbackPhone)
-      : []
+  // const customer = await retrieveCustomer()
+  const customer = await verifyCustomer()
 
   return (
     <PaymentWrapper cart={cart}>
@@ -61,8 +58,6 @@ async function CheckoutPageContent({}) {
           shippingMethods={shippingMethods || []}
           paymentMethods={paymentMethods}
           customer={customer}
-          phoneAddresses={phoneAddresses}
-          hasAuthToken={hasAuthToken}
         />
       </main>
     </PaymentWrapper>
