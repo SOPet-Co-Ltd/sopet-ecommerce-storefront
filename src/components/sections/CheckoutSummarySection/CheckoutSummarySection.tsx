@@ -305,22 +305,48 @@ export const CheckoutSummarySection = ({
 
   const pendingShippingOptionKeyForValidate = `checkout:selected_shipping_option:${cart.id}`
 
-  /** Runs before payment: validate, then create address if draft. Returns error message or null. */
+  /** Runs before payment: validate, then sync the active address into cart. Returns error message or null. */
   const runBeforePaymentSteps = async (): Promise<string | null> => {
-    if (!fallbackAddress) {
-      return "กรุณากรอกที่อยู่ในการจัดส่ง"
-    }
+    // 1. Address validation
     if (shippingAddressIsDraft) {
-      const hasRequired =
+      const hasRequiredDraft =
         draftAddress.first_name?.trim() &&
         draftAddress.address_1?.trim() &&
         draftAddress.city?.trim() &&
         draftAddress.postal_code?.trim() &&
         draftAddress.phone?.trim()
-      if (!hasRequired) {
+      if (!hasRequiredDraft) {
         return "กรุณากรอกที่อยู่ให้ครบถ้วน"
       }
+    } else {
+      const addressForValidation =
+        (selectedAddress as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        (cart.shipping_address as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        (cart.billing_address as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        null
+
+      const hasRequiredSaved =
+        addressForValidation?.first_name?.trim() &&
+        addressForValidation?.address_1?.trim() &&
+        addressForValidation?.city?.trim() &&
+        addressForValidation?.postal_code?.trim() &&
+        addressForValidation?.phone?.trim()
+
+      if (!hasRequiredSaved) {
+        return "กรุณากรอกที่อยู่ในการจัดส่ง"
+      }
     }
+
+    // 2. Shipping option validation
     const selectedOptionId =
       typeof window !== "undefined"
         ? window.localStorage.getItem(pendingShippingOptionKeyForValidate)
@@ -328,6 +354,8 @@ export const CheckoutSummarySection = ({
     if (!selectedOptionId) {
       return "กรุณาเลือกวิธีจัดส่ง"
     }
+
+    // 3. Payment method validation for card
     if (method === "card") {
       const hasCard =
         selectedPaymentMethodId || (useNewCard && getCardComplete())
@@ -336,7 +364,9 @@ export const CheckoutSummarySection = ({
       }
     }
 
+    // 4. Persist / sync address
     if (shippingAddressIsDraft && draftAddress) {
+      // Draft address flow: create customer address, then sync into cart
       const addressFormData = new FormData()
       addressFormData.set("first_name", draftAddress.first_name)
       addressFormData.set("last_name", draftAddress.last_name)
@@ -355,6 +385,7 @@ export const CheckoutSummarySection = ({
       if (createResult?.success === false && createResult?.error) {
         return createResult.error
       }
+
       const cartAddressFormData = new FormData()
       cartAddressFormData.set(
         "shipping_address.first_name",
@@ -391,7 +422,71 @@ export const CheckoutSummarySection = ({
       if (typeof setAddrResult === "string") {
         return setAddrResult
       }
+    } else {
+      // Saved address flow: sync currently selected/snapshot address into cart only
+      const address =
+        (selectedAddress as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        (cart.shipping_address as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        (cart.billing_address as
+          | HttpTypes.StoreCustomerAddress
+          | HttpTypes.StoreCartAddress
+          | null) ||
+        null
+
+      if (!address) {
+        return "กรุณากรอกที่อยู่ในการจัดส่ง"
+      }
+
+      const cartAddressFormData = new FormData()
+      cartAddressFormData.set(
+        "shipping_address.first_name",
+        address.first_name || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.last_name",
+        address.last_name || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.address_1",
+        address.address_1 || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.address_2",
+        address.address_2 || ""
+      )
+      cartAddressFormData.set("shipping_address.city", address.city || "")
+      cartAddressFormData.set(
+        "shipping_address.province",
+        address.province || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.postal_code",
+        address.postal_code || ""
+      )
+      cartAddressFormData.set(
+        "shipping_address.country_code",
+        address.country_code || "th"
+      )
+      cartAddressFormData.set("shipping_address.phone", address.phone || "")
+      cartAddressFormData.set("shipping_address.company", "")
+      if (customer?.email || cart?.email || selectedEmail) {
+        cartAddressFormData.set(
+          "email",
+          customer?.email || cart?.email || selectedEmail || ""
+        )
+      }
+      const setAddrResult = await setAddresses(null, cartAddressFormData)
+      if (typeof setAddrResult === "string") {
+        return setAddrResult
+      }
     }
+
     return null
   }
 
@@ -680,6 +775,15 @@ const StripeSummaryPayButton = ({
           makeDefault: false,
         })
         if (!addResult.success) {
+          if (
+            addResult.code === "missing_stripe_customer" ||
+            addResult.code === "stripe_customer_not_found"
+          ) {
+            toast.error({
+              title: "ไม่สามารถเพิ่มบัตรได้",
+              description: "กรุณารีเฟรชหรือเข้าสู่ระบบใหม่",
+            })
+          }
           throw new Error(addResult.error ?? "ไม่สามารถบันทึกบัตรได้")
         }
         paymentMethodIdToUse = paymentMethod.id

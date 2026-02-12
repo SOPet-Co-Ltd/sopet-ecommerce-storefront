@@ -63,7 +63,7 @@ export function ProfileContactOtpForm({
   const placeholder = PLACEHOLDERS[type]
 
   const handleRequestOtp = async () => {
-    const value = identifier.trim()
+    const value = identifier.trim().toLowerCase()
     if (!value) {
       setError(type === "email" ? "กรุณากรอกอีเมล" : "กรุณากรอกเบอร์โทรศัพท์")
       return

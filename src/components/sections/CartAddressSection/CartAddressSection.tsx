@@ -34,12 +34,10 @@ function draftToCartAddress(
 export const CartAddressSection = ({
   cart,
   customer,
-  phoneAddresses = [],
   verifiedPhone,
 }: {
   cart: Cart | null
   customer: HttpTypes.StoreCustomer | null
-  phoneAddresses?: HttpTypes.StoreCustomerAddress[]
   verifiedPhone?: string
 }) => {
   const router = useRouter()
@@ -66,11 +64,8 @@ export const CartAddressSection = ({
   } = useCheckoutPayment()
 
   const savedAddresses = useMemo(() => {
-    if (customer?.addresses?.length) {
-      return customer.addresses
-    }
-    return phoneAddresses
-  }, [customer?.addresses, phoneAddresses])
+    return customer?.addresses || []
+  }, [customer])
   const hasSavedAddresses = savedAddresses.length > 0
 
   const showDraftForm =

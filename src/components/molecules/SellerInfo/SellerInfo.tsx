@@ -24,10 +24,10 @@ export const SellerInfo = ({
     <div className="flex justify-between items-center w-full">
       <LocalizedClientLink href={`/sellers/${seller.handle}`}>
         <div className="flex items-center gap-4">
-          <div className="border rounded-full md:block hidden">
+          <div className="border rounded-full md:block hidden overflow-clip">
             <SellerAvatar photo={photo} size={50} alt={name} />
           </div>
-          <div className="border rounded-full block md:hidden">
+          <div className="border rounded-full block md:hidden overflow-clip">
             <SellerAvatar photo={photo} size={33} alt={name} />
           </div>
           <p className="md:sop-headline-sm-regular sop-body-sm-regular">
