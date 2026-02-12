@@ -1,3 +1,5 @@
+"use client"
+
 /* eslint-disable jsx-a11y/alt-text */
 import Image from "next/image"
 import type { ImageProps } from "next/image"
