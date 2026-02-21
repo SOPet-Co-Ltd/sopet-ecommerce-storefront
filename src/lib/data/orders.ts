@@ -3,7 +3,7 @@
 import { SellerProps } from "@/types/seller"
 import { sdk } from "../config"
 import medusaError from "../helpers/medusa-error"
-import { getAuthHeaders, getCacheOptions } from "./cookies"
+import { getAuthHeaders, getCacheOptions, getCacheTag } from "./cookies"
 import { HttpTypes } from "@medusajs/types"
 
 export const retrieveOrderSet = async (id: string) => {
@@ -37,7 +37,7 @@ export const retrieveOrder = async (id: string) => {
         method: "GET",
         query: {
           fields:
-            "*payment_collections.payments,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set",
+            "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set",
         },
         headers,
         next,
@@ -122,14 +122,13 @@ export const listOrders = async (
           reviews: any[]
         }
       >
-    }>(`/store/orders`, {
+    }>(`/store/custom/orders`, {
       method: "GET",
       query: {
+        fields:
+          "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set",
         limit,
         offset,
-        order: "-created_at",
-        fields:
-          "*items,+items.metadata,*items.variant,*items.product,*seller,*reviews,*order_set,shipping_total,total,created_at",
         ...filters,
       },
       headers,
@@ -204,4 +203,140 @@ export const retrieveReturnReasons = async () => {
     })
     .then(({ return_reasons }) => return_reasons)
     .catch((err) => medusaError(err))
+}
+
+export const cancelOrder = async (id: string) => {
+  const headers = await getAuthHeaders()
+
+  return sdk.client
+    .fetch<{ order: any }>(`/store/custom/orders/${id}/cancel`, {
+      method: "POST",
+      headers,
+    })
+    .then(({ order }) => ({ success: true, error: null, order }))
+    .catch((err) => {
+      console.error("Cancel order error:", err)
+      return { success: false, error: err.message, order: null }
+    })
+}
+
+export const updateOrderPaymentSession = async (
+  orderId: string,
+  providerId: string,
+  amountToPay?: number
+) => {
+  const headers = await getAuthHeaders()
+
+  return sdk.client
+    .fetch<{ payment_session: any }>(
+      `/store/orders/${orderId}/payment-session`,
+      {
+        method: "POST",
+        headers,
+        body: { provider_id: providerId, amount: amountToPay },
+      }
+    )
+    .then(async ({ payment_session }) => {
+      // Revalidate order cache so the new session is visible on reload
+      const { revalidateTag } = require("next/cache")
+      const cacheTag = await getCacheTag("orders")
+      if (cacheTag) revalidateTag(cacheTag)
+      revalidateTag("orders")
+
+      return {
+        success: true,
+        error: null,
+        payment_session,
+      }
+    })
+    .catch((err) => {
+      console.error("Update payment session error:", err)
+      return { success: false, error: err.message, payment_session: null }
+    })
+}
+
+export const captureOrderPayment = async (orderId: string) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+    "x-publishable-api-key": process.env
+      .NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string,
+  }
+
+  return sdk.client
+    .fetch<{ order: any }>(`/store/custom/orders/${orderId}/capture`, {
+      method: "POST",
+      headers,
+    })
+    .then(async ({ order }) => {
+      const { revalidateTag } = require("next/cache")
+      const cacheTag = await getCacheTag("orders")
+      if (cacheTag) revalidateTag(cacheTag)
+      revalidateTag("orders")
+      return {
+        success: true,
+        error: null,
+        order,
+      }
+    })
+    .catch((err) => {
+      console.error("Capture order payment error:", err)
+      return { success: false, error: err.message, order: null }
+    })
+}
+
+export const completeOrder = async (orderId: string) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+    "x-publishable-api-key": process.env
+      .NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string,
+  }
+
+  return sdk.client
+    .fetch<{ order: any }>(`/store/custom/orders/${orderId}/complete`, {
+      method: "POST",
+      headers,
+    })
+    .then(async ({ order }) => {
+      const { revalidateTag } = require("next/cache")
+      const cacheTag = await getCacheTag("orders")
+      if (cacheTag) revalidateTag(cacheTag)
+      revalidateTag("orders")
+      return {
+        success: true,
+        error: null,
+        order,
+      }
+    })
+    .catch((err) => {
+      console.error("Complete order error:", err)
+      return { success: false, error: err.message, order: null }
+    })
+}
+
+export const retrievePaymentCollection = async (id: string) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+    "x-publishable-api-key": process.env
+      .NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string,
+  }
+
+  // Payment collections might need to be fetched via the region or order,
+  // but let's try the direct store API if it exists. If it returned 404, it might be /store/payment-collections is invalid.
+  // Actually, in Medusa V2, we should probably fetch the order again but specifically request the payment_sessions.
+  // We tried that, but it didn't work. Let's try fetching the cart instead if it's linked, or bypassing it
+  // by creating a custom route in the backend to fetch the payment collection.
+
+  // Let's create a custom route in the backend in a moment if needed.
+  // For now, let's just use the custom route we will create: /store/custom/payment-collections/${id}
+  return sdk.client
+    .fetch<{ payment_collection: any }>(`/custom/payment-collections/${id}`, {
+      method: "GET",
+      headers,
+      cache: "no-cache",
+    })
+    .then(({ payment_collection }) => payment_collection)
+    .catch((err) => {
+      console.error("Retrieve payment collection error:", err)
+      return null
+    })
 }
