@@ -131,10 +131,12 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
+  productId,
 }: {
   variantId: string
   quantity: number
   countryCode: string
+  productId?: string
 }) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
@@ -180,6 +182,14 @@ export async function addToCart({
       .then(async () => {
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
+        if (productId) {
+          const { trackProductEvent } = await import("./product-events")
+          trackProductEvent({
+            event_type: "add_to_cart",
+            product_id: productId,
+            variant_id: variantId,
+          })
+        }
       })
       .catch(medusaError)
       .finally(async () => {

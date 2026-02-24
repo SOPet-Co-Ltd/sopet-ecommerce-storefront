@@ -433,6 +433,7 @@ export const ProductDetailsVariantSelection = ({
         variantId: variantId,
         quantity: 1,
         countryCode: locale,
+        productId: product.id,
       })
     } catch (error) {
       toast.error({

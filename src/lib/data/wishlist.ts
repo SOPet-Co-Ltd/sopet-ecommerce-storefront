@@ -47,9 +47,15 @@ export const addWishlistItem = async ({
         reference_id,
       }),
     }
-  ).then(() => {
+  )
+  if (response.ok) {
     revalidatePath("/wishlist")
-  })
+    const { trackProductEvent } = await import("./product-events")
+    trackProductEvent({
+      event_type: "add_to_wishlist",
+      product_id: reference_id,
+    })
+  }
 }
 
 export const removeWishlistItem = async ({
