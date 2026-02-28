@@ -9,37 +9,56 @@ export type OrderDisplayStatus =
   | "unknown"
 
 export const getOrderDisplayStatus = (order: any): OrderDisplayStatus => {
-  if (order.status === "canceled") {
+  const status = order.status
+  const fulfillment_status = order.fulfillment_status
+
+  // Determine actual payment status, considering metadata mock capture
+  const isPaid =
+    order.payment_status === "captured" || order.metadata?.is_paid === true
+  const payment_status = isPaid ? "captured" : order.payment_status
+
+  // 1. Check Canceled or Refunded/Returned
+  if (
+    status === "canceled" ||
+    payment_status === "canceled" ||
+    fulfillment_status === "canceled"
+  ) {
+    return "cancelled"
+  }
+  if (fulfillment_status === "returned") {
     return "cancelled"
   }
 
-  if (
-    order.status === "completed" ||
-    order.fulfillment_status === "delivered"
-  ) {
+  // 2. Check Completed
+  if (status === "completed" || fulfillment_status === "delivered") {
     return "completed"
   }
 
-  const isPaid =
-    order.payment_status !== "not_paid" || order.metadata?.is_paid === true
-
-  if (!isPaid) {
+  // 3. Check To Pay
+  if (
+    payment_status === "not_paid" ||
+    payment_status === "awaiting" ||
+    !isPaid
+  ) {
     return "to-pay"
   }
 
-  if (
-    order.fulfillment_status === "shipped" ||
-    order.fulfillment_status === "partially_shipped"
-  ) {
-    return "to-receive"
-  }
+  // 4. Paid / Captured Scenarios
+  if (payment_status === "captured") {
+    if (
+      fulfillment_status === "not_fulfilled" ||
+      fulfillment_status === "fulfilled" ||
+      fulfillment_status === "partially_fulfilled"
+    ) {
+      return "preparing"
+    }
 
-  // Fallback for preparing
-  if (
-    order.fulfillment_status === "not_fulfilled" ||
-    order.fulfillment_status === "partially_fulfilled"
-  ) {
-    return "preparing"
+    if (
+      fulfillment_status === "shipped" ||
+      fulfillment_status === "partially_shipped"
+    ) {
+      return "to-receive"
+    }
   }
 
   return "unknown"

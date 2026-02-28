@@ -48,7 +48,6 @@ const OrderCard = ({ order }: OrderCardProps) => {
   )
 
   const items = order.items || []
-  const firstItem = items[0]
 
   // Calculate total: product price + shipping
   const calculatedTotal = useMemo(() => {
@@ -84,48 +83,50 @@ const OrderCard = ({ order }: OrderCardProps) => {
         </div>
 
         {/* Product Section */}
-        <div className="border-b border-gray-200 pb-5 flex gap-4 items-center">
-          {/* Image */}
-          <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden">
-            {firstItem?.thumbnail ? (
-              <Image
-                src={firstItem.thumbnail}
-                alt={firstItem.title}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                No Image
+        <div className="border-b border-gray-200 pb-5 flex flex-col gap-4">
+          {items.map((item: any) => (
+            <div key={item.id} className="flex gap-4 items-center w-full">
+              {/* Image */}
+              <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                {item?.thumbnail ? (
+                  <Image
+                    src={item.thumbnail}
+                    alt={item.title}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                    No Image
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Details */}
-          <div className="flex-1 flex flex-col items-start">
-            <p className="font-medium text-base text-[#454547] line-clamp-2">
-              {firstItem?.title}
-            </p>
-            <p className="text-gray-400 text-sm mt-1">
-              ตัวเลือกสินค้า : {firstItem?.variant?.title || "-"}
-            </p>
-            <p className="text-[#454547] text-sm mt-1">
-              x{firstItem?.quantity}
-            </p>
-          </div>
+              {/* Details */}
+              <div className="flex-1 flex flex-col items-start justify-center">
+                <p className="font-medium text-base text-[#454547] line-clamp-2">
+                  {item?.title}
+                </p>
+                <p className="text-gray-400 text-sm mt-1">
+                  ตัวเลือกสินค้า : {item?.variant?.title || "-"}
+                </p>
+                <p className="text-[#454547] text-sm mt-1">x{item?.quantity}</p>
+              </div>
 
-          {/* Price */}
-          <div className="flex flex-col justify-start h-full">
-            <p
-              className="font-medium text-base text-black"
-              suppressHydrationWarning
-            >
-              {convertToLocale({
-                amount: firstItem?.unit_price || 0,
-                currency_code: order.currency_code,
-              })}
-            </p>
-          </div>
+              {/* Price */}
+              <div className="flex flex-col justify-center h-full items-end pb-5">
+                <p
+                  className="font-medium text-base text-black"
+                  suppressHydrationWarning
+                >
+                  {convertToLocale({
+                    amount: item?.unit_price || 0,
+                    currency_code: order.currency_code,
+                  })}
+                </p>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Footer: Total & Actions */}
@@ -348,11 +349,11 @@ const OrderCard = ({ order }: OrderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        productName={firstItem?.title || "สินค้า"}
-        productImage={firstItem?.thumbnail}
-        productVariant={firstItem?.variant?.title}
+        productName={items[0]?.title || "สินค้า"}
+        productImage={items[0]?.thumbnail}
+        productVariant={items[0]?.variant?.title}
         productPrice={convertToLocale({
-          amount: firstItem?.unit_price || 0,
+          amount: items[0]?.unit_price || 0,
           currency_code: order.currency_code,
         })}
         onSubmit={async (data) => {
