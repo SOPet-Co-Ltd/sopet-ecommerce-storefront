@@ -1,4 +1,34 @@
-import { HttpTypes } from "@medusajs/types"
+// Type definitions matching backend API response
+type OrderStatus = "pending" | "completed" | "canceled"
+
+type PaymentStatus =
+  | "not_paid"
+  | "awaiting"
+  | "authorized"
+  | "captured"
+  | "partially_refunded"
+  | "refunded"
+  | "canceled"
+
+type FulfillmentStatus =
+  | "not_fulfilled"
+  | "partially_fulfilled"
+  | "fulfilled"
+  | "partially_shipped"
+  | "shipped"
+  | "partially_delivered"
+  | "delivered"
+  | "canceled"
+
+interface OrderWithStatus {
+  status: OrderStatus
+  payment_status: PaymentStatus
+  fulfillment_status: FulfillmentStatus
+  metadata?: {
+    is_paid?: boolean
+    [key: string]: unknown
+  }
+}
 
 export type OrderDisplayStatus =
   | "to-pay"
@@ -8,43 +38,69 @@ export type OrderDisplayStatus =
   | "cancelled"
   | "unknown"
 
-export const getOrderDisplayStatus = (order: any): OrderDisplayStatus => {
-  const status = order.status
-  const fulfillment_status = order.fulfillment_status
+/**
+ * Maps backend order status to customer-facing display status
+ * Priority order: Cancelled → Refunded → Completed → To Pay → Preparing → To Receive
+ */
+export const getOrderDisplayStatus = (
+  order: OrderWithStatus
+): OrderDisplayStatus => {
+  const { status, payment_status, fulfillment_status, metadata } = order
 
-  // Determine actual payment status, considering metadata mock capture
-  const isPaid =
-    order.payment_status === "captured" || order.metadata?.is_paid === true
-  const payment_status = isPaid ? "captured" : order.payment_status
+  // Handle legacy metadata flag for mock payments
+  const effectivePaymentStatus =
+    metadata?.is_paid === true ? "captured" : payment_status
 
-  // 1. Check Canceled or Refunded/Returned
+  // Priority 1: Cancelled orders
   if (
     status === "canceled" ||
-    payment_status === "canceled" ||
+    effectivePaymentStatus === "canceled" ||
     fulfillment_status === "canceled"
   ) {
     return "cancelled"
   }
-  if (fulfillment_status === "returned") {
+
+  // Priority 2: Refunded orders
+  if (
+    effectivePaymentStatus === "refunded" ||
+    effectivePaymentStatus === "partially_refunded"
+  ) {
     return "cancelled"
   }
 
-  // 2. Check Completed
-  if (status === "completed" || fulfillment_status === "delivered") {
+  // Priority 3: Completed orders (must have both completed status AND delivered)
+  if (status === "completed" && fulfillment_status === "delivered") {
     return "completed"
   }
 
-  // 3. Check To Pay
+  // Priority 4: Unpaid orders (awaiting payment)
   if (
-    payment_status === "not_paid" ||
-    payment_status === "awaiting" ||
-    !isPaid
+    effectivePaymentStatus === "not_paid" ||
+    effectivePaymentStatus === "awaiting" ||
+    effectivePaymentStatus === "authorized"
   ) {
     return "to-pay"
   }
 
-  // 4. Paid / Captured Scenarios
-  if (payment_status === "captured") {
+  // Priority 5: Paid orders - determine by fulfillment stage
+  if (effectivePaymentStatus === "captured") {
+    // Delivered (but order status not yet marked complete)
+    if (
+      fulfillment_status === "delivered" ||
+      fulfillment_status === "partially_delivered"
+    ) {
+      return "completed"
+    }
+
+    // Shipped/In Transit
+    if (
+      fulfillment_status === "shipped" ||
+      fulfillment_status === "partially_shipped"
+    ) {
+      return "to-receive"
+    }
+
+    // Being prepared (not shipped yet)
     if (
       fulfillment_status === "not_fulfilled" ||
       fulfillment_status === "fulfilled" ||
@@ -52,33 +108,23 @@ export const getOrderDisplayStatus = (order: any): OrderDisplayStatus => {
     ) {
       return "preparing"
     }
-
-    if (
-      fulfillment_status === "shipped" ||
-      fulfillment_status === "partially_shipped"
-    ) {
-      return "to-receive"
-    }
   }
 
+  // Fallback for unexpected states
   return "unknown"
 }
 
 export const getOrderStatusLabel = (status: OrderDisplayStatus): string => {
-  switch (status) {
-    case "to-pay":
-      return "ที่ต้องชำระ"
-    case "preparing":
-      return "เตรียมการจัดส่ง"
-    case "to-receive":
-      return "ที่ต้องได้รับ"
-    case "completed":
-      return "สำเร็จ"
-    case "cancelled":
-      return "ยกเลิก/คืนสินค้า"
-    default:
-      return "ไม่ทราบสถานะ"
+  const displayStatus: Record<OrderDisplayStatus, string> = {
+    "to-pay": "ที่ต้องชำระ",
+    preparing: "เตรียมการจัดส่ง",
+    "to-receive": "ที่ต้องได้รับ",
+    completed: "สำเร็จ",
+    cancelled: "ยกเลิก/คืนสินค้า",
+    unknown: "ไม่ทราบสถานะ",
   }
+
+  return displayStatus[status] || "ไม่ทราบสถานะ"
 }
 
 export const getOrderStatusColor = (status: OrderDisplayStatus): string => {

@@ -291,26 +291,33 @@ export const completeOrder = async (orderId: string) => {
       .NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY as string,
   }
 
-  return sdk.client
-    .fetch<{ order: any }>(`/store/custom/orders/${orderId}/complete`, {
-      method: "POST",
-      headers,
-    })
-    .then(async ({ order }) => {
-      const { revalidateTag } = require("next/cache")
-      const cacheTag = await getCacheTag("orders")
-      if (cacheTag) revalidateTag(cacheTag)
-      revalidateTag("orders")
-      return {
-        success: true,
-        error: null,
-        order,
+  try {
+    const { order } = await sdk.client.fetch<{ order: any }>(
+      `/store/custom/orders/${orderId}/complete`,
+      {
+        method: "POST",
+        headers,
       }
-    })
-    .catch((err) => {
-      console.error("Complete order error:", err)
-      return { success: false, error: err.message, order: null }
-    })
+    )
+
+    const { revalidateTag } = require("next/cache")
+    const cacheTag = await getCacheTag("orders")
+    if (cacheTag) revalidateTag(cacheTag)
+    revalidateTag("orders")
+
+    return {
+      success: true,
+      error: null,
+      order,
+    }
+  } catch (err: any) {
+    console.error("Complete order error:", err)
+    return {
+      success: false,
+      error: err?.message ?? "Unknown error",
+      order: null,
+    }
+  }
 }
 
 export const retrievePaymentCollection = async (id: string) => {

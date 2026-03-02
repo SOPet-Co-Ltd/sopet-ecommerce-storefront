@@ -19,6 +19,8 @@ export default async function OrderDetailsPage({
   // standard store/orders/[id] usually checks customer_id in session if using standard auth.
   const order = await retrieveOrder(id)
 
+  console.log({ order })
+
   if (!order) {
     return notFound()
   }
