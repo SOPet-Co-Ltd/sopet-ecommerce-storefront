@@ -17,11 +17,9 @@ export default async function UserPage() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-8 w-full">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-medium text-[#454547]">
-          คำสั่งซื้อสินค้า
-        </h1>
+    <div className="flex flex-col gap-8 w-full bg-amber-100">
+      <div className="lg:flex hidden flex-col gap-2 ">
+        <h1 className="sop-headline-md-medium">คำสั่งซื้อสินค้า</h1>
       </div>
 
       <OrderListSection orders={orders} />
