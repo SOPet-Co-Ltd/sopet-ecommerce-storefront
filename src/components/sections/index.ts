@@ -1,6 +1,7 @@
 import { Hero } from "./Hero/Hero"
 import { HomeProductSection } from "./HomeProductSection/HomeProductSection"
 import { HomeRecommendedProductSection } from "./HomeRecommendedProductSection/HomeRecommendedProductSection"
+import { HomeRecentOrdersSection } from "./HomeRecentOrdersSection/HomeRecentOrdersSection"
 import { HomeCategories } from "./HomeCategories/HomeCategories"
 import { BannerSection } from "./BannerSection/BannerSection"
 import { ShopByStyleSection } from "./ShopByStyle/ShopByStyleSection"
@@ -30,6 +31,7 @@ export {
   Hero,
   HomeProductSection,
   HomeRecommendedProductSection,
+  HomeRecentOrdersSection,
   HomeCategories,
   BannerSection,
   ShopByStyleSection,

@@ -13,27 +13,27 @@ export const SOCIAL_LINKS = [
     href: "https://facebook.com/sopet",
     Icon: FooterFacebookIcon,
   },
-  {
-    name: "Instagram",
-    href: "https://instagram.com/sopet",
-    Icon: FooterInstagramIcon,
-  },
-  {
-    name: "YouTube",
-    href: "https://youtube.com/sopet",
-    Icon: FooterYouTubeIcon,
-  },
+  // {
+  //   name: "Instagram",
+  //   href: "https://instagram.com/sopet",
+  //   Icon: FooterInstagramIcon,
+  // },
+  // {
+  //   name: "YouTube",
+  //   href: "https://youtube.com/sopet",
+  //   Icon: FooterYouTubeIcon,
+  // },
   { name: "Line", href: "https://line.me/R/sopet", Icon: FooterLineIcon },
-  {
-    name: "Lemon8",
-    href: "https://lemon8.com/sopet",
-    Icon: FooterLemon8Icon,
-  },
-  {
-    name: "TikTok",
-    href: "https://tiktok.com/sopet",
-    Icon: FooterTikTokIcon,
-  },
+  // {
+  //   name: "Lemon8",
+  //   href: "https://lemon8.com/sopet",
+  //   Icon: FooterLemon8Icon,
+  // },
+  // {
+  //   name: "TikTok",
+  //   href: "https://tiktok.com/sopet",
+  //   Icon: FooterTikTokIcon,
+  // },
 ]
 
 export const COMPANY_INFO = {

@@ -98,7 +98,7 @@ const ContactInfoSection = ({
         </div>
       </Link>
       <SocialMediaLinks />
-      <PhoneButton />
+      {/* <PhoneButton /> */}
     </div>
   )
 }
@@ -128,24 +128,22 @@ const FooterContent = () => {
         </div>
 
         {/* Products Menu */}
-        <div>
-          <FooterMenuList items={FOOTER_MENUS.products} />
-        </div>
+        <div>{/* <FooterMenuList items={FOOTER_MENUS.products} /> */}</div>
 
         {/* Services Menu */}
         <div>
-          <FooterMenuColumn
+          {/* <FooterMenuColumn
             title={FOOTER_MENUS.services.title}
             links={FOOTER_MENUS.services.links}
-          />
+          /> */}
         </div>
 
         {/* About SOPet Menu */}
         <div>
-          <FooterMenuColumn
+          {/* <FooterMenuColumn
             title={FOOTER_MENUS.about.title}
             links={FOOTER_MENUS.about.links}
-          />
+          /> */}
         </div>
 
         {/* App Download Section */}
@@ -171,28 +169,28 @@ const FooterContent = () => {
 
         {/* Products Menu */}
         <div>
-          <FooterMenuList
+          {/* <FooterMenuList
             items={FOOTER_MENUS.products}
             linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          />
+          /> */}
         </div>
 
         {/* Services Menu */}
         <div>
-          <FooterMenuColumn
+          {/* <FooterMenuColumn
             title={FOOTER_MENUS.services.title}
             links={FOOTER_MENUS.services.links}
             linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          />
+          /> */}
         </div>
 
         {/* About SOPet Menu */}
         <div>
-          <FooterMenuColumn
+          {/* <FooterMenuColumn
             title={FOOTER_MENUS.about.title}
             links={FOOTER_MENUS.about.links}
             linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          />
+          /> */}
         </div>
 
         {/* App Download Section */}
@@ -220,7 +218,7 @@ const FooterContent = () => {
 
         {/* Accordion Menus */}
         <div className="pt-sop-20px">
-          <div className="flex flex-col">
+          {/* <div className="flex flex-col">
             {FOOTER_MENUS.products.map(({ label, href }) => (
               <FooterLink
                 key={label}
@@ -255,7 +253,7 @@ const FooterContent = () => {
                 />
               ))}
             </div>
-          </Accordion>
+          </Accordion> */}
         </div>
 
         {/* App Download Section */}
