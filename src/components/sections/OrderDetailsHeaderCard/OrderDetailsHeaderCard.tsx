@@ -73,8 +73,8 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
 
         {/* Info Row */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center text-sm text-gray-700 mb-6 gap-4">
-          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium">
+          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
+            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
               หมายเลขคำสั่งซื้อ
             </span>
             <div className="flex items-center gap-2">
@@ -85,8 +85,8 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
             </div>
           </div>
 
-          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium">
+          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
+            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
               วันที่สั่งซื้อ
             </span>
             <span className="text-gray-900">
@@ -94,10 +94,14 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
             </span>
           </div>
 
-          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium">สถานะ</span>
+          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
+            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
+              สถานะ
+            </span>
             <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${dotColor}`}></span>
+              <span
+                className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
+              ></span>
               <span className={`font-medium ${statusColor}`}>
                 {statusLabel}
               </span>

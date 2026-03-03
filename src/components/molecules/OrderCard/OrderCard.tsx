@@ -35,6 +35,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
   const [forceMethodSelection, setForceMethodSelection] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+
   const router = useRouter()
 
   const displayStatus = useMemo(() => getOrderDisplayStatus(order), [order])
@@ -69,16 +70,15 @@ const OrderCard = ({ order }: OrderCardProps) => {
         <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
           <p className="font-medium text-lg text-[#211f23]">Pet Pet</p>{" "}
           {/* Store Name */}
-          <div className="flex items-center gap-2">
-            {/* Dot indicator */}
-            <div className="w-2.5 h-2.5 relative overflow-hidden">
-              <div
-                className={`absolute top-px left-px w-2 h-2 rounded-full ${statusColor.replace("text-", "bg-")}`}
-              ></div>{" "}
+          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
+            <div className="flex items-center gap-2">
+              <span
+                className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
+              ></span>
+              <span className={`font-medium ${statusColor}`}>
+                {statusLabel}
+              </span>
             </div>
-            <p className={`font-medium text-sm ${statusColor}`}>
-              {statusLabel}
-            </p>
           </div>
         </div>
 

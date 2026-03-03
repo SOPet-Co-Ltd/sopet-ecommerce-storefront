@@ -9,21 +9,27 @@ import {
   Portal,
 } from "@headlessui/react"
 import { Fragment } from "react"
-import { MoreHorizontal } from "lucide-react"
+import { MoreVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ActionMenuProps {
   className?: string
   children: React.ReactNode
+  icon?: React.ReactNode
 }
 
-export const ActionMenu = ({ className, children }: ActionMenuProps) => {
+export const ActionMenu = ({ className, children, icon }: ActionMenuProps) => {
   return (
     <div className={cn("relative text-right", className)}>
       <Menu as="div" className="relative inline-block text-left">
         <div>
-          <MenuButton className="inline-flex w-full justify-center rounded-full p-2 text-sm font-medium text-gray-400 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-sop-primary-500 focus:ring-opacity-75">
-            <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+          <MenuButton className="inline-flex w-full justify-center rounded-full p-2 text-sm font-medium focus:outline-none">
+            {icon || (
+              <MoreVertical
+                className="h-5 w-5 text-gray-400"
+                aria-hidden="true"
+              />
+            )}
           </MenuButton>
         </div>
         <Transition

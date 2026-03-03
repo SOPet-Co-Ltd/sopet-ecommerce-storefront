@@ -56,12 +56,12 @@ const OrderListSection = ({ orders }: OrderListSectionProps) => {
             onClick={() => setActiveTab(tab.id)}
             type="button"
             className={`
-              h-sop-32px px-3 py-2 rounded-lg text-sm font-medium transition-all shrink-0 snap-start
-              flex items-center justify-center
+              h-sop-32px px-3 py-2 text-sm font-medium transition-all shrink-0 snap-start
+              flex items-center justify-center rounded-[8px]
               ${
                 activeTab === tab.id
-                  ? "bg-sop-primary-500 text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-[#211f23] hover:bg-gray-50"
+                  ? "bg-sop-primary-500 text-sop-neutral-grayfixed-600"
+                  : "bg-sop-neutral-grayalpha-100 text-sop-neutral-gray-200"
               }
             `}
           >
