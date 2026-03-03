@@ -1,16 +1,16 @@
 "use client"
 
-import { Button, PaymentProviderIcon } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
+import { PaymentProviderIcon } from "@/components/atoms/PaymentProviderIcon/PaymentProviderIcon"
 import { cn } from "@/lib/utils"
-import { CreditCard, QrCode, Check, Plus } from "lucide-react"
-import { useState, useEffect, useCallback } from "react"
+import { CreditCard, QrCode, Check } from "lucide-react"
+import { useState, useEffect } from "react"
 import {
-  getCustomerPaymentMethods,
-  CustomerPaymentMethod,
-} from "@/lib/data/customer"
-import { updateOrderPaymentSession } from "@/lib/data/orders"
+  getOrderCustomerPaymentMethods,
+  updateOrderPaymentSession,
+} from "@/lib/data/orders"
 import { toast } from "@/lib/helpers/toast"
-import { useRouter } from "next/navigation"
+import type { CustomerPaymentMethod } from "@/types/order"
 
 interface ChangePaymentModalProps {
   isOpen: boolean
@@ -51,12 +51,11 @@ export const ChangePaymentModal = ({
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     if (isOpen) {
       setIsLoading(true)
-      getCustomerPaymentMethods()
+      getOrderCustomerPaymentMethods()
         .then((res) => {
           if (res.success) {
             setSavedMethods(res.paymentMethods)
@@ -65,7 +64,7 @@ export const ChangePaymentModal = ({
             if (defaultCard) {
               setSelectedCardId(defaultCard.id)
             } else if (res.paymentMethods.length > 0) {
-              setSelectedCardId(res.paymentMethods[0].id)
+              setSelectedCardId(res.paymentMethods[0]?.id ?? null)
             }
           }
         })
@@ -104,10 +103,13 @@ export const ChangePaymentModal = ({
 
       onConfirm?.(selectedMethod === "stripe" ? selectedCardId : null)
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error({
         title: "เกิดข้อผิดพลาด",
-        description: error.message || "ไม่สามารถเปลี่ยนช่องทางการชำระเงินได้",
+        description:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถเปลี่ยนช่องทางการชำระเงินได้",
       })
     } finally {
       setIsSubmitting(false)
@@ -196,9 +198,12 @@ export const ChangePaymentModal = ({
                           onClick={() => setSelectedCardId(pm.id)}
                         >
                           <div className="flex items-center gap-3">
-                            <PaymentProviderIcon brand={pm.brand} size={32} />
+                            <PaymentProviderIcon
+                              brand={pm.brand ?? null}
+                              size={32}
+                            />
                             <p className="text-sm font-medium text-gray-700">
-                              •••• {pm.last4}
+                              •••• {pm.last4 ?? "****"}
                             </p>
                           </div>
                           {selectedCardId === pm.id && (

@@ -1,7 +1,8 @@
 import { MapPin } from "lucide-react"
+import type { OrderShippingAddress } from "@/types/order"
 
 type OrderDetailsAddressProps = {
-  address: any // Refine type later based on Medusa Order Address
+  address?: OrderShippingAddress | null
 }
 
 const OrderDetailsAddress = ({ address }: OrderDetailsAddressProps) => {

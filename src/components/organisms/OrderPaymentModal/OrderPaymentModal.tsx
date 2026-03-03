@@ -1,21 +1,45 @@
 "use client"
 
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import { X, Clock, Loader2 } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import { loadStripe } from "@stripe/stripe-js"
 import { Elements, useStripe } from "@stripe/react-stripe-js"
 import { OrderPaymentForm } from "./OrderPaymentForm"
-import { retrievePaymentCollection } from "@/lib/data/orders"
-import { getCustomerPaymentMethods } from "@/lib/data/customer"
+import {
+  getOrderCustomerPaymentMethods,
+  retrievePaymentCollection,
+} from "@/lib/data/orders"
+import type { OrderDetails, OrderPaymentSession } from "@/types/order"
 
 interface OrderPaymentModalProps {
   isOpen: boolean
   onClose: () => void
-  order: any
+  order: OrderDetails
   onPaymentSuccess?: () => void | Promise<void>
   forceMethodSelection?: boolean
   selectedCardId?: string | null
+}
+
+type PromptPayDisplayQrAction = {
+  type: "promptpay_display_qr_code"
+  promptpay_display_qr_code?: {
+    hosted_instructions_url?: string
+    image_url_svg?: string
+    image_url_png?: string
+  }
+}
+
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "Unknown error"
 }
 
 // Inner component to handle Stripe PromptPay auto-confirmation and QR retrieval
@@ -70,8 +94,8 @@ const PromptPayDisplay = ({
           }
           closeCb()
         }
-      } catch (e) {
-        console.error("Error polling payment intent", e)
+      } catch (error: unknown) {
+        console.error("Error polling payment intent", error)
       }
     }, 3000)
 
@@ -109,15 +133,16 @@ const PromptPayDisplay = ({
           paymentIntent?.status === "requires_action" &&
           paymentIntent.next_action?.type === "promptpay_display_qr_code"
         ) {
-          const qrData = (paymentIntent.next_action as any)
-            .promptpay_display_qr_code
+          const nextAction =
+            paymentIntent.next_action as PromptPayDisplayQrAction
+          const qrData = nextAction.promptpay_display_qr_code
 
           if (qrData?.hosted_instructions_url) {
             setHostedInstructionsUrl(qrData.hosted_instructions_url)
           }
 
           if (qrData?.image_url_svg || qrData?.image_url_png) {
-            setQrCodeUrl(qrData.image_url_svg || qrData.image_url_png)
+            setQrCodeUrl(qrData.image_url_svg ?? qrData.image_url_png ?? null)
           } else {
             setError("QR code image URL not found in response")
           }
@@ -130,9 +155,11 @@ const PromptPayDisplay = ({
         } else {
           setError("Unexpected payment status: " + paymentIntent?.status)
         }
-      } catch (err: any) {
+      } catch (error: unknown) {
         if (isMounted)
-          setError(err.message || "An error occurred retrieving the QR Code")
+          setError(
+            toErrorMessage(error) || "An error occurred retrieving the QR Code"
+          )
       } finally {
         if (isMounted) setIsConfirming(false)
       }
@@ -143,7 +170,7 @@ const PromptPayDisplay = ({
     return () => {
       isMounted = false
     }
-  }, [stripe, clientSecret])
+  }, [stripe, clientSecret, orderEmail, orderName])
 
   const mins = Math.floor(countdown / 60)
   const secs = countdown % 60
@@ -208,7 +235,7 @@ const PromptPayDisplay = ({
               </p>
 
               {/* Show Hosted Instructions URL for Testing in Development/Test Mode */}
-              {process.env.NEXT_PUBLIC_STRIPE_KEY?.includes("test") &&
+              {process.env["NEXT_PUBLIC_STRIPE_KEY"]?.includes("test") &&
                 hostedInstructionsUrl && (
                   <a
                     href={hostedInstructionsUrl}
@@ -244,7 +271,7 @@ const PromptPayDisplay = ({
   )
 }
 
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_KEY
+const stripeKey = process.env["NEXT_PUBLIC_STRIPE_KEY"]
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 export const OrderPaymentModal = ({
@@ -275,11 +302,11 @@ export const OrderPaymentModal = ({
       if (storedCardId) {
         setAutoSelectedCardId(storedCardId)
       } else {
-        getCustomerPaymentMethods().then((res) => {
+        getOrderCustomerPaymentMethods().then((res) => {
           if (res.success && res.paymentMethods.length > 0) {
             const defaultCard = res.paymentMethods.find((pm) => pm.is_default)
             setAutoSelectedCardId(
-              defaultCard ? defaultCard.id : res.paymentMethods[0].id
+              defaultCard?.id ?? res.paymentMethods[0]?.id ?? null
             )
           }
         })
@@ -305,27 +332,23 @@ export const OrderPaymentModal = ({
         return
       }
 
-      console.log("Fetching payment collection:", paymentCollectionId)
       const paymentCollection =
         await retrievePaymentCollection(paymentCollectionId)
 
       if (!isMounted) return
 
-      console.log("Payment collection data:", paymentCollection)
       // Sort sessions by created_at descending to get the latest one
       const sortedSessions = [
-        ...(paymentCollection?.payment_sessions || []),
-      ].sort((a: any, b: any) => {
+        ...(paymentCollection?.payment_sessions ?? []),
+      ].sort((a: OrderPaymentSession, b: OrderPaymentSession) => {
         return (
           new Date(b.created_at || 0).getTime() -
           new Date(a.created_at || 0).getTime()
         )
       })
       const existingSession = sortedSessions.find(
-        (session: any) => session.status === "pending"
+        (session: OrderPaymentSession) => session.status === "pending"
       )
-      console.log("Existing pending session:", existingSession)
-
       if (existingSession && !forceMethodSelection) {
         // Use existing payment session
         const secret = existingSession.data?.client_secret
@@ -378,15 +401,6 @@ export const OrderPaymentModal = ({
     }
   }, [selectedMethod, clientSecret])
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return {
-      minutes: mins.toString().padStart(2, "0"),
-      seconds: secs.toString().padStart(2, "0"),
-    }
-  }
-
   const handleClose = () => {
     setSelectedMethod(null)
     setClientSecret(null)
@@ -409,9 +423,9 @@ export const OrderPaymentModal = ({
           <OrderPaymentForm
             order={order}
             onClose={handleClose}
-            onPaymentSuccess={onPaymentSuccess}
             selectedCardId={selectedCardId || autoSelectedCardId}
             clientSecret={clientSecret}
+            {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
           />
         </Elements>
       </div>
@@ -433,7 +447,7 @@ export const OrderPaymentModal = ({
           }
           countdown={countdown}
           onClose={handleClose}
-          onPaymentSuccess={onPaymentSuccess}
+          {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
         />
       </Elements>
     )

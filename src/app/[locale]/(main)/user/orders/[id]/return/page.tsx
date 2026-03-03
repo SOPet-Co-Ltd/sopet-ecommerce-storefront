@@ -4,6 +4,7 @@ import {
   retrieveReturnReasons,
   retriveReturnMethods,
 } from "@/lib/data/orders"
+import { notFound } from "next/navigation"
 
 export default async function ReturnOrderPage({
   params,
@@ -12,7 +13,12 @@ export default async function ReturnOrderPage({
 }) {
   const { id } = await params
 
-  const order = (await retrieveOrder(id)) as any
+  const order = await retrieveOrder(id).catch(() => null)
+
+  if (!order) {
+    return notFound()
+  }
+
   const returnReasons = await retrieveReturnReasons()
   const returnMethods = await retriveReturnMethods(id)
 
@@ -21,7 +27,7 @@ export default async function ReturnOrderPage({
       <OrderReturnSection
         order={order}
         returnReasons={returnReasons}
-        shippingMethods={returnMethods as any}
+        shippingMethods={returnMethods}
       />
     </main>
   )

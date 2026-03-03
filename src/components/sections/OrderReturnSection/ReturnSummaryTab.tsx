@@ -1,6 +1,8 @@
-import { Button, Card } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
+import { Card } from "@/components/atoms/Card/Card"
 import { convertToLocale } from "@/lib/helpers/money"
 import Image from "next/image"
+import type { OrderLineItem, ReturnRequestLineItemInput } from "@/types/order"
 
 export const ReturnSummaryTab = ({
   selectedItems,
@@ -11,19 +13,19 @@ export const ReturnSummaryTab = ({
   returnMethod,
   handleSubmit,
 }: {
-  selectedItems: any[]
-  items: any[]
+  selectedItems: ReturnRequestLineItemInput[]
+  items: OrderLineItem[]
   currency_code: string
   handleTabChange: (tab: number) => void
   tab: number
-  returnMethod: any
+  returnMethod: string | null
   handleSubmit: () => void
 }) => {
   const selected = items.filter((item) =>
     selectedItems.some((i) => i.line_item_id === item.id)
   )
 
-  const subtotal = selected.reduce((acc, item) => {
+  const subtotal = selected.reduce((acc: number, item) => {
     return acc + item.subtotal
   }, 0)
 
@@ -42,7 +44,7 @@ export const ReturnSummaryTab = ({
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
-                        alt={item.subtitle}
+                        alt={item.subtitle ?? item.title}
                         width={64}
                         height={64}
                         className="rounded-xs"
@@ -50,7 +52,7 @@ export const ReturnSummaryTab = ({
                     ) : (
                       <Image
                         src={"/images/placeholder.svg"}
-                        alt={item.subtitle}
+                        alt={item.subtitle ?? item.title}
                         width={64}
                         height={64}
                         className="opacity-25 scale-75"

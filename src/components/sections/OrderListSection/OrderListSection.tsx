@@ -1,11 +1,20 @@
 "use client"
 
-import { Button } from "@/components/atoms"
-import { OrderCard } from "@/components/molecules"
+import { Button } from "@/components/atoms/Button/Button"
+import OrderCard from "@/components/molecules/OrderCard/OrderCard"
 import { useMemo, useState } from "react"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
+import type { OrderListItem } from "@/types/order"
 
-const TABS = [
+type OrderTab =
+  | "all"
+  | "to-pay"
+  | "to-ship"
+  | "to-receive"
+  | "completed"
+  | "cancelled"
+
+const TABS: Array<{ id: OrderTab; label: string }> = [
   { id: "all", label: "ทั้งหมด" },
   { id: "to-pay", label: "ที่ต้องชำระ" },
   { id: "to-ship", label: "เตรียมการจัดส่ง" },
@@ -15,11 +24,11 @@ const TABS = [
 ]
 
 type OrderListSectionProps = {
-  orders: any[]
+  orders: OrderListItem[]
 }
 
 const OrderListSection = ({ orders }: OrderListSectionProps) => {
-  const [activeTab, setActiveTab] = useState("all")
+  const [activeTab, setActiveTab] = useState<OrderTab>("all")
 
   const filteredOrders = useMemo(() => {
     if (activeTab === "all") return orders
@@ -49,24 +58,18 @@ const OrderListSection = ({ orders }: OrderListSectionProps) => {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Tabs */}
-      <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap snap-x snap-mandatory touch-pan-x overscroll-x-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap snap-x snap-mandatory touch-pan-x overscroll-x-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:px-0 px-4">
         {TABS.map((tab) => (
-          <button
+          <Button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            type="button"
-            className={`
-              h-sop-32px px-3 py-2 text-sm font-medium transition-all shrink-0 snap-start
-              flex items-center justify-center rounded-[8px]
-              ${
-                activeTab === tab.id
-                  ? "bg-sop-primary-500 text-sop-neutral-grayfixed-600"
-                  : "bg-sop-neutral-grayalpha-100 text-sop-neutral-gray-200"
-              }
-            `}
+            variant={activeTab === tab.id ? "primary" : "neutral"}
+            size="sm"
+            rounded="rounded"
+            className="min-w-auto"
           >
             {tab.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -77,8 +80,10 @@ const OrderListSection = ({ orders }: OrderListSectionProps) => {
             <OrderCard key={order.id} order={order} />
           ))
         ) : (
-          <div className="text-center py-10 bg-white border border-gray-200 rounded-lg">
-            <p className="text-gray-500">ไม่พบคำสั่งซื้อในสถานะนี้</p>
+          <div className="text-center py-14 bg-sop-base-white">
+            <p className="sop-body-lg-regular text-sop-neutral-gray-300">
+              ไม่พบคำสั่งซื้อในสถานะนี้
+            </p>
           </div>
         )}
       </div>

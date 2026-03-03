@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import { X } from "lucide-react"
 import { useState } from "react"
 import { StarRating } from "@/components/molecules/StarRating/StarRating"
