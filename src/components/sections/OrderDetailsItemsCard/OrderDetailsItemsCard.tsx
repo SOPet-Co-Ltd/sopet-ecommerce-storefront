@@ -26,7 +26,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
         </div>
 
         {/* Items List */}
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2.5 md:gap-5">
           {items.map((item) => (
             <div
               key={item.id}
@@ -81,7 +81,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
 
         {/* Summary Section */}
         {/* Shipping cost */}
-        <div className="flex justify-between text-gray-600 md:px-24.5">
+        <div className="flex justify-between text-gray-600 md:pl-24.5">
           <span className="sop-body-md-regular text-sop-neutral-gray-200 md:sop-body-lg-regular">
             ค่าจัดส่ง
           </span>
@@ -94,7 +94,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
         </div>
 
         {/* vendor discount */}
-        <div className="flex justify-between text-gray-600 md:px-24.5">
+        <div className="flex justify-between text-gray-600 md:pl-24.5">
           <span className="sop-body-md-regular text-sop-neutral-gray-200 md:sop-body-lg-regular">
             ส่วนลดร้านค้า
           </span>
@@ -108,7 +108,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
         </div>
 
         {/* Total */}
-        <div className="pb-5 border-b border-sop-neutral-grayalpha-300 md:px-24.5">
+        <div className="pb-5 border-b border-sop-neutral-grayalpha-300 md:pl-24.5">
           <div className="flex justify-between items-center">
             <span className="sop-body-md-regular text-sop-neutral-gray-200 md:sop-body-lg-regular">
               รวมทั้งสิ้น
@@ -123,7 +123,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
         </div>
 
         {/* Payment Method */}
-        <div className="flex justify-between items-center md:px-24.5">
+        <div className="flex justify-between items-center md:pl-24.5">
           <span className="sop-body-md-regular text-sop-neutral-gray-200 md:sop-body-lg-regular">
             วิธีการชำระเงิน
           </span>

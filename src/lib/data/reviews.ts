@@ -22,6 +22,33 @@ export type Order = HttpTypes.StoreOrder & {
   reviews: any[]
 }
 
+/**
+ * Get the currently authenticated customer's ID, or null if unauthenticated
+ * or if the lookup fails.
+ */
+export const getCurrentCustomerId = async (): Promise<string | null> => {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return null
+  }
+
+  try {
+    const authResponse = await sdk.client.fetch<{
+      customer?: { id: string }
+    }>(`/store/auth/me`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    return authResponse.customer?.id ?? null
+  } catch (error) {
+    console.error("Failed to get authenticated customer:", error)
+    return null
+  }
+}
+
 const getReviews = async () => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -98,6 +125,18 @@ export type UpdateProductReviewInput = {
   rating?: number
   comment?: string
   images?: string[]
+}
+
+type ReviewMediaUploadFile = {
+  id: string
+  url: string
+  filename?: string
+  mimeType?: string
+  blurhash?: string
+}
+
+type ReviewMediaUploadResponse = {
+  files: ReviewMediaUploadFile[]
 }
 
 /**
@@ -227,6 +266,61 @@ export const getProductReviews = async (
       },
     }
   }
+}
+
+export const uploadReviewImages = async (
+  files: File[],
+  productId: string
+): Promise<string[]> => {
+  if (!files.length) return []
+
+  const headers = await getAuthHeaders()
+  if (!headers || Object.keys(headers).length === 0) {
+    throw new Error("Unauthorized")
+  }
+
+  const formData = new FormData()
+  for (const file of files) {
+    formData.append("files", file)
+  }
+
+  const baseUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+  const url = new URL("/store/reviews/media", baseUrl)
+  url.searchParams.set("product_id", productId)
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      "x-publishable-api-key": publishableKey,
+      ...(headers as Record<string, string>),
+    },
+    body: formData,
+  })
+
+  let data: ReviewMediaUploadResponse | any
+  try {
+    data = await res.json()
+  } catch {
+    data = undefined
+  }
+
+  if (!res.ok) {
+    const message =
+      (data && (data.error || data.message)) ||
+      `Failed to upload review images (status ${res.status})`
+    throw new Error(message)
+  }
+
+  const filesResponse: ReviewMediaUploadResponse = data
+  const urls = (filesResponse.files || []).map((f) => f.url).filter(Boolean)
+
+  if (!urls.length) {
+    throw new Error("No image URLs returned from upload")
+  }
+
+  return urls
 }
 
 /**
@@ -365,19 +459,23 @@ export const getProductReviewStats = async (
  */
 export const checkCustomerHasReviewed = async (
   productId: string,
-  customerId: string
+  customerId: string,
+  orderId?: string
 ): Promise<boolean> => {
   const headers = await getAuthHeaders()
 
   try {
-    const data = await sdk.client.fetch<{ hasReviewed: boolean }>(
-      `/store/products/${productId}/reviews/check/${customerId}`,
-      {
-        method: "GET",
-        headers,
-        cache: "no-cache",
-      }
-    )
+    const basePath = `/store/products/${productId}/reviews/check/${customerId}`
+    const path =
+      orderId && orderId.length > 0
+        ? `${basePath}?order_id=${encodeURIComponent(orderId)}`
+        : basePath
+
+    const data = await sdk.client.fetch<{ hasReviewed: boolean }>(path, {
+      method: "GET",
+      headers,
+      cache: "no-cache",
+    })
 
     return data.hasReviewed
   } catch (error) {
@@ -485,6 +583,102 @@ export const deleteProductReview = async (
   } catch (error) {
     console.error(`Failed to delete review ${reviewId}:`, error)
     return false
+  }
+}
+
+/**
+ * Submit multiple product reviews (used by OrderCard component).
+ * This server action:
+ * 1. Extracts the authenticated customer ID from auth headers
+ * 2. Submits all reviews in parallel
+ * 3. Returns success/failure results for each review
+ *
+ * The client passes review data WITHOUT customer_id;
+ * the server adds the authenticated customer's ID automatically.
+ */
+export const submitProductReviews = async (
+  reviews: Array<{
+    productId: string
+    rating: number
+    comment?: string
+    images?: string[] // File URLs (already converted from File[])
+    order_id?: string
+  }>
+): Promise<{
+  success: boolean
+  results: Array<{
+    productId: string
+    success: boolean
+    review?: ProductReview
+    error?: string
+  }>
+}> => {
+  const headers = await getAuthHeaders()
+
+  // Get the authenticated customer ID
+  let customerId: string | undefined
+  try {
+    const authResponse = await sdk.client.fetch<{
+      customer?: { id: string }
+    }>(`/store/auth/me`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    customerId = authResponse.customer?.id
+    if (!customerId) {
+      throw new Error("Customer not found. Please log in.")
+    }
+  } catch (error) {
+    console.error("Failed to get authenticated customer:", error)
+    return {
+      success: false,
+      results: reviews.map((r) => ({
+        productId: r.productId,
+        success: false,
+        error: "Authentication failed. Please log in.",
+      })),
+    }
+  }
+
+  // Submit all reviews in parallel
+  const results = await Promise.all(
+    reviews.map(async (review) => {
+      try {
+        const reviewData: CreateProductReviewInput = {
+          customer_id: customerId!,
+          rating: review.rating,
+          comment: review.comment,
+          images: review.images,
+          order_id: review.order_id,
+        }
+
+        const productReview = await createProductReview(
+          review.productId,
+          reviewData
+        )
+
+        return {
+          productId: review.productId,
+          success: true,
+          review: productReview || undefined,
+        }
+      } catch (error) {
+        return {
+          productId: review.productId,
+          success: false,
+          error:
+            error instanceof Error ? error.message : "Failed to submit review",
+        }
+      }
+    })
+  )
+
+  const allSuccess = results.every((r) => r.success)
+  return {
+    success: allSuccess,
+    results,
   }
 }
 

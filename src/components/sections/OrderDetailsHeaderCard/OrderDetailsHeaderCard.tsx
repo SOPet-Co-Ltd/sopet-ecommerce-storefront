@@ -13,6 +13,7 @@ import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedL
 import { Clock, Copy, ChevronLeft, RotateCcw, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { captureOrderPayment } from "@/lib/data/orders"
+import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 
 import {
   getOrderDisplayStatus,
@@ -24,6 +25,7 @@ import { TimeIcon } from "@/icons"
 
 type OrderDetailsHeaderCardProps = {
   order: OrderDetails
+  hasAnyReviewed?: boolean
 }
 
 // Helper to format date
@@ -35,7 +37,10 @@ const formatDate = (dateString: string) => {
     year: "numeric",
   })
 }
-const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
+const OrderDetailsHeaderCard = ({
+  order,
+  hasAnyReviewed = false,
+}: OrderDetailsHeaderCardProps) => {
   const [isChangePaymentModalOpen, setIsChangePaymentModalOpen] =
     useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -44,6 +49,7 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const router = useRouter()
+  const { submitReviews } = useReviewSubmission()
 
   const handleCopyOrderId = async () => {
     try {
@@ -219,7 +225,7 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
               </>
             )}
 
-            {isCompleted && (
+            {isCompleted && !hasAnyReviewed && (
               <div className="flex gap-3 w-full md:w-auto">
                 <Button onClick={() => setIsReviewModalOpen(true)}>
                   รีวิวสินค้า
@@ -305,20 +311,12 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        productName={order.items?.[0]?.title || "สินค้า"}
-        productImage={order.items?.[0]?.thumbnail ?? null}
-        {...(order.items?.[0]?.variant?.title
-          ? { productVariant: order.items[0].variant.title }
-          : {})}
-        productPrice={
-          order.items?.[0]
-            ? `${(order.items[0].unit_price / 100).toFixed(2)}`
-            : ""
-        } // Simple fallback formatting or use helper if imported
-        onSubmit={async (data) => {
-          console.log("Submitting review:", data)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          alert("ขอบคุณสำหรับการรีวิว!")
+        items={order.items || []}
+        onSubmit={async (reviewsData) => {
+          const success = await submitReviews(reviewsData, order.id)
+          if (success) {
+            setIsReviewModalOpen(false)
+          }
         }}
       />
     </>

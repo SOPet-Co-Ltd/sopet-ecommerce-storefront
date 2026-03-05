@@ -39,6 +39,16 @@ export type OrderVariant = {
 
 export type OrderLineItem = {
   id: string
+  product: {
+    id: string
+    title: string
+    handle: string
+    thumbnail: string
+    unit_price: number
+    quantity: number
+    subtotal: number
+    variant: OrderVariant | null | undefined
+  }
   title: string
   subtitle?: string | null | undefined
   thumbnail?: string | null | undefined

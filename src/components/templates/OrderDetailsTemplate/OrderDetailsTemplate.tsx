@@ -5,10 +5,13 @@ import type { OrderDetails } from "@/types/order"
 
 type OrderDetailsTemplateProps = {
   order: OrderDetails
+  hasAnyReviewed?: boolean
 }
 
-const OrderDetailsTemplate = ({ order }: OrderDetailsTemplateProps) => {
-  console.log({ order })
+const OrderDetailsTemplate = ({
+  order,
+  hasAnyReviewed = false,
+}: OrderDetailsTemplateProps) => {
   const firstTrackingLabel =
     order.fulfillments
       ?.flatMap((fulfillment) => fulfillment.labels ?? [])
@@ -31,7 +34,7 @@ const OrderDetailsTemplate = ({ order }: OrderDetailsTemplateProps) => {
   return (
     <div className="w-full flex flex-col gap-2.5 md:gap-2">
       {/* Header & Actions Card */}
-      <OrderDetailsHeaderCard order={order} />
+      <OrderDetailsHeaderCard order={order} hasAnyReviewed={hasAnyReviewed} />
 
       {/* Shipping Card */}
       <OrderDetailsShippingCard

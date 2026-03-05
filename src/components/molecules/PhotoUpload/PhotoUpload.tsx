@@ -4,6 +4,7 @@ import { ImagePlus, X } from "lucide-react"
 import Image from "next/image"
 import { useRef } from "react"
 import { cn } from "@/lib/utils"
+import { SmartImage } from "@/components/atoms"
 
 interface PhotoUploadProps {
   images: File[]
@@ -43,16 +44,21 @@ export const PhotoUpload = ({
   }
 
   return (
-    <div className={cn("flex  flex-wrap gap-3", className)}>
+    <div className={cn("flex  flex-wrap gap-5", className)}>
       {/* Upload Button */}
       {images.length < maxImages && (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 hover:border-sop-primary-500 hover:text-sop-primary-500 transition-colors bg-white hover:bg-sop-primary-50/50 gap-2 cursor-pointer"
+          className="w-26 h-20.25 rounded-sop-4px border-2 border-dashed border-sop-neutral-gray-400 flex flex-col items-center justify-center cursor-pointer"
         >
-          <ImagePlus className="w-8 h-8 opacity-60" strokeWidth={1.5} />
-          <span className="text-xs font-medium">เพิ่มรูปภาพ</span>
+          <ImagePlus
+            className="w-8 h-8 text-sop-neutral-gray-400"
+            strokeWidth={1}
+          />
+          <span className="sop-body-sm-regular text-sop-neutral-gray-400">
+            เพิ่มรูปภาพ
+          </span>
         </button>
       )}
 
@@ -69,9 +75,9 @@ export const PhotoUpload = ({
       {images.map((file, index) => (
         <div
           key={`${file.name}-${index}`}
-          className="relative w-24 h-24 rounded-lg border border-gray-200 overflow-hidden group"
+          className="relative w-26 h-20.25 rounded-sop-4px overflow-hidden group"
         >
-          <Image
+          <SmartImage
             src={URL.createObjectURL(file)}
             alt={`Preview ${index}`}
             fill
@@ -80,7 +86,7 @@ export const PhotoUpload = ({
           <button
             type="button"
             onClick={() => removeImage(index)}
-            className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute cursor-pointer top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <X className="w-3 h-3" />
           </button>

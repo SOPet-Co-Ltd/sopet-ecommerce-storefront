@@ -25,9 +25,13 @@ const TABS: Array<{ id: OrderTab; label: string }> = [
 
 type OrderListSectionProps = {
   orders: OrderListItem[]
+  reviewedByOrderId?: Record<string, boolean>
 }
 
-const OrderListSection = ({ orders }: OrderListSectionProps) => {
+const OrderListSection = ({
+  orders,
+  reviewedByOrderId,
+}: OrderListSectionProps) => {
   const [activeTab, setActiveTab] = useState<OrderTab>("all")
 
   const filteredOrders = useMemo(() => {
@@ -76,9 +80,17 @@ const OrderListSection = ({ orders }: OrderListSectionProps) => {
       {/* Order List */}
       <div className="flex flex-col gap-4">
         {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))
+          filteredOrders.map((order) => {
+            const hasAnyReviewed = reviewedByOrderId?.[order.id] ?? false
+
+            return (
+              <OrderCard
+                key={order.id}
+                order={order}
+                hasAnyReviewed={hasAnyReviewed}
+              />
+            )
+          })
         ) : (
           <div className="text-center py-14 bg-sop-base-white">
             <p className="sop-body-lg-regular text-sop-neutral-gray-300">

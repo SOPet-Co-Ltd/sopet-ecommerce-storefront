@@ -7,6 +7,7 @@ import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderC
 import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/ChangePaymentModal"
 import { convertToLocale } from "@/lib/helpers/money"
 import { completeOrder, captureOrderPayment } from "@/lib/data/orders" // Static import for server action
+import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 import {
   ActionMenu,
   ActionMenuItem,
@@ -27,9 +28,10 @@ import { TimeIcon } from "@/icons"
 
 type OrderCardProps = {
   order: OrderDetails
+  hasAnyReviewed?: boolean
 }
 
-const OrderCard = ({ order }: OrderCardProps) => {
+const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [isChangePaymentModalOpen, setIsChangePaymentModalOpen] =
@@ -52,6 +54,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
   )
 
   const items = order.items
+  const { submitReviews } = useReviewSubmission()
 
   // Calculate total: product price + shipping
   const calculatedTotal = useMemo(() => {
@@ -90,7 +93,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
         </div>
 
         {/* Product Section */}
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-2.5 md:gap-5">
           {items.map((item) => (
             <div
               key={item.id}
@@ -241,7 +244,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
           )}
 
           {/* COMPLETED STATUS */}
-          {displayStatus === "completed" && (
+          {displayStatus === "completed" && !hasAnyReviewed && (
             <>
               <Button onClick={() => setIsReviewModalOpen(true)}>
                 รีวิวสินค้า
@@ -389,20 +392,12 @@ const OrderCard = ({ order }: OrderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        productName={items[0]?.title || "สินค้า"}
-        productImage={items[0]?.thumbnail ?? null}
-        {...(items[0]?.variant?.title
-          ? { productVariant: items[0].variant.title }
-          : {})}
-        productPrice={convertToLocale({
-          amount: items[0]?.unit_price || 0,
-          currency_code: order.currency_code,
-        })}
-        onSubmit={async (data) => {
-          // Mock API call for now
-          console.log("Submitting review:", data)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          alert("ขอบคุณสำหรับการรีวิว! (Mock)")
+        items={items}
+        onSubmit={async (reviewsData) => {
+          const success = await submitReviews(reviewsData, order.id)
+          if (success) {
+            setIsReviewModalOpen(false)
+          }
         }}
       />
     </>
