@@ -21,16 +21,14 @@ export const HomeRecentOrdersSection = async ({
       <div className="w-full overflow-x-auto">
         <ul className="flex gap-3 lg:gap-4 pb-2 min-w-max">
           {products.map((product) => (
-            <>
-              <li
-                key={product.id}
-                style={{
-                  zoom: 0.6,
-                }}
-              >
-                <ProductCard api_product={product} product={product} />
-              </li>
-            </>
+            <li
+              key={product.id}
+              style={{
+                zoom: 0.6,
+              }}
+            >
+              <ProductCard api_product={product} product={product} />
+            </li>
           ))}
         </ul>
       </div>

@@ -10,7 +10,7 @@ import {
 export const SOCIAL_LINKS = [
   {
     name: "Facebook",
-    href: "https://facebook.com/sopet",
+    href: "https://www.facebook.com/sopetofficial",
     Icon: FooterFacebookIcon,
   },
   // {
@@ -23,7 +23,11 @@ export const SOCIAL_LINKS = [
   //   href: "https://youtube.com/sopet",
   //   Icon: FooterYouTubeIcon,
   // },
-  { name: "Line", href: "https://line.me/R/sopet", Icon: FooterLineIcon },
+  {
+    name: "Line",
+    href: "https://line.me/R/ti/p/@131skdjz",
+    Icon: FooterLineIcon,
+  },
   // {
   //   name: "Lemon8",
   //   href: "https://lemon8.com/sopet",
