@@ -26,12 +26,12 @@ export default async function FavoritesPage({
     <>
       <header
         className={cn(
-          "border-b border-sop-neutral-grayalpha-300 mb-sop-20px flex justify-between items-center h-[42px]"
+          "px-sop-16px border-b border-sop-neutral-grayalpha-300 mb-sop-20px flex justify-between items-center h-[42px]"
         )}
       >
         <h2 className="sop-headline-sm-medium">รายการโปรด</h2>
       </header>
-      <div>
+      <div className="px-sop-16px">
         {isEmpty(products) ? (
           <div className="w-full flex flex-col items-center justify-center py-12">
             <h2 className="sop-headline-md-medium text-sop-neutral-gray-300 mb-2">

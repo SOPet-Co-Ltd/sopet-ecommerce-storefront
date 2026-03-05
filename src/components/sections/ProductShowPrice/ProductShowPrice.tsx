@@ -50,10 +50,10 @@ export const ProductShowPrice = ({
   // get selected variant id
   const variantId =
     product.variants?.find(({ options }: { options: any }) =>
-      options?.every((option: any) =>
-        selectedVariant[option.option?.title.toLowerCase() || ""]?.includes(
+      options?.every(
+        (option: any) =>
+          selectedVariant[option.option?.title.toLowerCase() || ""] ===
           option.value
-        )
       )
     )?.id || ""
 

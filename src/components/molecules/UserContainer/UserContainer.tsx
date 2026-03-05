@@ -23,7 +23,7 @@ const UserContainer = ({
   const router = useRouter()
 
   return (
-    <div className="lg:bg-sop-base-white lg:rounded-sop-8px lg:p-sop-40px">
+    <div className="lg:bg-sop-base-white lg:rounded-sop-8px lg:p-sop-40px px-sop-16px">
       {(title || showBackButton) && (
         <header
           className={cn(

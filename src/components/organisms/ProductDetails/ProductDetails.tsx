@@ -1,7 +1,5 @@
 import { ProductDetailsVariantSelection } from "@/components/cells/ProductDetailsVariantSelection/ProductDetailsVariantSelection"
 import ProductReviewStars from "@/components/sections/ProductReview/ProductReview"
-import { ProductShowPrice } from "@/components/sections/ProductShowPrice/ProductShowPrice"
-import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
 
 import { verifyCustomer } from "@/lib/data/customer"
 import { getProductReviewStats } from "@/lib/data/reviews"
@@ -61,15 +59,13 @@ export const ProductDetails = async ({
         totalReviews={reviewStats.totalReviews}
         soldCount={soldCount}
       />
-      <ProductShowPrice product={product} />
-
-      <ProductExpiryDate dateOfExpired={dateOfExpired} />
 
       <ProductDetailsVariantSelection
         product={product}
         locale={locale}
         user={user}
         wishlist={wishlist}
+        dateOfExpired={dateOfExpired}
       />
     </div>
   )

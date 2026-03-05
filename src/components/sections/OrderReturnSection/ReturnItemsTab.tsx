@@ -1,4 +1,5 @@
-import { Card, Checkbox } from "@/components/atoms"
+import { Card } from "@/components/atoms/Card/Card"
+import { Checkbox } from "@/components/atoms/Checkbox/Checkbox"
 import { convertToLocale } from "@/lib/helpers/money"
 import {
   Listbox,
@@ -11,6 +12,12 @@ import { ChevronUpDown } from "@medusajs/icons"
 
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import type {
+  OrderDetails,
+  OrderLineItem,
+  ReturnReason,
+  ReturnRequestLineItemInput,
+} from "@/types/order"
 
 export const ReturnItemsTab = ({
   order,
@@ -19,22 +26,23 @@ export const ReturnItemsTab = ({
   returnReasons,
   error,
 }: {
-  order: any
-  selectedItems: any[]
-  handleSelectItem: (item: any, reason_id: string) => void
-  returnReasons: any[]
+  order: OrderDetails
+  selectedItems: ReturnRequestLineItemInput[]
+  handleSelectItem: (item: OrderLineItem, reason_id: string) => void
+  returnReasons: ReturnReason[]
   error: boolean
 }) => {
   return (
     <div>
       <Card className="bg-secondary p-4">
         <p className="label-md">
-          Seller: <span className="font-semibold">{order.seller.name}</span>
+          Seller:{" "}
+          <span className="font-semibold">{order.seller?.name ?? "-"}</span>
         </p>
       </Card>
       <Card className="flex items-center justify-between p-4">
         <ul className="w-full">
-          {order.items.map((item: any) => (
+          {order.items.map((item) => (
             <li key={item.id} className="md:flex justify-between gap-2 w-full">
               <div className="flex items-center gap-2 md:w-2/3 mb-4 md:mb-0">
                 <Checkbox
@@ -48,7 +56,7 @@ export const ReturnItemsTab = ({
                     {item.thumbnail ? (
                       <Image
                         src={item.thumbnail}
-                        alt={item.subtitle}
+                        alt={item.subtitle ?? item.title}
                         width={64}
                         height={64}
                         className="rounded-xs"
@@ -56,7 +64,7 @@ export const ReturnItemsTab = ({
                     ) : (
                       <Image
                         src={"/images/placeholder.svg"}
-                        alt={item.subtitle}
+                        alt={item.subtitle ?? item.title}
                         width={64}
                         height={64}
                         className="opacity-25 scale-75"
@@ -81,7 +89,7 @@ export const ReturnItemsTab = ({
                 <Listbox
                   value={
                     selectedItems.find((i) => i.line_item_id === item.id)
-                      ?.reason_id
+                      ?.reason_id ?? ""
                   }
                   onChange={(value) => handleSelectItem(item, value || "")}
                 >

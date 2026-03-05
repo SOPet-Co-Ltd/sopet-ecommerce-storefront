@@ -65,6 +65,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async rewrites() {
+    return [
+      {
+        source: "/store/:path*",
+        destination: `${process.env.MEDUSA_BACKEND_URL}/store/:path*`,
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig
