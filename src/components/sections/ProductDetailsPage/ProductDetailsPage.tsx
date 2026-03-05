@@ -11,6 +11,7 @@ import {
 } from ".."
 import { Suspense } from "react"
 import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
+import { ProductViewTracker } from "@/components/atoms/ProductViewTracker/ProductViewTracker"
 
 export const ProductDetailsPage = async ({
   handle,
@@ -53,6 +54,7 @@ export const ProductDetailsPage = async ({
 
   return (
     <>
+      <ProductViewTracker productId={prod.id} />
       <ProductDetailsCacheHydrator product={prod} locale={locale} />
       {/* Section - Breadcrumb */}
       <div className="py-4 lg:block hidden">
