@@ -1,7 +1,7 @@
 "use client"
 
-import { Button } from "@/components/atoms"
-import { UserNavigation } from "@/components/molecules"
+import { Button } from "@/components/atoms/Button/Button"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { ArrowLeftIcon } from "@/icons"
 import { ReturnItemsTab } from "./ReturnItemsTab"
@@ -11,20 +11,29 @@ import { ReturnMethodsTab } from "./ReturnMethodsTab"
 import { StepProgressBar } from "@/components/cells/StepProgressBar/StepProgressBar"
 import { createReturnRequest } from "@/lib/data/orders"
 import { useRouter } from "next/navigation"
+import type {
+  OrderDetails,
+  OrderLineItem,
+  ReturnReason,
+  ReturnRequestLineItemInput,
+  ReturnShippingMethod,
+} from "@/types/order"
 
 export const OrderReturnSection = ({
   order,
   returnReasons,
   shippingMethods,
 }: {
-  order: any
-  returnReasons: any[]
-  shippingMethods: any[]
+  order: OrderDetails
+  returnReasons: ReturnReason[]
+  shippingMethods: ReturnShippingMethod[]
 }) => {
   const [tab, setTab] = useState(0)
-  const [selectedItems, setSelectedItems] = useState<any[]>([])
+  const [selectedItems, setSelectedItems] = useState<
+    ReturnRequestLineItemInput[]
+  >([])
   const [error, setError] = useState<boolean>(false)
-  const [returnMethod, setReturnMethod] = useState<any>(null)
+  const [returnMethod, setReturnMethod] = useState<string | null>(null)
   const router = useRouter()
 
   const handleTabChange = (tab: number) => {
@@ -36,11 +45,11 @@ export const OrderReturnSection = ({
     }
   }
 
-  const handleSetReturnMethod = (method: any) => {
+  const handleSetReturnMethod = (method: string) => {
     setReturnMethod(method)
   }
 
-  const handleSelectItem = (item: any, reason_id: string = "") => {
+  const handleSelectItem = (item: OrderLineItem, reason_id: string = "") => {
     setError(false)
     if (!reason_id && selectedItems.some((i) => i.line_item_id === item.id)) {
       setSelectedItems(selectedItems.filter((i) => i.line_item_id !== item.id))
@@ -62,6 +71,10 @@ export const OrderReturnSection = ({
   }
 
   const handleSubmit = async () => {
+    if (!returnMethod) {
+      return
+    }
+
     const data = {
       order_id: order.id,
       customer_note: "",
@@ -69,13 +82,15 @@ export const OrderReturnSection = ({
       line_items: selectedItems,
     }
 
-    const { order_return_request } = await createReturnRequest(data)
+    const result = await createReturnRequest(data)
 
-    if (!order_return_request.id) {
+    if (!result.order_return_request.id) {
       return console.log("Error creating return request")
     }
 
-    router.push(`/user/orders/${order_return_request.id}/request-success`)
+    router.push(
+      `/user/orders/${result.order_return_request.id}/request-success`
+    )
   }
 
   return (
@@ -83,7 +98,9 @@ export const OrderReturnSection = ({
       <UserNavigation />
       <div className="md:col-span-3 mb-8 md:mb-0">
         {tab === 0 ? (
-          <LocalizedClientLink href={`/user/orders/${order.order_set.id}`}>
+          <LocalizedClientLink
+            href={`/user/orders/${order.order_set?.id ?? order.id}`}
+          >
             <Button className="label-md text-action-on-secondary uppercase flex items-center gap-2">
               <ArrowLeftIcon className="size-4" />
               Order details
@@ -120,7 +137,7 @@ export const OrderReturnSection = ({
                 shippingMethods={shippingMethods}
                 handleSetReturnMethod={handleSetReturnMethod}
                 returnMethod={returnMethod}
-                seller={order.seller}
+                seller={order.seller ?? null}
               />
             )}
           </div>

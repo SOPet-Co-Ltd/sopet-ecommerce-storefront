@@ -1,94 +1,71 @@
-import { LoginForm, ParcelAccordion } from "@/components/molecules"
-import { UserNavigation } from "@/components/molecules"
-import { verifyCustomer } from "@/lib/data/customer"
-import { OrdersPagination } from "@/components/sections"
-import { isEmpty } from "lodash"
+import OrderListSection from "@/components/sections/OrderListSection/OrderListSection"
 import { listOrders } from "@/lib/data/orders"
+import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
+import {
+  checkCustomerHasReviewed,
+  getCurrentCustomerId,
+} from "@/lib/data/reviews"
 
-const LIMIT = 10
+export const dynamic = "force-dynamic"
 
-export default async function UserPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page: string }>
-}) {
-  const user = await verifyCustomer()
+export default async function UserPage() {
+  const orders = await listOrders(100, 0)
 
-  if (!user) return <LoginForm />
+  // Compute, for each order, whether the authenticated customer has reviewed
+  // at least one product in that order.
+  const customerId = await getCurrentCustomerId()
 
-  const orders = await listOrders()
+  let reviewedByOrderId: Record<string, boolean> = {}
 
-  const { page } = await searchParams
+  if (customerId) {
+    const perOrderResults = await Promise.all(
+      orders.map(async (order) => {
+        const displayStatus = getOrderDisplayStatus(order)
 
-  const pages = Math.ceil(orders.length / LIMIT)
-  const currentPage = +page || 1
-  const offset = (+currentPage - 1) * LIMIT
+        if (displayStatus !== "completed") {
+          return { orderId: order.id, hasAnyReviewed: false }
+        }
 
-  const orderSetsGrouped = orders.reduce(
-    (acc, order) => {
-      const orderSetId = (order as any).order_set.id
-      if (!acc[orderSetId]) {
-        acc[orderSetId] = []
-      }
-      acc[orderSetId].push(order)
-      return acc
-    },
-    {} as Record<string, typeof orders>
-  )
+        const productIds = Array.from(
+          new Set(
+            (order.items || [])
+              .map((item) => item.product?.id)
+              .filter((id): id is string => Boolean(id))
+          )
+        )
 
-  const orderSets = Object.entries(orderSetsGrouped).map(
-    ([orderSetId, orders]) => {
-      const firstOrder = orders[0]
-      const orderSet = (firstOrder as any).order_set
+        if (productIds.length === 0) {
+          return { orderId: order.id, hasAnyReviewed: false }
+        }
 
-      return {
-        id: orderSetId,
-        orders: orders,
-        created_at: orderSet.created_at,
-        display_id: orderSet.display_id,
-        total: orders.reduce((sum, order) => sum + order.total, 0),
-        currency_code: firstOrder.currency_code,
-      }
-    }
-  )
+        const checks = await Promise.all(
+          productIds.map((productId) =>
+            checkCustomerHasReviewed(productId, customerId, order.id)
+          )
+        )
 
-  const processedOrders = orderSets.slice(offset, offset + LIMIT)
+        const hasAnyReviewed = checks.some((value) => value === true)
+
+        return { orderId: order.id, hasAnyReviewed }
+      })
+    )
+
+    reviewedByOrderId = perOrderResults.reduce<Record<string, boolean>>(
+      (acc, { orderId, hasAnyReviewed }) => {
+        acc[orderId] = hasAnyReviewed
+        return acc
+      },
+      {}
+    )
+  }
 
   return (
-    <main className="container">
-      <div className="grid grid-cols-1 md:grid-cols-4 mt-6 gap-5 md:gap-8">
-        <UserNavigation />
-        <div className="md:col-span-3 space-y-8">
-          <h1 className="heading-md uppercase">Orders</h1>
-          {isEmpty(orders) ? (
-            <div className="text-center">
-              <h3 className="heading-lg text-primary uppercase">No orders</h3>
-              <p className="text-lg text-secondary mt-2">
-                You haven&apos;t placed any order yet. Once you place an order,
-                it will appear here.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="w-full max-w-full">
-                {processedOrders.map((orderSet) => (
-                  <ParcelAccordion
-                    key={orderSet.id}
-                    orderId={orderSet.id}
-                    orderDisplayId={`#${orderSet.display_id}`}
-                    createdAt={orderSet.created_at}
-                    total={orderSet.total}
-                    orders={orderSet.orders || []}
-                    currency_code={orderSet.currency_code}
-                  />
-                ))}
-              </div>
-              {/* TODO - pagination */}
-              <OrdersPagination pages={pages} />
-            </>
-          )}
-        </div>
+    <div className="flex flex-col gap-8 w-full">
+      <div className="lg:flex hidden flex-col gap-2">
+        <h1 className="sop-headline-md-medium">คำสั่งซื้อสินค้า</h1>
       </div>
-    </main>
+
+      <OrderListSection orders={orders} reviewedByOrderId={reviewedByOrderId} />
+    </div>
   )
 }

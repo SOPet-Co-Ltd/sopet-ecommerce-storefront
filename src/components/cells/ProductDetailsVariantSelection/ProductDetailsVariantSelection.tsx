@@ -28,6 +28,7 @@ import {
   MeatballsMenuIcon,
 } from "@/icons"
 import { ProductDetailQuantitySelection } from "@/components/cells"
+import { AdditionalAttributeProps } from "@/types/product"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -297,16 +298,24 @@ const ShareModal = ({
   )
 }
 
+import { ProductShowPrice } from "@/components/sections/ProductShowPrice/ProductShowPrice"
+import { ProductExpiryDate } from "@/components/sections/ProductExpiryDate/ProductExpiryDate"
+
 export const ProductDetailsVariantSelection = ({
   product,
   locale,
   user,
   wishlist,
+  dateOfExpired,
 }: {
-  product: HttpTypes.StoreProduct & { seller?: SellerProps }
+  product: HttpTypes.StoreProduct & {
+    seller?: SellerProps
+    attribute_values?: AdditionalAttributeProps[]
+  }
   locale: string
   user: HttpTypes.StoreCustomer | null
   wishlist?: Wishlist[]
+  dateOfExpired: string | null
 }) => {
   // Sync the selected variant into the URL query string without triggering
   // a Next.js navigation, so sharing the URL preserves the selected variant
@@ -375,10 +384,10 @@ export const ProductDetailsVariantSelection = ({
   // get selected variant id
   const variantId =
     product.variants?.find(({ options }: { options: any }) =>
-      options?.every((option: any) =>
-        selectedVariant[option.option?.title.toLowerCase() || ""]?.includes(
+      options?.every(
+        (option: any) =>
+          selectedVariant[option.option?.title.toLowerCase() || ""] ===
           option.value
-        )
       )
     )?.id || ""
 
@@ -447,6 +456,12 @@ export const ProductDetailsVariantSelection = ({
 
   return (
     <>
+      {/* Product Price */}
+      <ProductShowPrice product={product} selectedVariant={selectedVariant} />
+
+      {/* Product Expiry Date */}
+      <ProductExpiryDate dateOfExpired={dateOfExpired} />
+
       {/* Product Variants Selection */}
       {hasAnyPrice && (
         <ProductVariants

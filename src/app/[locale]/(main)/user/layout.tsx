@@ -14,12 +14,12 @@ export default async function UserLayout({
     redirect("/login")
   }
   return (
-    <div className={cn("md:px-sop-80px md:py-[30px] px-sop-16px py-sop-20px")}>
+    <div className={cn("md:px-sop-80px md:py-7.5 px-0 py-sop-20px")}>
       <div className={cn("mb-sop-40px lg:block hidden")}>
         <UserBreadcrumbs />
       </div>
       <div className={cn("grid grid-cols-1 lg:grid-cols-4 gap-5 lg:gap-8")}>
-        <aside className="lg:col-span-1">
+        <aside className="lg:col-span-1 px-sop-16px">
           <UserNavigation user={customer} />
         </aside>
         <main className="lg:col-span-3">{children}</main>
