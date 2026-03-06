@@ -65,8 +65,19 @@ export const getRecentOrderProducts = async (): Promise<Array<
         order.items.forEach((item) => {
           // Product is nested under variant.product based on backend query
           const product = item.variant?.product || item.product
-          if (product && product.id && !productMap.has(product.id)) {
-            productMap.set(product.id, product)
+          const withMeta = product as
+            | (HttpTypes.StoreProduct & {
+                metadata?: Record<string, unknown>
+                seller?: SellerProps
+              })
+            | undefined
+          if (
+            withMeta &&
+            withMeta.id &&
+            !productMap.has(withMeta.id) &&
+            withMeta.metadata?.published_to_algolia === true
+          ) {
+            productMap.set(withMeta.id, withMeta)
           }
         })
       }
