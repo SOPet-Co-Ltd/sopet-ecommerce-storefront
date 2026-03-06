@@ -1,30 +1,54 @@
 import { NextRequest, NextResponse } from "next/server"
 
-import { PROTECTED_ROUTES } from "./lib/constants"
+import { GUEST_ONLY_ROUTES, PROTECTED_ROUTES } from "./lib/constants"
 import { isTokenExpired } from "./lib/helpers/token"
 
 const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
 
-const makeAuthRedirect = (
+function getPathContext(pathname: string) {
+  const segment = pathname.split("/")[1]
+  const looksLikeLocale = /^[a-z]{2}$/i.test(segment || "")
+  const pathWithoutLocale = looksLikeLocale
+    ? pathname.replace(/^\/[^/]+/, "") || "/"
+    : pathname
+  const locale = looksLikeLocale ? segment! : DEFAULT_REGION
+  return { pathWithoutLocale, looksLikeLocale, locale }
+}
+
+function hasValidSession(request: NextRequest): boolean {
+  const jwtCookie = request.cookies.get("_medusa_jwt")
+  const token = jwtCookie?.value
+  if (!token) return false
+  return !isTokenExpired(token)
+}
+
+function isProtectedPath(pathWithoutLocale: string): boolean {
+  return PROTECTED_ROUTES.some((route) => pathWithoutLocale.startsWith(route))
+}
+
+function isGuestOnlyPath(pathWithoutLocale: string): boolean {
+  return GUEST_ONLY_ROUTES.some((route) => pathWithoutLocale.startsWith(route))
+}
+
+function redirectToLogin(
   req: NextRequest,
   locale: string,
   reason: "sessionRequired" | "sessionExpired"
-) => {
-  const redirectUrl = new URL(`/${locale}/login`, req.url)
-
-  redirectUrl.searchParams.set(reason, "true")
-
-  const response = NextResponse.redirect(redirectUrl)
-
+) {
+  const url = new URL(`/${locale}/login`, req.url)
+  url.searchParams.set(reason, "true")
+  const res = NextResponse.redirect(url)
   if (reason === "sessionExpired") {
-    response.cookies.delete("_medusa_jwt")
+    res.cookies.delete("_medusa_jwt")
   }
+  return res
+}
 
-  return response
+function redirectToUserArea(req: NextRequest, locale: string) {
+  return NextResponse.redirect(new URL(`/${locale}/user`, req.url), 307)
 }
 
 export async function middleware(request: NextRequest) {
-  // Handle OPTIONS requests (CORS preflight)
   if (request.method === "OPTIONS") {
     return new NextResponse(null, {
       status: 200,
@@ -38,51 +62,37 @@ export async function middleware(request: NextRequest) {
     })
   }
 
-  // Short-circuit static assets
   if (request.nextUrl.pathname.includes(".")) {
     return NextResponse.next()
   }
 
   const { pathname } = request.nextUrl
-  const urlSegment = pathname.split("/")[1]
-  const looksLikeLocale = /^[a-z]{2}$/i.test(urlSegment || "")
+  const { pathWithoutLocale, looksLikeLocale, locale } =
+    getPathContext(pathname)
+  const authenticated = hasValidSession(request)
 
-  const pathnameWithoutLocale = looksLikeLocale
-    ? pathname.replace(/^\/[^/]+/, "")
-    : pathname
-
-  const isProtectedRoute = PROTECTED_ROUTES.some((route) =>
-    pathnameWithoutLocale.startsWith(route)
-  )
-
-  // Handle protected routes - check token without backend calls
-  if (isProtectedRoute) {
-    const jwtCookie = request.cookies.get("_medusa_jwt")
-    const token = jwtCookie?.value
-
-    // Use locale from URL or fallback to DEFAULT_REGION
-    const locale = looksLikeLocale ? urlSegment : DEFAULT_REGION
-
-    // Not logged in before
-    if (!jwtCookie) {
-      return makeAuthRedirect(request, locale, "sessionRequired")
-    }
-
-    // Token exists but expired (client-side check, no backend)
-    if (token && isTokenExpired(token)) {
-      return makeAuthRedirect(request, locale, "sessionExpired")
-    }
+  // Authenticated customer must not access login/register → redirect to account
+  if (authenticated && isGuestOnlyPath(pathWithoutLocale)) {
+    return redirectToUserArea(request, locale)
   }
 
-  // Fast path: URL already has a locale segment, continue without redirect
+  // Anything under [locale]/user requires auth
+  if (isProtectedPath(pathWithoutLocale) && !authenticated) {
+    const jwtCookie = request.cookies.get("_medusa_jwt")
+    const reason =
+      jwtCookie?.value && isTokenExpired(jwtCookie.value)
+        ? "sessionExpired"
+        : "sessionRequired"
+    return redirectToLogin(request, locale, reason)
+  }
+
   if (looksLikeLocale) {
     return NextResponse.next()
   }
 
-  // No locale in URL - redirect to DEFAULT_REGION
   const redirectPath = pathname === "/" ? "" : pathname
-  const queryString = request.nextUrl.search ? request.nextUrl.search : ""
-  const redirectUrl = `${request.nextUrl.origin}/${DEFAULT_REGION}${redirectPath}${queryString}`
+  const query = request.nextUrl.search ? request.nextUrl.search : ""
+  const redirectUrl = `${request.nextUrl.origin}/${DEFAULT_REGION}${redirectPath}${query}`
   return NextResponse.redirect(redirectUrl, 307)
 }
 
