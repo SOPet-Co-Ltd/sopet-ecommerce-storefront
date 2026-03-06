@@ -174,8 +174,12 @@ export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
       cache: "force-cache",
     })
     .then((response) =>
-      parseWithSchema<RetrieveOrderResponse>(
-        retrieveOrderResponseSchema,
+      parseWithSchema(
+        retrieveOrderResponseSchema as unknown as ZodType<
+          RetrieveOrderResponse,
+          ZodTypeDef,
+          unknown
+        >,
         response,
         "retrieveOrder"
       )
@@ -288,8 +292,12 @@ export const listOrders = async (
       cache: "no-cache",
     })
     .then((response) =>
-      parseWithSchema<ListOrdersResponse>(
-        listOrdersResponseSchema,
+      parseWithSchema(
+        listOrdersResponseSchema as unknown as ZodType<
+          ListOrdersResponse,
+          ZodTypeDef,
+          unknown
+        >,
         response,
         "listOrders"
       )
