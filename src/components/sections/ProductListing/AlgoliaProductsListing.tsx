@@ -38,19 +38,26 @@ export const AlgoliaProductsListing = ({
   const facetFilters: string = getFacedFilters(searchParams)
   const query: string = searchParams.get("query") || ""
 
-  const filters = `${
-    seller_handle
-      ? `NOT seller:null AND seller.handle:${seller_handle} AND `
-      : "NOT seller:null AND "
-  }NOT seller.store_status:SUSPENDED AND supported_countries:${locale}${
-    category_id
-      ? ` AND categories.id:${category_id}${
-          collection_id !== undefined
-            ? ` AND collections.id:${collection_id}`
-            : ""
-        } ${facetFilters}`
-      : ` ${facetFilters}`
-  }`
+  // Build filters - only add seller filter if seller_handle is provided
+  let filters = `supported_countries:${locale}`
+
+  // Add seller filters only if seller_handle is specified
+  if (seller_handle) {
+    filters = `NOT seller:null AND seller.handle:${seller_handle} AND NOT seller.store_status:SUSPENDED AND ${filters}`
+  }
+
+  // Add category/collection filters
+  if (category_id) {
+    filters += ` AND categories.id:${category_id}`
+    if (collection_id !== undefined) {
+      filters += ` AND collections.id:${collection_id}`
+    }
+  }
+
+  // Add facet filters
+  if (facetFilters) {
+    filters += ` ${facetFilters}`
+  }
 
   return (
     <InstantSearchNext searchClient={client} indexName="products">

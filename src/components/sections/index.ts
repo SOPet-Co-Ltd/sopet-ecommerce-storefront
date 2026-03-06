@@ -1,5 +1,7 @@
 import { Hero } from "./Hero/Hero"
 import { HomeProductSection } from "./HomeProductSection/HomeProductSection"
+import { HomeRecommendedProductSection } from "./HomeRecommendedProductSection/HomeRecommendedProductSection"
+import { HomeRecentOrdersSection } from "./HomeRecentOrdersSection/HomeRecentOrdersSection"
 import { HomeCategories } from "./HomeCategories/HomeCategories"
 import { BannerSection } from "./BannerSection/BannerSection"
 import { ShopByStyleSection } from "./ShopByStyle/ShopByStyleSection"
@@ -21,10 +23,16 @@ import { ProductDetailReviewPagination } from "./ProductDetailReviewPagination/P
 import { ProductDetailReviewUserComment } from "./ProductDetailReviewUserComment/ProductDetailReviewUserComment"
 import { ProductCardShowPrice } from "./ProductCardShowPrice/ProductCardShowPrice"
 import { ProductCardReviewStars } from "./ProductReview/ProductCardReview"
+import OrderListSection from "./OrderListSection/OrderListSection"
+import { HomeSponsorsSection } from "./HomeSponsorsSection/HomeSponsorsSection"
+import { HomeFaqSection } from "./HomeFaqSection/HomeFaqSection"
+import { HomeFooterSection } from "./HomeFooterSection/HomeFooterSection"
 
 export {
   Hero,
   HomeProductSection,
+  HomeRecommendedProductSection,
+  HomeRecentOrdersSection,
   HomeCategories,
   BannerSection,
   ShopByStyleSection,
@@ -46,4 +54,8 @@ export {
   ProductDetailReviewUserComment,
   ProductCardShowPrice,
   ProductCardReviewStars,
+  OrderListSection,
+  HomeSponsorsSection,
+  HomeFaqSection,
+  HomeFooterSection,
 }

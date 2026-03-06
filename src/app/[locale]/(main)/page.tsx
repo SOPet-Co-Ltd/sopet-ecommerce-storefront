@@ -1,10 +1,10 @@
 import {
   BannerSection,
-  BlogSection,
-  Hero,
-  HomeCategories,
-  HomeProductSection,
-  ShopByStyleSection,
+  HomeFaqSection,
+  HomeFooterSection,
+  HomeRecommendedProductSection,
+  HomeRecentOrdersSection,
+  HomeSponsorsSection,
 } from "@/components/sections"
 
 import type { Metadata } from "next"
@@ -12,7 +12,36 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
-import { NavbarSearch } from "@/components/molecules"
+import {
+  listStorefrontBanners,
+  listStorefrontSponsors,
+} from "@/lib/data/storefront-config"
+import { Suspense } from "react"
+import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
+
+const HOME_FAQ_ITEMS: HomeFaqItem[] = [
+  {
+    id: "authentic-products",
+    question: "สินค้าในเว็บเป็น ของแท้ ใช้ไหม ?",
+    answer:
+      "สินค้าและยาของเรามาจากรพ.ที่จดทะเบียนถูกต้อง 100% บริษัทของเรายังได้รับการสนับสนุนโดยคณะนวัตกรรมบูรณาการ (SCII) จุฬาลงกรณ์มหาวิทยาลัย",
+  },
+  {
+    id: "shipping-methods",
+    question: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+    answer: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+  },
+  {
+    id: "contact-us",
+    question: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+    answer: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+  },
+  {
+    id: "about-us",
+    question: "SOPet คืออะไร",
+    answer: "SOPet คืออะไร",
+  },
+]
 
 export async function generateMetadata({
   params,
@@ -113,6 +142,10 @@ export default async function Home({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  const [sponsors, banners] = await Promise.allSettled([
+    listStorefrontSponsors(),
+    listStorefrontBanners(),
+  ])
 
   const headersList = await headers()
   const host = headersList.get("host")
@@ -123,8 +156,15 @@ export default async function Home({
     process.env.NEXT_PUBLIC_SITE_NAME ||
     "Mercur B2C Demo - Marketplace Storefront"
 
+  if (sponsors.status === "rejected" || banners.status === "rejected") {
+    return <div>Error loading storefront config</div>
+  }
+
+  const sponsorsData = sponsors.status === "fulfilled" ? sponsors.value : []
+  const bannersData = banners.status === "fulfilled" ? banners.value : []
+
   return (
-    <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start text-primary">
+    <main className="flex flex-col row-start-2 items-center sm:items-start text-primary">
       <link
         rel="preload"
         as="image"
@@ -160,8 +200,41 @@ export default async function Home({
           }),
         }}
       />
-      <NavbarSearch />
-      <div>Welcome to SOPet Co., Ltd. Official Store</div>
+      {/* Product Banner Section */}
+      <BannerSection banners={bannersData} />
+
+      <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
+        {/* Bought items */}
+        <div className="w-full">
+          <Suspense fallback={null}>
+            <HomeRecentOrdersSection locale={locale} />
+          </Suspense>
+        </div>
+
+        {/* Recommended Products Section */}
+        <div className="w-full">
+          <Suspense
+            fallback={
+              <div className="px-4 py-6 sop-body-md-medium text-sop-neutral-gray-200">
+                กำลังโหลดสินค้าแนะนำ...
+              </div>
+            }
+          >
+            <HomeRecommendedProductSection
+              heading="สินค้าแนะนำ"
+              locale={locale}
+            />
+          </Suspense>
+        </div>
+      </section>
+
+      <section className="w-full lg:px-20 lg:py-10 p-0 flex flex-col gap-10 bg-sop-base-white overflow-hidden">
+        <HomeSponsorsSection sponsors={sponsorsData} />
+        <HomeFaqSection items={HOME_FAQ_ITEMS} />
+      </section>
+
+      {/* Footer Section */}
+      <HomeFooterSection />
     </main>
   )
 }

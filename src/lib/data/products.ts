@@ -28,6 +28,7 @@ type ListProductsParams = {
   queryParams?: HttpTypes.FindParams &
     HttpTypes.StoreProductParams & {
       handle?: string[]
+      id?: string[]
     }
   category_id?: string
   collection_id?: string
@@ -347,5 +348,71 @@ export const listProductsWithSort = async ({
     },
     nextPage,
     queryParams,
+  }
+}
+
+export type ProductSectionType = "latest-purchased" | "recommended"
+
+type SectionResponse = {
+  product_ids: string[]
+  count: number
+}
+
+/**
+ * Fetches product IDs from a section API, then loads full product data and returns
+ * products in the section order. Used for latest-purchased and recommended sections.
+ */
+export const getSectionProducts = async ({
+  section,
+  countryCode,
+  limit = 12,
+  offset = 0,
+}: {
+  section: ProductSectionType
+  countryCode: string
+  limit?: number
+  offset?: number
+}): Promise<{
+  products: ProductWithSeller[]
+  count: number
+  nextPage: number | null
+}> => {
+  const headers = await getAuthHeaders()
+  try {
+    const sectionData = await sdk.client.fetch<SectionResponse>(
+      `/store/products/sections/${section}`,
+      {
+        method: "GET",
+        query: { limit, offset, country_code: countryCode },
+        headers,
+        next: { revalidate: 60 },
+        cache: "force-cache",
+      }
+    )
+    const { product_ids, count } = sectionData ?? { product_ids: [], count: 0 }
+    if (!product_ids?.length) {
+      return { products: [], count: 0, nextPage: null }
+    }
+    const {
+      response: { products: productsRaw },
+    } = await listProducts({
+      countryCode,
+      pageParam: 1,
+      queryParams: { id: product_ids, limit: product_ids.length },
+      forceCache: true,
+    })
+    const orderMap = new Map(product_ids.map((id, i) => [id, i]))
+    const sorted = [...productsRaw].sort(
+      (a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999)
+    )
+    const nextPage =
+      count > offset + limit ? Math.floor(offset / limit) + 2 : null
+    return {
+      products: sorted,
+      count,
+      nextPage,
+    }
+  } catch {
+    return { products: [], count: 0, nextPage: null }
   }
 }

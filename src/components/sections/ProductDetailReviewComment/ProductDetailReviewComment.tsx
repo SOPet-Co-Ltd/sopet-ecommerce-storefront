@@ -54,6 +54,34 @@ export const ProductDetailReviewComment = ({
         page,
         limit: DISPLAY_LIMIT,
       })
+
+      //   {
+      //     "reviews": [
+      //         {
+      //             "id": "01KJZAHWNJ20EG7SMA96W5SRN0",
+      //             "product_id": "prod_01KH6W31A0MMREZG8HJJE9N6Z3",
+      //             "customer_id": "cus_01KH6X6HA9R6BGZ7SMDPDVP7HG",
+      //             "order_id": "order_01KJTDQSJEJDBXE9E4BSSJJ652",
+      //             "rating": 3,
+      //             "comment": "",
+      //             "images": null,
+      //             "is_verified_purchase": false,
+      //             "created_at": "2026-03-05T15:41:09.170Z",
+      //             "updated_at": "2026-03-05T15:41:09.170Z",
+      //             "deleted_at": null,
+      //             "customer": null
+      //         }
+      //     ],
+      //     "meta": {
+      //         "page": 1,
+      //         "limit": 5,
+      //         "count": 1,
+      //         "total": 1,
+      //         "max_page": 1
+      //     }
+      // }
+      console.log({ data })
+
       setReviews(data.reviews)
       setMeta(data.meta)
     } catch (err) {

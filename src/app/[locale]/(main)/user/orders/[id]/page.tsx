@@ -1,53 +1,48 @@
-import { UserNavigation } from "@/components/molecules"
-import { verifyCustomer } from "@/lib/data/customer"
-import { Button } from "@/components/atoms"
-import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { ArrowLeftIcon } from "@/icons"
-import { redirect } from "next/navigation"
-import { format } from "date-fns"
-import { retrieveOrderSet } from "@/lib/data/orders"
-import { OrderDetailsSection } from "@/components/sections/OrderDetailsSection/OrderDetailsSection"
+import { retrieveOrder } from "@/lib/data/orders"
+import OrderDetailsTemplate from "@/components/templates/OrderDetailsTemplate/OrderDetailsTemplate"
+import { notFound } from "next/navigation"
+import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
+import {
+  checkCustomerHasReviewed,
+  getCurrentCustomerId,
+} from "@/lib/data/reviews"
 
-export default async function UserPage({
+export default async function OrderDetailsPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  const order = await retrieveOrder(id).catch(() => null)
 
-  const user = await verifyCustomer()
-  const orderSet = await retrieveOrderSet(id)
+  if (!order) {
+    return notFound()
+  }
 
-  if (!user) return redirect("/user")
+  // Determine if the authenticated customer has reviewed at least one product
+  // in this order (only relevant for completed orders).
+  const customerId = await getCurrentCustomerId()
+  let hasAnyReviewed = false
 
-  return (
-    <main className="container">
-      <div className="grid grid-cols-1 md:grid-cols-4 mt-6 gap-5 md:gap-8">
-        <UserNavigation />
-        <div className="md:col-span-3">
-          <LocalizedClientLink href="/user/orders">
-            <Button
-              variant="default"
-              className="label-md text-action-on-secondary uppercase flex items-center gap-2"
-            >
-              <ArrowLeftIcon className="size-4" />
-              All orders
-            </Button>
-          </LocalizedClientLink>
-          <div className="sm:flex items-center justify-between">
-            <h1 className="heading-md uppercase my-8">
-              Order set #{orderSet.display_id}
-            </h1>
-            <p className="label-md text-secondary">
-              Order date:{" "}
-              <span className="text-primary">
-                {format(orderSet.created_at || "", "yyyy-MM-dd")}
-              </span>
-            </p>
-          </div>
-          <OrderDetailsSection orderSet={orderSet} />
-        </div>
-      </div>
-    </main>
-  )
+  if (customerId && getOrderDisplayStatus(order) === "completed") {
+    const productIds = Array.from(
+      new Set(
+        (order.items || [])
+          .map((item) => item.product?.id)
+          .filter((pid): pid is string => Boolean(pid))
+      )
+    )
+
+    if (productIds.length > 0) {
+      const checks = await Promise.all(
+        productIds.map((productId) =>
+          checkCustomerHasReviewed(productId, customerId, order.id)
+        )
+      )
+
+      hasAnyReviewed = checks.some((value) => value === true)
+    }
+  }
+
+  return <OrderDetailsTemplate order={order} hasAnyReviewed={hasAnyReviewed} />
 }
