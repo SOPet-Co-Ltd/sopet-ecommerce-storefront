@@ -102,7 +102,11 @@ export const noDivisionCurrencies = [
   "xau",
 ]
 
+/** Paths under [locale] that require an authenticated customer (e.g. /user, /user/orders). */
 export const PROTECTED_ROUTES = ["/user"]
+
+/** Paths under [locale] that authenticated customers must not access (redirect to account). */
+export const GUEST_ONLY_ROUTES = ["/login", "/register"]
 
 export type UserSegmentConfig = {
   label: string
