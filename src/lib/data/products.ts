@@ -46,7 +46,7 @@ type ListProductsResponse = {
   queryParams?: HttpTypes.FindParams & HttpTypes.StoreProductParams
 }
 
-// Default fields to fetch for products
+// Default fields to fetch for products (include metadata for published_to_algolia filter)
 const DEFAULT_FIELDS = [
   "*variants.calculated_price",
   "+variants.inventory_quantity",
@@ -66,6 +66,7 @@ const DEFAULT_FIELDS = [
   "+review_count",
   "+average_rating",
   "+sold_count",
+  "+metadata",
 ] as const
 
 const REQUIRED_FIELDS = [
@@ -264,11 +265,14 @@ export const listProducts = async (
       useCached
     )
 
+    const publishedProducts = productsWithStats.filter(
+      (p) => p.metadata?.published_to_algolia === true
+    )
     const nextPage = count > offset + limit ? pageParamValue + 1 : null
 
     return {
       response: {
-        products: productsWithStats,
+        products: publishedProducts,
         count,
       },
       nextPage,
