@@ -13,6 +13,7 @@ export type CouponApiData = {
   expiry_date: string
   image_color: string | null
   status: string
+  vendorName: string | null
 }
 
 /**
@@ -73,6 +74,7 @@ export function mapCouponToCardData(coupon: CouponApiData) {
     expiry: coupon.expiry_date,
     conditionsUrl: "#",
     conditions: coupon.conditions,
+    vendorName: coupon.vendorName || undefined,
     leftTextTop: labels.top,
     leftTextBottom: labels.bottom,
     imageColor: coupon.image_color || undefined,

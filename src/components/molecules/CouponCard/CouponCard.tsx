@@ -11,6 +11,7 @@ export type CouponData = {
   description: string
   expiry: string
   conditionsUrl: string
+  vendorName?: string
   imageColor?: string
   leftTextTop?: string
   leftTextBottom?: string
@@ -54,8 +55,16 @@ export const CouponCard = ({
       {/* Left Part - Promotional Background */}
       <div
         className={`w-[110px] sm:w-[130px] shrink-0 ${
-          bgGradient || coupon.imageColor || "bg-sop-primary-300"
+          bgGradient || coupon.imageColor || ""
         } flex flex-col items-center justify-center text-center p-2 relative`}
+        style={
+          !bgGradient && !coupon.imageColor
+            ? {
+                background:
+                  "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)",
+              }
+            : undefined
+        }
       >
         <div className="text-white sop-body-lg-medium text-center drop-shadow-sm mb-1 leading-tight px-1 wrap-break-word">
           {coupon.leftTextTop || "Promotion"}
@@ -70,6 +79,16 @@ export const CouponCard = ({
       {/* Right Part - White Details */}
       <div className="flex-1 bg-white p-3 sm:p-4 flex flex-col justify-start relative border border-l-0 border-gray-100 rounded-r-xl overflow-hidden">
         <div className="flex flex-col mb-1.5">
+          {coupon.vendorName && (
+            <div className="flex items-center gap-1 mb-1">
+              <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-sop-3XS font-medium leading-none">
+                ร้านค้า
+              </span>
+              <Text className="sop-body-xs-regular text-gray-600 leading-none truncate">
+                {coupon.vendorName}
+              </Text>
+            </div>
+          )}
           <Text className="sop-body-md-medium text-gray-900 leading-tight mb-1 wrap-break-word">
             {coupon.title}
           </Text>

@@ -9,14 +9,6 @@ import {
 } from "@/components/molecules"
 import { fetchCoupons, mapCouponToCardData } from "@/lib/data/coupons"
 
-// Category-to-gradient mapping for home page display
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  new_customer:
-    "bg-[linear-gradient(90deg,var(--sop-ref-palette-primary-500,#9C6ADE)_30.29%,var(--sop-ref-palette-tertiary-500,#5587A0)_100%)]",
-  shipping: "bg-sop-additionalblue-500",
-  special: "bg-sop-secondary-500",
-}
-
 export const HomeCouponSection = () => {
   const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
   const [showCollected, setShowCollected] = useState(false)
@@ -31,10 +23,7 @@ export const HomeCouponSection = () => {
       try {
         const allCoupons = await fetchCoupons()
         // Take first 4 coupons for the home page display
-        const mapped = allCoupons.slice(0, 4).map((c) => ({
-          ...mapCouponToCardData(c),
-          bgGradient: CATEGORY_GRADIENTS[c.category] || "bg-sop-primary-500",
-        }))
+        const mapped = allCoupons.slice(0, 4).map((c) => mapCouponToCardData(c))
         setCoupons(mapped)
       } catch (error) {
         console.error("Failed to load home coupons:", error)
@@ -61,7 +50,6 @@ export const HomeCouponSection = () => {
           <CouponCard
             key={i}
             coupon={item}
-            bgGradient={item.bgGradient}
             onConditionsClick={setSelectedCoupon}
             onApply={handleApply}
           />
