@@ -2,12 +2,12 @@
 
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { Button, Input } from "@/components/atoms"
-import { Text, clx } from "@medusajs/ui"
+import { Text } from "@medusajs/ui"
 import { Ticket, X, ChevronRight } from "lucide-react"
 import { applyPromotions, deletePromotionCode } from "@/lib/data/cart"
 import { Cart } from "@/types/cart"
 import { useState } from "react"
-import Link from "next/link"
+import { CouponCard } from "../CouponCard/CouponCard"
 
 type DiscountModalProps = {
   isOpen: boolean
@@ -156,7 +156,7 @@ export const DiscountModal = ({ isOpen, close, cart }: DiscountModalProps) => {
         {/* Mock Coupon List */}
         <div className="flex flex-col gap-4">
           {MOCK_COUPONS.map((coupon, index) => (
-            <CouponTicket
+            <CouponCard
               key={index}
               coupon={coupon}
               onApply={() => handleApply(coupon.code)}
@@ -167,66 +167,5 @@ export const DiscountModal = ({ isOpen, close, cart }: DiscountModalProps) => {
         </div>
       </div>
     </Modal>
-  )
-}
-
-const CouponTicket = ({
-  coupon,
-  onApply,
-  isLoading,
-  isApplied,
-}: {
-  coupon: (typeof MOCK_COUPONS)[0]
-  onApply: () => void
-  isLoading: boolean
-  isApplied: boolean
-}) => {
-  return (
-    <div
-      className="flex w-full h-[120px] rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-pointer relative group"
-      onClick={!isApplied ? onApply : undefined}
-    >
-      {/* Left Part - Purple */}
-      <div
-        className={`w-[110px] ${coupon.imageColor} flex flex-col items-center justify-center text-center p-2 relative bg-sop-primary-300`}
-      >
-        <div className="text-sop-primary-500 font-bold text-xs leading-tight">
-          Promotion
-          <br />
-          Image
-        </div>
-        {/* Circle Cutouts - Left Side */}
-        <div className="absolute -left-sop-8px top-1/2 -translate-y-1/2 w-6 h-6 bg-white rounded-full" />
-      </div>
-
-      {/* Right Part - White */}
-      <div className="flex-1 bg-white p-4 flex flex-col justify-center relative border border-l-0 border-gray-100 rounded-r-xl">
-        <div className="flex justify-between items-start">
-          <div>
-            <Text className="sop-body-md-medium text-gray-900">
-              {coupon.title}
-            </Text>
-            <Text className="sop-body-xs-light text-gray-500 mt-1">
-              {coupon.description}
-            </Text>
-          </div>
-        </div>
-
-        <div className="mt-auto flex justify-between items-end">
-          <div>
-            <Link
-              href={coupon.conditionsUrl}
-              className="sop-body-xs-regular text-sop-primary-500 underline mb-1 block"
-              onClick={(e) => e.stopPropagation()}
-            >
-              เงื่อนไขการใช้งาน
-            </Link>
-            <Text className="sop-body-xs-light text-gray-400">
-              สิ้นสุด {coupon.expiry}
-            </Text>
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }

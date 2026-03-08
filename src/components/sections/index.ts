@@ -22,6 +22,7 @@ import { ProductDetailReviewUserComment } from "./ProductDetailReviewUserComment
 import { ProductCardShowPrice } from "./ProductCardShowPrice/ProductCardShowPrice"
 import { ProductCardReviewStars } from "./ProductReview/ProductCardReview"
 import OrderListSection from "./OrderListSection/OrderListSection"
+import { HomeCouponSection } from "./HomeCouponSection/HomeCouponSection"
 
 export {
   Hero,
@@ -48,4 +49,5 @@ export {
   ProductCardShowPrice,
   ProductCardReviewStars,
   OrderListSection,
+  HomeCouponSection,
 }

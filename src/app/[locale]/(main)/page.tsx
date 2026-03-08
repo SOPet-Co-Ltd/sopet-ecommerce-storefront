@@ -4,6 +4,7 @@ import {
   Hero,
   HomeCategories,
   HomeProductSection,
+  HomeCouponSection,
   ShopByStyleSection,
 } from "@/components/sections"
 
@@ -12,7 +13,6 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
-import { NavbarSearch } from "@/components/molecules"
 
 export async function generateMetadata({
   params,
@@ -124,7 +124,7 @@ export default async function Home({
     "Mercur B2C Demo - Marketplace Storefront"
 
   return (
-    <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start text-primary">
+    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full pb-10">
       <link
         rel="preload"
         as="image"
@@ -160,8 +160,37 @@ export default async function Home({
           }),
         }}
       />
-      <NavbarSearch />
-      <div>Welcome to SOPet Co., Ltd. Official Store</div>
+
+      <div className="w-full">
+        {/* Banner Section */}
+        <section className="w-full bg-sop-primary-100 py-10 rounded-2xl container mx-auto mb-10 mt-6 relative overflow-hidden hidden lg:block h-[350px]">
+          <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-linear-to-r from-sop-primary-300 to-sop-primary-100"></div>
+          <div className="flex z-10 relative items-center h-full px-10">
+            <h1 className="text-5xl font-bold text-sop-primary-700 leading-snug">
+              Medicine
+              <br />
+              with Care
+              <br />
+              <span className="text-3xl font-medium mt-2 block">
+                for Pets We Love
+              </span>
+            </h1>
+          </div>
+        </section>
+
+        {/* Categories (Figma shows sub-menu bubbles, we can place them here later if needed) */}
+        <div className="container mx-auto">
+          {/* Coupon Section */}
+          <HomeCouponSection />
+
+          {/* Recommended Products */}
+          <HomeProductSection
+            heading="สินค้าแนะนำ"
+            locale={locale}
+            home={true}
+          />
+        </div>
+      </div>
     </main>
   )
 }
