@@ -57,11 +57,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "r2.sopet.co",
+        hostname: "r2.sopet.org",
       },
       {
         protocol: "https",
-        hostname: "sopet.co",
+        hostname: "sopet.org",
       },
     ],
   },
