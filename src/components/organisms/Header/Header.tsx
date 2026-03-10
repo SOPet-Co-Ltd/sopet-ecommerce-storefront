@@ -37,46 +37,7 @@ export const Header = async () => {
 
   return (
     <header>
-      <div className="flex py-2 lg:px-8 px-4">
-        <div className="flex items-center lg:w-1/3">
-          <MobileNavbar
-            parentCategories={parentCategories}
-            childrenCategories={categories}
-          />
-          <div className="hidden lg:block">
-            <SellNowButton />
-          </div>
-        </div>
-        <div className="flex lg:justify-center lg:w-1/3 items-center pl-4 lg:pl-0">
-          <LocalizedClientLink href="/" className="text-2xl font-bold">
-            <Image
-              src="/Logo.svg"
-              width={126}
-              height={40}
-              alt="Logo"
-              priority
-            />
-          </LocalizedClientLink>
-        </div>
-        <div className="flex items-center justify-end gap-2 lg:gap-4 w-full lg:w-1/3 py-2">
-          <CountrySelector regions={regions} />
-          {user && <MessageButton />}
-          <UserDropdown user={user} />
-          {user && (
-            <LocalizedClientLink href="/user/wishlist" className="relative">
-              <HeartIcon size={20} />
-              {Boolean(wishlistCount) && (
-                <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0">
-                  {wishlistCount}
-                </Badge>
-              )}
-            </LocalizedClientLink>
-          )}
-
-          <CartDropdown />
-        </div>
-      </div>
-      <Navbar categories={categories} />
+      <Navbar categories={categories} user={user} />
     </header>
   )
 }

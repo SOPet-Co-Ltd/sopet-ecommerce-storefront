@@ -1,73 +1,114 @@
 "use client"
 
-import {
-  Badge,
-  Divider,
-  LogoutButton,
-  NavigationItem,
-} from "@/components/atoms"
-import { Dropdown } from "@/components/molecules"
+import { Avatar, Button, Dropdown } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { ProfileIcon } from "@/icons"
+import { DownArrowIcon, LogoutIcon } from "@/icons"
+import { USER_SEGMENT_LABELS } from "@/lib/constants"
+import { signout } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
-import { useUnreads } from "@talkjs/react"
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
+
+type DropDownItemProps = {
+  icon: ReactNode
+  label: string
+  onClick?: () => void | Promise<void>
+}
+
+const DropDownItem = ({ icon, label, onClick }: DropDownItemProps) => {
+  return (
+    <button
+      type="button"
+      className="flex w-full cursor-pointer items-center gap-sop-12px px-sop-16px py-2.5"
+      onClick={() => {
+        void onClick?.()
+      }}
+    >
+      {icon}
+      <p>{label}</p>
+    </button>
+  )
+}
+
+const getNavigationItems = () => {
+  return Object.entries(USER_SEGMENT_LABELS).map(([segment, config]) => {
+    return {
+      segment,
+      label: config?.label ?? segment,
+      Icon: config?.icon,
+      href: `/user/${segment}` as const,
+    }
+  })
+}
 
 export const UserDropdown = ({
   user,
 }: {
   user: HttpTypes.StoreCustomer | null
 }) => {
+  const metadata = (user?.metadata ?? null) as Record<string, unknown> | null
+  const displayName =
+    (user &&
+      ([user.first_name, user.last_name].filter(Boolean).join(" ") ||
+        user.email ||
+        user.phone ||
+        "")) ||
+    ""
+  const avatarUrl = metadata?.avatar_url as string | undefined
   const [open, setOpen] = useState(false)
 
-  const unreads = useUnreads()
+  const navigationItems = getNavigationItems()
 
-  return (
-    <div
-      className="relative"
-      onMouseOver={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-      onFocus={() => setOpen(true)}
+  return user ? (
+    <Dropdown
+      open={open}
+      onOpenChange={setOpen}
+      align="end"
+      width={240}
+      trigger={
+        <div className="flex cursor-pointer items-center gap-sop-8px">
+          <Avatar
+            src={avatarUrl}
+            size="xsmall"
+            className="h-sop-28px w-sop-28px"
+            alt={displayName || "User avatar"}
+          />
+          <span className="sop-body-md-regular hidden max-w-[120px] truncate text-sop-neutral-gray-300 md:inline-flex">
+            {displayName.split(" ")[0]}
+          </span>
+          <DownArrowIcon size={16} color="#454547" />
+        </div>
+      }
     >
-      <LocalizedClientLink
-        href="/user"
-        className="relative"
-        aria-label="Go to user profile"
-      >
-        <ProfileIcon size={20} />
-      </LocalizedClientLink>
-      <Dropdown show={open}>
-        {user ? (
-          <div className="p-1">
-            <div className="lg:w-[200px]">
-              <h3 className="uppercase heading-xs border-b p-4">
-                Your account
-              </h3>
-            </div>
-            <NavigationItem href="/user/orders">Orders</NavigationItem>
-            <NavigationItem href="/user/messages" className="relative">
-              Messages
-              {Boolean(unreads?.length) && (
-                <Badge className="absolute top-3 left-24 w-4 h-4 p-0">
-                  {unreads?.length}
-                </Badge>
-              )}
-            </NavigationItem>
-            <NavigationItem href="/user/returns">Returns</NavigationItem>
-            <NavigationItem href="/user/addresses">Addresses</NavigationItem>
-            <NavigationItem href="/user/reviews">Reviews</NavigationItem>
-            <NavigationItem href="/user/wishlist">Wishlist</NavigationItem>
-            <Divider />
-            <NavigationItem href="/user/settings">Settings</NavigationItem>
-            <LogoutButton />
-          </div>
-        ) : (
-          <div className="p-1">
-            <NavigationItem href="/user">Login</NavigationItem>
-            <NavigationItem href="/user/register">Register</NavigationItem>
-          </div>
-        )}
-      </Dropdown>
-    </div>
+      <div className="flex w-[240px] flex-col">
+        {navigationItems.map(({ segment, label, href, Icon }) => (
+          <LocalizedClientLink
+            key={segment}
+            href={href}
+            onClick={() => setOpen(false)}
+          >
+            {Icon && (
+              <DropDownItem
+                icon={<Icon size={14} color="#454547" />}
+                label={label}
+              />
+            )}
+          </LocalizedClientLink>
+        ))}
+        <DropDownItem
+          icon={<LogoutIcon size={14} color="#454547" />}
+          label="ออกจากระบบ"
+          onClick={async () => {
+            await signout()
+            setOpen(false)
+          }}
+        />
+      </div>
+    </Dropdown>
+  ) : (
+    <LocalizedClientLink href="/login">
+      <Button className="hidden md:block" size="md" variant="primary">
+        เข้าสู่ระบบ
+      </Button>
+    </LocalizedClientLink>
   )
 }
