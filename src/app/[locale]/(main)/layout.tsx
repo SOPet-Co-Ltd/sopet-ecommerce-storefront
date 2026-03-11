@@ -23,20 +23,20 @@ export default async function RootLayout({
 
   if (!APP_ID || !user)
     return (
-      <>
+      <div className="flex min-h-dvh flex-col">
         <Header />
-        {children}
+        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
-      </>
+      </div>
     )
 
   return (
-    <>
-      <Session appId={APP_ID} userId={user.id}>
+    <Session appId={APP_ID} userId={user.id}>
+      <div className="flex min-h-dvh flex-col">
         <Header />
-        {children}
+        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
-      </Session>
-    </>
+      </div>
+    </Session>
   )
 }
