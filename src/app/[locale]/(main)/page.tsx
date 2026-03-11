@@ -18,6 +18,7 @@ import {
 } from "@/lib/data/storefront-config"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
+import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
 
 const HOME_FAQ_ITEMS: HomeFaqItem[] = [
   {
@@ -235,6 +236,7 @@ export default async function Home({
 
       {/* Footer Section */}
       <HomeFooterSection />
+      <VetAIFloatingButton />
     </main>
   )
 }
