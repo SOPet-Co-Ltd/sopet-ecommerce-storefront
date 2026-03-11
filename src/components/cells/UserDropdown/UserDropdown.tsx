@@ -2,7 +2,7 @@
 
 import { Avatar, Button, Dropdown } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { DownArrowIcon, LogoutIcon } from "@/icons"
+import { DownArrowIcon, LogoutIcon, SignOutIcon } from "@/icons"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
 import { signout } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
@@ -24,7 +24,7 @@ const DropDownItem = ({ icon, label, onClick }: DropDownItemProps) => {
       }}
     >
       {icon}
-      <p>{label}</p>
+      <p className="sop-body-sm-regular">{label}</p>
     </button>
   )
 }
@@ -95,7 +95,7 @@ export const UserDropdown = ({
           </LocalizedClientLink>
         ))}
         <DropDownItem
-          icon={<LogoutIcon size={14} color="#454547" />}
+          icon={<SignOutIcon size={14} color="#454547" />}
           label="ออกจากระบบ"
           onClick={async () => {
             await signout()
