@@ -425,7 +425,7 @@ export const ProductDetailsVariantSelection = ({
     const storeCartLineItem = {
       thumbnail: product.thumbnail || "",
       product_title: product.title,
-      quantity: 1,
+      quantity: productQuantity,
       subtotal,
       total,
       tax_total: total - subtotal,
@@ -440,7 +440,7 @@ export const ProductDetailsVariantSelection = ({
       }
       await addToCart({
         variantId: variantId,
-        quantity: 1,
+        quantity: productQuantity,
         countryCode: locale,
         productId: product.id,
       })
