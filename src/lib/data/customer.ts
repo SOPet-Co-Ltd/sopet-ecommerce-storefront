@@ -21,8 +21,6 @@ import {
 export async function ensureStripeCustomer() {
   const headers = await getAuthHeaders()
 
-  console.log({ headers })
-
   if (!headers || Object.keys(headers).length === 0) {
     // Not logged in; nothing to do.
     return
