@@ -114,4 +114,5 @@ public/                 Static assets
 .storybook/             Storybook config
 ```
 
+ahihi
 properties of sopet.co 2026 all rights reserved.
