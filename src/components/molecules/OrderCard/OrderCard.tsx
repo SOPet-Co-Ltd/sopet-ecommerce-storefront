@@ -50,18 +50,10 @@ const OrderCard = ({ order }: OrderCardProps) => {
 
   const items = order.items || []
 
-  // Calculate total: product price + shipping
+  // Use the order's total which already includes discounts and shipping
   const calculatedTotal = useMemo(() => {
-    const itemsTotal = items.reduce((acc: number, item: any) => {
-      const price = Number(item.unit_price) || 0
-      const qty = Number(item.quantity) || 0
-      return acc + price * qty
-    }, 0)
-    // Add shipping total if available
-    const shipping = Number(order.shipping_total) || 0
-
-    return itemsTotal + shipping
-  }, [items, order.shipping_total])
+    return Number(order.total) || 0
+  }, [order.total])
 
   return (
     <>

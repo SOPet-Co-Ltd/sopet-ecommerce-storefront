@@ -1,3 +1,6 @@
+"use server"
+import { getAuthHeaders } from "./cookies"
+
 const MEDUSA_BACKEND_URL =
   process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 
@@ -14,6 +17,8 @@ export type CouponApiData = {
   image_color: string | null
   status: string
   vendorName: string | null
+  is_collected?: boolean
+  is_used?: boolean
 }
 
 /**
@@ -21,22 +26,41 @@ export type CouponApiData = {
  * @param category Optional category filter: "new_customer" | "shipping" | "special"
  */
 export async function fetchCoupons(
-  category?: string
+  category?: string,
+  limit: number = 20,
+  offset: number = 0
 ): Promise<CouponApiData[]> {
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/coupons`)
+    url.searchParams.set("take", limit.toString())
+    url.searchParams.set("skip", offset.toString())
     if (category) {
       url.searchParams.set("category", category)
     }
 
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+    const headers: Record<string, string> = {
+      "x-publishable-api-key": publishableKey,
+    }
 
-    const res = await fetch(url.toString(), {
-      headers: {
-        "x-publishable-api-key": publishableKey,
-      },
-      next: { revalidate: 60 }, // revalidate every 60 seconds
-    })
+    const authHeaders: any = await getAuthHeaders()
+    if (authHeaders.authorization) {
+      headers["Authorization"] = authHeaders.authorization
+    }
+
+    // Do not cache the result if fetching personalized data
+    const fetchOptions: RequestInit = {
+      headers,
+    }
+
+    if (!authHeaders.authorization) {
+      fetchOptions.next = { revalidate: 60 } // cache public requests
+    } else {
+      fetchOptions.cache = "no-store" // never cache personalized requests
+      url.searchParams.set("t", Date.now().toString()) // force cache-busting
+    }
+
+    const res = await fetch(url.toString(), fetchOptions)
 
     if (!res.ok) {
       console.error(`Failed to fetch coupons: ${res.status}`)
@@ -52,31 +76,98 @@ export async function fetchCoupons(
 }
 
 /**
- * Map API coupon data to the format used by CouponCard component.
+ * Collect a native promotion to the user's wallet.
  */
-export function mapCouponToCardData(coupon: CouponApiData) {
-  // Map category to display labels
-  const categoryLabels: Record<string, { top: string; bottom: string }> = {
-    new_customer: { top: "New User", bottom: "เฉพาะลูกค้าใหม่" },
-    shipping: { top: "จัดส่งฟรี", bottom: "" },
-    special: { top: "ส่วนลดพิเศษ", bottom: "" },
-  }
+export async function collectCoupon(promotionId: string) {
+  try {
+    const url = new URL(
+      `${MEDUSA_BACKEND_URL}/store/coupons/${promotionId}/collect`
+    )
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-  const labels = categoryLabels[coupon.category] || {
-    top: "",
-    bottom: "",
-  }
+    const authHeaders: any = await getAuthHeaders()
+    if (!authHeaders.authorization) {
+      return { success: false, message: "Unauthorized" }
+    }
 
-  return {
-    code: coupon.code,
-    title: coupon.title,
-    description: coupon.description,
-    expiry: coupon.expiry_date,
-    conditionsUrl: "#",
-    conditions: coupon.conditions,
-    vendorName: coupon.vendorName || undefined,
-    leftTextTop: labels.top,
-    leftTextBottom: labels.bottom,
-    imageColor: coupon.image_color || undefined,
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "x-publishable-api-key": publishableKey,
+        Authorization: authHeaders.authorization,
+      },
+    })
+
+    const data = await res.json()
+    return data
+  } catch (error) {
+    console.error("Error collecting coupon:", error)
+    return { success: false, message: "Network error" }
+  }
+}
+
+/**
+ * Fetch collected coupons for the logged-in customer's wallet.
+ */
+export async function fetchMyCoupons(): Promise<CouponApiData[]> {
+  try {
+    const url = new URL(`${MEDUSA_BACKEND_URL}/store/me/coupons`)
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+    const authHeaders: any = await getAuthHeaders()
+    if (!authHeaders.authorization) {
+      return []
+    }
+
+    const res = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "x-publishable-api-key": publishableKey,
+        Authorization: authHeaders.authorization,
+      },
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      console.error(`Failed to fetch my coupons: ${res.status}`)
+      return []
+    }
+
+    const data = await res.json()
+    return data.coupons || []
+  } catch (error) {
+    console.error("Error fetching my coupons:", error)
+    return []
+  }
+}
+
+/**
+ * Mark a coupon as used in the user's wallet by its promo code.
+ */
+export async function markCouponAsUsed(code: string) {
+  try {
+    const url = new URL(`${MEDUSA_BACKEND_URL}/store/coupons/use-by-code`)
+    const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+    const authHeaders: any = await getAuthHeaders()
+    if (!authHeaders.authorization) {
+      return { success: false, message: "Unauthorized" }
+    }
+
+    const res = await fetch(url.toString(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-publishable-api-key": publishableKey,
+        Authorization: authHeaders.authorization,
+      },
+      body: JSON.stringify({ code }),
+    })
+
+    const data = await res.json()
+    return data
+  } catch (error) {
+    console.error("Error marking coupon as used:", error)
+    return { success: false, message: "Network error" }
   }
 }

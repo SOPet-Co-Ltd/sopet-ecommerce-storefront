@@ -58,7 +58,7 @@ export const CartSummary = ({
             </span>
             <span className="sop-body-md-regular text-sop-base-black">
               {convertToLocale({
-                amount: customTotal ?? subtotal ?? 0,
+                amount: subtotal ?? 0,
                 currency_code,
               })}
             </span>
@@ -68,7 +68,7 @@ export const CartSummary = ({
             <>
               <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between text-gray-900">
                 <span>ส่วนลดร้านค้า</span>
-                <span className="font-medium">
+                <span className="font-medium text-sop-base-black">
                   {convertToLocale({ amount: discount_total, currency_code })}
                 </span>
               </div>
@@ -81,16 +81,16 @@ export const CartSummary = ({
               รวมทั้งสิ้น
             </span>
             {discount_total > 0 && selectedCount === totalCount ? (
-              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
+              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-white bg-sop-secondary-500 px-3 rounded-lg">
                 {convertToLocale({
-                  amount: customTotal ?? total ?? 0,
+                  amount: total ?? 0,
                   currency_code,
                 })}
               </span>
             ) : (
-              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-black">
+              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-white bg-sop-secondary-500 px-3 rounded-lg">
                 {convertToLocale({
-                  amount: customTotal ?? total ?? 0,
+                  amount: total ?? 0,
                   currency_code,
                 })}
               </span>

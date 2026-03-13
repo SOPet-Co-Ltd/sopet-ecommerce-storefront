@@ -1,12 +1,14 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import Cookies from "js-cookie"
 import {
   CouponCard,
   CouponConditionsModal,
   CouponCollectedModal,
 } from "@/components/molecules"
-import { fetchCoupons, mapCouponToCardData } from "@/lib/data/coupons"
+import { fetchCoupons, collectCoupon } from "@/lib/data/coupons"
+import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import Image from "next/image"
 
 // Define a reusable section component to handle the Load More logic
@@ -23,7 +25,7 @@ const CouponSection = ({
   headerText: string
   coupons: any[]
   onConditionsClick: (coupon: any) => void
-  onApply: () => void
+  onApply: (coupon: any) => void
 }) => {
   const [visibleRows, setVisibleRows] = useState(2)
   const itemsPerRowDesktop = 4
@@ -53,7 +55,8 @@ const CouponSection = ({
             key={i}
             coupon={coupon}
             onConditionsClick={onConditionsClick}
-            onApply={onApply}
+            onApply={() => onApply(coupon)}
+            isApplied={coupon.is_collected}
           />
         ))}
       </div>
@@ -81,8 +84,31 @@ export default function CouponsPage() {
   const [specialCoupons, setSpecialCoupons] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const handleApply = useCallback(() => {
-    setShowCollected(true)
+  const handleApply = useCallback(async (coupon: any) => {
+    try {
+      const res = await collectCoupon(coupon.id)
+      if (res.success) {
+        setShowCollected(true)
+
+        // Optimistically update the local state to show it as collected
+        const updateCoupons = (coupons: any[]) =>
+          coupons.map((c) =>
+            c.id === coupon.id ? { ...c, is_collected: true } : c
+          )
+
+        if (coupon.category === "new_customer") {
+          setNewCustomerCoupons(updateCoupons)
+        } else if (coupon.category === "shipping") {
+          setShippingCoupons(updateCoupons)
+        } else {
+          setSpecialCoupons(updateCoupons)
+        }
+      } else {
+        alert(res.message || "ไม่สามารถเก็บคูปองได้")
+      }
+    } catch (e) {
+      alert("เกิดข้อผิดพลาดในการเก็บคูปอง")
+    }
   }, [])
 
   useEffect(() => {
@@ -94,6 +120,7 @@ export default function CouponsPage() {
           fetchCoupons("shipping"),
           fetchCoupons("special"),
         ])
+        console.log("Fetched UI coupons:", { newCustomer, shipping, special })
         setNewCustomerCoupons(newCustomer.map(mapCouponToCardData))
         setShippingCoupons(shipping.map(mapCouponToCardData))
         setSpecialCoupons(special.map(mapCouponToCardData))

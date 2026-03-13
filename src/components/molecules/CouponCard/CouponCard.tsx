@@ -6,6 +6,7 @@ import { Button } from "@/components/atoms"
 import { useState } from "react"
 
 export type CouponData = {
+  id: string
   code: string
   title: string
   description: string
@@ -15,6 +16,8 @@ export type CouponData = {
   imageColor?: string
   leftTextTop?: string
   leftTextBottom?: string
+  is_collected?: boolean
+  is_used?: boolean
 }
 
 export type CouponCardProps = {
@@ -23,7 +26,7 @@ export type CouponCardProps = {
   onConditionsClick?: (coupon: CouponData) => void
   isLoading?: boolean
   isApplied?: boolean
-  bgGradient?: string
+  mode?: "collect" | "use"
 }
 
 export const CouponCard = ({
@@ -32,11 +35,14 @@ export const CouponCard = ({
   onConditionsClick,
   isLoading,
   isApplied: externalIsApplied,
-  bgGradient,
+  mode = "collect",
 }: CouponCardProps) => {
   const [localApplied, setLocalApplied] = useState(false)
   const isApplied =
-    externalIsApplied !== undefined ? externalIsApplied : localApplied
+    externalIsApplied !== undefined
+      ? externalIsApplied
+      : coupon.is_collected || localApplied
+  const isUsed = coupon.is_used || false
 
   return (
     <div
@@ -55,10 +61,10 @@ export const CouponCard = ({
       {/* Left Part - Promotional Background */}
       <div
         className={`w-[110px] sm:w-[130px] shrink-0 ${
-          bgGradient || coupon.imageColor || ""
+          coupon.imageColor || ""
         } flex flex-col items-center justify-center text-center p-2 relative`}
         style={
-          !bgGradient && !coupon.imageColor
+          !coupon.imageColor
             ? {
                 background:
                   "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)",
@@ -118,21 +124,29 @@ export const CouponCard = ({
           <div className="flex justify-end w-full mt-1.5">
             <Button
               className={`rounded-full px-3 sm:px-4 h-auto min-h-sop-24px sm:min-h-sop-32px py-1 sm:py-1.5 border-none shadow-sm whitespace-nowrap transition-colors ${
-                isApplied
+                isApplied || isUsed
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
                   : "bg-[#82C3A2] hover:bg-[#6fb390] text-white"
               }`}
               onClick={(e) => {
                 e.stopPropagation()
-                if (!isApplied) {
+                if (!isApplied && !isUsed) {
                   setLocalApplied(true)
                   if (onApply) onApply()
                 }
               }}
-              disabled={isLoading || isApplied}
+              disabled={isLoading || isApplied || isUsed}
             >
               <span className="text-sop-3XS sm:sop-body-xs-medium">
-                {isApplied ? "เก็บแล้ว" : "เก็บโค้ดส่วนลด"}
+                {isUsed
+                  ? "โค้ดถูกใช้แล้ว"
+                  : mode === "use"
+                    ? isApplied
+                      ? "ใช้งานแล้ว"
+                      : "ใช้โค้ด"
+                    : isApplied
+                      ? "เก็บแล้ว"
+                      : "เก็บโค้ดส่วนลด"}
               </span>
             </Button>
           </div>

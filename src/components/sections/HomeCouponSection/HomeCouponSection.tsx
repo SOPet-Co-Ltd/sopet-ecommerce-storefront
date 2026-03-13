@@ -7,7 +7,8 @@ import {
   CouponConditionsModal,
   CouponCollectedModal,
 } from "@/components/molecules"
-import { fetchCoupons, mapCouponToCardData } from "@/lib/data/coupons"
+import { fetchCoupons } from "@/lib/data/coupons"
+import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 
 export const HomeCouponSection = () => {
   const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
