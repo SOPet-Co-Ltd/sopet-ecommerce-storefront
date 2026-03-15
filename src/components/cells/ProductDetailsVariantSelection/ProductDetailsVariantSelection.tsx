@@ -480,6 +480,10 @@ export const ProductDetailsVariantSelection = ({
       )
       // prepareGuestCheckout redirects on success; we only reach here on throw
     } catch (error) {
+      // Next.js redirect() throws NEXT_REDIRECT; redirect is in progress — don't show error
+      if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+        return
+      }
       toast.error({
         title: "ไม่สามารถดำเนินการได้",
         description:
