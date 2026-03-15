@@ -1,8 +1,6 @@
-import { CartTemplate } from "@/components/organisms"
-import { restoreHiddenItems, retrieveCart } from "@/lib/data/cart"
 import { Cart } from "@/types/cart"
-import { redirect } from "next/navigation"
-// import { mockCart } from "@/lib/mocks/cart"
+import { getCartForCustomerCartPage } from "@/lib/data/customer-cart-page"
+import { CartPageClient } from "./CartPageClient"
 
 export const dynamic = "force-dynamic"
 
@@ -11,14 +9,14 @@ export const metadata = {
   description: "View your cart",
 }
 
-export default async function CartPage() {
-  const restored = await restoreHiddenItems()
+export default async function CartPage({
+  params,
+}: {
+  params: { locale: string }
+}) {
+  const { locale } = params
 
-  if (restored) {
-    redirect("/cart")
-  }
+  const cart = await getCartForCustomerCartPage(locale)
 
-  const cart = await retrieveCart()
-
-  return <CartTemplate cart={cart as Cart} />
+  return <CartPageClient initialCart={cart as Cart | null} locale={locale} />
 }

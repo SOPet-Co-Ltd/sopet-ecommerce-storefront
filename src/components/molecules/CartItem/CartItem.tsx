@@ -8,7 +8,11 @@ import { TrashIcon, PlusLineIcon, MinusIcon, DownArrowIcon } from "@/icons"
 import { MoreVertical, ChevronDownIcon } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
 import { Modal } from "@/components/molecules/Modal/Modal"
-import { deleteLineItem, updateLineItem, addToCart } from "@/lib/data/cart"
+import {
+  deleteCustomerCartItem,
+  updateCustomerCartItem,
+  changeCustomerCartItemVariant,
+} from "@/lib/data/customer-cart"
 import { VariantReselectionModal } from "./VariantReselectionModal"
 import { listProducts } from "@/lib/data/products"
 import { useParams } from "next/navigation"
@@ -18,6 +22,8 @@ import { toast } from "@/lib/helpers/toast"
 type ExtendedCartItem = HttpTypes.StoreCartLineItem & {
   original_total?: number
   original_price?: number
+  /** Max allowed quantity (e.g. variant inventory); when set, + is disabled at max */
+  max_quantity?: number
 }
 
 type CartItemProps = {
@@ -25,6 +31,14 @@ type CartItemProps = {
   currencyCode: string
   isSelected: boolean
   onSelect: (id: string, checked: boolean) => void
+  onQuantityChange?: (itemId: string, quantity: number) => void | Promise<void>
+  onDelete?: (itemId: string) => void | Promise<void>
+  onVariantChange?: (
+    itemId: string,
+    variantId: string,
+    quantity: number,
+    unitPriceSnapshot?: number | null
+  ) => void | Promise<void>
 }
 
 export const CartItem = ({
@@ -32,6 +46,9 @@ export const CartItem = ({
   currencyCode,
   isSelected,
   onSelect,
+  onQuantityChange,
+  onDelete,
+  onVariantChange,
 }: CartItemProps) => {
   const displayImage = item.thumbnail
     ? decodeURIComponent(item.thumbnail)
@@ -53,16 +70,36 @@ export const CartItem = ({
   const params = useParams()
   const locale = (params?.locale as string) || "th"
 
+  const maxQuantity =
+    (item as ExtendedCartItem).max_quantity ??
+    (item.variant as { inventory_quantity?: number } | undefined)
+      ?.inventory_quantity
+  const isAtMax =
+    typeof maxQuantity === "number" &&
+    maxQuantity >= 0 &&
+    Number(item.quantity) >= maxQuantity
+
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1) return
     if (updating) return
+    if (
+      typeof maxQuantity === "number" &&
+      maxQuantity >= 0 &&
+      newQuantity > maxQuantity
+    ) {
+      newQuantity = maxQuantity
+    }
 
     setUpdating(true)
     try {
-      await updateLineItem({
-        lineId: item.id,
-        quantity: newQuantity,
-      })
+      if (onQuantityChange) {
+        await onQuantityChange(item.id, newQuantity)
+      } else {
+        await updateCustomerCartItem({
+          id: item.id,
+          quantity: newQuantity,
+        })
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -73,7 +110,11 @@ export const CartItem = ({
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await deleteLineItem(item.id)
+      if (onDelete) {
+        await onDelete(item.id)
+      } else {
+        await deleteCustomerCartItem(item.id)
+      }
     } catch (e) {
       console.error(e)
     } finally {
@@ -114,7 +155,11 @@ export const CartItem = ({
     }
   }, [isVariantModalOpen])
 
-  const handleVariantUpdate = async (variantId: string, quantity: number) => {
+  const handleVariantUpdate = async (
+    variantId: string,
+    quantity: number,
+    unitPriceSnapshot?: number | null
+  ) => {
     if (updatingVariant) return
     if (variantId === item.variant_id && quantity === item.quantity) {
       setIsVariantModalOpen(false)
@@ -123,15 +168,15 @@ export const CartItem = ({
 
     setUpdatingVariant(true)
     try {
-      // Delete the old line item
-      await deleteLineItem(item.id)
-
-      // Add new line item with new variant
-      await addToCart({
-        variantId,
-        quantity,
-        countryCode: locale,
-      })
+      if (onVariantChange) {
+        await onVariantChange(item.id, variantId, quantity, unitPriceSnapshot)
+      } else {
+        await changeCustomerCartItemVariant({
+          itemId: item.id,
+          variantId,
+          quantity,
+        })
+      }
 
       setIsVariantModalOpen(false)
       toast.success({
@@ -292,7 +337,8 @@ export const CartItem = ({
                   </span>
                   <button
                     onClick={() => handleQuantityChange(item.quantity + 1)}
-                    className="cursor-pointer"
+                    disabled={isAtMax}
+                    className="disabled:opacity-50 cursor-pointer"
                   >
                     <PlusLineIcon size={24} />
                   </button>
@@ -333,7 +379,8 @@ export const CartItem = ({
                 </span>
                 <button
                   onClick={() => handleQuantityChange(item.quantity + 1)}
-                  className="cursor-pointer"
+                  disabled={isAtMax}
+                  className="disabled:opacity-50 cursor-pointer"
                 >
                   <PlusLineIcon size={24} />
                 </button>

@@ -16,6 +16,83 @@ import {
 import { getRegion } from "./regions"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
+import { listProducts } from "./products"
+
+/**
+ * On checkout enter: cap each line item quantity at variant inventory.
+ * Fetches product/variant inventory and updates any item that exceeds max.
+ * Returns the updated cart or the original if no changes.
+ */
+export async function ensureCheckoutCartQuantitiesCapped(
+  cart: Cart
+): Promise<Cart | null> {
+  const items = cart?.items ?? []
+  if (!items.length || !cart.region_id) return cart
+
+  const productIds = Array.from(
+    new Set(
+      items
+        .map((i) => i.product_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  )
+  if (!productIds.length) return cart
+
+  let products: Array<{
+    variants?: Array<{ id: string; inventory_quantity?: number }> | null
+  }> = []
+  try {
+    const result = await listProducts({
+      regionId: cart.region_id,
+      queryParams: { id: productIds, limit: productIds.length },
+      forceCache: false,
+    })
+    products = (result?.response?.products ?? []) as typeof products
+  } catch {
+    return cart
+  }
+
+  const variantToMax = new Map<string, number>()
+  for (const p of products) {
+    for (const v of p.variants ?? []) {
+      const inv = v.inventory_quantity
+      if (typeof inv === "number" && inv >= 0) {
+        variantToMax.set(v.id, inv)
+      }
+    }
+  }
+
+  const updates: { lineId: string; quantity: number; variantId?: string }[] = []
+  for (const item of items) {
+    const vid = item.variant_id
+    if (!vid) continue
+    const max = variantToMax.get(vid)
+    if (typeof max !== "number") continue
+    const qty = Number(item.quantity) || 0
+    if (qty > max) {
+      updates.push({
+        lineId: item.id,
+        quantity: max,
+        variantId: vid,
+      })
+    }
+  }
+
+  if (!updates.length) return cart
+
+  try {
+    for (const u of updates) {
+      await updateLineItem({
+        lineId: u.lineId,
+        quantity: u.quantity,
+        variantId: u.variantId,
+      })
+    }
+    return retrieveCart(cart.id)
+  } catch {
+    return cart
+  }
+}
 
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID from the cookies.
@@ -104,6 +181,70 @@ export async function getOrSetCart(countryCode: string) {
   }
 
   return cart
+}
+
+/**
+ * Guest checkout: set Medusa cart to exactly the selected items (by variant + quantity)
+ * and redirect to checkout. Call this after removing selected items from the anonymous
+ * cart so only non-selected items remain for merge after OTP.
+ */
+export async function prepareGuestCheckout(
+  selectedItems: { variantId: string; quantity: number }[],
+  countryCode: string
+): Promise<never> {
+  const cart = await getOrSetCart(countryCode)
+  if (!cart?.id) {
+    throw new Error("Failed to get or create cart for guest checkout")
+  }
+
+  const selectedByVariant = new Map<string, number>()
+  for (const { variantId, quantity } of selectedItems) {
+    selectedByVariant.set(
+      variantId,
+      (selectedByVariant.get(variantId) ?? 0) + quantity
+    )
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+  const cartCacheTag = await getCacheTag("carts")
+
+  for (const item of cart.items ?? []) {
+    const vid = item.variant_id
+    const lineId = item.id
+    if (!vid || !lineId) continue
+    const want = selectedByVariant.get(vid)
+    if (want === undefined) {
+      await sdk.store.cart
+        .deleteLineItem(cart.id, lineId, {}, headers)
+        .catch((e) => console.error("[prepareGuestCheckout] deleteLineItem", e))
+    } else {
+      if (item.quantity !== want) {
+        await sdk.store.cart
+          .updateLineItem(cart.id, lineId, { quantity: want }, {}, headers)
+          .catch((e) =>
+            console.error("[prepareGuestCheckout] updateLineItem", e)
+          )
+      }
+      selectedByVariant.set(vid, -1)
+    }
+  }
+
+  for (const [variantId, qty] of selectedByVariant) {
+    if (qty <= 0) continue
+    await sdk.store.cart
+      .createLineItem(
+        cart.id,
+        { variant_id: variantId, quantity: qty },
+        {},
+        headers
+      )
+      .catch((e) => console.error("[prepareGuestCheckout] createLineItem", e))
+  }
+
+  revalidateTag(cartCacheTag)
+  redirect(`/${countryCode}/checkout`)
 }
 
 export async function updateCart(data: HttpTypes.StoreUpdateCart) {
