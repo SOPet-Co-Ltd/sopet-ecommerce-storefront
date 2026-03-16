@@ -876,10 +876,6 @@ export async function listCartOptions() {
 
 export async function checkoutWithSelection(selectedItemIds: string[]) {
   const cartId = await getCartId()
-  console.log(
-    `[checkoutWithSelection] Starting for cartId: ${cartId}, selected:`,
-    selectedItemIds
-  )
 
   if (!cartId) {
     throw new Error("No existing cart found")
@@ -887,17 +883,12 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
 
   const cart = await retrieveCart(cartId)
   if (!cart?.items) {
-    console.log("[checkoutWithSelection] No items in cart, redirecting")
     redirect("/checkout")
     return
   }
 
   const itemsToDelete = cart.items.filter(
     (item) => !selectedItemIds.includes(item.id) && item.variant_id
-  )
-
-  console.log(
-    `[checkoutWithSelection] Items to delete/hide: ${itemsToDelete.length}`
   )
 
   if (itemsToDelete.length > 0) {
@@ -911,11 +902,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       quantity: item.quantity,
     }))
 
-    console.log(
-      "[checkoutWithSelection] Saving hidden items to metadata:",
-      JSON.stringify(hiddenItems)
-    )
-
     await sdk.store.cart.update(
       cartId,
       { metadata: { hidden_items: hiddenItems } },
@@ -923,17 +909,11 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       headers
     )
 
-    console.log(
-      "[checkoutWithSelection] Metadata saved successfully. Proceeding to delete items."
-    )
-
     await Promise.all(
       itemsToDelete.map((item) =>
         sdk.store.cart
           .deleteLineItem(cartId, item.id, {}, headers)
-          .then(() =>
-            console.log(`[checkoutWithSelection] Deleted item ${item.id}`)
-          )
+          .then(() => {})
           .catch((err) => {
             console.error(`Failed to delete item ${item.id}`, err)
           })
@@ -944,7 +924,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
     revalidateTag(cartCacheTag)
   }
 
-  console.log("[checkoutWithSelection] Redirecting to checkout")
   redirect("/checkout")
 }
 
@@ -954,12 +933,6 @@ export async function restoreHiddenItems(): Promise<boolean> {
 
   const cart = await retrieveCart(cartId)
   const hidden = (cart?.metadata?.hidden_items as any[]) || []
-
-  console.log(
-    `[restoreHiddenItems] CartId: ${cartId}, Found hidden items:`,
-    hidden.length,
-    JSON.stringify(hidden)
-  )
 
   if (hidden.length > 0) {
     const headers = {
@@ -975,7 +948,6 @@ export async function restoreHiddenItems(): Promise<boolean> {
             {},
             headers
           )
-          console.log(`[restoreHiddenItems] Restored item ${item.variant_id}`)
           return { item, ok: true }
         } catch (err) {
           console.error(
@@ -997,11 +969,7 @@ export async function restoreHiddenItems(): Promise<boolean> {
           {},
           headers
         )
-        .then(() =>
-          console.log(
-            `[restoreHiddenItems] Metadata updated. Remaining hidden: ${remainingHidden.length}`
-          )
-        )
+        .then(() => {})
         .catch(console.error)
     }
 

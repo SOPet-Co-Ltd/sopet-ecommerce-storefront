@@ -200,11 +200,6 @@ const OrderDetailsHeaderCard = ({
                 >
                   ยกเลิกคำสั่งซื้อ
                 </Button>
-                {/* <ActionMenu>
-                <ActionMenuItem onClick={() => setIsCancelModalOpen(true)}>
-                  ยกเลิกคำสั่งซื้อ
-                </ActionMenuItem>
-              </ActionMenu> */}
               </div>
             )}
 
@@ -275,7 +270,6 @@ const OrderDetailsHeaderCard = ({
           ? { currentMethod: order.payment_provider_id }
           : {})} // e.g. 'stripe' or 'promptpay'
         onConfirm={(cardId) => {
-          console.log("ChangePaymentModal confirmed with cardId:", cardId)
           if (cardId) {
             setSelectedCardId(cardId)
             if (typeof window !== "undefined") {
