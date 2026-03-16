@@ -14,6 +14,7 @@ import {
   setCartId,
 } from "./cookies"
 import { getRegion } from "./regions"
+import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
 import { listProducts } from "./products"
@@ -417,7 +418,7 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
-  await fetchQuery(`/store/cart/${cartId}/line-items/${lineId}`, {
+  await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
     method: "DELETE",
     headers,
   })
@@ -658,7 +659,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
 /**
  * Places an order for a cart. If no cart ID is provided, it will use the cart ID from the cookies.
  * @param cartId - optional - The ID of the cart to place an order for.
- * @returns The cart object if the order was successful, or null if not.
+ * @returns The response; use getOrderIdFromPlaceOrderResponse(res) to get the order ID.
  */
 export async function placeOrder(
   cartId?: string,
@@ -690,16 +691,44 @@ export async function placeOrder(
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
 
-  if (res?.data?.order_set) {
+  const orderId = getOrderIdFromPlaceOrderResponse(res)
+  if (res?.ok) {
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
+  }
+  if (orderId && options?.redirect !== false) {
     removeCartId()
-    if (options?.redirect !== false) {
-      redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
-    }
+    redirect(`/order/${orderId}/confirmed`)
   }
 
   return res
+}
+
+/**
+ * Clears the cart on Medusa (deletes all line items) and removes the local cart cookie.
+ * Call when closing QR payment modal or when navigating away from checkout.
+ */
+export async function clearCart() {
+  const cartId = await getCartId()
+  if (cartId) {
+    try {
+      const cart = await retrieveCart(cartId)
+      const headers = await getAuthHeaders()
+      const lineIds = (cart?.items ?? []).map((item) => item.id).filter(Boolean)
+      for (const lineId of lineIds) {
+        await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
+          method: "DELETE",
+          headers,
+        }).catch(() => {})
+      }
+      const cartCacheTag = await getCacheTag("carts")
+      await revalidateTag(cartCacheTag)
+    } catch {
+      // Cart may already be completed or missing; still clear cookie
+    }
+  }
+  removeCartId()
+  revalidatePath("/")
 }
 
 /**

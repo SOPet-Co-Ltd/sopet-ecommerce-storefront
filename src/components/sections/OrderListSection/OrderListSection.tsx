@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/atoms/Button/Button"
 import OrderCard from "@/components/molecules/OrderCard/OrderCard"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
 import type { OrderListItem } from "@/types/order"
 
@@ -14,6 +15,15 @@ type OrderTab =
   | "completed"
   | "cancelled"
 
+const TAB_IDS: OrderTab[] = [
+  "all",
+  "to-pay",
+  "to-ship",
+  "to-receive",
+  "completed",
+  "cancelled",
+]
+
 const TABS: Array<{ id: OrderTab; label: string }> = [
   { id: "all", label: "ทั้งหมด" },
   { id: "to-pay", label: "ที่ต้องชำระ" },
@@ -23,16 +33,49 @@ const TABS: Array<{ id: OrderTab; label: string }> = [
   { id: "cancelled", label: "ยกเลิก/คืนสินค้า" },
 ]
 
+const TAB_QUERY_KEY = "tab"
+
+function tabFromQuery(value: string | null): OrderTab {
+  if (value && TAB_IDS.includes(value as OrderTab)) return value as OrderTab
+  return "all"
+}
+
 type OrderListSectionProps = {
   orders: OrderListItem[]
   reviewedByOrderId?: Record<string, boolean>
 }
 
+const ORDERS_INITIAL_TAB_KEY = "orders_initial_tab"
+
 const OrderListSection = ({
   orders,
   reviewedByOrderId,
 }: OrderListSectionProps) => {
-  const [activeTab, setActiveTab] = useState<OrderTab>("all")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeTab = tabFromQuery(searchParams.get(TAB_QUERY_KEY))
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const initialTab = sessionStorage.getItem(ORDERS_INITIAL_TAB_KEY)
+    if (initialTab === "to-pay") {
+      sessionStorage.removeItem(ORDERS_INITIAL_TAB_KEY)
+      router.replace(`${pathname}?${TAB_QUERY_KEY}=to-pay`)
+    }
+  }, [pathname, router])
+
+  const setTab = (id: OrderTab) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (id === "all") {
+      params.delete(TAB_QUERY_KEY)
+    } else {
+      params.set(TAB_QUERY_KEY, id)
+    }
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname)
+  }
 
   const filteredOrders = useMemo(() => {
     if (activeTab === "all") return orders
@@ -66,7 +109,7 @@ const OrderListSection = ({
         {TABS.map((tab) => (
           <Button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => setTab(tab.id)}
             variant={activeTab === tab.id ? "primary" : "neutral"}
             size="sm"
             rounded="rounded"
