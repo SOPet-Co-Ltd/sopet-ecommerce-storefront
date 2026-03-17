@@ -1,11 +1,12 @@
 import { HttpTypes } from "@medusajs/types"
-import { Container } from "@medusajs/ui"
-import { mapKeys } from "lodash"
 import React, { useEffect, useMemo, useState } from "react"
-import { Input, Checkbox, Button } from "@/components/atoms"
-import ThaiAddressSelect, {
-  ThaiAddressValue,
-} from "@/components/cells/ThaiAddressSelect/ThaiAddressSelect"
+import { Input, Button, Dropdown, DropdownItem } from "@/components/atoms"
+import { DownArrowIcon } from "@/icons"
+import {
+  getDistricts,
+  getProvinces,
+  getSubdistrictsWithPostal,
+} from "@/lib/data/thai-address-helpers"
 import { usePathname } from "next/navigation"
 import { AddressSelectionDialog } from "../AddressSelectionDialog/AddressSelectionDialog"
 import { EditAddressDialog } from "../EditAddressDialog/EditAddressDialog"
@@ -114,6 +115,18 @@ const ShippingAddress = ({
     }
   })
 
+  const provinceValue =
+    (formData["shipping_address.province"] as string | undefined) || ""
+  const districtValue =
+    (formData["shipping_address.city"] as string | undefined) || ""
+
+  const provinceOptions = getProvinces()
+  const districtOptions = getDistricts(provinceValue)
+  const subdistrictOptions = getSubdistrictsWithPostal(
+    provinceValue,
+    districtValue
+  )
+
   // Dialog States
   const [isSelectionOpen, setIsSelectionOpen] = useState(false)
   const [editDialogState, setEditDialogState] = useState<{
@@ -201,13 +214,42 @@ const ShippingAddress = ({
     }
   }
 
-  const handleThaiAddressChange = (value: ThaiAddressValue) => {
+  const handleProvinceChange = (value: string) => {
     const next = {
       ...formData,
-      "shipping_address.province": value.province,
-      "shipping_address.city": value.district,
-      "shipping_address.address_2": value.subdistrict,
-      "shipping_address.postal_code": value.zipCode,
+      "shipping_address.province": value,
+      "shipping_address.city": "",
+      "shipping_address.address_2": "",
+      "shipping_address.postal_code": "",
+    }
+    setFormData(next)
+    if (isControlled && onDraftChange) {
+      onDraftChange(formDataToDraft(next, locale))
+    }
+  }
+
+  const handleDistrictChange = (value: string) => {
+    const next = {
+      ...formData,
+      "shipping_address.city": value,
+      "shipping_address.address_2": "",
+      "shipping_address.postal_code": "",
+    }
+    setFormData(next)
+    if (isControlled && onDraftChange) {
+      onDraftChange(formDataToDraft(next, locale))
+    }
+  }
+
+  const handleSubdistrictChange = (value: string) => {
+    const opt = subdistrictOptions.find((o) => o.value === value)
+    const postalCode = opt?.postalCode ?? ""
+    const label = opt?.label ?? value
+
+    const next = {
+      ...formData,
+      "shipping_address.address_2": label,
+      "shipping_address.postal_code": postalCode,
     }
     setFormData(next)
     if (isControlled && onDraftChange) {
@@ -250,12 +292,13 @@ const ShippingAddress = ({
       {!isControlled && customer && (addressesInRegion?.length || 0) > 0 && (
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-700">
+            <span className="sop-body-sm-regular text-sop-neutral-gray-200">
               เลือกจากที่อยู่ที่บันทึกไว้ ({addressesInRegion?.length})
             </span>
             <Button
-              variant="secondary"
-              className="text-purple-600 border-purple-600 hover:bg-purple-50 h-8 text-sm"
+              variant="outline"
+              size="sm"
+              className="sop-body-sm-medium"
               onClick={() => setIsSelectionOpen(true)}
               type="button"
             >
@@ -267,43 +310,138 @@ const ShippingAddress = ({
 
       {/* Name and Phone Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-        <Input
-          title="ชื่อ-นามสกุล ผู้รับสินค้า"
-          name="shipping_address.first_name"
-          placeholder="ชื่อ-นามสกุล"
-          autoComplete="name"
-          value={formData["shipping_address.first_name"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-first-name-input"
-          className="text-sop-base-black"
-        />
-        <Input
-          title="เบอร์โทรศัพท์"
-          name="shipping_address.phone"
-          placeholder="099-999-9999"
-          autoComplete="tel"
-          value={formData["shipping_address.phone"]}
-          onChange={handleChange}
-          required
-          data-testid="shipping-phone-input"
-          className="text-sop-base-black"
-        />
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            ชื่อ-นามสกุล ผู้รับสินค้า
+          </label>
+          <Input
+            hasTitle={false}
+            name="shipping_address.first_name"
+            placeholder="ชื่อ-นามสกุล"
+            autoComplete="name"
+            value={formData["shipping_address.first_name"]}
+            onChange={handleChange}
+            required
+            data-testid="shipping-first-name-input"
+            className="text-sop-base-black"
+          />
+        </div>
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            เบอร์โทรศัพท์
+          </label>
+          <Input
+            hasTitle={false}
+            name="shipping_address.phone"
+            placeholder="099-999-9999"
+            autoComplete="tel"
+            value={formData["shipping_address.phone"]}
+            onChange={handleChange}
+            required
+            data-testid="shipping-phone-input"
+            className="text-sop-base-black"
+          />
+        </div>
       </div>
 
-      <ThaiAddressSelect
-        value={{
-          province: formData["shipping_address.province"],
-          district: formData["shipping_address.city"],
-          subdistrict: formData["shipping_address.address_2"] || "",
-          zipCode: formData["shipping_address.postal_code"],
-        }}
-        onChange={handleThaiAddressChange}
-      />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            จังหวัด
+          </label>
+          <Dropdown
+            button={{ variant: "neutral", size: "lg", fill: true }}
+            triggerClassName="w-full"
+            placeholder="เลือกจังหวัด"
+            value={provinceValue}
+            onValueChange={handleProvinceChange}
+            icon={<DownArrowIcon size={12} color="#454547" />}
+          >
+            {provinceOptions.map((opt) => (
+              <DropdownItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+        </div>
 
-      <div className="grid grid-cols-1 gap-4 my-4">
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            เขต/อำเภอ
+          </label>
+          <Dropdown
+            button={{
+              variant: "neutral",
+              size: "lg",
+              fill: true,
+              disabled: !provinceValue,
+            }}
+            triggerClassName="w-full"
+            placeholder="เลือกเขต/อำเภอ"
+            value={districtValue}
+            onValueChange={handleDistrictChange}
+            icon={<DownArrowIcon size={12} color="#454547" />}
+          >
+            {districtOptions.map((opt) => (
+              <DropdownItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+        </div>
+
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            แขวง/ตำบล
+          </label>
+          <Dropdown
+            button={{
+              variant: "neutral",
+              size: "lg",
+              fill: true,
+              disabled: !provinceValue || !districtValue,
+            }}
+            triggerClassName="w-full"
+            placeholder="เลือกแขวง/ตำบล"
+            value={
+              subdistrictOptions.find(
+                (o) => o.label === formData["shipping_address.address_2"]
+              )?.value ?? ""
+            }
+            onValueChange={handleSubdistrictChange}
+            icon={<DownArrowIcon size={12} color="#454547" />}
+          >
+            {subdistrictOptions.map((opt) => (
+              <DropdownItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </DropdownItem>
+            ))}
+          </Dropdown>
+        </div>
+
+        <div>
+          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            รหัสไปรษณีย์
+          </label>
+          <Input
+            hasTitle={false}
+            name="shipping_address.postal_code"
+            placeholder="รหัสไปรษณีย์"
+            value={formData["shipping_address.postal_code"] || ""}
+            onChange={handleChange}
+            className="text-sop-base-black"
+            readOnly
+            disabled
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 my-4">
+        <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+          ที่อยู่
+        </label>
         <Input
-          title="ที่อยู่"
+          hasTitle={false}
           name="shipping_address.address_1"
           placeholder="บ้านเลขที่/ซอย/หมู่/ถนน"
           autoComplete="address-line1"

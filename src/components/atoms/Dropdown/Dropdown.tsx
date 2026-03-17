@@ -89,7 +89,7 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
         <SelectPrimitive.Portal>
           <SelectPrimitive.Content
             className={cn(
-              "shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
+              "z-120 shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
               DROPDOWN_CONTENT_CLASSES,
               "DropdownContent",
               contentClassName

@@ -302,9 +302,51 @@ export const CheckoutSummarySection = ({
       selectedAddress ||
       null) as HttpTypes.StoreCartAddress | null
   const fallbackEmail = cart?.email || customer?.email || selectedEmail || ""
-  const notReady = !cart || !fallbackAddress
 
-  const disabledBase = submitting || notReady
+  const addressReadyForButton = (() => {
+    if (!cart) return false
+
+    if (shippingAddressIsDraft) {
+      return Boolean(
+        draftAddress.first_name?.trim() &&
+        draftAddress.address_1?.trim() &&
+        draftAddress.city?.trim() &&
+        draftAddress.postal_code?.trim() &&
+        draftAddress.phone?.trim()
+      )
+    }
+
+    const addressForValidation =
+      (selectedAddress as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      (cart.shipping_address as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      (cart.billing_address as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      null
+
+    if (!addressForValidation) {
+      return false
+    }
+
+    return Boolean(
+      addressForValidation.first_name?.trim() &&
+      addressForValidation.address_1?.trim() &&
+      addressForValidation.city?.trim() &&
+      addressForValidation.postal_code?.trim() &&
+      addressForValidation.phone?.trim()
+    )
+  })()
+
+  const notReady = !cart
+
+  const disabledBase = submitting || notReady || !addressReadyForButton
 
   const pendingShippingOptionKeyForValidate = `checkout:selected_shipping_option:${cart.id}`
 
