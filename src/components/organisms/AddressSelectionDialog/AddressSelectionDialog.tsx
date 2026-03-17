@@ -97,10 +97,8 @@ export const AddressSelectionDialog = ({
                       )}
                     </div>
                   </div>
-                  {JSON.stringify(address, null, 2)}
-
                   <p className="sop-body-xs-regular md:sop-body-lg-regular text-sop-neutral-gray-400 leading-relaxed pl-sop-24px md:pl-sop-32px">
-                    {address.address_1} {address.address_2} {address.city}{" "}
+                    {address.address_1} {address.city} {address.address_2}{" "}
                     {address.province} {address.postal_code}
                   </p>
 

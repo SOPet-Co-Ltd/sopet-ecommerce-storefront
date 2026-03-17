@@ -105,9 +105,13 @@ const ShippingAddress = ({
     return {
       "shipping_address.first_name": sourceAddress?.first_name || "",
       "shipping_address.last_name": sourceAddress?.last_name || "",
+      // ที่อยู่หลัก
       "shipping_address.address_1": sourceAddress?.address_1 || "",
-      "shipping_address.postal_code": sourceAddress?.postal_code || "",
+      // เขต/อำเภอ -> address_2
+      "shipping_address.address_2": sourceAddress?.address_2 || "",
+      // แขวง/ตำบล -> city
       "shipping_address.city": sourceAddress?.city || "",
+      "shipping_address.postal_code": sourceAddress?.postal_code || "",
       "shipping_address.country_code": sourceAddress?.country_code || locale,
       "shipping_address.province": sourceAddress?.province || "",
       "shipping_address.phone": sourceAddress?.phone || customer?.phone || "",
@@ -117,8 +121,9 @@ const ShippingAddress = ({
 
   const provinceValue =
     (formData["shipping_address.province"] as string | undefined) || ""
+  // เขต/อำเภอเก็บที่ address_2
   const districtValue =
-    (formData["shipping_address.city"] as string | undefined) || ""
+    (formData["shipping_address.address_2"] as string | undefined) || ""
 
   const provinceOptions = getProvinces()
   const districtOptions = getDistricts(provinceValue)
@@ -218,8 +223,9 @@ const ShippingAddress = ({
     const next = {
       ...formData,
       "shipping_address.province": value,
-      "shipping_address.city": "",
+      // reset เขต/อำเภอ + แขวง/ตำบล + รหัสไปรษณีย์
       "shipping_address.address_2": "",
+      "shipping_address.city": "",
       "shipping_address.postal_code": "",
     }
     setFormData(next)
@@ -231,8 +237,10 @@ const ShippingAddress = ({
   const handleDistrictChange = (value: string) => {
     const next = {
       ...formData,
-      "shipping_address.city": value,
-      "shipping_address.address_2": "",
+      // เขต/อำเภอ -> address_2
+      "shipping_address.address_2": value,
+      // reset แขวง/ตำบล + รหัสไปรษณีย์
+      "shipping_address.city": "",
       "shipping_address.postal_code": "",
     }
     setFormData(next)
@@ -248,7 +256,8 @@ const ShippingAddress = ({
 
     const next = {
       ...formData,
-      "shipping_address.address_2": label,
+      // แขวง/ตำบล -> city
+      "shipping_address.city": label,
       "shipping_address.postal_code": postalCode,
     }
     setFormData(next)
@@ -405,7 +414,7 @@ const ShippingAddress = ({
             placeholder="เลือกแขวง/ตำบล"
             value={
               subdistrictOptions.find(
-                (o) => o.label === formData["shipping_address.address_2"]
+                (o) => o.label === formData["shipping_address.city"]
               )?.value ?? ""
             }
             onValueChange={handleSubdistrictChange}
