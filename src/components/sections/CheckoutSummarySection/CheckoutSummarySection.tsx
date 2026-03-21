@@ -6,11 +6,14 @@ import { HttpTypes } from "@medusajs/types"
 import { convertToLocale } from "@/lib/helpers/money"
 import { Text } from "@medusajs/ui"
 import {
+  clearCart,
   initiatePaymentSession,
   placeOrder,
   setAddresses,
   setShippingMethod,
 } from "@/lib/data/cart"
+import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
+import { captureOrderPayment } from "@/lib/data/orders"
 import {
   addCustomerAddress,
   addCustomerPaymentMethod,
@@ -28,7 +31,7 @@ import { isStripe } from "@/lib/constants"
 import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
 import type { PaymentIntent } from "@stripe/stripe-js"
 import { Modal } from "@/components/molecules/Modal/Modal"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 type CheckoutSummarySectionProps = {
   cart: Cart | null
@@ -299,9 +302,51 @@ export const CheckoutSummarySection = ({
       selectedAddress ||
       null) as HttpTypes.StoreCartAddress | null
   const fallbackEmail = cart?.email || customer?.email || selectedEmail || ""
-  const notReady = !cart || !fallbackAddress
 
-  const disabledBase = submitting || notReady
+  const addressReadyForButton = (() => {
+    if (!cart) return false
+
+    if (shippingAddressIsDraft) {
+      return Boolean(
+        draftAddress.first_name?.trim() &&
+        draftAddress.address_1?.trim() &&
+        draftAddress.city?.trim() &&
+        draftAddress.postal_code?.trim() &&
+        draftAddress.phone?.trim()
+      )
+    }
+
+    const addressForValidation =
+      (selectedAddress as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      (cart.shipping_address as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      (cart.billing_address as
+        | HttpTypes.StoreCustomerAddress
+        | HttpTypes.StoreCartAddress
+        | null) ||
+      null
+
+    if (!addressForValidation) {
+      return false
+    }
+
+    return Boolean(
+      addressForValidation.first_name?.trim() &&
+      addressForValidation.address_1?.trim() &&
+      addressForValidation.city?.trim() &&
+      addressForValidation.postal_code?.trim() &&
+      addressForValidation.phone?.trim()
+    )
+  })()
+
+  const notReady = !cart
+
+  const disabledBase = submitting || notReady || !addressReadyForButton
 
   const pendingShippingOptionKeyForValidate = `checkout:selected_shipping_option:${cart.id}`
 
@@ -685,7 +730,7 @@ const StripeSummaryPayButton = ({
 
   const completeOrderAndRedirect = async () => {
     const res = await placeOrder(undefined, { redirect: false })
-    const orderId = res?.data?.order_set?.orders?.[0]?.id
+    const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (orderId) {
       router.push(`/order/${orderId}/confirmed`)
@@ -951,14 +996,25 @@ const QrSummaryPayButton = ({
 }) => {
   const stripe = useStripe()
   const router = useRouter()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null)
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
   const [isPolling, setIsPolling] = useState(false)
   const [remainingSeconds, setRemainingSeconds] = useState(15 * 60)
   const orderPlacedRef = useRef(false)
+  /** Set when we place the order before showing QR so we capture (not place again) when payment succeeds */
+  const orderIdPendingPaymentRef = useRef<string | null>(null)
   const [activeClientSecret, setActiveClientSecret] = useState<
     string | undefined
   >(clientSecret)
+
+  const handleCloseQrModal = () => {
+    setIsQrModalOpen(false)
+    clearCart().then(() => {
+      router.push(`/${locale}/user/orders?tab=to-pay`)
+    })
+  }
 
   useEffect(() => {
     if (clientSecret) {
@@ -968,7 +1024,7 @@ const QrSummaryPayButton = ({
 
   const completeOrderAndRedirect = async () => {
     const res = await placeOrder(undefined, { redirect: false })
-    const orderId = res?.data?.order_set?.orders?.[0]?.id
+    const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (orderId) {
       router.push(`/order/${orderId}/confirmed`)
@@ -1036,10 +1092,26 @@ const QrSummaryPayButton = ({
 
       const qrUrl = getPromptPayQrUrl(paymentIntent)
       if (qrUrl) {
-        setQrImageUrl(qrUrl)
-        setRemainingSeconds(15 * 60)
-        setIsQrModalOpen(true)
-        setIsPolling(true)
+        orderIdPendingPaymentRef.current = null
+        try {
+          const res = await placeOrder(undefined, { redirect: false })
+          const orderId = getOrderIdFromPlaceOrderResponse(res)
+          if (orderId) {
+            orderIdPendingPaymentRef.current = orderId
+            router.refresh()
+            setQrImageUrl(qrUrl)
+            setRemainingSeconds(15 * 60)
+            setIsQrModalOpen(true)
+            setIsPolling(true)
+          } else {
+            setError(
+              res?.error?.message ??
+                "ไม่สามารถสร้างคำสั่งซื้อได้ กรุณาลองใหม่อีกครั้ง"
+            )
+          }
+        } catch (e) {
+          setError((e as Error)?.message ?? "ไม่สามารถสร้างคำสั่งซื้อได้")
+        }
       } else if (
         paymentIntent?.status === "succeeded" ||
         paymentIntent?.status === "requires_capture"
@@ -1072,7 +1144,17 @@ const QrSummaryPayButton = ({
         orderPlacedRef.current = true
         window.clearInterval(timer)
         setIsPolling(false)
-        await completeOrderAndRedirect()
+        const orderId = orderIdPendingPaymentRef.current
+        if (orderId) {
+          const result = await captureOrderPayment(orderId)
+          if (result.success) {
+            router.push(`/order/${orderId}/confirmed`)
+          } else {
+            setError(result.error ?? "Failed to confirm payment")
+          }
+        } else {
+          await completeOrderAndRedirect()
+        }
       }
     }, 2500)
 
@@ -1121,11 +1203,35 @@ const QrSummaryPayButton = ({
 
       {isQrModalOpen && qrImageUrl && (
         <Modal
-          header={<span>PromptPay QR</span>}
-          onClose={() => setIsQrModalOpen(false)}
+          header={
+            <div className="flex items-center justify-between">
+              <span>PromptPay QR</span>
+              <button
+                type="button"
+                onClick={handleCloseQrModal}
+                className="text-gray-400 hover:text-gray-600 p-1 -m-1 rounded"
+                aria-label="ปิด"
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          }
+          onClose={handleCloseQrModal}
+          closeOnBackdropClick={false}
         >
           <div className="px-6 pb-6 space-y-4">
-            <div className="rounded-lg bg-sop-primary-50 px-4 py-3 flex items-center justify-between">
+            <div className="rounded-lg bg-sop-primary-50 py-3 flex items-center justify-between">
               <Text className="font-medium">ชำระภายใน</Text>
               <Text className="font-bold text-red-500">
                 {minutes}:{seconds}

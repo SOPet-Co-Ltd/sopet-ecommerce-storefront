@@ -30,7 +30,11 @@ type VariantReselectionModalProps = {
   onClose: () => void
   product: (HttpTypes.StoreProduct & { seller?: SellerProps }) | null
   currentVariantId: string
-  onConfirm: (variantId: string, quantity: number) => Promise<void>
+  onConfirm: (
+    variantId: string,
+    quantity: number,
+    unitPriceSnapshot?: number | null
+  ) => Promise<void>
   currencyCode: string
   isLoading?: boolean
 }
@@ -104,7 +108,11 @@ export const VariantReselectionModal = ({
 
   const handleConfirm = async () => {
     if (!selectedVariantId) return
-    await onConfirm(selectedVariantId, productQuantity)
+    await onConfirm(
+      selectedVariantId,
+      productQuantity,
+      variantPrice?.calculated_price_number ?? null
+    )
   }
 
   const { variantPrice } = product

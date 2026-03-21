@@ -13,12 +13,29 @@ type ProductWithSeller = HttpTypes.StoreProduct & {
   seller?: { name?: string; store_name?: string }
 }
 
-// Using any for flexibility with mock data during this phase
+type CartTemplateProps = {
+  cart: HttpTypes.StoreCart | Cart
+  locale: string
+  onItemQuantityChange?: (
+    itemId: string,
+    quantity: number
+  ) => void | Promise<void>
+  onItemDelete?: (itemId: string) => void | Promise<void>
+  onItemVariantChange?: (
+    itemId: string,
+    variantId: string,
+    quantity: number,
+    unitPriceSnapshot?: number | null
+  ) => void | Promise<void>
+}
+
 export const CartTemplate = ({
   cart,
-}: {
-  cart: HttpTypes.StoreCart | Cart
-}) => {
+  locale,
+  onItemQuantityChange,
+  onItemDelete,
+  onItemVariantChange,
+}: CartTemplateProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const router = useRouter()
 
@@ -243,6 +260,9 @@ export const CartTemplate = ({
                         currencyCode={cart.currency_code || "THB"}
                         isSelected={selectedItems.includes(item.id)}
                         onSelect={handleSelectItem}
+                        onQuantityChange={onItemQuantityChange}
+                        onDelete={onItemDelete}
+                        onVariantChange={onItemVariantChange}
                       />
                     ))}
                   </div>
@@ -272,6 +292,7 @@ export const CartTemplate = ({
             <div className="pointer-events-auto">
               <CartSummary
                 cart={cart}
+                locale={locale}
                 selectedCount={selectedItems.length}
                 totalCount={cart?.items?.length || 0}
                 isAllSelected={
@@ -281,6 +302,7 @@ export const CartTemplate = ({
                 onSelectAll={handleSelectAll}
                 customTotal={selectedTotal}
                 selectedItemIds={selectedItems}
+                isAnonymousCart={cart?.id === "anonymous-local-cart"}
               />
             </div>
           </div>

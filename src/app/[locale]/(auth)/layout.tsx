@@ -1,3 +1,4 @@
+import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import { Footer, Header } from "@/components/organisms"
 import { checkRegion } from "@/lib/helpers/check-region"
 import { redirect } from "next/navigation"
@@ -18,6 +19,7 @@ export default async function AuthLayout({
 
   return (
     <>
+      <ClearCartOnNonCheckout />
       <div className="flex flex-col h-dvh">
         <Header />
         {children}
