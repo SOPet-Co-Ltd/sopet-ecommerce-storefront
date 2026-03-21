@@ -12,9 +12,9 @@ export const metadata = {
 export default async function CartPage({
   params,
 }: {
-  params: { locale: string }
+  params: Promise<{ locale: string }>
 }) {
-  const { locale } = params
+  const { locale } = await params
 
   const cart = await getCartForCustomerCartPage(locale)
 

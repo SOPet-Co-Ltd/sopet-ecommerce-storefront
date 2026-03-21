@@ -110,7 +110,8 @@ export const CartPageClient = ({
             }
           }
         }
-        const items = cart.items.map((item) => {
+        const currentItems = cart.items ?? []
+        const items = currentItems.map((item) => {
           const max = item.variant_id
             ? variantToMax.get(item.variant_id)
             : undefined
@@ -169,13 +170,17 @@ export const CartPageClient = ({
     const capped =
       typeof max === "number" && max >= 0 && quantity > max ? max : quantity
     const next = updateAnonymousCartItemQuantity(lineItemId, capped)
+    if (!next) {
+      setCart(null)
+      return
+    }
     const maxById = new Map(
       (cart?.items ?? []).map((i) => [
         i.id,
         (i as { max_quantity?: number }).max_quantity,
       ])
     )
-    const itemsWithMax = next.items.map((i) => ({
+    const itemsWithMax = (next.items ?? []).map((i) => ({
       ...i,
       max_quantity: maxById.get(i.id),
     }))

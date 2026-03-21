@@ -11,7 +11,7 @@ import { useState } from "react"
 
 interface CartSummaryProps {
   cart: HttpTypes.StoreCart | Cart
-  locale: string
+  locale?: string
   selectedCount?: number
   totalCount?: number
   isAllSelected?: boolean
@@ -23,7 +23,7 @@ interface CartSummaryProps {
 
 export const CartSummary = ({
   cart,
-  locale,
+  locale = "th",
   selectedCount = 0,
   totalCount = 0,
   isAllSelected = false,
