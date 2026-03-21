@@ -87,7 +87,12 @@ export async function middleware(request: NextRequest) {
   }
 
   if (looksLikeLocale) {
-    return NextResponse.next()
+    const res = NextResponse.next()
+    // Clear Medusa cart cookie on any route that is not checkout
+    if (!pathWithoutLocale.startsWith("/checkout")) {
+      res.cookies.set("_medusa_cart_id", "", { maxAge: 0, path: "/" })
+    }
+    return res
   }
 
   const redirectPath = pathname === "/" ? "" : pathname

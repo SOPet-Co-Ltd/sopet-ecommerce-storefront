@@ -3,8 +3,11 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { FacebookCustomIcon, GoogleIcon, LineCustomIcon } from "@/icons"
+import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
 
 const REDIRECT_DELAY_MS = 1500
+/** Short delay so auth cookie is available before merge (e.g. after OAuth redirect). */
+const MERGE_DELAY_MS = 400
 
 export type OAuthSuccessProvider = "google" | "facebook" | "line"
 
@@ -35,10 +38,32 @@ export function OAuthSuccessView({ locale, provider }: OAuthSuccessViewProps) {
   const router = useRouter()
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      router.replace(`/${locale}/user/profile`)
-    }, REDIRECT_DELAY_MS)
-    return () => clearTimeout(timer)
+    let cancelled = false
+
+    const mergeAndRedirect = async () => {
+      try {
+        await new Promise((r) => setTimeout(r, MERGE_DELAY_MS))
+        if (cancelled) return
+        await mergeAnonymousCartIntoCustomerAfterLogin()
+      } catch (error) {
+        console.error(
+          "[OAuthSuccessView] Failed to merge anonymous cart:",
+          error
+        )
+      } finally {
+        if (!cancelled) {
+          setTimeout(() => {
+            router.replace(`/${locale}/user/profile`)
+          }, REDIRECT_DELAY_MS)
+        }
+      }
+    }
+
+    void mergeAndRedirect()
+
+    return () => {
+      cancelled = true
+    }
   }, [locale, router])
 
   const config = provider ? PROVIDER_CONFIG[provider] : null

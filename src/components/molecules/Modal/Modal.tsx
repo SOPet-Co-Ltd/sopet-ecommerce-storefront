@@ -8,6 +8,8 @@ type ModalProps = {
   children?: React.ReactNode
   footer?: React.ReactNode
   onClose?: () => void
+  /** If false, clicking the backdrop does not close the modal. Default true. */
+  closeOnBackdropClick?: boolean
   className?: string
   width?: number
 }
@@ -17,6 +19,7 @@ export const Modal = ({
   children,
   footer,
   onClose,
+  closeOnBackdropClick = true,
   className,
   width = 600,
 }: ModalProps) => {
@@ -34,7 +37,7 @@ export const Modal = ({
   }, [onClose, handleEscape])
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) onClose?.()
+    if (closeOnBackdropClick && e.target === e.currentTarget) onClose?.()
   }
 
   return (

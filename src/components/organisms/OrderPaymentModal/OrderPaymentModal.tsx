@@ -17,6 +17,8 @@ interface OrderPaymentModalProps {
   onClose: () => void
   order: OrderDetails
   onPaymentSuccess?: () => void | Promise<void>
+  /** When user closes the modal via X while QR code is displayed; e.g. redirect to orders with "need payment" tab */
+  onCloseFromQrView?: () => void
   forceMethodSelection?: boolean
   selectedCardId?: string | null
 }
@@ -50,6 +52,7 @@ const PromptPayDisplay = ({
   orderName,
   countdown,
   onClose,
+  onCloseFromQrView,
   onPaymentSuccess,
 }: {
   clientSecret: string
@@ -58,6 +61,8 @@ const PromptPayDisplay = ({
   orderName: string
   countdown: number
   onClose: () => void
+  /** When user clicks X while QR is shown; e.g. redirect to /user/orders with "need payment" tab */
+  onCloseFromQrView?: () => void
   onPaymentSuccess?: () => void | Promise<void>
 }) => {
   const stripe = useStripe()
@@ -177,16 +182,20 @@ const PromptPayDisplay = ({
   const minutesStr = mins.toString().padStart(2, "0")
   const secondsStr = secs.toString().padStart(2, "0")
 
+  const handleClose = () => {
+    if (onCloseFromQrView) onCloseFromQrView()
+    else onClose()
+  }
+
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center px-4">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      {/* Backdrop: do not close on click when QR is displayed */}
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
       <div className="relative z-10 w-full max-w-[500px] bg-white rounded-3xl p-6 flex flex-col gap-5">
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          aria-label="ปิด"
         >
           <X className="w-6 h-6" />
         </button>
@@ -279,6 +288,7 @@ export const OrderPaymentModal = ({
   onClose,
   order,
   onPaymentSuccess,
+  onCloseFromQrView,
   forceMethodSelection = false,
   selectedCardId,
 }: OrderPaymentModalProps) => {
@@ -447,6 +457,7 @@ export const OrderPaymentModal = ({
           }
           countdown={countdown}
           onClose={handleClose}
+          onCloseFromQrView={onCloseFromQrView}
           {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
         />
       </Elements>

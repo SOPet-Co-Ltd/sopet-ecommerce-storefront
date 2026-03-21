@@ -100,6 +100,7 @@ Branch mapping:
 - Env vars: `docs/technical/environment-variables.md`
 - Deployment: `docs/technical/deployment.md`
 - Operations: `docs/technical/operations.md`
+- Cart behavior: `docs/technical/cart.md`
 
 ## Repository Structure
 

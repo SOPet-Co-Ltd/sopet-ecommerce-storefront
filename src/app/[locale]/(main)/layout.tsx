@@ -1,3 +1,4 @@
+import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import { Footer, Header } from "@/components/organisms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { checkRegion } from "@/lib/helpers/check-region"
@@ -24,6 +25,7 @@ export default async function RootLayout({
   if (!APP_ID || !user)
     return (
       <>
+        <ClearCartOnNonCheckout />
         <Header />
         {children}
         <Footer />
@@ -32,6 +34,7 @@ export default async function RootLayout({
 
   return (
     <>
+      <ClearCartOnNonCheckout />
       <Session appId={APP_ID} userId={user.id}>
         <Header />
         {children}

@@ -7,12 +7,13 @@ import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { useEffect, useState } from "react"
 import React from "react"
-import { addToCart } from "@/lib/data/cart"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
-import { useCartContext } from "@/components/providers"
+import { addItemToAnonymousCart } from "@/lib/data/local-customer-cart"
+import { addItemsToCustomerCart } from "@/lib/data/customer-cart"
+import { prepareGuestCheckout } from "@/lib/data/cart"
 import {
   FacebookShareButton,
   FacebookMessengerShareButton,
@@ -29,6 +30,7 @@ import {
 } from "@/icons"
 import { ProductDetailQuantitySelection } from "@/components/cells"
 import { AdditionalAttributeProps } from "@/types/product"
+import { CustomerCartItem } from "@/types/customer-cart"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -351,8 +353,8 @@ export const ProductDetailsVariantSelection = ({
   const [productQuantity, setProductQuantity] = useState(1)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
-  const { onAddToCart, cart } = useCartContext()
   const [isAdding, setIsAdding] = useState(false)
+  const [isBuyingNow, setIsBuyingNow] = useState(false)
   const { allSearchParams } = useGetAllSearchParams()
 
   const { cheapestVariant, cheapestPrice } = getProductPrice({
@@ -409,41 +411,53 @@ export const ProductDetailsVariantSelection = ({
   const variantHasPrice = !!product.variants?.find(({ id }) => id === variantId)
     ?.calculated_price
 
-  const isVariantStockMaxLimitReached =
-    (cart?.items?.find((item) => item.variant_id === variantId)?.quantity ??
-      0) >= variantStock
-
   // add the selected variant to the cart
   const handleAddToCart = async () => {
     if (!variantId || !hasAnyPrice) return null
 
     setIsAdding(true)
 
-    const subtotal = +(variantPrice?.calculated_price_without_tax_number || 0)
+    const quantity = productQuantity
+
     const total = +(variantPrice?.calculated_price_number || 0)
 
-    const storeCartLineItem = {
-      thumbnail: product.thumbnail || "",
-      product_title: product.title,
-      quantity: 1,
-      subtotal,
-      total,
-      tax_total: total - subtotal,
-      variant_id: variantId,
-      product_id: product.id,
-      variant: product.variants?.find(({ id }) => id === variantId),
-    }
-
     try {
-      if (!isVariantStockMaxLimitReached) {
-        onAddToCart(storeCartLineItem, variantPrice?.currency_code || "thb")
+      if (!user) {
+        const thumbnail =
+          product.thumbnail ??
+          (product.images && product.images.length > 0
+            ? (product.images[0]?.url ?? null)
+            : null)
+
+        addItemToAnonymousCart(
+          {
+            productId: product.id,
+            variantId,
+            quantity,
+            unitPriceSnapshot: total,
+            source: "storefront_cart",
+            metadata: {
+              product_title: product.title ?? "",
+              product_handle: product.handle ?? "",
+              thumbnail,
+              variant_title:
+                product.variants?.find((v) => v.id === variantId)?.title ?? "",
+            },
+          },
+          { maxQuantity: variantStock > 0 ? variantStock : undefined }
+        )
+        // No Medusa cart until checkout; only local anonymous cart here
+      } else {
+        await addItemsToCustomerCart([
+          {
+            productId: product.id,
+            variantId,
+            quantity,
+            unitPriceSnapshot: total,
+            source: "storefront_cart",
+          },
+        ])
       }
-      await addToCart({
-        variantId: variantId,
-        quantity: 1,
-        countryCode: locale,
-        productId: product.id,
-      })
     } catch (error) {
       toast.error({
         title: "Error adding to cart",
@@ -451,6 +465,34 @@ export const ProductDetailsVariantSelection = ({
       })
     } finally {
       setIsAdding(false)
+    }
+  }
+
+  // Buy Now: set Medusa cart to only this item + quantity and redirect to checkout
+  const handleBuyNow = async () => {
+    if (!variantId || !hasAnyPrice || productQuantity < 1) return
+
+    setIsBuyingNow(true)
+    try {
+      await prepareGuestCheckout(
+        [{ variantId, quantity: productQuantity }],
+        locale
+      )
+      // prepareGuestCheckout redirects on success; we only reach here on throw
+    } catch (error) {
+      // Next.js redirect() throws NEXT_REDIRECT; redirect is in progress — don't show error
+      if (error instanceof Error && error.message === "NEXT_REDIRECT") {
+        return
+      }
+      toast.error({
+        title: "ไม่สามารถดำเนินการได้",
+        description:
+          error instanceof Error
+            ? error.message
+            : "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
+      })
+    } finally {
+      setIsBuyingNow(false)
     }
   }
 
@@ -504,11 +546,11 @@ export const ProductDetailsVariantSelection = ({
               : "สินค้าหมด"}
         </Button>
 
-        {/* Buy now action */}
+        {/* Buy now action: skip cart, checkout with only this item + quantity */}
         <Button
-          // TODO: Handle Buy Now action
-          onClick={() => {}}
+          onClick={handleBuyNow}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
+          loading={isBuyingNow}
           fill
           size="lg"
           className="md:py-sop-12px py-sop-8px"

@@ -81,5 +81,6 @@ export const removeCartId = async () => {
   const cookies = await nextCookies()
   cookies.set("_medusa_cart_id", "", {
     maxAge: -1,
+    path: "/",
   })
 }
