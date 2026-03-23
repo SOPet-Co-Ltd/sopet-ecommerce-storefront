@@ -2,15 +2,15 @@ import type { Metadata } from "next"
 import { VetAIChatClient } from "./VetAIChatClient"
 
 type VetAIPageParams = {
-  params: {
+  params: Promise<{
     locale: string
-  }
+  }>
 }
 
 export async function generateMetadata({
   params,
 }: VetAIPageParams): Promise<Metadata> {
-  const { locale } = params
+  const { locale } = await params
 
   return {
     title: "Vet AI | SOPet",
