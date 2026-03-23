@@ -1,7 +1,10 @@
 import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
-import { retrieveCart } from "@/lib/data/cart"
+import {
+  retrieveCart,
+  ensureCheckoutCartQuantitiesCapped,
+} from "@/lib/data/cart"
 import {
   listAddressesByPhone,
   retrieveCustomer,
@@ -34,10 +37,15 @@ export default async function CheckoutPage({}) {
 }
 
 async function CheckoutPageContent({}) {
-  const cart = await retrieveCart()
+  let cart = await retrieveCart()
 
   if (!cart) {
     return notFound()
+  }
+
+  const capped = await ensureCheckoutCartQuantitiesCapped(cart)
+  if (capped) {
+    cart = capped
   }
 
   const shippingMethods = await listCartShippingMethods(cart.id, false)

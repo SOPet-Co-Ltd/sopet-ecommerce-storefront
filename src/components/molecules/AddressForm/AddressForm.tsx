@@ -38,6 +38,8 @@ interface Props {
   submitButton?: (props: {
     onSubmit: () => void
     isSubmitting: boolean
+    isDirty: boolean
+    hasAnyValue: boolean
   }) => React.ReactNode
 }
 
@@ -91,11 +93,17 @@ const Form = forwardRef<AddressFormHandle, Props>(
       register,
       setValue,
       watch,
-      formState: { errors, isSubmitting },
+      formState: { errors, isSubmitting, isDirty },
     } = useFormContext<AddressFormData>()
 
     const provinceValue = watch("province")
     const districtValue = watch("district")
+    const allValues = watch()
+
+    const hasAnyValue = Object.values(allValues).some((v) => {
+      if (typeof v === "string") return v.trim().length > 0
+      return Boolean(v)
+    })
 
     const provinceOptions = getProvinces()
     const districtOptions = getDistricts(provinceValue)
@@ -353,7 +361,7 @@ const Form = forwardRef<AddressFormHandle, Props>(
           </div>
           {error && <p className="label-md text-negative">{error}</p>}
           {submitButton ? (
-            submitButton({ onSubmit, isSubmitting })
+            submitButton({ onSubmit, isSubmitting, isDirty, hasAnyValue })
           ) : (
             <div className="flex justify-center">
               <Button rounded="rounded" disabled={isSubmitting}>

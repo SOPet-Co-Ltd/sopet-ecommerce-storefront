@@ -11,7 +11,7 @@ import { useState } from "react"
 import { Button } from "@/components/atoms/Button/Button"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { Clock, Copy, ChevronLeft, RotateCcw, Star } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { captureOrderPayment } from "@/lib/data/orders"
 import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 
@@ -49,7 +49,17 @@ const OrderDetailsHeaderCard = ({
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const router = useRouter()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
   const { submitReviews } = useReviewSubmission()
+
+  const handleClosePaymentModalFromQrView = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("orders_initial_tab", "to-pay")
+    }
+    router.push(`/${locale}/user/orders`)
+    setIsPaymentModalOpen(false)
+  }
 
   const handleCopyOrderId = async () => {
     try {
@@ -190,11 +200,6 @@ const OrderDetailsHeaderCard = ({
                 >
                   ยกเลิกคำสั่งซื้อ
                 </Button>
-                {/* <ActionMenu>
-                <ActionMenuItem onClick={() => setIsCancelModalOpen(true)}>
-                  ยกเลิกคำสั่งซื้อ
-                </ActionMenuItem>
-              </ActionMenu> */}
               </div>
             )}
 
@@ -265,7 +270,6 @@ const OrderDetailsHeaderCard = ({
           ? { currentMethod: order.payment_provider_id }
           : {})} // e.g. 'stripe' or 'promptpay'
         onConfirm={(cardId) => {
-          console.log("ChangePaymentModal confirmed with cardId:", cardId)
           if (cardId) {
             setSelectedCardId(cardId)
             if (typeof window !== "undefined") {
@@ -286,6 +290,7 @@ const OrderDetailsHeaderCard = ({
       <OrderPaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+        onCloseFromQrView={handleClosePaymentModalFromQrView}
         order={order}
         selectedCardId={
           selectedCardId ||

@@ -3,7 +3,11 @@ import { useState, useEffect } from "react"
 import { Button, InputSOPet } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { useRouter } from "next/navigation"
-import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
+import {
+  clearMedusaCartForLoginPage,
+  requestOtp,
+  verifyOtpAndLogin,
+} from "@/lib/data/customer"
 import { initiateOAuth } from "@/lib/data/oauth"
 import {
   SOPetLogo,
@@ -11,6 +15,7 @@ import {
   GoogleIcon,
   LineCustomIcon,
 } from "@/icons"
+import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
 
 export const LoginForm = () => {
   return <Form />
@@ -27,6 +32,11 @@ const Form = () => {
   const router = useRouter()
 
   const OTP_COOLDOWN_SECONDS = 180 // 3 minutes
+
+  // Clear Medusa cart when login page loads (cookie can only be modified in a Server Action)
+  useEffect(() => {
+    clearMedusaCartForLoginPage()
+  }, [])
 
   useEffect(() => {
     if (otpCooldownSeconds <= 0) return
@@ -105,6 +115,19 @@ const Form = () => {
       setError(res)
       setIsVerifying(false)
       return
+    }
+
+    // At this point the user should be authenticated. Best-effort merge of any
+    // local anonymous cart items into the customer's server-side cart.
+    try {
+      await mergeAnonymousCartIntoCustomerAfterLogin()
+    } catch (mergeError) {
+      // Do not block login redirect on merge failures; local cart is preserved
+      // by the helper when merge fails.
+      console.error(
+        "[LoginForm] Failed to merge anonymous cart after OTP login:",
+        mergeError
+      )
     }
 
     setError("")

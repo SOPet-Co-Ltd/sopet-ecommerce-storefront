@@ -40,6 +40,7 @@ import { ProfileContactOtpForm } from "./ProfileContactOtpForm/ProfileContactOtp
 import { SaveQRCodeButton } from "./SaveQRCodeButton/SaveQRCodeButton"
 import { DeleteAccountButton } from "./DeleteAccountButton/DeleteAccountButton"
 import OrderCard from "./OrderCard/OrderCard"
+import { OAuthSuccessView } from "./OAuthSuccessView/OAuthSuccessView"
 
 export {
   PrimeCategoryNavbar,
@@ -84,4 +85,5 @@ export {
   SaveQRCodeButton,
   DeleteAccountButton,
   OrderCard,
+  OAuthSuccessView,
 }

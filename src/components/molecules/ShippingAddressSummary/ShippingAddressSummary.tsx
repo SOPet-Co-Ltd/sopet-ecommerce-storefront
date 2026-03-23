@@ -38,10 +38,11 @@ const ShippingAddressSummary = ({
         <div className="flex flex-col gap-1">
           <Text className="md:sop-body-lg-regular sop-body-sm-regular text-sop-neutral-gray-300">
             {shipping_address.address_1}
+            {shipping_address.city ? ` ${shipping_address.city}` : ""}
             {shipping_address.address_2
               ? ` ${shipping_address.address_2}`
               : ""}{" "}
-            {shipping_address.city} {shipping_address.province}{" "}
+            {shipping_address.province}{" "}
             {shipping_address.country_code?.toUpperCase() === "TH"
               ? ""
               : shipping_address.country_code?.toUpperCase()}

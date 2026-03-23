@@ -45,11 +45,11 @@ export const AddressSelectionDialog = ({
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-[600px] bg-white rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] flex flex-col">
-        <h2 className="text-xl font-bold text-sop-primary-600 mb-6">
+        <h2 className="md:sop-body-lg-regular sop-body-md-regular text-sop-primary-500 pb-3 border-b border-sop-neutral-grayalpha-300 mb-5">
           ที่อยู่ของฉัน
         </h2>
 
-        <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-5 mb-5">
           <div className="flex flex-col gap-4">
             {addresses.map((address) => {
               const isSelected = selectedId === address.id
@@ -57,40 +57,32 @@ export const AddressSelectionDialog = ({
                 <div
                   key={address.id}
                   className={cn(
-                    "border rounded-xl p-4 flex items-start gap-4 transition-all cursor-pointer bg-sop-base-white",
-                    isSelected
-                      ? "border-sop-neutral-grayfixed-400 "
-                      : "border-sop-neutral-grayfixed-200 hover:border-sop-neutral-grayfixed-400"
+                    "border border-sop-neutral-grayalpha-300 rounded-sop-12px p-2 flex flex-col gap-1"
                   )}
                   onClick={() => setSelectedId(address.id)}
                 >
-                  <div
-                    className={cn(
-                      "mt-1 w-5 h-5 min-w-sop-20px rounded-full border  flex items-center justify-center",
-                      isSelected
-                        ? "border-sop-primary-600"
-                        : "border-sop-neutral-grayfixed-300"
-                    )}
-                  >
-                    {isSelected && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-sop-primary-600" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="flex gap-4 items-center flex-wrap">
-                        <span className="font-bold text-sop-neutral-grayfixed-100 cursor-pointer">
-                          {address.first_name} {/* {address.last_name} */}
-                        </span>
-                        <span className="text-sop-neutral-grayfixed-400">
-                          {address.phone}
-                        </span>
-                        {address.is_default_shipping && (
-                          <span className="px-2 py-0.5 border border-sop-secondary-500 text-sop-secondary-500 text-xs rounded-full bg-white">
-                            ค่าเริ่มต้น
-                          </span>
-                        )}
-                      </div>
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={cn(
+                        "w-4 md:w-5 aspect-square rounded-full border flex items-center justify-center",
+                        isSelected
+                          ? "border-sop-primary-500"
+                          : "border-sop-neutral-grayalpha-200"
+                      )}
+                    >
+                      {isSelected && (
+                        <div className="w-1.5 md:w-2 aspect-square rounded-full bg-sop-primary-500" />
+                      )}
+                    </div>
+                    <div className="flex flex-col md:flex-row md:gap-4">
+                      <span className="sop-body-xs-regular md:sop-body-lg-regular text-sop-base-black">
+                        {address.first_name} {address.last_name}
+                      </span>
+                      <span className="sop-body-xs-regular md:sop-body-lg-regular text-sop-neutral-gray-400">
+                        {address.phone}
+                      </span>
+                    </div>
+                    <div className="flex-1 flex items-center justify-end">
                       {allowEdit && (
                         <button
                           type="button"
@@ -98,18 +90,24 @@ export const AddressSelectionDialog = ({
                             e.stopPropagation()
                             onEdit(address)
                           }}
-                          className="text-sop-neutral-grayfixed-400 underline hover:text-sop-neutral-grayfixed-100 text-sm"
+                          className="sop-link-xs-regular md:sop-link-md-regular text-sop-neutral-gray-400 underline cursor-pointer"
                         >
                           แก้ไข
                         </button>
                       )}
                     </div>
-                    <p className="text-sop-neutral-grayfixed-400 text-sm leading-relaxed">
-                      {address.address_1} {address.address_2}{" "}
-                      {address.city ? `แขวง${address.city}` : ""}{" "}
-                      {address.province ? `เขต${address.province}` : ""}{" "}
-                      {address.province} {address.postal_code}
-                    </p>
+                  </div>
+                  <p className="sop-body-xs-regular md:sop-body-lg-regular text-sop-neutral-gray-400 leading-relaxed pl-sop-24px md:pl-sop-32px">
+                    {address.address_1} {address.city} {address.address_2}{" "}
+                    {address.province} {address.postal_code}
+                  </p>
+
+                  <div className="flex items-center gap-2 pl-sop-24px md:pl-sop-32px">
+                    {address.is_default_shipping && (
+                      <span className="sop-body-2xs-regular md:sop-body-xs-regular text-sop-secondary-500 py-1 px-3 rounded-sop-36px border border-sop-secondary-500">
+                        ค่าเริ่มต้น
+                      </span>
+                    )}
                   </div>
                 </div>
               )
@@ -117,19 +115,11 @@ export const AddressSelectionDialog = ({
           </div>
         </div>
 
-        <div className="mt-6 flex gap-4">
-          <Button
-            variant="secondary"
-            className="w-full rounded-full bg-sop-base-white border-sop-primary-600 text-sop-primary-600 hover:bg-sop-primary-100"
-            onClick={onClose}
-          >
+        <div className="flex gap-4">
+          <Button fill variant="outline" onClick={onClose}>
             ยกเลิก
           </Button>
-          <Button
-            className="w-full rounded-full bg-sop-primary-600 hover:bg-sop-primary-700 text-white"
-            onClick={handleConfirm}
-            disabled={!selectedId}
-          >
+          <Button fill onClick={handleConfirm} disabled={!selectedId}>
             ตกลง
           </Button>
         </div>
