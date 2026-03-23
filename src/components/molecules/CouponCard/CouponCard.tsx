@@ -46,7 +46,7 @@ export const CouponCard = ({
 
   return (
     <div
-      className={`flex w-[305px] min-h-[156px] h-full rounded-xl overflow-hidden hover:shadow-md transition-shadow relative group shrink-0 ${
+      className={`flex w-full max-w-[320px] min-h-[156px] h-full rounded-xl overflow-hidden hover:shadow-md transition-shadow relative group ${
         onApply && !isApplied ? "cursor-pointer" : ""
       }`}
       onClick={

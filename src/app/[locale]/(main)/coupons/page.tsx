@@ -49,7 +49,7 @@ const CouponSection = ({
       >
         <h3 className="sop-headline-sm-medium text-white">{headerText}</h3>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 justify-items-center w-full">
         {visibleCoupons.map((coupon, i) => (
           <CouponCard
             key={i}
