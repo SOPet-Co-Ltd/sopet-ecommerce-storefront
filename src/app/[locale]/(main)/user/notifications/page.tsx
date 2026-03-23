@@ -67,11 +67,26 @@ export default function page() {
     try {
       const data = await listOrders(LIMIT, offset)
       if (data && Array.isArray(data)) {
-        if (offset === 0) setOrders(data)
-        else setOrders((prev) => [...prev, ...data])
-
-        if (data.length < LIMIT) setOrdersHasMore(false)
-        else setOrdersHasMore(true)
+        if (offset === 0) {
+          setOrders(data)
+          setOrdersHasMore(data.length === LIMIT)
+        } else {
+          setOrders((prev) => {
+            const prevIds = new Set(prev.map((p) => p.id))
+            const newUnique = data.filter((d: any) => !prevIds.has(d.id))
+            
+            // Safety measure: if data was returned but nothing is new, pagination is broken/done
+            if (newUnique.length === 0) {
+              setOrdersHasMore(false)
+            } else if (data.length < LIMIT) {
+              setOrdersHasMore(false)
+            } else {
+              setOrdersHasMore(true)
+            }
+            
+            return [...prev, ...newUnique]
+          })
+        }
       } else {
         setOrdersHasMore(false)
       }
@@ -122,13 +137,24 @@ export default function page() {
         })),
       ]
 
-      if (offset === 0) setPromotions(combined)
-      else setPromotions((prev) => [...prev, ...combined])
-
-      if (newCampaigns.length < LIMIT && newCoupons.length < LIMIT) {
-        setPromosHasMore(false)
+      if (offset === 0) {
+        setPromotions(combined)
+        setPromosHasMore(!(newCampaigns.length < LIMIT && newCoupons.length < LIMIT))
       } else {
-        setPromosHasMore(true)
+        setPromotions((prev) => {
+          const prevIds = new Set(prev.map((p) => p.id))
+          const newUnique = combined.filter((c) => !prevIds.has(c.id))
+
+          if (newUnique.length === 0) {
+            setPromosHasMore(false)
+          } else if (newCampaigns.length < LIMIT && newCoupons.length < LIMIT) {
+            setPromosHasMore(false)
+          } else {
+            setPromosHasMore(true)
+          }
+
+          return [...prev, ...newUnique]
+        })
       }
     } catch (e) {
       console.error("Failed to fetch promotions:", e)

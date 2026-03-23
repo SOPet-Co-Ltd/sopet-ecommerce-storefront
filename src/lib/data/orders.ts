@@ -129,6 +129,8 @@ export const listOrders = async (
           "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set",
         limit,
         offset,
+        take: limit,
+        skip: offset,
         ...filters,
       },
       headers,
