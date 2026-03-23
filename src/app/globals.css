@@ -813,3 +813,15 @@ input[type="range"].slider-thumb:focus::-webkit-slider-thumb {
 input[type="range"].slider-thumb:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(255, 111, 97, 0.2);
 }
+
+.vetai-icon-responsive {
+  width: var(--vetai-icon-size-mobile, 24px);
+  height: var(--vetai-icon-size-mobile, 24px);
+}
+
+@media (min-width: 768px) {
+  .vetai-icon-responsive {
+    width: var(--vetai-icon-size-desktop, var(--vetai-icon-size-mobile, 24px));
+    height: var(--vetai-icon-size-desktop, var(--vetai-icon-size-mobile, 24px));
+  }
+}

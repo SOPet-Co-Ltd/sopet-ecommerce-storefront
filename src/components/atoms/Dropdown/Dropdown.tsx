@@ -10,10 +10,6 @@ import { DownArrowIcon, TickHeavyIcon } from "@/icons"
 /** Shared padding for content items (label, item, scroll buttons). */
 const DROPDOWN_ITEM_PADDING = "px-[14px] py-[10px]"
 
-/** Content panel base styles. */
-const DROPDOWN_CONTENT_CLASSES =
-  "bg-sop-neutral-gray-600 overflow-clip border-sop-neutral-gray-500 rounded-sop-8px w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)"
-
 /** Viewport max height and scroll (native overflow; no Scroll Area to avoid overflow/overflowY conflict). */
 const DROPDOWN_VIEWPORT_CLASSES = "max-h-60 overflow-x-hidden overflow-y-auto"
 
@@ -35,6 +31,11 @@ export interface DropdownProps extends React.ComponentPropsWithoutRef<
   contentClassName?: string
   icon?: React.ReactNode
   button?: Omit<ButtonProps, "children">
+  trigger?: React.ReactNode
+  width?: number
+  alignOffset?: number
+  sideOffset?: number
+  align?: "center" | "end" | "start" | undefined
 }
 
 export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
@@ -49,6 +50,11 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
       open: openProp,
       defaultOpen,
       onOpenChange,
+      trigger,
+      width,
+      alignOffset,
+      sideOffset,
+      align,
       ...props
     },
     ref
@@ -76,27 +82,35 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
           className={cn("DropdownTrigger", triggerClassName)}
           asChild
         >
-          <Button rounded={button?.rounded ?? "rounded"} {...button}>
-            <div className="flex justify-between items-center">
-              <SelectPrimitive.Value placeholder={placeholder} />
-              <SelectPrimitive.Icon className="DropdownIcon">
-                {icon ?? <DownArrowIcon size={16} color="#211F23" />}
-              </SelectPrimitive.Icon>
-            </div>
-          </Button>
+          {trigger ? (
+            trigger
+          ) : (
+            <Button rounded={button?.rounded ?? "rounded"} {...button}>
+              <div className="flex justify-between items-center">
+                <SelectPrimitive.Value placeholder={placeholder} />
+                <SelectPrimitive.Icon className="DropdownIcon">
+                  {icon ?? <DownArrowIcon size={16} color="#211F23" />}
+                </SelectPrimitive.Icon>
+              </div>
+            </Button>
+          )}
         </SelectPrimitive.Trigger>
 
         <SelectPrimitive.Portal>
           <SelectPrimitive.Content
             className={cn(
-              "z-120 shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
-              DROPDOWN_CONTENT_CLASSES,
+              "shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
+              "bg-sop-neutral-gray-600 overflow-clip border-sop-neutral-gray-500 rounded-sop-8px",
+              width
+                ? `w-[${width}px]`
+                : "w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)",
               "DropdownContent",
               contentClassName
             )}
             position="popper"
-            alignOffset={0}
-            sideOffset={5}
+            alignOffset={alignOffset ?? 0}
+            sideOffset={sideOffset ?? 5}
+            align={align ?? "end"}
           >
             <SelectPrimitive.Viewport className={DROPDOWN_VIEWPORT_CLASSES}>
               {children}
