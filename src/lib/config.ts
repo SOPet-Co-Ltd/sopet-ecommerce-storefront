@@ -2,7 +2,9 @@ import Medusa from "@medusajs/js-sdk"
 
 // Defaults to standard port for Medusa server
 export const MEDUSA_BACKEND_URL =
-  process.env["MEDUSA_BACKEND_URL"] || "http://localhost:9000"
+  process.env["NEXT_PUBLIC_MEDUSA_BACKEND_URL"] ||
+  process.env["MEDUSA_BACKEND_URL"] ||
+  "http://localhost:9000"
 
 // Get publishable key - ensure it's a string and never undefined
 // This is critical as the Medusa SDK requires a valid publishable key
