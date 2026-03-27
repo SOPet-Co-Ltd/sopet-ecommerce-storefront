@@ -87,7 +87,7 @@ export const CouponCard = ({
         <div className="flex flex-col mb-1.5">
           {coupon.vendorName && (
             <div className="flex items-center gap-1 mb-1">
-              <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-sop-3XS font-medium leading-none">
+              <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-sop-3XS font-medium leading-none whitespace-nowrap shrink-0">
                 ร้านค้า
               </span>
               <Text className="sop-body-xs-regular text-gray-600 leading-none truncate">

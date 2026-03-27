@@ -6,17 +6,38 @@ import {
   CouponCard,
   CouponConditionsModal,
   CouponCollectedModal,
+  CouponAuthErrorModal,
 } from "@/components/molecules"
-import { fetchCoupons } from "@/lib/data/coupons"
+import { fetchCoupons, collectCoupon } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 
 export const HomeCouponSection = () => {
   const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
   const [showCollected, setShowCollected] = useState(false)
+  const [showAuthError, setShowAuthError] = useState(false)
   const [coupons, setCoupons] = useState<any[]>([])
 
-  const handleApply = useCallback(() => {
-    setShowCollected(true)
+  const handleApply = useCallback(async (coupon: any) => {
+    try {
+      const res = await collectCoupon(coupon.id)
+      if (res.success) {
+        setShowCollected(true)
+        // Mark as collected in local state
+        setCoupons((prev) =>
+          prev.map((c) =>
+            c.id === coupon.id ? { ...c, is_collected: true } : c
+          )
+        )
+      } else {
+        if (res.message === "Unauthorized") {
+          setShowAuthError(true)
+        } else {
+          alert(res.message || "ไม่สามารถเก็บคูปองได้")
+        }
+      }
+    } catch (e) {
+      alert("เกิดข้อผิดพลาดในการเก็บคูปอง")
+    }
   }, [])
 
   useEffect(() => {
@@ -52,7 +73,8 @@ export const HomeCouponSection = () => {
             key={i}
             coupon={item}
             onConditionsClick={setSelectedCoupon}
-            onApply={handleApply}
+            onApply={() => handleApply(item)}
+            isApplied={item.is_collected}
           />
         ))}
       </div>
@@ -66,6 +88,11 @@ export const HomeCouponSection = () => {
       <CouponCollectedModal
         isOpen={showCollected}
         onClose={() => setShowCollected(false)}
+      />
+
+      <CouponAuthErrorModal
+        isOpen={showAuthError}
+        onClose={() => setShowAuthError(false)}
       />
     </section>
   )

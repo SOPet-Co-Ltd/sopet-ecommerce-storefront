@@ -6,6 +6,7 @@ import {
   CouponCard,
   CouponConditionsModal,
   CouponCollectedModal,
+  CouponAuthErrorModal,
 } from "@/components/molecules"
 import { fetchCoupons, collectCoupon } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
@@ -78,6 +79,7 @@ const CouponSection = ({
 export default function CouponsPage() {
   const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
   const [showCollected, setShowCollected] = useState(false)
+  const [showAuthError, setShowAuthError] = useState(false)
 
   const [newCustomerCoupons, setNewCustomerCoupons] = useState<any[]>([])
   const [shippingCoupons, setShippingCoupons] = useState<any[]>([])
@@ -104,7 +106,11 @@ export default function CouponsPage() {
           setSpecialCoupons(updateCoupons)
         }
       } else {
-        alert(res.message || "ไม่สามารถเก็บคูปองได้")
+        if (res.message === "Unauthorized") {
+          setShowAuthError(true)
+        } else {
+          alert(res.message || "ไม่สามารถเก็บคูปองได้")
+        }
       }
     } catch (e) {
       alert("เกิดข้อผิดพลาดในการเก็บคูปอง")
@@ -198,6 +204,11 @@ export default function CouponsPage() {
       <CouponCollectedModal
         isOpen={showCollected}
         onClose={() => setShowCollected(false)}
+      />
+
+      <CouponAuthErrorModal
+        isOpen={showAuthError}
+        onClose={() => setShowAuthError(false)}
       />
     </div>
   )
