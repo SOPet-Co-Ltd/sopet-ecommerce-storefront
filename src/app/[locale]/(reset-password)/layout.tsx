@@ -1,3 +1,4 @@
+import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import Image from "next/image"
 
@@ -8,6 +9,7 @@ export default function ResetPasswordLayout({
 }) {
   return (
     <>
+      <ClearCartOnNonCheckout />
       <header>
         <div className="relative w-full py-2 lg:px-8 px-4">
           <div className="flex items-center justify-center pl-4 lg:pl-0 w-full">

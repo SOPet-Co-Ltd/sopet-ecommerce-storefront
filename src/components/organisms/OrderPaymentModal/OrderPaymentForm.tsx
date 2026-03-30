@@ -1,16 +1,29 @@
 "use client"
 
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import { useStripe } from "@stripe/react-stripe-js"
 import { X, CreditCard } from "lucide-react"
 import { useState } from "react"
+import type { OrderDetails } from "@/types/order"
 
 interface OrderPaymentFormProps {
-  order: any
+  order: OrderDetails
   onClose: () => void
   onPaymentSuccess?: () => void | Promise<void>
   selectedCardId?: string | null
   clientSecret: string
+}
+
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "เกิดข้อผิดพลาดในการชำระเงิน"
 }
 
 export const OrderPaymentForm = ({
@@ -68,8 +81,8 @@ export const OrderPaymentForm = ({
         }
         onClose()
       }
-    } catch (err: any) {
-      setError(err.message || "เกิดข้อผิดพลาดในการชำระเงิน")
+    } catch (error: unknown) {
+      setError(toErrorMessage(error))
     } finally {
       setIsProcessing(false)
     }

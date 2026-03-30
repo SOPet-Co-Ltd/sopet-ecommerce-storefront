@@ -9,6 +9,7 @@ import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountS
 import { CartAddressSection } from "@/components/sections/CartAddressSection/CartAddressSection"
 import CartReview from "@/components/sections/CartReview/CartReview"
 import { GuestOTPDialog } from "@/components/organisms/GuestOTPDialog/GuestOTPDialog"
+import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
 import { Cart, StoreCardShippingMethod } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 
@@ -32,9 +33,10 @@ export default function CheckoutFlowClient({
   const showGuestOTPDialog = !customer && !isOTPVerified
 
   const handleGuestVerified = useCallback(
-    (phone: string) => {
+    async (phone: string) => {
       setVerifiedPhone(phone)
       setIsOTPVerified(true)
+      await mergeAnonymousCartIntoCustomerAfterLogin()
       router.refresh()
     },
     [router]

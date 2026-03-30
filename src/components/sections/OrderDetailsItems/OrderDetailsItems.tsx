@@ -1,8 +1,9 @@
 import { convertToLocale } from "@/lib/helpers/money"
 import Image from "next/image"
+import type { OrderLineItem } from "@/types/order"
 
 type OrderDetailsItemsProps = {
-  items: any[]
+  items: OrderLineItem[]
   currencyCode: string
 }
 

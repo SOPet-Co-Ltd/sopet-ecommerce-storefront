@@ -14,8 +14,86 @@ import {
   setCartId,
 } from "./cookies"
 import { getRegion } from "./regions"
+import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
+import { listProducts } from "./products"
+
+/**
+ * On checkout enter: cap each line item quantity at variant inventory.
+ * Fetches product/variant inventory and updates any item that exceeds max.
+ * Returns the updated cart or the original if no changes.
+ */
+export async function ensureCheckoutCartQuantitiesCapped(
+  cart: Cart
+): Promise<Cart | null> {
+  const items = cart?.items ?? []
+  if (!items.length || !cart.region_id) return cart
+
+  const productIds = Array.from(
+    new Set(
+      items
+        .map((i) => i.product_id)
+        .filter((id): id is string => typeof id === "string" && id.length > 0)
+    )
+  )
+  if (!productIds.length) return cart
+
+  let products: Array<{
+    variants?: Array<{ id: string; inventory_quantity?: number }> | null
+  }> = []
+  try {
+    const result = await listProducts({
+      regionId: cart.region_id,
+      queryParams: { id: productIds, limit: productIds.length },
+      forceCache: false,
+    })
+    products = (result?.response?.products ?? []) as typeof products
+  } catch {
+    return cart
+  }
+
+  const variantToMax = new Map<string, number>()
+  for (const p of products) {
+    for (const v of p.variants ?? []) {
+      const inv = v.inventory_quantity
+      if (typeof inv === "number" && inv >= 0) {
+        variantToMax.set(v.id, inv)
+      }
+    }
+  }
+
+  const updates: { lineId: string; quantity: number; variantId?: string }[] = []
+  for (const item of items) {
+    const vid = item.variant_id
+    if (!vid) continue
+    const max = variantToMax.get(vid)
+    if (typeof max !== "number") continue
+    const qty = Number(item.quantity) || 0
+    if (qty > max) {
+      updates.push({
+        lineId: item.id,
+        quantity: max,
+        variantId: vid,
+      })
+    }
+  }
+
+  if (!updates.length) return cart
+
+  try {
+    for (const u of updates) {
+      await updateLineItem({
+        lineId: u.lineId,
+        quantity: u.quantity,
+        variantId: u.variantId,
+      })
+    }
+    return retrieveCart(cart.id)
+  } catch {
+    return cart
+  }
+}
 
 /**
  * Retrieves a cart by its ID. If no ID is provided, it will use the cart ID from the cookies.
@@ -148,6 +226,70 @@ export async function getOrSetCart(countryCode: string) {
   return cart
 }
 
+/**
+ * Guest checkout: set Medusa cart to exactly the selected items (by variant + quantity)
+ * and redirect to checkout. Call this after removing selected items from the anonymous
+ * cart so only non-selected items remain for merge after OTP.
+ */
+export async function prepareGuestCheckout(
+  selectedItems: { variantId: string; quantity: number }[],
+  countryCode: string
+): Promise<never> {
+  const cart = await getOrSetCart(countryCode)
+  if (!cart?.id) {
+    throw new Error("Failed to get or create cart for guest checkout")
+  }
+
+  const selectedByVariant = new Map<string, number>()
+  for (const { variantId, quantity } of selectedItems) {
+    selectedByVariant.set(
+      variantId,
+      (selectedByVariant.get(variantId) ?? 0) + quantity
+    )
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+  const cartCacheTag = await getCacheTag("carts")
+
+  for (const item of cart.items ?? []) {
+    const vid = item.variant_id
+    const lineId = item.id
+    if (!vid || !lineId) continue
+    const want = selectedByVariant.get(vid)
+    if (want === undefined) {
+      await sdk.store.cart
+        .deleteLineItem(cart.id, lineId, {}, headers)
+        .catch((e) => console.error("[prepareGuestCheckout] deleteLineItem", e))
+    } else {
+      if (item.quantity !== want) {
+        await sdk.store.cart
+          .updateLineItem(cart.id, lineId, { quantity: want }, {}, headers)
+          .catch((e) =>
+            console.error("[prepareGuestCheckout] updateLineItem", e)
+          )
+      }
+      selectedByVariant.set(vid, -1)
+    }
+  }
+
+  for (const [variantId, qty] of selectedByVariant) {
+    if (qty <= 0) continue
+    await sdk.store.cart
+      .createLineItem(
+        cart.id,
+        { variant_id: variantId, quantity: qty },
+        {},
+        headers
+      )
+      .catch((e) => console.error("[prepareGuestCheckout] createLineItem", e))
+  }
+
+  revalidateTag(cartCacheTag)
+  redirect(`/${countryCode}/checkout`)
+}
+
 export async function updateCart(data: HttpTypes.StoreUpdateCart) {
   const cartId = await getCartId()
 
@@ -173,10 +315,12 @@ export async function addToCart({
   variantId,
   quantity,
   countryCode,
+  productId,
 }: {
   variantId: string
   quantity: number
   countryCode: string
+  productId?: string
 }) {
   if (!variantId) {
     throw new Error("Missing variant ID when adding to cart")
@@ -222,6 +366,14 @@ export async function addToCart({
       .then(async () => {
         const cartCacheTag = await getCacheTag("carts")
         revalidateTag(cartCacheTag)
+        if (productId) {
+          const { trackProductEvent } = await import("./product-events")
+          trackProductEvent({
+            event_type: "add_to_cart",
+            product_id: productId,
+            variant_id: variantId,
+          })
+        }
       })
       .catch(medusaError)
       .finally(async () => {
@@ -308,7 +460,7 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
-  await fetchQuery(`/store/cart/${cartId}/line-items/${lineId}`, {
+  await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
     method: "DELETE",
     headers,
   })
@@ -546,7 +698,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
 /**
  * Places an order for a cart. If no cart ID is provided, it will use the cart ID from the cookies.
  * @param cartId - optional - The ID of the cart to place an order for.
- * @returns The cart object if the order was successful, or null if not.
+ * @returns The response; use getOrderIdFromPlaceOrderResponse(res) to get the order ID.
  */
 export async function placeOrder(
   cartId?: string,
@@ -578,7 +730,8 @@ export async function placeOrder(
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
 
-  if (res?.data?.order_set) {
+  const orderId = getOrderIdFromPlaceOrderResponse(res)
+  if (res?.ok) {
     // Mark applied coupons as used in the customer's wallet
     const appliedPromoCodes = (cartBeforeComplete as any)?.promotions
       ?.map((p: any) => p.code)
@@ -593,13 +746,40 @@ export async function placeOrder(
 
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
+  }
+  if (orderId && options?.redirect !== false) {
     removeCartId()
-    if (options?.redirect !== false) {
-      redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
-    }
+    redirect(`/order/${orderId}/confirmed`)
   }
 
   return res
+}
+
+/**
+ * Clears the cart on Medusa (deletes all line items) and removes the local cart cookie.
+ * Call when closing QR payment modal or when navigating away from checkout.
+ */
+export async function clearCart() {
+  const cartId = await getCartId()
+  if (cartId) {
+    try {
+      const cart = await retrieveCart(cartId)
+      const headers = await getAuthHeaders()
+      const lineIds = (cart?.items ?? []).map((item) => item.id).filter(Boolean)
+      for (const lineId of lineIds) {
+        await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
+          method: "DELETE",
+          headers,
+        }).catch(() => {})
+      }
+      const cartCacheTag = await getCacheTag("carts")
+      await revalidateTag(cartCacheTag)
+    } catch {
+      // Cart may already be completed or missing; still clear cookie
+    }
+  }
+  removeCartId()
+  revalidatePath("/")
 }
 
 /**
@@ -747,10 +927,6 @@ export async function listCartOptions() {
 
 export async function checkoutWithSelection(selectedItemIds: string[]) {
   const cartId = await getCartId()
-  console.log(
-    `[checkoutWithSelection] Starting for cartId: ${cartId}, selected:`,
-    selectedItemIds
-  )
 
   if (!cartId) {
     throw new Error("No existing cart found")
@@ -758,17 +934,12 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
 
   const cart = await retrieveCart(cartId)
   if (!cart?.items) {
-    console.log("[checkoutWithSelection] No items in cart, redirecting")
     redirect("/checkout")
     return
   }
 
   const itemsToDelete = cart.items.filter(
     (item) => !selectedItemIds.includes(item.id) && item.variant_id
-  )
-
-  console.log(
-    `[checkoutWithSelection] Items to delete/hide: ${itemsToDelete.length}`
   )
 
   if (itemsToDelete.length > 0) {
@@ -782,11 +953,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       quantity: item.quantity,
     }))
 
-    console.log(
-      "[checkoutWithSelection] Saving hidden items to metadata:",
-      JSON.stringify(hiddenItems)
-    )
-
     await sdk.store.cart.update(
       cartId,
       { metadata: { hidden_items: hiddenItems } },
@@ -794,17 +960,11 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
       headers
     )
 
-    console.log(
-      "[checkoutWithSelection] Metadata saved successfully. Proceeding to delete items."
-    )
-
     await Promise.all(
       itemsToDelete.map((item) =>
         sdk.store.cart
           .deleteLineItem(cartId, item.id, {}, headers)
-          .then(() =>
-            console.log(`[checkoutWithSelection] Deleted item ${item.id}`)
-          )
+          .then(() => {})
           .catch((err) => {
             console.error(`Failed to delete item ${item.id}`, err)
           })
@@ -815,7 +975,6 @@ export async function checkoutWithSelection(selectedItemIds: string[]) {
     revalidateTag(cartCacheTag)
   }
 
-  console.log("[checkoutWithSelection] Redirecting to checkout")
   redirect("/checkout")
 }
 
@@ -825,12 +984,6 @@ export async function restoreHiddenItems(): Promise<boolean> {
 
   const cart = await retrieveCart(cartId)
   const hidden = (cart?.metadata?.hidden_items as any[]) || []
-
-  console.log(
-    `[restoreHiddenItems] CartId: ${cartId}, Found hidden items:`,
-    hidden.length,
-    JSON.stringify(hidden)
-  )
 
   if (hidden.length > 0) {
     const headers = {
@@ -846,7 +999,6 @@ export async function restoreHiddenItems(): Promise<boolean> {
             {},
             headers
           )
-          console.log(`[restoreHiddenItems] Restored item ${item.variant_id}`)
           return { item, ok: true }
         } catch (err) {
           console.error(
@@ -868,11 +1020,7 @@ export async function restoreHiddenItems(): Promise<boolean> {
           {},
           headers
         )
-        .then(() =>
-          console.log(
-            `[restoreHiddenItems] Metadata updated. Remaining hidden: ${remainingHidden.length}`
-          )
-        )
+        .then(() => {})
         .catch(console.error)
     }
 

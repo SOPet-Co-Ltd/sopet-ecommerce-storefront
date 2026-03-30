@@ -8,20 +8,24 @@ import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/Ch
 import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderCancelModal"
 import { ReviewModal } from "@/components/organisms/ReviewModal/ReviewModal"
 import { useState } from "react"
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { Clock, Copy, ChevronLeft, RotateCcw, Star } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { captureOrderPayment } from "@/lib/data/orders"
+import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 
 import {
   getOrderDisplayStatus,
   getOrderStatusLabel,
   getOrderStatusColor,
 } from "@/lib/helpers/order-status"
+import type { OrderDetails } from "@/types/order"
+import { TimeIcon } from "@/icons"
 
 type OrderDetailsHeaderCardProps = {
-  order: any
+  order: OrderDetails
+  hasAnyReviewed?: boolean
 }
 
 // Helper to format date
@@ -33,7 +37,10 @@ const formatDate = (dateString: string) => {
     year: "numeric",
   })
 }
-const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
+const OrderDetailsHeaderCard = ({
+  order,
+  hasAnyReviewed = false,
+}: OrderDetailsHeaderCardProps) => {
   const [isChangePaymentModalOpen, setIsChangePaymentModalOpen] =
     useState(false)
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -42,12 +49,30 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const router = useRouter()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
+  const { submitReviews } = useReviewSubmission()
+
+  const handleClosePaymentModalFromQrView = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("orders_initial_tab", "to-pay")
+    }
+    router.push(`/${locale}/user/orders`)
+    setIsPaymentModalOpen(false)
+  }
+
+  const handleCopyOrderId = async () => {
+    try {
+      await navigator.clipboard.writeText(String(order.display_id))
+    } catch (error) {
+      console.error("Failed to copy order id:", error)
+    }
+  }
 
   // Determine state
   const displayStatus = getOrderDisplayStatus(order)
   const statusLabel = getOrderStatusLabel(displayStatus)
   const statusColor = getOrderStatusColor(displayStatus)
-  const dotColor = statusColor.replace("text-", "bg-")
 
   const isCancelled = displayStatus === "cancelled"
   const isToPay = displayStatus === "to-pay"
@@ -57,166 +82,194 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
 
   return (
     <>
-      <div className="bg-white rounded-lg p-6 shadow-sm mb-4">
+      <div className="bg-sop-base-white px-4 py-3 md:px-10 md:py-10">
         {/* Top Row: Title & Back */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-xl font-bold text-gray-900">
+        <div className="flex justify-between items-center mb-10 pb-2.5 border-b border-sop-neutral-grayalpha-300">
+          <h2 className="sop-headline-sm-medium text-sop-neutral-gray-200">
             รายละเอียดคำสั่งซื้อ
-          </h1>
-          <LocalizedClientLink
-            href="/user/orders"
-            className="text-gray-500 hover:text-gray-900 flex items-center gap-1 text-sm font-medium"
-          >
-            <ChevronLeft className="w-4 h-4" /> ย้อนกลับ
+          </h2>
+          <LocalizedClientLink href="/user/orders">
+            <Button
+              variant="ghost"
+              rounded="rounded"
+              size="sm"
+              className="shadow-none"
+            >
+              <div className="flex items-center gap-1">
+                <ChevronLeft className="w-4 h-4" />
+                <p>ย้อนกลับ</p>
+              </div>
+            </Button>
           </LocalizedClientLink>
         </div>
 
-        {/* Info Row */}
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center text-sm text-gray-700 mb-6 gap-4">
-          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
-              หมายเลขคำสั่งซื้อ
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-900">{order.display_id}</span>
-              <button className="text-gray-400 hover:text-gray-600">
-                <Copy className="w-4 h-4" />
-              </button>
+        <div className="flex flex-col gap-5">
+          {/* Info Row */}
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="flex items-center justify-start gap-3">
+              <p className="text-sop-primary-500 sop-body-md-medium">
+                หมายเลขคำสั่งซื้อ
+              </p>
+              <div className="flex items-center gap-2">
+                <p className="sop-body-md-regular text-sop-neutral-gray-300">
+                  {order.display_id}
+                </p>
+                <button
+                  className={`transition-colors text-gray-400 hover:text-gray-600`}
+                  onClick={handleCopyOrderId}
+                  title="Copy order ID"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
-              วันที่สั่งซื้อ
-            </span>
-            <span className="text-gray-900">
-              {formatDate(order.created_at)}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-start md:justify-start gap-2 w-full md:w-auto">
-            <span className="text-sop-primary-500 font-medium w-[130px] shrink-0 md:w-auto md:shrink">
-              สถานะ
-            </span>
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
-              ></span>
-              <span className={`font-medium ${statusColor}`}>
-                {statusLabel}
+            <div className="flex items-center justify-start gap-3">
+              <span className="text-sop-primary-500 sop-body-md-medium">
+                วันที่สั่งซื้อ
+              </span>
+              <span className="sop-body-md-regular text-sop-neutral-gray-300">
+                {formatDate(order.created_at)}
               </span>
             </div>
-          </div>
-        </div>
 
-        {/* Countdown Bar (Only if pending) */}
-        {isToPay && (
-          <div className="bg-purple-50 rounded-md p-3 mb-6 flex items-center justify-center gap-3 text-sm">
-            <Clock className="w-5 h-5 text-gray-900" />
-            <span className="text-gray-900">ชำระเงินผ่าน QR code ภายใน</span>
-            <span className="text-red-500 font-bold text-lg">03 : 35 : 48</span>
+            <div className="flex items-center justify-start gap-3">
+              <span className="text-sop-primary-500 sop-body-md-medium">
+                สถานะ
+              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
+                ></span>
+                <span className={`sop-body-md-medium ${statusColor}`}>
+                  {statusLabel}
+                </span>
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row justify-end gap-3">
+          {/* Countdown Bar (Only if pending) */}
           {isToPay && (
-            <div className="flex w-full items-center justify-end gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <Button
-                className="h-10 min-w-fit shrink-0 rounded-full bg-sop-primary-500 px-6 text-white shadow-none hover:bg-sop-primary-600"
-                onClick={() => setIsPaymentModalOpen(true)}
-              >
-                ชำระเงิน
-              </Button>
-              <Button
-                variant="outline"
-                className="h-10 min-w-fit shrink-0 rounded-full border-sop-secondary-500 bg-white px-6 text-sop-secondary-500 shadow-none hover:bg-sop-secondary-50"
-                onClick={() => setIsChangePaymentModalOpen(true)}
-              >
-                เปลี่ยนช่องทางการชำระเงิน
-              </Button>
-              <ActionMenu>
-                <ActionMenuItem onClick={() => setIsCancelModalOpen(true)}>
+            <div className="flex items-center justify-between md:justify-start gap-3 bg-sop-primary-200 rounded-sop-4px p-2">
+              <div className="flex items-center gap-1">
+                <TimeIcon size={18} color="#000000" />
+                <p className="text-sop-base-black sop-body-sm-regular md:sop-body-md-regular">
+                  ชำระเงินผ่าน QR code ภายใน
+                </p>
+              </div>
+              {/* TODO - Replace placeholder with actual countdown timer */}
+              <div className="flex items-center gap-2">
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Hours*/}
+                  03
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  :
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Minutes */}
+                  15
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  :
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Seconds */}
+                  38
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col md:flex-row justify-end gap-3">
+            {isToPay && (
+              <div className="flex w-full items-center justify-end gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <Button onClick={() => setIsPaymentModalOpen(true)}>
+                  ชำระเงิน
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsChangePaymentModalOpen(true)}
+                >
+                  เปลี่ยนช่องทางการชำระเงิน
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsCancelModalOpen(true)}
+                >
                   ยกเลิกคำสั่งซื้อ
-                </ActionMenuItem>
-              </ActionMenu>
-            </div>
-          )}
+                </Button>
+              </div>
+            )}
 
-          {isToReceive && (
-            <>
-              <Button
-                className="rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white w-full md:w-auto md:min-w-[120px]"
-                disabled={isLoading}
-                onClick={async () => {
-                  setIsLoading(true)
-                  try {
-                    const { completeOrder } = await import("@/lib/data/orders")
-                    const res = await completeOrder(order.id)
-                    if (res.success) {
-                      window.location.reload()
-                    } else {
-                      alert("Failed to complete order: " + res.error)
+            {isToReceive && (
+              <>
+                <Button
+                  disabled={isLoading}
+                  onClick={async () => {
+                    setIsLoading(true)
+                    try {
+                      const { completeOrder } =
+                        await import("@/lib/data/orders")
+                      const result = await completeOrder(order.id)
+                      if (result.success) {
+                        window.location.reload()
+                      } else {
+                        alert("Failed to complete order: " + result.error)
+                      }
+                    } catch (error: unknown) {
+                      console.error(error)
+                    } finally {
+                      setIsLoading(false)
                     }
-                  } catch (e) {
-                    console.error(e)
-                  } finally {
-                    setIsLoading(false)
-                  }
-                }}
-              >
-                ฉันได้รับสินค้าแล้ว
-              </Button>
-            </>
-          )}
+                  }}
+                >
+                  ได้รับสินค้าแล้ว
+                </Button>
+              </>
+            )}
 
-          {isCompleted && (
-            <div className="flex gap-3 w-full md:w-auto">
-              <Button
-                variant="outline"
-                className="rounded-full border-sop-primary-500 text-sop-primary-500 hover:bg-sop-primary-50 flex-1 md:flex-none md:min-w-[120px]"
-                onClick={() => setIsReviewModalOpen(true)}
-              >
-                <Star className="w-4 h-4 mr-2" />
-                ให้คะแนน
-              </Button>
-              <Button className="rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white flex-1 md:flex-none md:min-w-[120px]">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                ซื้อซ้ำ
-              </Button>
-            </div>
-          )}
+            {isCompleted && !hasAnyReviewed && (
+              <div className="flex gap-3 w-full md:w-auto">
+                <Button onClick={() => setIsReviewModalOpen(true)}>
+                  รีวิวสินค้า
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    // TODO - Implement return flow
+                    alert("ฟีเจอร์นี้กำลังพัฒนา")
+                  }}
+                >
+                  คืนสินค้า
+                </Button>
+              </div>
+            )}
 
-          {isPreparing && (
-            <div className="flex w-full items-center justify-end gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <Button
-                variant="outline"
-                className="rounded-full border-red-400 text-red-500 hover:bg-red-50 hover:border-red-500 w-full md:w-auto"
-                onClick={() => setIsCancelModalOpen(true)}
-              >
-                ยกเลิกคำสั่งซื้อ
-              </Button>
-            </div>
-          )}
-
-          {isCancelled && (
-            <>
-              <Button className="rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white w-full md:w-auto md:min-w-[120px]">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                ซื้อซ้ำ
-              </Button>
-            </>
-          )}
+            {isPreparing && (
+              <div className="flex w-full items-center justify-end gap-2 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                <Button
+                  variant="secondary"
+                  onClick={() => setIsCancelModalOpen(true)}
+                >
+                  ยกเลิกคำสั่งซื้อ
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+      {/* TODO - Need to check Stripe flow */}
       <ChangePaymentModal
         isOpen={isChangePaymentModalOpen}
         onClose={() => setIsChangePaymentModalOpen(false)}
-        currentMethod={order.payment_provider_id} // e.g. 'stripe' or 'promptpay'
         orderId={order.id}
         orderTotal={order.total}
+        {...(order.payment_provider_id
+          ? { currentMethod: order.payment_provider_id }
+          : {})} // e.g. 'stripe' or 'promptpay'
         onConfirm={(cardId) => {
-          console.log("ChangePaymentModal confirmed with cardId:", cardId)
           if (cardId) {
             setSelectedCardId(cardId)
             if (typeof window !== "undefined") {
@@ -237,6 +290,7 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
       <OrderPaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
+        onCloseFromQrView={handleClosePaymentModalFromQrView}
         order={order}
         selectedCardId={
           selectedCardId ||
@@ -248,7 +302,7 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
           try {
             await captureOrderPayment(order.id)
             router.push(`/order/${order.id}/confirmed`)
-          } catch (error) {
+          } catch (error: unknown) {
             console.error("Failed to capture order payment:", error)
             window.location.reload()
           }
@@ -262,18 +316,12 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        productName={order.items?.[0]?.title || "สินค้า"}
-        productImage={order.items?.[0]?.thumbnail}
-        productVariant={order.items?.[0]?.variant?.title}
-        productPrice={
-          order.items?.[0]
-            ? `${(order.items[0].unit_price / 100).toFixed(2)}`
-            : ""
-        } // Simple fallback formatting or use helper if imported
-        onSubmit={async (data) => {
-          console.log("Submitting review:", data)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          alert("ขอบคุณสำหรับการรีวิว!")
+        items={order.items || []}
+        onSubmit={async (reviewsData) => {
+          const success = await submitReviews(reviewsData, order.id)
+          if (success) {
+            setIsReviewModalOpen(false)
+          }
         }}
       />
     </>

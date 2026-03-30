@@ -31,15 +31,29 @@ function draftToCartAddress(
   } as HttpTypes.StoreCartAddress
 }
 
+function getDefaultShippingAddress(
+  addresses: HttpTypes.StoreCustomerAddress[]
+): HttpTypes.StoreCustomerAddress | null {
+  if (!addresses.length) {
+    return null
+  }
+
+  const defaultAddress = addresses.find((addr) => addr.is_default_shipping)
+
+  return defaultAddress ?? addresses[0] ?? null
+}
+
+type CartAddressSectionProps = {
+  cart: Cart | null
+  customer: HttpTypes.StoreCustomer | null
+  verifiedPhone?: string
+}
+
 export const CartAddressSection = ({
   cart,
   customer,
   verifiedPhone,
-}: {
-  cart: Cart | null
-  customer: HttpTypes.StoreCustomer | null
-  verifiedPhone?: string
-}) => {
+}: CartAddressSectionProps) => {
   const router = useRouter()
   const [showAddressDialog, setShowAddressDialog] = useState(false)
   const [editDialogState, setEditDialogState] = useState<{
@@ -73,15 +87,15 @@ export const CartAddressSection = ({
 
   // Set default saved address in context when we have saved addresses and not showing draft form
   useEffect(() => {
-    if (!hasSavedAddresses || showDraftForm) return
-    if (!selectedSavedAddress) {
-      const defaultAddress =
-        savedAddresses.find((addr) => addr.is_default_shipping) ||
-        savedAddresses[0] ||
-        null
-      setSelectedSavedAddress(defaultAddress)
+    if (!hasSavedAddresses || showDraftForm) {
       return
     }
+
+    if (!selectedSavedAddress) {
+      setSelectedSavedAddress(getDefaultShippingAddress(savedAddresses))
+      return
+    }
+
     setSelectedAddress(selectedSavedAddress)
     setShippingAddressIsDraft(false)
   }, [
@@ -172,9 +186,7 @@ export const CartAddressSection = ({
               onClick={() => {
                 setAddingNewAddress(false)
                 setSelectedSavedAddress(
-                  savedAddresses.find((a) => a.is_default_shipping) ||
-                    savedAddresses[0] ||
-                    null
+                  getDefaultShippingAddress(savedAddresses)
                 )
               }}
             >

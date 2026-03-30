@@ -1,6 +1,6 @@
 "use client"
 
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { Heading, Text } from "@medusajs/ui"
 import { useState } from "react"
@@ -13,6 +13,18 @@ type OrderCancelModalProps = {
   onClose: () => void
   orderId: string
   onSuccess?: () => void
+}
+
+const toErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message
+  }
+
+  if (typeof error === "string") {
+    return error
+  }
+
+  return "ไม่สามารถยกเลิกคำสั่งซื้อได้"
 }
 
 export const OrderCancelModal = ({
@@ -43,10 +55,10 @@ export const OrderCancelModal = ({
       } else {
         throw new Error(res?.error || "ไม่สามารถยกเลิกคำสั่งซื้อได้")
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast.error({
         title: "เกิดข้อผิดพลาด",
-        description: error.message,
+        description: toErrorMessage(error),
       })
     } finally {
       setSubmitting(false)

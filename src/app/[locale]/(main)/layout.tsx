@@ -1,3 +1,4 @@
+import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import { Footer, Header } from "@/components/organisms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { checkRegion } from "@/lib/helpers/check-region"
@@ -23,20 +24,22 @@ export default async function RootLayout({
 
   if (!APP_ID || !user)
     return (
-      <>
+      <div className="flex min-h-dvh flex-col">
+        <ClearCartOnNonCheckout />
         <Header />
-        {children}
+        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
-      </>
+      </div>
     )
 
   return (
-    <>
-      <Session appId={APP_ID} userId={user.id}>
+    <Session appId={APP_ID} userId={user.id}>
+      <div className="flex min-h-dvh flex-col">
+        <ClearCartOnNonCheckout />
         <Header />
-        {children}
+        <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
-      </Session>
-    </>
+      </div>
+    </Session>
   )
 }

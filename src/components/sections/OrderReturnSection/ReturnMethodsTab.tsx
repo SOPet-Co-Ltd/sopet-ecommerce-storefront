@@ -1,4 +1,6 @@
-import { Card, Checkbox } from "@/components/atoms"
+import { Card } from "@/components/atoms/Card/Card"
+import { Checkbox } from "@/components/atoms/Checkbox/Checkbox"
+import type { OrderSeller, ReturnShippingMethod } from "@/types/order"
 
 export const ReturnMethodsTab = ({
   shippingMethods,
@@ -6,10 +8,10 @@ export const ReturnMethodsTab = ({
   returnMethod,
   seller,
 }: {
-  shippingMethods: any
-  handleSetReturnMethod: (method: any) => void
-  returnMethod: string
-  seller: any
+  shippingMethods: ReturnShippingMethod[]
+  handleSetReturnMethod: (method: string) => void
+  returnMethod: string | null
+  seller?: OrderSeller | null
 }) => {
   const noShippingMethods = !shippingMethods?.length || false
 
@@ -26,7 +28,7 @@ export const ReturnMethodsTab = ({
             </div>
           ) : (
             <ul>
-              {shippingMethods.map((method: any) => (
+              {shippingMethods.map((method) => (
                 <li
                   key={method.id}
                   onClick={() => handleSetReturnMethod(method.id)}
@@ -45,16 +47,16 @@ export const ReturnMethodsTab = ({
           <p className="label-lg uppercase">Shipping address</p>
         </Card>
         <Card className="p-4">
-          <p className="label-lg">{seller.name}</p>
-          <p className="label-md">{seller.address_line}</p>
+          <p className="label-lg">{seller?.name ?? "-"}</p>
+          <p className="label-md">{seller?.address_line ?? "-"}</p>
           <p className="label-md">
-            {seller.city}, {seller.state}
+            {seller?.city ?? "-"}, {seller?.state ?? "-"}
           </p>
           <p className="label-md">
-            {seller.postal_code}, {seller.country_code}
+            {seller?.postal_code ?? "-"}, {seller?.country_code ?? "-"}
           </p>
           <p className="label-md">
-            {seller.email}, {seller.phone}
+            {seller?.email ?? "-"}, {seller?.phone ?? "-"}
           </p>
         </Card>
       </div>

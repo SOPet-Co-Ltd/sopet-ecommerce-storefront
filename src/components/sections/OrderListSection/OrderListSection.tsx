@@ -1,11 +1,30 @@
 "use client"
 
-import { Button } from "@/components/atoms"
-import { OrderCard } from "@/components/molecules"
-import { useMemo, useState } from "react"
+import { Button } from "@/components/atoms/Button/Button"
+import OrderCard from "@/components/molecules/OrderCard/OrderCard"
+import { useEffect, useMemo } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
+import type { OrderListItem } from "@/types/order"
 
-const TABS = [
+type OrderTab =
+  | "all"
+  | "to-pay"
+  | "to-ship"
+  | "to-receive"
+  | "completed"
+  | "cancelled"
+
+const TAB_IDS: OrderTab[] = [
+  "all",
+  "to-pay",
+  "to-ship",
+  "to-receive",
+  "completed",
+  "cancelled",
+]
+
+const TABS: Array<{ id: OrderTab; label: string }> = [
   { id: "all", label: "ทั้งหมด" },
   { id: "to-pay", label: "ที่ต้องชำระ" },
   { id: "to-ship", label: "เตรียมการจัดส่ง" },
@@ -14,12 +33,49 @@ const TABS = [
   { id: "cancelled", label: "ยกเลิก/คืนสินค้า" },
 ]
 
-type OrderListSectionProps = {
-  orders: any[]
+const TAB_QUERY_KEY = "tab"
+
+function tabFromQuery(value: string | null): OrderTab {
+  if (value && TAB_IDS.includes(value as OrderTab)) return value as OrderTab
+  return "all"
 }
 
-const OrderListSection = ({ orders }: OrderListSectionProps) => {
-  const [activeTab, setActiveTab] = useState("all")
+type OrderListSectionProps = {
+  orders: OrderListItem[]
+  reviewedByOrderId?: Record<string, boolean>
+}
+
+const ORDERS_INITIAL_TAB_KEY = "orders_initial_tab"
+
+const OrderListSection = ({
+  orders,
+  reviewedByOrderId,
+}: OrderListSectionProps) => {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const activeTab = tabFromQuery(searchParams.get(TAB_QUERY_KEY))
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const initialTab = sessionStorage.getItem(ORDERS_INITIAL_TAB_KEY)
+    if (initialTab === "to-pay") {
+      sessionStorage.removeItem(ORDERS_INITIAL_TAB_KEY)
+      router.replace(`${pathname}?${TAB_QUERY_KEY}=to-pay`)
+    }
+  }, [pathname, router])
+
+  const setTab = (id: OrderTab) => {
+    const params = new URLSearchParams(searchParams.toString())
+    if (id === "all") {
+      params.delete(TAB_QUERY_KEY)
+    } else {
+      params.set(TAB_QUERY_KEY, id)
+    }
+    const query = params.toString()
+    router.replace(query ? `${pathname}?${query}` : pathname)
+  }
 
   const filteredOrders = useMemo(() => {
     if (activeTab === "all") return orders
@@ -49,36 +105,40 @@ const OrderListSection = ({ orders }: OrderListSectionProps) => {
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Tabs */}
-      <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap snap-x snap-mandatory touch-pan-x overscroll-x-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap snap-x snap-mandatory touch-pan-x overscroll-x-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden md:px-0 px-4">
         {TABS.map((tab) => (
-          <button
+          <Button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            type="button"
-            className={`
-              h-sop-32px px-3 py-2  transition-all shrink-0 snap-start
-              flex items-center justify-center rounded-[8px] sop-body-sm-medium
-              ${
-                activeTab === tab.id
-                  ? "bg-sop-primary-500 text-sop-neutral-grayfixed-600"
-                  : "bg-sop-neutral-grayalpha-100 text-sop-neutral-gray-200"
-              }
-            `}
+            onClick={() => setTab(tab.id)}
+            variant={activeTab === tab.id ? "primary" : "neutral"}
+            size="sm"
+            rounded="rounded"
+            className="min-w-auto"
           >
             {tab.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Order List */}
       <div className="flex flex-col gap-4">
         {filteredOrders.length > 0 ? (
-          filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))
+          filteredOrders.map((order) => {
+            const hasAnyReviewed = reviewedByOrderId?.[order.id] ?? false
+
+            return (
+              <OrderCard
+                key={order.id}
+                order={order}
+                hasAnyReviewed={hasAnyReviewed}
+              />
+            )
+          })
         ) : (
-          <div className="text-center py-10 bg-white border border-gray-200 rounded-lg">
-            <p className="text-gray-500">ไม่พบคำสั่งซื้อในสถานะนี้</p>
+          <div className="text-center py-14 bg-sop-base-white">
+            <p className="sop-body-lg-regular text-sop-neutral-gray-300">
+              ไม่พบคำสั่งซื้อในสถานะนี้
+            </p>
           </div>
         )}
       </div>

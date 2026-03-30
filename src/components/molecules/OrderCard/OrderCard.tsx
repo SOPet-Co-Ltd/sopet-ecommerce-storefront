@@ -1,12 +1,13 @@
 "use client"
 
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { OrderPaymentModal } from "@/components/organisms/OrderPaymentModal/OrderPaymentModal"
 import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderCancelModal"
 import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/ChangePaymentModal"
 import { convertToLocale } from "@/lib/helpers/money"
 import { completeOrder, captureOrderPayment } from "@/lib/data/orders" // Static import for server action
+import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 import {
   ActionMenu,
   ActionMenuItem,
@@ -21,12 +22,16 @@ import {
   getOrderStatusLabel,
   getOrderStatusColor,
 } from "@/lib/helpers/order-status"
+import type { OrderDetails, OrderLineItem } from "@/types/order"
+import { SmartImage } from "@/components/atoms"
+import { TimeIcon } from "@/icons"
 
 type OrderCardProps = {
-  order: any // Type will be refined based on usage
+  order: OrderDetails
+  hasAnyReviewed?: boolean
 }
 
-const OrderCard = ({ order }: OrderCardProps) => {
+const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [isChangePaymentModalOpen, setIsChangePaymentModalOpen] =
@@ -48,26 +53,44 @@ const OrderCard = ({ order }: OrderCardProps) => {
     [displayStatus]
   )
 
-  const items = order.items || []
+  const items = order.items
+  const { submitReviews } = useReviewSubmission()
 
   // Use the order's total which already includes discounts and shipping
   const calculatedTotal = useMemo(() => {
-    return Number(order.total) || 0
-  }, [order.total])
+    const itemsTotal = items.reduce((acc: number, item: OrderLineItem) => {
+      const price = Number(item.unit_price) || 0
+      const qty = Number(item.quantity) || 0
+      return acc + price * qty
+    }, 0)
+    // Add shipping total if available
+    const shipping = Number(order.shipping_total) || 0
+
+    return itemsTotal + shipping
+  }, [items, order.shipping_total])
+
+  // NOTE - Use the order's total which already includes discounts and shipping
+  // const calculatedTotal = useMemo(() => {
+  //   return Number(order.total) || 0
+  // }, [order.total])
 
   return (
     <>
-      <div className="bg-white flex flex-col gap-5 px-4 py-5 w-full border border-gray-200 rounded-lg">
+      <div className="bg-sop-base-white flex flex-col gap-2.5 md:gap-sop-20px px-sop-16px py-sop-20px w-full">
         {/* Header */}
-        <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
-          <p className="font-medium text-lg text-[#211f23]">Pet Pet</p>{" "}
+        <div className="border-b border-sop-neutral-grayalpha-300 pb-sop-12px flex items-center justify-between w-full">
+          <p className="font-medium text-lg text-[#211f23]">
+            {order.store?.name || order.seller?.name || "ร้านค้าไม่ระบุ"}
+          </p>
           {/* Store Name */}
-          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
+          <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <span
                 className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
               ></span>
-              <span className={`font-medium ${statusColor}`}>
+              <span
+                className={`sop-body-sm-regular md:sop-body-md-medium ${statusColor}`}
+              >
                 {statusLabel}
               </span>
             </div>
@@ -75,13 +98,16 @@ const OrderCard = ({ order }: OrderCardProps) => {
         </div>
 
         {/* Product Section */}
-        <div className="border-b border-gray-200 pb-5 flex flex-col gap-4">
-          {items.map((item: any) => (
-            <div key={item.id} className="flex gap-4 items-center w-full">
+        <div className="flex flex-col gap-2.5 md:gap-5">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="flex gap-2 md:gap-4 items-center w-full border-b border-sop-neutral-grayalpha-300 pb-3 md:pb-5 "
+            >
               {/* Image */}
-              <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden">
+              <div className="relative w-20 h-20 shrink-0 overflow-hidden">
                 {item?.thumbnail ? (
-                  <Image
+                  <SmartImage
                     src={item.thumbnail}
                     alt={item.title}
                     fill
@@ -95,37 +121,43 @@ const OrderCard = ({ order }: OrderCardProps) => {
               </div>
 
               {/* Details */}
-              <div className="flex-1 flex flex-col items-start justify-center">
-                <p className="font-medium text-base text-[#454547] line-clamp-2">
-                  {item?.title}
-                </p>
-                <p className="text-gray-400 text-sm mt-1">
-                  ตัวเลือกสินค้า : {item?.variant?.title || "-"}
-                </p>
-                <p className="text-[#454547] text-sm mt-1">x{item?.quantity}</p>
-              </div>
-
-              {/* Price */}
-              <div className="flex flex-col justify-center h-full items-end pb-5">
-                <p
-                  className="font-medium text-base text-black"
-                  suppressHydrationWarning
-                >
-                  {convertToLocale({
-                    amount: item?.unit_price || 0,
-                    currency_code: order.currency_code,
-                  })}
-                </p>
+              <div className="flex flex-col gap-1 w-full">
+                <div>
+                  <p className="text-sop-neutral-gray-300 sop-body-xs-medium md:sop-body-md-medium line-clamp-2">
+                    {item?.title}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="sop-body-xs-medium text-sop-neutral-gray-400 md:sop-body-md-regular">
+                    ตัวเลือกสินค้า : {item?.variant?.title || "-"}
+                  </p>
+                  <p
+                    className="sop-body-xs-medium md:text-sop-base-black text-sop-neutral-gray-400 md:sop-body-md-medium"
+                    suppressHydrationWarning
+                  >
+                    {convertToLocale({
+                      amount: item?.unit_price || 0,
+                      currency_code: order.currency_code,
+                    })}
+                  </p>
+                </div>
+                <div>
+                  <p className="sop-body-xs-medium text-sop-neutral-gray-300 md:sop-body-md-regular">
+                    x{item?.quantity}
+                  </p>
+                </div>
               </div>
             </div>
           ))}
         </div>
 
         {/* Footer: Total & Actions */}
-        <div className="flex items-center justify-between pb-5 border-b border-gray-200">
-          <p className="text-[#211f23] text-lg">รวมทั้งสิ้น</p>
+        <div className="border-b border-sop-neutral-grayalpha-300 pb-3 md:pb-5 flex items-center justify-between">
+          <p className="sop-body-md-regular md:sop-body-lg-regular text-sop-neutral-gray-300">
+            รวมทั้งสิ้น
+          </p>
           <p
-            className="font-medium text-sop-secondary-500 text-base"
+            className="text-sop-secondary-500 md:sop-body-md-medium sop-body-sm-medium"
             suppressHydrationWarning
           >
             {convertToLocale({
@@ -135,22 +167,52 @@ const OrderCard = ({ order }: OrderCardProps) => {
           </p>
         </div>
 
+        {displayStatus === "to-pay" && (
+          <div className="border-b border-sop-neutral-grayalpha-300 pb-3 md:pb-5">
+            <div className="flex items-center justify-between md:justify-start gap-3 bg-sop-primary-200 rounded-sop-4px px-2 md:px-4 py-4">
+              <div className="flex items-center gap-1">
+                <TimeIcon size={18} color="#000000" />
+                <p className="text-sop-base-black sop-body-sm-regular md:sop-body-md-regular">
+                  ชำระเงินผ่าน QR code ภายใน
+                </p>
+              </div>
+              {/* TODO - Replace placeholder with actual countdown timer */}
+              <div className="flex items-center gap-2">
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Hours*/}
+                  03
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  :
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Minutes */}
+                  15
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  :
+                </p>
+                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
+                  {/* NOTE - Seconds */}
+                  38
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex gap-2 justify-end items-center">
           {/* TO PAY STATUS */}
           {displayStatus === "to-pay" && (
             <>
-              <Button
-                className="rounded-full px-4 md:px-8 bg-sop-primary-500 hover:bg-sop-primary-600 text-white min-w-fit"
-                onClick={() => setIsPaymentModalOpen(true)}
-              >
+              <Button onClick={() => setIsPaymentModalOpen(true)}>
                 ชำระเงิน
               </Button>
 
               {/* Change Payment Button */}
               <Button
-                variant="outline"
-                className="rounded-full px-4 md:px-8 text-sop-secondary-500 border-sop-secondary-500 hover:text-sop-secondary-600 hover:bg-sop-secondary-100 hover:border-sop-secondary-600 min-w-fit"
+                variant="secondary"
                 onClick={() => {
                   setIsChangePaymentModalOpen(true)
                 }}
@@ -164,19 +226,18 @@ const OrderCard = ({ order }: OrderCardProps) => {
           {displayStatus === "to-receive" && (
             <>
               <Button
-                className="rounded-full px-4 md:px-8 bg-sop-primary-500 hover:bg-sop-primary-600 text-white min-w-fit"
                 disabled={isLoading}
                 onClick={async () => {
                   setIsLoading(true)
                   try {
-                    const res = await completeOrder(order.id)
-                    if (res.success) {
+                    const result = await completeOrder(order.id)
+                    if (result.success) {
                       window.location.reload()
                     } else {
-                      alert("Failed to complete order: " + res.error)
+                      alert("Failed to complete order: " + result.error)
                     }
-                  } catch (e) {
-                    console.error(e)
+                  } catch (error: unknown) {
+                    console.error(error)
                   } finally {
                     setIsLoading(false)
                   }
@@ -188,12 +249,9 @@ const OrderCard = ({ order }: OrderCardProps) => {
           )}
 
           {/* COMPLETED STATUS */}
-          {displayStatus === "completed" && (
+          {displayStatus === "completed" && !hasAnyReviewed && (
             <>
-              <Button
-                className="rounded-full px-4 md:px-8 bg-[#8B5CF6] hover:bg-[#7C3AED] text-white min-w-fit"
-                onClick={() => setIsReviewModalOpen(true)}
-              >
+              <Button onClick={() => setIsReviewModalOpen(true)}>
                 รีวิวสินค้า
               </Button>
             </>
@@ -218,21 +276,17 @@ const OrderCard = ({ order }: OrderCardProps) => {
             displayStatus === "preparing" ||
             displayStatus === "cancelled") && (
             <LocalizedClientLink href={`/user/orders/${order.id}`}>
-              <Button
-                variant="outline"
-                className="rounded-full px-4 md:px-8 text-sop-secondary-500 border-sop-secondary-500 hover:text-sop-secondary-600 hover:bg-sop-secondary-100 hover:border-sop-secondary-600 min-w-fit"
-              >
-                ดูรายละเอียด
-              </Button>
+              <Button variant="outline">ดูรายละเอียด</Button>
             </LocalizedClientLink>
           )}
 
           {/* Desktop Only Actions */}
           {displayStatus === "completed" && (
             <Button
-              variant="outline"
-              className="hidden md:flex rounded-full px-8 text-sop-secondary-600 border-sop-secondary-600 hover:bg-sop-secondary-100 hover:sop-secondary-600 hover:sop-secondary-600"
+              variant="secondary"
+              className="hidden md:flex"
               onClick={() => {
+                // TODO - Implement return flow
                 console.log("Return order clicked")
               }}
             >
@@ -242,8 +296,8 @@ const OrderCard = ({ order }: OrderCardProps) => {
 
           {displayStatus === "to-pay" && (
             <Button
-              variant="outline"
-              className="hidden md:flex rounded-full px-8 text-sop-secondary-500 border-sop-secondary-500 hover:text-sop-secondary-600 hover:bg-sop-secondary-100 hover:border-sop-secondary-600"
+              variant="secondary"
+              className="hidden md:flex"
               onClick={() => setIsCancelModalOpen(true)}
             >
               ยกเลิกคำสั่งซื้อ
@@ -302,7 +356,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
           try {
             await captureOrderPayment(order.id)
             router.push(`/order/${order.id}/confirmed`)
-          } catch (error) {
+          } catch (error: unknown) {
             console.error(error)
             window.location.reload()
           }
@@ -312,9 +366,11 @@ const OrderCard = ({ order }: OrderCardProps) => {
       <ChangePaymentModal
         isOpen={isChangePaymentModalOpen}
         onClose={() => setIsChangePaymentModalOpen(false)}
-        currentMethod={order.payment_provider_id}
         orderId={order.id}
         orderTotal={calculatedTotal}
+        {...(order.payment_provider_id
+          ? { currentMethod: order.payment_provider_id }
+          : {})}
         onConfirm={(cardId) => {
           if (cardId) {
             setSelectedCardId(cardId)
@@ -341,18 +397,12 @@ const OrderCard = ({ order }: OrderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        productName={items[0]?.title || "สินค้า"}
-        productImage={items[0]?.thumbnail}
-        productVariant={items[0]?.variant?.title}
-        productPrice={convertToLocale({
-          amount: items[0]?.unit_price || 0,
-          currency_code: order.currency_code,
-        })}
-        onSubmit={async (data) => {
-          // Mock API call for now
-          console.log("Submitting review:", data)
-          await new Promise((resolve) => setTimeout(resolve, 1000))
-          alert("ขอบคุณสำหรับการรีวิว! (Mock)")
+        items={items}
+        onSubmit={async (reviewsData) => {
+          const success = await submitReviews(reviewsData, order.id)
+          if (success) {
+            setIsReviewModalOpen(false)
+          }
         }}
       />
     </>
