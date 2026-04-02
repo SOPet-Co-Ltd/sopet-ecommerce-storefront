@@ -159,20 +159,15 @@ export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
     ...(await getAuthHeaders()),
   }
 
-  const next = {
-    ...(await getCacheOptions("orders")),
-  }
-
   return sdk.client
-    .fetch<unknown>(`/store/orders/${id}`, {
+    .fetch<unknown>(`/store/custom/orders/${id}`, {
       method: "GET",
       query: {
         fields:
           "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set,*fulfillments,*fulfillments.labels",
       },
       headers,
-      next,
-      cache: "force-cache",
+      cache: "no-store",
     })
     .then((response) =>
       parseWithSchema(
