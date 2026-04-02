@@ -209,6 +209,9 @@ const Form = () => {
           >
             {isVerifying ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
           </Button>
+          <p className="text-center sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400">
+            หากยังไม่มีบัญชี ระบบจะสร้างบัญชีอัตโนมัติ
+          </p>
         </div>
         {/* Divider */}
         <div className="flex justify-center items-center gap-2">
@@ -241,18 +244,6 @@ const Form = () => {
           >
             <LineCustomIcon size={48} />
           </button>
-        </div>
-        {/* Link to Sign Up */}
-        <div className="flex justify-center items-center gap-1">
-          {/* TODO - Fix color */}
-          <p className="sop-body-lg-regular text-[#888888]">
-            หากยังไม่มีบัญชีผู้ใช้งาน กรุณา
-          </p>
-          <LocalizedClientLink href="/register" className="underline">
-            <button className="sop-link-lg-regular text-sop-primary-500 cursor-pointer">
-              สร้างบัญชีใหม่
-            </button>
-          </LocalizedClientLink>
         </div>
       </div>
       {/* <Container className="border max-w-xl mx-auto p-4">
