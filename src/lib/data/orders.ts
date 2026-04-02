@@ -65,7 +65,8 @@ const parseWithSchema = <T>(
       `[orders] Invalid ${context} response`,
       result.error.flatten()
     )
-    throw new Error(`Invalid ${context} response`)
+    const message = getMessageFromPayload(payload)
+    throw new Error(message ?? `Invalid ${context} response`)
   }
 
   return result.data
