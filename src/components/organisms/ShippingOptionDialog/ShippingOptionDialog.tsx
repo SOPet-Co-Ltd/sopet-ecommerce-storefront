@@ -34,6 +34,7 @@ interface ShippingOptionDialogProps {
   shippingMethods: StoreCardShippingMethod[]
   cart: Cart
   onSelectMethod: (methodId: string) => Promise<void>
+  initialSelectedId?: string
 }
 
 export const ShippingOptionDialog = ({
@@ -42,10 +43,11 @@ export const ShippingOptionDialog = ({
   shippingMethods,
   cart,
   onSelectMethod,
+  initialSelectedId,
 }: ShippingOptionDialogProps) => {
-  const storageKey = `checkout:selected_shipping_option:${cart.id}`
   const [selectedMethodId, setSelectedMethodId] = useState(
-    cart.shipping_methods?.[0]?.shipping_option_id ||
+    initialSelectedId ||
+      cart.shipping_methods?.[0]?.shipping_option_id ||
       shippingMethods?.[0]?.id ||
       ""
   )
@@ -55,35 +57,28 @@ export const ShippingOptionDialog = ({
   >({})
   const [isLoadingPrices, setIsLoadingPrices] = useState(false)
 
-  // Keep the first option selected by default when there is no selected option in cart.
+  // Sync selectedMethodId when dialog opens
   useEffect(() => {
     if (!isOpen || !shippingMethods?.length) return
 
-    const selectedFromStorage =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(storageKey) || ""
-        : ""
-    const validStorageSelection = selectedFromStorage
-      ? shippingMethods.some((method) => method.id === selectedFromStorage)
-      : false
-
-    if (validStorageSelection) {
-      setSelectedMethodId(selectedFromStorage)
+    // Use initialSelectedId if provided and valid
+    if (initialSelectedId && shippingMethods.some((m) => m.id === initialSelectedId)) {
+      setSelectedMethodId(initialSelectedId)
       return
     }
 
-    const cartSelected = cart.shipping_methods?.[0]?.shipping_option_id
-    const validCartSelection = cartSelected
-      ? shippingMethods.some((method) => method.id === cartSelected)
-      : false
+    // Fall back to cart selection that matches this seller's methods
+    const cartSelected = cart.shipping_methods?.find((sm) =>
+      shippingMethods.some((m) => m.id === sm.shipping_option_id)
+    )?.shipping_option_id
 
-    if (validCartSelection && cartSelected) {
+    if (cartSelected) {
       setSelectedMethodId(cartSelected)
       return
     }
 
     setSelectedMethodId(shippingMethods[0].id)
-  }, [isOpen, shippingMethods, cart.shipping_methods, storageKey])
+  }, [isOpen, shippingMethods, cart.shipping_methods, initialSelectedId])
 
   // Fetch calculated prices if needed
   useEffect(() => {

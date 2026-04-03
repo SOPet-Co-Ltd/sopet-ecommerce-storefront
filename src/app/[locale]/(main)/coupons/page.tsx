@@ -8,6 +8,7 @@ import {
   CouponCollectedModal,
   CouponAuthErrorModal,
 } from "@/components/molecules"
+import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
 import { fetchCoupons, collectCoupon } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import Image from "next/image"
@@ -24,9 +25,9 @@ const CouponSection = ({
   title?: string
   headerBgClass: string
   headerText: string
-  coupons: any[]
-  onConditionsClick: (coupon: any) => void
-  onApply: (coupon: any) => void
+  coupons: CouponData[]
+  onConditionsClick: (coupon: CouponData) => void
+  onApply: (coupon: CouponData) => void
 }) => {
   const [visibleRows, setVisibleRows] = useState(2)
   const itemsPerRowDesktop = 4
@@ -77,23 +78,23 @@ const CouponSection = ({
 }
 
 export default function CouponsPage() {
-  const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
+  const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
   const [showCollected, setShowCollected] = useState(false)
   const [showAuthError, setShowAuthError] = useState(false)
 
-  const [newCustomerCoupons, setNewCustomerCoupons] = useState<any[]>([])
-  const [shippingCoupons, setShippingCoupons] = useState<any[]>([])
-  const [specialCoupons, setSpecialCoupons] = useState<any[]>([])
+  const [newCustomerCoupons, setNewCustomerCoupons] = useState<CouponData[]>([])
+  const [shippingCoupons, setShippingCoupons] = useState<CouponData[]>([])
+  const [specialCoupons, setSpecialCoupons] = useState<CouponData[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const handleApply = useCallback(async (coupon: any) => {
+  const handleApply = useCallback(async (coupon: CouponData) => {
     try {
       const res = await collectCoupon(coupon.id)
       if (res.success) {
         setShowCollected(true)
 
         // Optimistically update the local state to show it as collected
-        const updateCoupons = (coupons: any[]) =>
+        const updateCoupons = (coupons: CouponData[]) =>
           coupons.map((c) =>
             c.id === coupon.id ? { ...c, is_collected: true } : c
           )
@@ -167,7 +168,7 @@ export default function CouponsPage() {
                 headerBgClass="bg-sop-primary-500"
                 headerText="ลูกค้าใหม่"
                 coupons={newCustomerCoupons}
-                onConditionsClick={setSelectedCoupon}
+                onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
                 onApply={handleApply}
               />
             )}
@@ -177,7 +178,7 @@ export default function CouponsPage() {
                 headerBgClass="bg-sop-additionalblue-500"
                 headerText="ส่วนลดค่าจัดส่ง"
                 coupons={shippingCoupons}
-                onConditionsClick={setSelectedCoupon}
+                onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
                 onApply={handleApply}
               />
             )}
@@ -187,7 +188,7 @@ export default function CouponsPage() {
                 headerBgClass="bg-sop-secondary-500"
                 headerText="ส่วนลดพิเศษอื่นๆ"
                 coupons={specialCoupons}
-                onConditionsClick={setSelectedCoupon}
+                onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
                 onApply={handleApply}
               />
             )}

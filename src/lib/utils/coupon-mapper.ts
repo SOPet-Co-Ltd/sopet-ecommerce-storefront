@@ -1,4 +1,7 @@
-export function mapCouponToCardData(coupon: any) {
+import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
+import type { CouponApiData } from "@/lib/data/coupons"
+
+export function mapCouponToCardData(coupon: CouponApiData): CouponData {
   // Map category to display labels
   const categoryLabels: Record<string, { top: string; bottom: string }> = {
     new_customer: { top: "New User", bottom: "เฉพาะลูกค้าใหม่" },
@@ -18,6 +21,7 @@ export function mapCouponToCardData(coupon: any) {
     description: coupon.description,
     expiry: coupon.expiry_date,
     conditionsUrl: "#",
+    category: coupon.category,
     conditions: coupon.conditions,
     vendorName: coupon.vendorName || undefined,
     leftTextTop: labels.top,

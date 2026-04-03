@@ -6,7 +6,7 @@ export const CartItems = ({ cart }: { cart: Cart | null }) => {
 
   const groupedItems: any = groupItemsBySeller(cart)
 
-  return Object.keys(groupedItems).map((key) => (
+  return Object.keys(groupedItems).sort().map((key) => (
     <div key={key} className="mb-4">
       <CartItemsHeader seller={groupedItems[key]?.seller} />
       <CartItemsProducts

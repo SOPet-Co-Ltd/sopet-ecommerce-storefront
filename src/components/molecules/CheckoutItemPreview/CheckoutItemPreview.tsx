@@ -14,6 +14,8 @@ import { convertToLocale } from "@/lib/helpers/money"
 import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
 import { useEffect, useMemo, useState } from "react"
 import { DeliveryTruckIcon, DiscountIcon } from "@/icons"
+import { setMultiShippingMethods } from "@/lib/data/cart"
+import { useRouter } from "next/navigation"
 
 type CheckoutItemPreviewProps = {
   cart: Cart | null
@@ -24,11 +26,38 @@ const CheckoutItemPreview = ({
   cart,
   availableShippingMethods,
 }: CheckoutItemPreviewProps) => {
+  const getNumericAmount = (value: unknown): number => {
+    if (typeof value === "number") return value
+    if (typeof value === "string") {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+    if (value && typeof value === "object") {
+      const numericValue = (value as { numeric_?: unknown }).numeric_
+      if (typeof numericValue === "number") return numericValue
+      if (typeof numericValue === "string") {
+        const parsed = Number(numericValue)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+      const amountValue = (value as { amount?: unknown }).amount
+      if (typeof amountValue === "number") return amountValue
+      if (typeof amountValue === "string") {
+        const parsed = Number(amountValue)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+    }
+    return 0
+  }
+
+  // Per-seller shipping selections: { sellerId: shippingOptionId }
+  const [sellerShippingSelections, setSellerShippingSelections] = useState<
+    Record<string, string>
+  >({})
+  // Which seller is currently editing shipping
+  const [editingSellerId, setEditingSellerId] = useState<string | null>(null)
   const [isShippingOpen, setIsShippingOpen] = useState(false)
-  const [selectedShippingOptionId, setSelectedShippingOptionId] = useState("")
 
   const shippingMethods = cart?.shipping_methods || []
-  const storageKey = cart ? `checkout:selected_shipping_option:${cart.id}` : ""
   const shippingOptionsById = useMemo(
     () =>
       new Map(
@@ -36,81 +65,98 @@ const CheckoutItemPreview = ({
       ),
     [availableShippingMethods]
   )
-  const defaultShippingOption = availableShippingMethods?.[0]
 
-  const selectedShippingOption = useMemo(() => {
-    if (!cart) return undefined
-    if (selectedShippingOptionId) {
-      return shippingOptionsById.get(selectedShippingOptionId)
-    }
-
-    const selectedFromCart = shippingMethods[0]?.shipping_option_id
-    if (selectedFromCart) {
-      return shippingOptionsById.get(selectedFromCart)
-    }
-
-    return defaultShippingOption
-  }, [
-    cart,
-    defaultShippingOption,
-    selectedShippingOptionId,
-    shippingMethods,
-    shippingOptionsById,
-  ])
-
+  // Initialize per-seller selections from cart.shipping_methods
   useEffect(() => {
-    if (!cart) return
+    if (!cart || !availableShippingMethods?.length) return
 
-    let selectedFromStorage = ""
-    if (typeof window !== "undefined") {
-      selectedFromStorage = window.localStorage.getItem(storageKey) || ""
-    }
+    const initial: Record<string, string> = {}
+    const sellerIdsInCart = new Set<string>()
 
-    const isValidStorageSelection =
-      !!selectedFromStorage && shippingOptionsById.has(selectedFromStorage)
-    const selectedFromCart = shippingMethods[0]?.shipping_option_id
-    const nextId =
-      (isValidStorageSelection ? selectedFromStorage : "") ||
-      selectedFromCart ||
-      defaultShippingOption?.id ||
-      ""
-    if (!nextId) return
-
-    setSelectedShippingOptionId(nextId)
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(storageKey, nextId)
-      window.dispatchEvent(
-        new CustomEvent("checkout:shipping-option-selected", {
-          detail: { cartId: cart.id, optionId: nextId },
-        })
+    for (const sm of shippingMethods) {
+      const opt = availableShippingMethods.find(
+        (o) => o.id === sm.shipping_option_id
       )
+      if (opt?.seller_id && sm.shipping_option_id) {
+        initial[opt.seller_id] = sm.shipping_option_id
+        sellerIdsInCart.add(opt.seller_id)
+      }
     }
-  }, [
-    cart,
-    cart?.id,
-    defaultShippingOption?.id,
-    shippingMethods,
-    shippingOptionsById,
-    storageKey,
-  ])
+
+    // For sellers without a selection yet, try the first available option
+    const groupedItems = groupItemsBySeller(cart)
+    let needsUpdate = false
+    const newSelections = { ...initial }
+
+    for (const sellerId of Object.keys(groupedItems)) {
+      if (!initial[sellerId]) {
+        const firstOption = availableShippingMethods.find(
+          (o) => o.seller_id === sellerId
+        )
+        if (firstOption) {
+          newSelections[sellerId] = firstOption.id
+          needsUpdate = true
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      setSellerShippingSelections(newSelections)
+      // Auto-persist to backend if we added defaults
+      const allOptionIds = Object.values(newSelections).filter(Boolean)
+      setMultiShippingMethods({
+        cartId: cart.id,
+        optionIds: allOptionIds,
+      })
+        .then(() => {
+          router.refresh()
+        })
+        .catch((err) => {
+          console.error("Failed to auto-select shipping methods", err)
+        })
+      return
+    }
+
+    setSellerShippingSelections(initial)
+  }, [cart, availableShippingMethods, shippingMethods])
 
   if (!cart) return null
 
+  const router = useRouter()
+
+  const handleOpenShippingDialog = (sellerId: string) => {
+    setEditingSellerId(sellerId)
+    setIsShippingOpen(true)
+  }
+
   const handleSelectShipping = async (methodId: string) => {
-    setSelectedShippingOptionId(methodId)
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        `checkout:selected_shipping_option:${cart.id}`,
-        methodId
-      )
-      window.dispatchEvent(
-        new CustomEvent("checkout:shipping-option-selected", {
-          detail: { cartId: cart.id, optionId: methodId },
+    if (!editingSellerId) return
+
+    const updated = { ...sellerShippingSelections, [editingSellerId]: methodId }
+    setSellerShippingSelections(updated)
+
+    // Send all selections to backend
+    const allOptionIds = Object.values(updated).filter(Boolean)
+    if (allOptionIds.length > 0) {
+      try {
+        await setMultiShippingMethods({
+          cartId: cart.id,
+          optionIds: allOptionIds,
         })
-      )
+        router.refresh()
+      } catch (e: any) {
+        console.error("Failed to set shipping methods:", e)
+      }
     }
   }
+
+  // Get shipping options for the currently editing seller
+  const shippingOptionsForEditingSeller = useMemo(() => {
+    if (!editingSellerId || !availableShippingMethods) return []
+    return availableShippingMethods.filter(
+      (opt) => opt.seller_id === editingSellerId
+    )
+  }, [editingSellerId, availableShippingMethods])
 
   const groupedItems: GroupedItems = groupItemsBySeller(cart)
 
@@ -124,8 +170,24 @@ const CheckoutItemPreview = ({
           return acc + item.unit_price * item.quantity
         }, 0)
 
-        const shippingTotal =
-          selectedShippingOption?.amount ?? cart.shipping_total ?? 0
+        const sellerSelectedOptionId = sellerShippingSelections[key]
+        const selectedShippingOption = sellerSelectedOptionId
+          ? shippingOptionsById.get(sellerSelectedOptionId)
+          : undefined
+        const selectedCartShippingMethod =
+          shippingMethods.find(
+            (method) => method.shipping_option_id === sellerSelectedOptionId
+          ) ||
+          shippingMethods.find((method) => {
+            const option = method.shipping_option_id
+              ? shippingOptionsById.get(method.shipping_option_id)
+              : undefined
+            return option?.seller_id === key
+          })
+
+        const shippingTotal = getNumericAmount(
+          selectedCartShippingMethod?.amount ?? selectedShippingOption?.amount
+        )
 
         // Keep total aligned with displayed line-items; discount row is mock UI.
         const sellerTotal = subtotal + shippingTotal
@@ -237,7 +299,7 @@ const CheckoutItemPreview = ({
                     <span>ตัวเลือกการจัดส่ง</span>
                   </div>
                   <button
-                    onClick={() => setIsShippingOpen(true)}
+                    onClick={() => handleOpenShippingDialog(key)}
                     className="sop-link-xs-regular md:sop-link-md-regular text-sop-neutral-gray-300"
                   >
                     เปลี่ยน
@@ -256,6 +318,10 @@ const CheckoutItemPreview = ({
                   <div className="flex flex-1 justify-end text-sop-neutral-gray-300 sop-body-xs-regular md:sop-body-md-regular">
                     {selectedShippingOption.name}
                   </div>
+                ) : selectedCartShippingMethod?.name ? (
+                  <div className="flex flex-1 justify-end text-sop-neutral-gray-300 sop-body-xs-regular md:sop-body-md-regular">
+                    {selectedCartShippingMethod.name}
+                  </div>
                 ) : (
                   <div className="flex flex-1 justify-end text-sop-neutral-gray-300 sop-body-xs-regular md:sop-body-md-regular">
                     ส่งธรรมดาในประเทศ
@@ -272,7 +338,7 @@ const CheckoutItemPreview = ({
                       : "-"}
                   </span>
                   <button
-                    onClick={() => setIsShippingOpen(true)}
+                    onClick={() => handleOpenShippingDialog(key)}
                     className="text-gray-500 underline text-sm hover:text-gray-700"
                   >
                     เปลี่ยน
@@ -297,13 +363,17 @@ const CheckoutItemPreview = ({
         )
       })}
 
-      {availableShippingMethods && (
+      {editingSellerId && shippingOptionsForEditingSeller.length > 0 && (
         <ShippingOptionDialog
           isOpen={isShippingOpen}
-          onClose={() => setIsShippingOpen(false)}
-          shippingMethods={availableShippingMethods}
+          onClose={() => {
+            setIsShippingOpen(false)
+            setEditingSellerId(null)
+          }}
+          shippingMethods={shippingOptionsForEditingSeller}
           cart={cart}
           onSelectMethod={handleSelectShipping}
+          initialSelectedId={sellerShippingSelections[editingSellerId]}
         />
       )}
     </div>

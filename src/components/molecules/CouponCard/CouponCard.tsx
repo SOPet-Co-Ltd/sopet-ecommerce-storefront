@@ -12,6 +12,8 @@ export type CouponData = {
   description: string
   expiry: string
   conditionsUrl: string
+  conditions?: string | null
+  category?: string
   vendorName?: string
   imageColor?: string
   leftTextTop?: string

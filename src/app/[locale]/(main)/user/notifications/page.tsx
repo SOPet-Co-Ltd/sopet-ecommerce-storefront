@@ -3,8 +3,8 @@
 import React, { useEffect, useState, useRef, useCallback } from "react"
 import { NotificationCard } from "@/components/molecules/NotificationCard"
 import { listOrders } from "@/lib/data/orders"
-import { listCampaigns } from "@/lib/data/campaigns"
-import { fetchCoupons } from "@/lib/data/coupons"
+import { listCampaigns, type CampaignListItem } from "@/lib/data/campaigns"
+import { fetchCoupons, type CouponApiData } from "@/lib/data/coupons"
 
 const TABS = [
   { id: "noti", label: "การแจ้งเตือน" },
@@ -12,6 +12,18 @@ const TABS = [
 ]
 
 const LIMIT = 10
+
+type NotificationOrder = Awaited<ReturnType<typeof listOrders>>[number]
+
+type PromotionNotification = {
+  id: string
+  title: string
+  description: string
+  date: string
+  image: string
+  isUnread: boolean
+  href: string
+}
 
 const isPromotionUnread = (dateString?: string | null) => {
   if (!dateString) return false
@@ -25,14 +37,14 @@ export default function page() {
   const [activeTab, setActiveTab] = useState("noti")
 
   // Orders State
-  const [orders, setOrders] = useState<any[]>([])
+  const [orders, setOrders] = useState<NotificationOrder[]>([])
   const [ordersOffset, setOrdersOffset] = useState(0)
   const [ordersHasMore, setOrdersHasMore] = useState(true)
   const [loadingOrders, setLoadingOrders] = useState(false)
   const [initialOrdersLoaded, setInitialOrdersLoaded] = useState(false)
 
   // Promotions State
-  const [promotions, setPromotions] = useState<any[]>([])
+  const [promotions, setPromotions] = useState<PromotionNotification[]>([])
   const [promosOffset, setPromosOffset] = useState(0)
   const [promosHasMore, setPromosHasMore] = useState(true)
   const [loadingPromos, setLoadingPromos] = useState(false)
@@ -44,14 +56,14 @@ export default function page() {
   useEffect(() => {
     fetchOrders(0)
     fetchPromotions(0)
-    
+
     // Load read order IDs on mount
     try {
       const stored = localStorage.getItem("sopet_read_orders")
       if (stored) {
         setReadOrderIds(JSON.parse(stored))
       }
-    } catch (e) {}
+    } catch {}
   }, [])
 
   const handleOrderClick = (id: string) => {
@@ -73,8 +85,8 @@ export default function page() {
         } else {
           setOrders((prev) => {
             const prevIds = new Set(prev.map((p) => p.id))
-            const newUnique = data.filter((d: any) => !prevIds.has(d.id))
-            
+            const newUnique = data.filter((order) => !prevIds.has(order.id))
+
             // Safety measure: if data was returned but nothing is new, pagination is broken/done
             if (newUnique.length === 0) {
               setOrdersHasMore(false)
@@ -83,7 +95,7 @@ export default function page() {
             } else {
               setOrdersHasMore(true)
             }
-            
+
             return [...prev, ...newUnique]
           })
         }
@@ -108,13 +120,13 @@ export default function page() {
 
       const newCampaigns = campaignsData || []
       const newCoupons = couponsData || []
-      const combined = [
-        ...newCampaigns.map((c) => ({
-          id: `camp_${c.id}`,
-          title: c.name || "โปรโมชั่นพิเศษ",
-          description: c.description || "รายละเอียดโปรโมชั่น",
-          date: c.created_at
-            ? new Date(c.created_at).toLocaleString("th-TH", {
+      const combined: PromotionNotification[] = [
+        ...newCampaigns.map((campaign: CampaignListItem) => ({
+          id: `camp_${campaign.id}`,
+          title: campaign.name || "โปรโมชั่นพิเศษ",
+          description: campaign.description || "รายละเอียดโปรโมชั่น",
+          date: campaign.created_at
+            ? new Date(campaign.created_at).toLocaleString("th-TH", {
                 year: "numeric",
                 month: "2-digit",
                 day: "2-digit",
@@ -123,14 +135,15 @@ export default function page() {
               })
             : "",
           image: "/images/placeholder.svg",
-          isUnread: isPromotionUnread(c.created_at),
+          isUnread: isPromotionUnread(campaign.created_at),
           href: "/coupons",
         })),
-        ...newCoupons.map((c) => ({
-          id: `coup_${c.id}`,
-          title: c.title || `โค้ดส่วนลด: ${c.code}`,
-          description: c.description || `ใช้โค้ด ${c.code} เพื่อรับส่วนลด`,
-          date: c.expiry_date ? `ใช้ได้ถึง: ${c.expiry_date}` : "",
+        ...newCoupons.map((coupon: CouponApiData) => ({
+          id: `coup_${coupon.id}`,
+          title: coupon.title || `โค้ดส่วนลด: ${coupon.code}`,
+          description:
+            coupon.description || `ใช้โค้ด ${coupon.code} เพื่อรับส่วนลด`,
+          date: coupon.expiry_date ? `ใช้ได้ถึง: ${coupon.expiry_date}` : "",
           image: "/images/placeholder.svg",
           isUnread: false,
           href: "/coupons",
@@ -139,11 +152,15 @@ export default function page() {
 
       if (offset === 0) {
         setPromotions(combined)
-        setPromosHasMore(!(newCampaigns.length < LIMIT && newCoupons.length < LIMIT))
+        setPromosHasMore(
+          !(newCampaigns.length < LIMIT && newCoupons.length < LIMIT)
+        )
       } else {
         setPromotions((prev) => {
           const prevIds = new Set(prev.map((p) => p.id))
-          const newUnique = combined.filter((c) => !prevIds.has(c.id))
+          const newUnique = combined.filter(
+            (promotion) => !prevIds.has(promotion.id)
+          )
 
           if (newUnique.length === 0) {
             setPromosHasMore(false)
@@ -223,6 +240,9 @@ export default function page() {
           let title = "คำสั่งซื้อของคุณ"
           let description = ""
           let isUnread = false
+          const orderStatus = String(order.status || "")
+          const fulfillmentStatus = String(order.fulfillment_status || "")
+          const paymentStatus = String(order.payment_status || "")
 
           // เอาเฉพาะ order ล่าสุด เท่านั้นที่จะเช็คสถานะการแจ้งเตือน
           const isLatestOrder = index === 0
@@ -231,26 +251,26 @@ export default function page() {
             isUnread = true
           }
 
-          if (order.status === "canceled") {
+          if (orderStatus === "canceled") {
             title = "คำสั่งซื้อของคุณถูกยกเลิก"
             description = `คำสั่งซื้อหมายเลข ${order.display_id} ถูกยกเลิก`
           } else if (
-            order.status === "completed" ||
-            order.fulfillment_status === "shipped" ||
-            order.fulfillment_status === "fulfilled"
+            orderStatus === "completed" ||
+            fulfillmentStatus === "shipped" ||
+            fulfillmentStatus === "fulfilled"
           ) {
             title = "คำสั่งซื้อของคุณ ส่งสำเร็จแล้ว"
             description = `คำสั่งซื้อหมายเลข ${order.display_id} ส่งสำเร็จแล้ว`
           } else if (
-            order.payment_status === "captured" ||
-            order.fulfillment_status !== "not_fulfilled"
+            paymentStatus === "captured" ||
+            fulfillmentStatus !== "not_fulfilled"
           ) {
             title = "คำสั่งซื้อของคุณ กำลังเตรียมการจัดส่ง"
             description = `ผู้ขายได้รับคำสั่งซื้อหมายเลข ${order.display_id} แล้ว กำลังเตรียมการจัดส่ง`
           } else if (
-            order.payment_status === "pending" ||
-            order.payment_status === "not_paid" ||
-            order.payment_status === "awaiting"
+            paymentStatus === "pending" ||
+            paymentStatus === "not_paid" ||
+            paymentStatus === "awaiting"
           ) {
             title = "คำสั่งซื้อของคุณรอการชำระเงิน"
             description = `คำสั่งซื้อหมายเลข ${order.display_id} รอการชำระเงิน`

@@ -10,7 +10,7 @@ export default async function UserPage() {
 
   if (!user) return <LoginForm />
 
-  const orders = await listOrders(100, 0) // Fetch more orders for client-side filtering initially
+  const orders = await listOrders(20, 0) // Initial fetch limit of 20 for infinite scroll
 
   const flatOrders = orders.reduce((acc: any[], order: any) => {
     return acc.concat(order)

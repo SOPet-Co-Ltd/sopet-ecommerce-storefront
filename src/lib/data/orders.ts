@@ -26,13 +26,9 @@ export const retrieveOrder = async (id: string) => {
     ...(await getAuthHeaders()),
   }
 
-  const next = {
-    ...(await getCacheOptions("orders")),
-  }
-
   return sdk.client
-    .fetch<HttpTypes.StoreOrderResponse & { seller: SellerProps }>(
-      `/store/orders/${id}`,
+    .fetch<{ order: HttpTypes.StoreOrder & { seller: SellerProps } }>(
+      `/store/custom/orders/${id}`,
       {
         method: "GET",
         query: {
@@ -40,8 +36,7 @@ export const retrieveOrder = async (id: string) => {
             "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.product,*seller,*order_set",
         },
         headers,
-        next,
-        cache: "force-cache",
+        cache: "no-cache",
       }
     )
     .then(({ order }) => order)
@@ -286,7 +281,7 @@ export const captureOrderPayment = async (orderId: string) => {
     })
 }
 
-export const completeOrder = async (orderId: string) => {
+export const markOrderAsReceived = async (orderId: string) => {
   const headers = {
     ...(await getAuthHeaders()),
     "x-publishable-api-key": process.env
@@ -295,7 +290,7 @@ export const completeOrder = async (orderId: string) => {
 
   try {
     const { order } = await sdk.client.fetch<{ order: any }>(
-      `/store/custom/orders/${orderId}/complete`,
+      `/store/custom/orders/${orderId}/received`,
       {
         method: "POST",
         headers,
@@ -321,6 +316,8 @@ export const completeOrder = async (orderId: string) => {
     }
   }
 }
+
+export const completeOrder = markOrderAsReceived
 
 export const retrievePaymentCollection = async (id: string) => {
   const headers = {

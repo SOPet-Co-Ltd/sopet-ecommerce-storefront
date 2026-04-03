@@ -33,7 +33,7 @@ import { useRouter } from "next/navigation"
 type CheckoutSummarySectionProps = {
   cart: Cart | null
   customer?: HttpTypes.StoreCustomer | null
-  shippingMethods?: { id: string; amount?: number }[] | null
+  shippingMethods?: { id: string; amount?: number; seller_id?: string }[] | null
   paymentMethods?: HttpTypes.StorePaymentProvider[] | null
 }
 
@@ -58,97 +58,103 @@ export const CheckoutSummarySection = ({
   } = useCheckoutPayment()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [selectedShippingAmount, setSelectedShippingAmount] = useState(0)
-  const [selectedShippingOptionId, setSelectedShippingOptionId] = useState("")
   const [localSessions, setLocalSessions] = useState<Record<string, any>>({})
   const stripeReady = useContext(StripeContext)
 
-  useEffect(() => {
-    if (!cart) return
-
-    const key = `checkout:selected_shipping_option:${cart.id}`
-
-    const updateShippingAmount = (optionId?: string | null) => {
-      const selectedId =
-        optionId ||
-        window.localStorage.getItem(key) ||
-        cart.shipping_methods?.[0]?.shipping_option_id
-
-      if (!selectedId) {
-        setSelectedShippingOptionId("")
-        setSelectedShippingAmount(cart.shipping_total || 0)
-        return
-      }
-
-      const selected = (shippingMethods || []).find(
-        (sm) => sm.id === selectedId
-      )
-      setSelectedShippingOptionId(selectedId)
-      setSelectedShippingAmount(selected?.amount ?? cart.shipping_total ?? 0)
-    }
-
-    const onShippingOptionSelected = (event: Event) => {
-      const customEvent = event as CustomEvent<{
-        cartId?: string
-        optionId?: string
-      }>
-      if (customEvent.detail?.cartId !== cart.id) return
-      updateShippingAmount(customEvent.detail?.optionId)
-    }
-
-    updateShippingAmount()
-    window.addEventListener(
-      "checkout:shipping-option-selected",
-      onShippingOptionSelected
-    )
-
-    return () => {
-      window.removeEventListener(
-        "checkout:shipping-option-selected",
-        onShippingOptionSelected
-      )
-    }
-  }, [
-    cart,
-    cart?.id,
-    cart?.shipping_methods,
-    cart?.shipping_total,
-    shippingMethods,
-  ])
-
   if (!cart) return null
 
-  const itemSubtotal = cart.item_subtotal ?? cart.subtotal ?? 0
+  const getNumericAmount = (value: unknown): number => {
+    if (typeof value === "number") return value
+    if (typeof value === "string") {
+      const parsed = Number(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+    if (value && typeof value === "object") {
+      const numericValue = (value as { numeric_?: unknown }).numeric_
+      if (typeof numericValue === "number") return numericValue
+      if (typeof numericValue === "string") {
+        const parsed = Number(numericValue)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+      const amountValue = (value as { amount?: unknown }).amount
+      if (typeof amountValue === "number") return amountValue
+      if (typeof amountValue === "string") {
+        const parsed = Number(amountValue)
+        return Number.isFinite(parsed) ? parsed : 0
+      }
+    }
+    return 0
+  }
+
+  const itemSubtotal = getNumericAmount(
+    cart.item_subtotal ?? cart.subtotal ?? 0
+  )
+  const shippingTotalFromCart = getNumericAmount(cart.shipping_total)
+  const shippingOptionAmountMap = new Map(
+    (shippingMethods || []).map((method) => [
+      method.id,
+      getNumericAmount(method.amount),
+    ])
+  )
+  const shippingTotalFromMethods = (cart.shipping_methods || []).reduce(
+    (sum, method) => {
+      const methodAmount = getNumericAmount(method.amount)
+      if (methodAmount > 0) {
+        return sum + methodAmount
+      }
+
+      const fallbackAmount = method.shipping_option_id
+        ? shippingOptionAmountMap.get(method.shipping_option_id)
+        : undefined
+      return sum + getNumericAmount(fallbackAmount)
+    },
+    0
+  )
+  const shippingTotalFromDefaultOptions =
+    (cart.shipping_methods?.length || 0) > 0
+      ? 0
+      : (() => {
+          const sellerIds = new Set<string>()
+
+          ;(cart.items || []).forEach((item) => {
+            const sellerId = (item as any)?.product?.seller?.id as
+              | string
+              | undefined
+            if (sellerId) {
+              sellerIds.add(sellerId)
+            }
+          })
+
+          if (sellerIds.size === 0) return 0
+
+          let sum = 0
+          sellerIds.forEach((sellerId) => {
+            const defaultOption = (shippingMethods || []).find(
+              (method) => method.seller_id === sellerId
+            )
+            sum += getNumericAmount(defaultOption?.amount)
+          })
+
+          return sum
+        })()
   const shippingTotal =
-    selectedShippingOptionId !== ""
-      ? selectedShippingAmount
-      : cart.shipping_total || 0
-  const discountTotal = cart.discount_total || 0
+    shippingTotalFromCart > 0
+      ? shippingTotalFromCart
+      : shippingTotalFromMethods > 0
+        ? shippingTotalFromMethods
+        : shippingTotalFromDefaultOptions
+  const discountTotal = getNumericAmount(cart.discount_total || 0)
   const total = itemSubtotal + shippingTotal - discountTotal
   const currencyCode = cart.currency_code || "thb"
   const pendingShippingOptionKey = `checkout:selected_shipping_option:${cart.id}`
 
   const syncShippingMethodBeforePayment = async () => {
-    if (typeof window === "undefined") return
-
-    const selectedOptionId =
-      window.localStorage.getItem(pendingShippingOptionKey) ||
-      cart.shipping_methods?.[0]?.shipping_option_id ||
-      ""
-
-    if (!selectedOptionId) {
+    // Validate that at least one shipping method is selected on the cart
+    if (!cart.shipping_methods || cart.shipping_methods.length === 0) {
       throw new Error("กรุณาเลือกวิธีจัดส่งก่อนชำระเงิน")
     }
-
-    const alreadySelected = (cart.shipping_methods || []).some(
-      (method) => method.shipping_option_id === selectedOptionId
-    )
-    if (alreadySelected) return
-
-    await setShippingMethod({
-      cartId: cart.id,
-      shippingMethodId: selectedOptionId,
-    })
+    // Shipping methods are already persisted on the cart by the delivery step,
+    // no need to re-sync from localStorage.
   }
 
   const isStripeProvider = (providerId?: string) =>
@@ -346,12 +352,8 @@ export const CheckoutSummarySection = ({
       }
     }
 
-    // 2. Shipping option validation
-    const selectedOptionId =
-      typeof window !== "undefined"
-        ? window.localStorage.getItem(pendingShippingOptionKeyForValidate)
-        : null
-    if (!selectedOptionId) {
+    // 2. Shipping option validation (check cart data, not localStorage)
+    if (!cart.shipping_methods || cart.shipping_methods.length === 0) {
       return "กรุณาเลือกวิธีจัดส่ง"
     }
 

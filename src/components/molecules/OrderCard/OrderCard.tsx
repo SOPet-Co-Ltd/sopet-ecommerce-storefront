@@ -6,7 +6,7 @@ import { OrderPaymentModal } from "@/components/organisms/OrderPaymentModal/Orde
 import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderCancelModal"
 import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/ChangePaymentModal"
 import { convertToLocale } from "@/lib/helpers/money"
-import { completeOrder, captureOrderPayment } from "@/lib/data/orders" // Static import for server action
+import { markOrderAsReceived, captureOrderPayment } from "@/lib/data/orders" // Static import for server action
 import {
   ActionMenu,
   ActionMenuItem,
@@ -50,6 +50,23 @@ const OrderCard = ({ order }: OrderCardProps) => {
 
   const items = order.items || []
 
+  const groupedItems = useMemo(() => {
+    const groups: Record<string, { sellerName: string; items: any[] }> = {}
+
+    items.forEach((item: any) => {
+      const seller = item.product?.seller || order.seller
+      const sellerId = seller?.id || "unknown"
+      const sellerName = seller?.name || "Sopet Store"
+
+      if (!groups[sellerId]) {
+        groups[sellerId] = { sellerName, items: [] }
+      }
+      groups[sellerId].items.push(item)
+    })
+
+    return groups
+  }, [items, order.seller])
+
   // Use the order's total which already includes discounts and shipping
   const calculatedTotal = useMemo(() => {
     return Number(order.total) || 0
@@ -58,68 +75,82 @@ const OrderCard = ({ order }: OrderCardProps) => {
   return (
     <>
       <div className="bg-white flex flex-col gap-5 px-4 py-5 w-full border border-gray-200 rounded-lg">
-        {/* Header */}
-        <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
-          <p className="font-medium text-lg text-[#211f23]">Pet Pet</p>{" "}
-          {/* Store Name */}
-          <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
-              ></span>
-              <span className={`font-medium ${statusColor}`}>
-                {statusLabel}
-              </span>
+        {Object.entries(groupedItems).map(([sellerId, group], index) => (
+          <div
+            key={sellerId}
+            className={
+              index > 0 ? "pt-5 border-t border-dashed border-gray-200" : ""
+            }
+          >
+            {/* Header */}
+            <div className="border-b border-gray-200 pb-3 flex items-center justify-between">
+              <p className="font-medium text-lg text-[#211f23]">
+                {group.sellerName}
+              </p>
+              {index === 0 && (
+                <div className="flex items-center justify-between md:justify-start gap-2 w-full md:w-auto">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
+                    ></span>
+                    <span className={`font-medium ${statusColor}`}>
+                      {statusLabel}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Product Section */}
+            <div className="flex flex-col gap-4 mt-4">
+              {group.items.map((item: any) => (
+                <div key={item.id} className="flex gap-4 items-center w-full">
+                  {/* Image */}
+                  <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                    {item?.thumbnail ? (
+                      <Image
+                        src={item.thumbnail}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Details */}
+                  <div className="flex-1 flex flex-col items-start justify-center">
+                    <p className="font-medium text-base text-[#454547] line-clamp-2">
+                      {item?.title}
+                    </p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      ตัวเลือกสินค้า : {item?.variant?.title || "-"}
+                    </p>
+                    <p className="text-[#454547] text-sm mt-1">
+                      x{item?.quantity}
+                    </p>
+                  </div>
+
+                  {/* Price */}
+                  <div className="flex flex-col justify-center h-full items-end">
+                    <p
+                      className="font-medium text-base text-black"
+                      suppressHydrationWarning
+                    >
+                      {convertToLocale({
+                        amount: item?.unit_price || 0,
+                        currency_code: order.currency_code,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-
-        {/* Product Section */}
-        <div className="border-b border-gray-200 pb-5 flex flex-col gap-4">
-          {items.map((item: any) => (
-            <div key={item.id} className="flex gap-4 items-center w-full">
-              {/* Image */}
-              <div className="relative w-20 h-20 shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                {item?.thumbnail ? (
-                  <Image
-                    src={item.thumbnail}
-                    alt={item.title}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                    No Image
-                  </div>
-                )}
-              </div>
-
-              {/* Details */}
-              <div className="flex-1 flex flex-col items-start justify-center">
-                <p className="font-medium text-base text-[#454547] line-clamp-2">
-                  {item?.title}
-                </p>
-                <p className="text-gray-400 text-sm mt-1">
-                  ตัวเลือกสินค้า : {item?.variant?.title || "-"}
-                </p>
-                <p className="text-[#454547] text-sm mt-1">x{item?.quantity}</p>
-              </div>
-
-              {/* Price */}
-              <div className="flex flex-col justify-center h-full items-end pb-5">
-                <p
-                  className="font-medium text-base text-black"
-                  suppressHydrationWarning
-                >
-                  {convertToLocale({
-                    amount: item?.unit_price || 0,
-                    currency_code: order.currency_code,
-                  })}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
+        ))}
 
         {/* Footer: Total & Actions */}
         <div className="flex items-center justify-between pb-5 border-b border-gray-200">
@@ -169,7 +200,7 @@ const OrderCard = ({ order }: OrderCardProps) => {
                 onClick={async () => {
                   setIsLoading(true)
                   try {
-                    const res = await completeOrder(order.id)
+                    const res = await markOrderAsReceived(order.id)
                     if (res.success) {
                       window.location.reload()
                     } else {

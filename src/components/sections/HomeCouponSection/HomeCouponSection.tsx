@@ -8,16 +8,17 @@ import {
   CouponCollectedModal,
   CouponAuthErrorModal,
 } from "@/components/molecules"
+import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
 import { fetchCoupons, collectCoupon } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 
 export const HomeCouponSection = () => {
-  const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
+  const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
   const [showCollected, setShowCollected] = useState(false)
   const [showAuthError, setShowAuthError] = useState(false)
-  const [coupons, setCoupons] = useState<any[]>([])
+  const [coupons, setCoupons] = useState<CouponData[]>([])
 
-  const handleApply = useCallback(async (coupon: any) => {
+  const handleApply = useCallback(async (coupon: CouponData) => {
     try {
       const res = await collectCoupon(coupon.id)
       if (res.success) {
@@ -43,10 +44,8 @@ export const HomeCouponSection = () => {
   useEffect(() => {
     async function loadCoupons() {
       try {
-        const allCoupons = await fetchCoupons()
-        // Take first 4 coupons for the home page display
-        const mapped = allCoupons.slice(0, 4).map((c) => mapCouponToCardData(c))
-        setCoupons(mapped)
+        const homeCoupons = await fetchCoupons(undefined, 20, 0)
+        setCoupons(homeCoupons.map((coupon) => mapCouponToCardData(coupon)))
       } catch (error) {
         console.error("Failed to load home coupons:", error)
       }
@@ -57,25 +56,31 @@ export const HomeCouponSection = () => {
   if (coupons.length === 0) return null
 
   return (
-    <section className="w-full mb-12 hidden md:block">
+    <section className="w-full mb-12">
       <div className="flex justify-between items-center px-4 md:px-0 mb-6">
-        <h2 className="md:sop-headline-md-medium">โค้ดส่วนลด</h2>
+        <h2 className="sop-body-lg-medium md:sop-headline-md-medium">
+          โค้ดส่วนลด
+        </h2>
         <Link
           href="/coupons"
-          className="sop-link-md-regular text-sop-neutral-gray-300"
+          className="sop-link-xs-regular md:sop-link-md-regular text-sop-neutral-gray-300"
         >
           ดูส่วนลดทั้งหมด
         </Link>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 px-4 lg:px-0">
+      <div className="flex gap-4 overflow-x-auto px-4 pb-2 pr-4 lg:px-0 snap-x snap-mandatory scroll-smooth overscroll-x-contain [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         {coupons.map((item, i) => (
-          <CouponCard
-            key={i}
-            coupon={item}
-            onConditionsClick={setSelectedCoupon}
-            onApply={() => handleApply(item)}
-            isApplied={item.is_collected}
-          />
+          <div
+            key={item.id ?? i}
+            className="w-[280px] shrink-0 snap-start sm:w-[320px]"
+          >
+            <CouponCard
+              coupon={item}
+              onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
+              onApply={() => handleApply(item)}
+              isApplied={item.is_collected}
+            />
+          </div>
         ))}
       </div>
 

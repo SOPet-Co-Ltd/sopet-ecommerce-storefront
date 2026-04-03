@@ -21,6 +21,21 @@ export type CouponApiData = {
   is_used?: boolean
 }
 
+type CouponListResponse = {
+  coupons?: CouponApiData[]
+}
+
+export type CouponMutationResponse = {
+  success: boolean
+  message?: string
+} & Record<string, unknown>
+
+type AuthHeaders = Awaited<ReturnType<typeof getAuthHeaders>>
+
+const hasAuthorization = (
+  authHeaders: AuthHeaders
+): authHeaders is { authorization: string } => "authorization" in authHeaders
+
 /**
  * Fetch coupons from the backend API.
  * @param category Optional category filter: "new_customer" | "shipping" | "special"
@@ -43,8 +58,8 @@ export async function fetchCoupons(
       "x-publishable-api-key": publishableKey,
     }
 
-    const authHeaders: any = await getAuthHeaders()
-    if (authHeaders.authorization) {
+    const authHeaders = await getAuthHeaders()
+    if (hasAuthorization(authHeaders)) {
       headers["Authorization"] = authHeaders.authorization
     }
 
@@ -53,7 +68,7 @@ export async function fetchCoupons(
       headers,
     }
 
-    if (!authHeaders.authorization) {
+    if (!hasAuthorization(authHeaders)) {
       fetchOptions.next = { revalidate: 60 } // cache public requests
     } else {
       fetchOptions.cache = "no-store" // never cache personalized requests
@@ -67,7 +82,7 @@ export async function fetchCoupons(
       return []
     }
 
-    const data = await res.json()
+    const data = (await res.json()) as CouponListResponse
     return data.coupons || []
   } catch (error) {
     console.error("Error fetching coupons:", error)
@@ -78,15 +93,17 @@ export async function fetchCoupons(
 /**
  * Collect a native promotion to the user's wallet.
  */
-export async function collectCoupon(promotionId: string) {
+export async function collectCoupon(
+  promotionId: string
+): Promise<CouponMutationResponse> {
   try {
     const url = new URL(
       `${MEDUSA_BACKEND_URL}/store/coupons/${promotionId}/collect`
     )
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-    const authHeaders: any = await getAuthHeaders()
-    if (!authHeaders.authorization) {
+    const authHeaders = await getAuthHeaders()
+    if (!hasAuthorization(authHeaders)) {
       return { success: false, message: "Unauthorized" }
     }
 
@@ -98,7 +115,7 @@ export async function collectCoupon(promotionId: string) {
       },
     })
 
-    const data = await res.json()
+    const data = (await res.json()) as CouponMutationResponse
     return data
   } catch (error) {
     console.error("Error collecting coupon:", error)
@@ -114,8 +131,8 @@ export async function fetchMyCoupons(): Promise<CouponApiData[]> {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/me/coupons`)
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-    const authHeaders: any = await getAuthHeaders()
-    if (!authHeaders.authorization) {
+    const authHeaders = await getAuthHeaders()
+    if (!hasAuthorization(authHeaders)) {
       return []
     }
 
@@ -133,7 +150,7 @@ export async function fetchMyCoupons(): Promise<CouponApiData[]> {
       return []
     }
 
-    const data = await res.json()
+    const data = (await res.json()) as CouponListResponse
     return data.coupons || []
   } catch (error) {
     console.error("Error fetching my coupons:", error)
@@ -144,13 +161,15 @@ export async function fetchMyCoupons(): Promise<CouponApiData[]> {
 /**
  * Mark a coupon as used in the user's wallet by its promo code.
  */
-export async function markCouponAsUsed(code: string) {
+export async function markCouponAsUsed(
+  code: string
+): Promise<CouponMutationResponse> {
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/coupons/use-by-code`)
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
-    const authHeaders: any = await getAuthHeaders()
-    if (!authHeaders.authorization) {
+    const authHeaders = await getAuthHeaders()
+    if (!hasAuthorization(authHeaders)) {
       return { success: false, message: "Unauthorized" }
     }
 
@@ -164,7 +183,7 @@ export async function markCouponAsUsed(code: string) {
       body: JSON.stringify({ code }),
     })
 
-    const data = await res.json()
+    const data = (await res.json()) as CouponMutationResponse
     return data
   } catch (error) {
     console.error("Error marking coupon as used:", error)

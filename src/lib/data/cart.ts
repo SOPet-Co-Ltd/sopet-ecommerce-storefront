@@ -34,7 +34,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   }
 
   const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title`,
+    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
     {
       method: "GET",
       headers,
@@ -255,6 +255,9 @@ export async function updateLineItem({
   }
 
   try {
+    const cartBefore = await retrieveCart(cartId)
+    const previousProviderId = cartBefore?.payment_collection?.payment_sessions?.[0]?.provider_id
+
     const body: Record<string, unknown> = { quantity }
 
     if (variantId) {
@@ -269,6 +272,16 @@ export async function updateLineItem({
         headers,
       }
     )
+
+    if (previousProviderId) {
+      const updatedCart = await retrieveCart(cartId)
+      if (
+        updatedCart?.payment_collection &&
+        (!updatedCart.payment_collection.payment_sessions || updatedCart.payment_collection.payment_sessions.length === 0)
+      ) {
+        await initiatePaymentSession(updatedCart, { provider_id: previousProviderId }).catch(e => console.warn("Auto re-initiate failed", e));
+      }
+    }
 
     const cartCacheTag = await getCacheTag("carts")
     await revalidateTag(cartCacheTag)
@@ -308,15 +321,26 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
-  await fetchQuery(`/store/cart/${cartId}/line-items/${lineId}`, {
+  const cartBefore = await retrieveCart(cartId)
+  const previousProviderId = cartBefore?.payment_collection?.payment_sessions?.[0]?.provider_id
+
+  await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
     method: "DELETE",
     headers,
   })
-    .then(async () => {
-      const cartCacheTag = await getCacheTag("carts")
-      await revalidateTag(cartCacheTag)
-    })
-    .catch(medusaError)
+
+  if (previousProviderId) {
+    const updatedCart = await retrieveCart(cartId)
+    if (
+      updatedCart?.payment_collection &&
+      (!updatedCart.payment_collection.payment_sessions || updatedCart.payment_collection.payment_sessions.length === 0)
+    ) {
+      await initiatePaymentSession(updatedCart, { provider_id: previousProviderId }).catch(e => console.warn("Auto re-initiate failed", e));
+    }
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  await revalidateTag(cartCacheTag)
 }
 
 export async function setShippingMethod({
@@ -335,6 +359,32 @@ export async function setShippingMethod({
     method: "POST",
     headers,
   })
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return res
+}
+
+export async function setMultiShippingMethods({
+  cartId,
+  optionIds,
+}: {
+  cartId: string
+  optionIds: string[]
+}) {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/multi-shipping-methods`,
+    {
+      body: { option_ids: optionIds },
+      method: "POST",
+      headers,
+    }
+  )
 
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
@@ -528,10 +578,26 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       },
     }
 
-    const email = getText("email")
-    if (email) {
-      data.email = email
+    let email = getText("email") || getText("shipping_address.email")
+    
+    if (!email) {
+      const cartId = await getCartId()
+      if (cartId) {
+        const cart = await retrieveCart(cartId)
+        const customer = (cart as any)?.customer
+        if (customer?.phone) {
+          email = `${customer.phone}@sopet.co.th`
+        } else if (customer?.email) {
+          email = customer.email
+        }
+      }
     }
+
+    if (!email) {
+      email = "no-reply@sopet.co.th"
+    }
+
+    data.email = email
 
     // Note: Only set billing_address when a separate billing form is provided.
 
@@ -563,11 +629,22 @@ export async function placeOrder(
   }
 
   // Ensure cart is linked to a customer before completing the order
-  const cartBeforeComplete = await retrieveCart(id)
+  let cartBeforeComplete = await retrieveCart(id)
   if (!cartBeforeComplete?.customer_id) {
     throw new Error(
       "Cart is not linked to a customer. Please sign in again before placing the order."
     )
+  }
+
+  if (!cartBeforeComplete?.email) {
+    // Force a fallback email if missing to bypass Medusa v2 requirement
+    // Use customer's phone if available for better identification
+    const customerPhone = (cartBeforeComplete as any)?.customer?.phone
+    const fallbackEmail = customerPhone 
+      ? `${customerPhone}@sopet.co.th` 
+      : "no-reply@sopet.co.th"
+      
+    await updateCart({ email: fallbackEmail })
   }
 
   const res = await fetchQuery(`/store/carts/${id}/complete`, {

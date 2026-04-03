@@ -7,6 +7,7 @@ import { applyPromotions, deletePromotionCode } from "@/lib/data/cart"
 import { Cart } from "@/types/cart"
 import { useState, useEffect } from "react"
 import { CouponCard } from "../CouponCard/CouponCard"
+import type { CouponData } from "../CouponCard/CouponCard"
 import { CouponConditionsModal } from "../CouponConditionsModal/CouponConditionsModal"
 import { fetchMyCoupons } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
@@ -29,9 +30,9 @@ export const DiscountModal = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [myCoupons, setMyCoupons] = useState<any[]>([])
+  const [myCoupons, setMyCoupons] = useState<CouponData[]>([])
   const [isFetchingCoupons, setIsFetchingCoupons] = useState(true)
-  const [selectedCoupon, setSelectedCoupon] = useState<any | null>(null)
+  const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
 
   useEffect(() => {
     if (!isOpen) return
@@ -76,9 +77,10 @@ export const DiscountModal = ({
       } else {
         setMessage("โค้ดส่วนลดถูกใช้แล้ว")
       }
-    } catch (e: any) {
+    } catch (error: unknown) {
       // Handle backend error gracefully
-      const errorMessage = e?.message || ""
+      const errorMessage =
+        error instanceof Error ? error.message : String(error || "")
       if (
         errorMessage.includes("invalid") ||
         errorMessage.includes("not found")
@@ -87,7 +89,7 @@ export const DiscountModal = ({
       } else {
         setError("เกิดข้อผิดพลาดในการใช้คูปอง")
       }
-      console.error("Discount Error:", e)
+      console.error("Discount Error:", error)
     } finally {
       setIsLoading(false)
     }

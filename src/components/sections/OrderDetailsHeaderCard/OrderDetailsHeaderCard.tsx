@@ -12,7 +12,7 @@ import { Button } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { Clock, Copy, ChevronLeft, RotateCcw, Star } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { captureOrderPayment } from "@/lib/data/orders"
+import { captureOrderPayment, markOrderAsReceived } from "@/lib/data/orders"
 
 import {
   getOrderDisplayStatus,
@@ -151,8 +151,7 @@ const OrderDetailsHeaderCard = ({ order }: OrderDetailsHeaderCardProps) => {
                 onClick={async () => {
                   setIsLoading(true)
                   try {
-                    const { completeOrder } = await import("@/lib/data/orders")
-                    const res = await completeOrder(order.id)
+                    const res = await markOrderAsReceived(order.id)
                     if (res.success) {
                       window.location.reload()
                     } else {

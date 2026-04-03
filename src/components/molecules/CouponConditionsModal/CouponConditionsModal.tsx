@@ -1,9 +1,10 @@
 "use client"
 
 import { Modal, CouponCard } from "@/components/molecules"
+import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
 
 type CouponConditionsModalProps = {
-  coupon: any // Using 'any' to match the current mock data structure, ideal to be strongly typed later
+  coupon: CouponData | null
   isOpen: boolean
   onClose: () => void
 }
