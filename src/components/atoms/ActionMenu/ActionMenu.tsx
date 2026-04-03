@@ -67,7 +67,7 @@ export const ActionMenuItem = ({
   disabled?: boolean
 }) => {
   return (
-    <MenuItem disabled={disabled}>
+    <MenuItem {...(typeof disabled === "boolean" ? { disabled } : {})}>
       {({ /* active, */ focus, disabled }) => (
         <button
           onClick={onClick}

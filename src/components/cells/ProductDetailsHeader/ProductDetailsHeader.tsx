@@ -6,7 +6,8 @@ import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { useState } from "react"
-import { addToCart } from "@/lib/data/cart"
+import { addItemToAnonymousCart } from "@/lib/data/local-customer-cart"
+import { addItemsToCustomerCart } from "@/lib/data/customer-cart"
 import { Chat } from "@/components/organisms/Chat/Chat"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
@@ -112,11 +113,37 @@ export const ProductDetailsHeader = ({
       if (!isVariantStockMaxLimitReached) {
         onAddToCart(storeCartLineItem, variantPrice?.currency_code || "eur")
       }
-      await addToCart({
-        variantId: variantId,
-        quantity: 1,
-        countryCode: locale,
-      })
+      // No Medusa cart until checkout; use customer cart or local anonymous cart only
+      if (user) {
+        await addItemsToCustomerCart([
+          {
+            productId: product.id,
+            variantId,
+            quantity: 1,
+            unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
+            source: "storefront_cart",
+          },
+        ])
+      } else {
+        const thumbnail = product.thumbnail ?? product.images?.[0]?.url ?? null
+        addItemToAnonymousCart(
+          {
+            productId: product.id,
+            variantId,
+            quantity: 1,
+            unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
+            source: "storefront_cart",
+            metadata: {
+              product_title: product.title ?? "",
+              product_handle: product.handle ?? "",
+              thumbnail,
+              variant_title:
+                product.variants?.find((v) => v.id === variantId)?.title ?? "",
+            },
+          },
+          { maxQuantity: variantStock > 0 ? variantStock : undefined }
+        )
+      }
     } catch (error) {
       toast.error({
         title: "Error adding to cart",

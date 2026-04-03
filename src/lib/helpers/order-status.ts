@@ -1,42 +1,9 @@
-// Type definitions matching backend API response
-type OrderStatus = "pending" | "completed" | "canceled"
+import { OrderDetails, OrderDisplayStatus } from "@/types/order"
 
-type PaymentStatus =
-  | "not_paid"
-  | "awaiting"
-  | "authorized"
-  | "captured"
-  | "partially_refunded"
-  | "refunded"
-  | "canceled"
-
-type FulfillmentStatus =
-  | "not_fulfilled"
-  | "partially_fulfilled"
-  | "fulfilled"
-  | "partially_shipped"
-  | "shipped"
-  | "partially_delivered"
-  | "delivered"
-  | "canceled"
-
-interface OrderWithStatus {
-  status: OrderStatus
-  payment_status: PaymentStatus
-  fulfillment_status: FulfillmentStatus
-  metadata?: {
-    is_paid?: boolean
-    [key: string]: unknown
-  }
-}
-
-export type OrderDisplayStatus =
-  | "to-pay"
-  | "preparing"
-  | "to-receive"
-  | "completed"
-  | "cancelled"
-  | "unknown"
+type OrderWithStatus = Pick<
+  OrderDetails,
+  "status" | "payment_status" | "fulfillment_status" | "metadata"
+>
 
 /**
  * Maps backend order status to customer-facing display status

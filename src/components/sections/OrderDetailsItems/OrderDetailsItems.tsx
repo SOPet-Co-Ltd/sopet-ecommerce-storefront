@@ -1,33 +1,37 @@
 import { convertToLocale } from "@/lib/helpers/money"
 import Image from "next/image"
+import type { OrderLineItem } from "@/types/order"
 
 type OrderDetailsItemsProps = {
-  items: any[]
+  items: OrderLineItem[]
   currencyCode: string
 }
 
 const OrderDetailsItems = ({ items, currencyCode }: OrderDetailsItemsProps) => {
   const groupedItems = (() => {
     const groups: Record<string, { sellerName: string; items: any[] }> = {}
-    
+
     items.forEach((item: any) => {
       const seller = item.product?.seller
       const sellerId = seller?.id || "unknown"
       const sellerName = seller?.name || "Sopet Store"
-      
+
       if (!groups[sellerId]) {
         groups[sellerId] = { sellerName, items: [] }
       }
       groups[sellerId].items.push(item)
     })
-    
+
     return groups
   })()
 
   return (
     <div className="flex flex-col gap-6">
       {Object.entries(groupedItems).map(([sellerId, group]) => (
-        <div key={sellerId} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div
+          key={sellerId}
+          className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+        >
           <div className="px-4 py-3 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
             <h3 className="font-medium text-gray-900">{group.sellerName}</h3>
             <span className="text-sm text-sop-secondary-500 font-medium">

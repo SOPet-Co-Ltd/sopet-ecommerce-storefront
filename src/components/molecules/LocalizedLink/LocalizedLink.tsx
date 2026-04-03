@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import React, { MouseEventHandler } from "react"
+import type { ComponentProps, ReactNode } from "react"
 
 /**
  * Use this component to create a Next.js `<LocalizedClientLink />` that persists the current country code in the url,
@@ -13,17 +13,16 @@ const LocalizedClientLink = ({
   href,
   ...props
 }: {
-  children?: React.ReactNode
+  children?: ReactNode
   href: string
-  className?: string
-  onClick?: MouseEventHandler<HTMLAnchorElement> | undefined
-  passHref?: true
-  [x: string]: any
-}) => {
-  const { locale } = useParams()
+} & Omit<ComponentProps<typeof Link>, "href" | "children">) => {
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : ""
+  const normalizedHref = href.startsWith("/") ? href : `/${href}`
+  const localizedHref = `/${locale}${normalizedHref}`
 
   return (
-    <Link href={`/${locale}${href}`} {...props}>
+    <Link href={localizedHref} {...props}>
       {children}
     </Link>
   )

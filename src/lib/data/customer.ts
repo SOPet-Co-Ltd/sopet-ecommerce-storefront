@@ -21,8 +21,6 @@ import {
 export async function ensureStripeCustomer() {
   const headers = await getAuthHeaders()
 
-  console.log({ headers })
-
   if (!headers || Object.keys(headers).length === 0) {
     // Not logged in; nothing to do.
     return
@@ -380,7 +378,8 @@ export async function signup(formData: FormData) {
     const customerCacheTag = await getCacheTag("customers")
     revalidateTag(customerCacheTag)
 
-    await transferCart()
+    // Medusa cart is only created at checkout; clear any stale cart cookie so we never POST /store/carts/:id/customer
+    await removeCartId()
 
     await ensureStripeCustomer()
 
@@ -408,7 +407,7 @@ export async function login(formData: FormData) {
   }
 
   try {
-    await transferCart()
+    await removeCartId()
   } catch (error: any) {
     return error.toString()
   }
@@ -499,11 +498,11 @@ export async function verifyOtpAndLogin(formData: FormData) {
     // Store JWT in cookies
     await setAuthToken(res.token as string)
 
-    // Revalidate customer cache and transfer cart
+    // Revalidate customer cache; clear any stale Medusa cart (cart only created at checkout)
     const customerCacheTag = await getCacheTag("customers")
     revalidateTag(customerCacheTag)
 
-    await transferCart()
+    await removeCartId()
 
     await ensureStripeCustomer()
 
@@ -511,6 +510,14 @@ export async function verifyOtpAndLogin(formData: FormData) {
   } catch (error: any) {
     return error.toString()
   }
+}
+
+/**
+ * Clear Medusa cart cookie. Safe to call when the login page loads so we don't
+ * carry a stale cart. Must be run as a Server Action (e.g. from a client useEffect).
+ */
+export async function clearMedusaCartForLoginPage() {
+  await removeCartId()
 }
 
 export async function signout() {

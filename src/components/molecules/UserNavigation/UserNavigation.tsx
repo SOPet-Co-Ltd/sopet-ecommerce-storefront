@@ -5,12 +5,12 @@ import { USER_SEGMENT_LABELS } from "@/lib/constants"
 import { useParams, usePathname } from "next/navigation"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { cn } from "@/lib/utils"
+import { Avatar } from "@/components/atoms/Avatar/Avatar"
 import {
-  Avatar,
   Dropdown,
   DropdownGroup,
   DropdownItem,
-} from "@/components/atoms"
+} from "@/components/atoms/Dropdown/Dropdown"
 import { DownArrowIcon } from "@/icons"
 
 const getNavigationItems = () => {
@@ -22,6 +22,26 @@ const getNavigationItems = () => {
       href: `/user/${segment}` as const,
     }
   })
+}
+
+/**
+ * Determines which segment the current path belongs to.
+ * Handles both exact paths (/user/orders) and parameterized paths (/user/orders/order_123)
+ */
+function getCurrentSegment(pathWithoutLocale: string): string | null {
+  // Remove leading /user/ and get the first segment
+  const pathAfterUser = pathWithoutLocale.replace(/^\/user\/?/, "")
+  if (!pathAfterUser) return null
+
+  const segments = pathAfterUser.split("/")
+  const firstSegment = segments[0]
+
+  // Check if this segment exists in USER_SEGMENT_LABELS
+  if (USER_SEGMENT_LABELS[firstSegment]) {
+    return firstSegment
+  }
+
+  return null
 }
 
 type UserNavigationProps = {
@@ -37,12 +57,18 @@ export const UserNavigation = ({ user }: UserNavigationProps) => {
       ? pathname.replace(new RegExp(`^/${localeStr}`), "") || "/"
       : pathname || "/"
   const navigationItems = getNavigationItems()
-  const matchedItem = navigationItems.find(
-    (item) => item.href === pathWithoutLocale
-  )
-  const dropdownValue = matchedItem ? matchedItem.href : ""
-  const avatarUrl = (user as { metadata?: { avatar_url?: string } } | undefined)
-    ?.metadata?.avatar_url
+
+  // Get current segment, which works for both /user/orders and /user/orders/order_123
+  const currentSegment = getCurrentSegment(pathWithoutLocale)
+  const dropdownValue = currentSegment ? `/user/${currentSegment}` : ""
+
+  const avatarUrl =
+    typeof user?.metadata === "object" &&
+    user.metadata !== null &&
+    "avatar_url" in user.metadata &&
+    typeof (user.metadata as { avatar_url?: unknown }).avatar_url === "string"
+      ? (user.metadata as { avatar_url: string }).avatar_url
+      : undefined
   return (
     <>
       <div className="lg:hidden block">
@@ -69,7 +95,7 @@ export const UserNavigation = ({ user }: UserNavigationProps) => {
             "px-sop-16px py-sop-12px flex items-center gap-sop-16px"
           )}
         >
-          <Avatar size="small" src={avatarUrl} />
+          <Avatar size="small" {...(avatarUrl ? { src: avatarUrl } : {})} />
           <span className="sop-body-sm-regular text-sop-neutral-gray-200">
             บัญชีของฉัน
           </span>
@@ -83,7 +109,7 @@ export const UserNavigation = ({ user }: UserNavigationProps) => {
                 <span
                   className={cn(
                     "sop-body-md-regular text-sop-neutral-gray-200",
-                    pathWithoutLocale === href && "text-sop-primary-500"
+                    currentSegment === segment && "text-sop-primary-500"
                   )}
                 >
                   {label}

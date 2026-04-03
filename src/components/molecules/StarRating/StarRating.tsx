@@ -3,6 +3,7 @@
 import { Star } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { ReviewStarIcon, StarIcon } from "@/icons"
 
 interface StarRatingProps {
   rating: number
@@ -23,7 +24,6 @@ export const StarRating = ({
     <div className={cn("flex items-center gap-1", className)}>
       {[1, 2, 3, 4, 5].map((star) => {
         const isFilled = star <= (hoverRating || rating)
-        const isHovered = star <= hoverRating
 
         return (
           <button
@@ -38,16 +38,9 @@ export const StarRating = ({
               disabled ? "cursor-default" : "cursor-pointer"
             )}
           >
-            <Star
-              className={cn(
-                "w-8 h-8 transition-colors",
-                isFilled
-                  ? "fill-yellow-400 text-yellow-400"
-                  : "fill-transparent text-gray-300",
-                !disabled && "hover:scale-110 duration-200"
-              )}
-              strokeWidth={1.5}
-            />
+            <div>
+              <ReviewStarIcon filled={isFilled} />
+            </div>
           </button>
         )
       })}

@@ -43,6 +43,7 @@ import OrderCard from "./OrderCard/OrderCard"
 import { CouponCard } from "./CouponCard/CouponCard"
 import { CouponConditionsModal } from "./CouponConditionsModal/CouponConditionsModal"
 import { CouponCollectedModal } from "./CouponCollectedModal/CouponCollectedModal"
+import { OAuthSuccessView } from "./OAuthSuccessView/OAuthSuccessView"
 
 export {
   PrimeCategoryNavbar,
@@ -90,5 +91,6 @@ export {
   CouponCard,
   CouponConditionsModal,
   CouponCollectedModal,
+  OAuthSuccessView,
 }
 export * from "./CouponAuthErrorModal"

@@ -100,6 +100,7 @@ Branch mapping:
 - Env vars: `docs/technical/environment-variables.md`
 - Deployment: `docs/technical/deployment.md`
 - Operations: `docs/technical/operations.md`
+- Cart behavior: `docs/technical/cart.md`
 
 ## Repository Structure
 
@@ -113,3 +114,6 @@ src/lib/images/         Image loader logic
 public/                 Static assets
 .storybook/             Storybook config
 ```
+
+ahihi
+properties of sopet.co 2026 all rights reserved.

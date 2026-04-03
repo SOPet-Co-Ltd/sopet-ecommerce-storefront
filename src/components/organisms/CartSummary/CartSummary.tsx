@@ -1,30 +1,36 @@
 "use client"
-import { Button, Checkbox, Input } from "@/components/atoms"
+import { Button, Checkbox } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 
 import { HttpTypes } from "@medusajs/types"
 import { Cart } from "@/types/cart"
-import { checkoutWithSelection } from "@/lib/data/cart"
+import { checkoutCustomerCartSelection } from "@/lib/data/customer-cart"
+import { prepareGuestCheckout } from "@/lib/data/cart"
+import { removeAnonymousCartItemsByIds } from "@/lib/data/local-customer-cart"
 import { useState } from "react"
 
 interface CartSummaryProps {
   cart: HttpTypes.StoreCart | Cart
+  locale?: string
   selectedCount?: number
   totalCount?: number
   isAllSelected?: boolean
   onSelectAll?: (checked: boolean) => void
   customTotal?: number
   selectedItemIds?: string[]
+  isAnonymousCart?: boolean
 }
 
 export const CartSummary = ({
   cart,
+  locale = "th",
   selectedCount = 0,
   totalCount = 0,
   isAllSelected = false,
   onSelectAll,
   customTotal,
   selectedItemIds = [],
+  isAnonymousCart = false,
 }: CartSummaryProps) => {
   const {
     total,
@@ -41,7 +47,21 @@ export const CartSummary = ({
     if (selectedCount === 0) return
     setIsLoading(true)
     try {
-      await checkoutWithSelection(selectedItemIds)
+      if (isAnonymousCart) {
+        const items = (cart?.items ?? []).filter((i) =>
+          selectedItemIds.includes(i.id)
+        )
+        const selectedItems = items.map((i) => ({
+          variantId: i.variant_id as string,
+          quantity: i.quantity ?? 1,
+        }))
+        removeAnonymousCartItemsByIds(selectedItemIds)
+        await prepareGuestCheckout(selectedItems, locale)
+      } else {
+        await checkoutCustomerCartSelection(selectedItemIds, {
+          countryCode: locale,
+        })
+      }
     } catch (e) {
       console.error("[CartSummary] Checkout failed:", e)
       setIsLoading(false)

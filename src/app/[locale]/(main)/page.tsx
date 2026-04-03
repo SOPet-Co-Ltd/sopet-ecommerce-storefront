@@ -1,11 +1,11 @@
 import {
   BannerSection,
-  BlogSection,
-  Hero,
-  HomeCategories,
-  HomeProductSection,
   HomeCouponSection,
-  ShopByStyleSection,
+  HomeFaqSection,
+  HomeFooterSection,
+  HomeRecommendedProductSection,
+  HomeRecentOrdersSection,
+  HomeSponsorsSection,
 } from "@/components/sections"
 
 import type { Metadata } from "next"
@@ -13,6 +13,37 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { listRegions } from "@/lib/data/regions"
 import { toHreflang } from "@/lib/helpers/hreflang"
+import {
+  listStorefrontBanners,
+  listStorefrontSponsors,
+} from "@/lib/data/storefront-config"
+import { Suspense } from "react"
+import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
+import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
+
+const HOME_FAQ_ITEMS: HomeFaqItem[] = [
+  {
+    id: "authentic-products",
+    question: "สินค้าในเว็บเป็น ของแท้ ใช้ไหม ?",
+    answer:
+      "สินค้าและยาของเรามาจากรพ.ที่จดทะเบียนถูกต้อง 100% บริษัทของเรายังได้รับการสนับสนุนโดยคณะนวัตกรรมบูรณาการ (SCII) จุฬาลงกรณ์มหาวิทยาลัย",
+  },
+  {
+    id: "shipping-methods",
+    question: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+    answer: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+  },
+  {
+    id: "contact-us",
+    question: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+    answer: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+  },
+  {
+    id: "about-us",
+    question: "SOPet คืออะไร",
+    answer: "SOPet คืออะไร",
+  },
+]
 
 export async function generateMetadata({
   params,
@@ -113,6 +144,10 @@ export default async function Home({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  const [sponsors, banners] = await Promise.allSettled([
+    listStorefrontSponsors(),
+    listStorefrontBanners(),
+  ])
 
   const headersList = await headers()
   const host = headersList.get("host")
@@ -122,6 +157,13 @@ export default async function Home({
   const siteName =
     process.env.NEXT_PUBLIC_SITE_NAME ||
     "Mercur B2C Demo - Marketplace Storefront"
+
+  if (sponsors.status === "rejected" || banners.status === "rejected") {
+    return <div>Error loading storefront config</div>
+  }
+
+  const sponsorsData = sponsors.status === "fulfilled" ? sponsors.value : []
+  const bannersData = banners.status === "fulfilled" ? banners.value : []
 
   return (
     <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full pb-10">
@@ -160,37 +202,46 @@ export default async function Home({
           }),
         }}
       />
+      {/* Product Banner Section */}
+      <BannerSection banners={bannersData} />
 
-      <div className="w-full">
-        {/* Banner Section */}
-        <section className="w-full bg-sop-primary-100 py-10 rounded-2xl container mx-auto mb-10 mt-6 relative overflow-hidden hidden lg:block h-[350px]">
-          <div className="absolute top-0 left-0 w-full h-full opacity-30 bg-linear-to-r from-sop-primary-300 to-sop-primary-100"></div>
-          <div className="flex z-10 relative items-center h-full px-10">
-            <h1 className="text-5xl font-bold text-sop-primary-700 leading-snug">
-              Medicine
-              <br />
-              with Care
-              <br />
-              <span className="text-3xl font-medium mt-2 block">
-                for Pets We Love
-              </span>
-            </h1>
-          </div>
-        </section>
-
-        {/* Categories (Figma shows sub-menu bubbles, we can place them here later if needed) */}
-        <div className="container mx-auto">
-          {/* Coupon Section */}
+      <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
+        <div className="w-full">
           <HomeCouponSection />
-
-          {/* Recommended Products */}
-          <HomeProductSection
-            heading="สินค้าแนะนำ"
-            locale={locale}
-            home={true}
-          />
         </div>
-      </div>
+
+        {/* Bought items */}
+        <div className="w-full">
+          <Suspense fallback={null}>
+            <HomeRecentOrdersSection locale={locale} />
+          </Suspense>
+        </div>
+
+        {/* Recommended Products Section */}
+        <div className="w-full">
+          <Suspense
+            fallback={
+              <div className="px-4 py-6 sop-body-md-medium text-sop-neutral-gray-200">
+                กำลังโหลดสินค้าแนะนำ...
+              </div>
+            }
+          >
+            <HomeRecommendedProductSection
+              heading="สินค้าแนะนำ"
+              locale={locale}
+            />
+          </Suspense>
+        </div>
+      </section>
+
+      <section className="w-full lg:px-20 lg:py-10 p-0 flex flex-col gap-10 bg-sop-base-white overflow-hidden">
+        <HomeSponsorsSection sponsors={sponsorsData} />
+        <HomeFaqSection items={HOME_FAQ_ITEMS} />
+      </section>
+
+      {/* Footer Section */}
+      <HomeFooterSection />
+      <VetAIFloatingButton />
     </main>
   )
 }

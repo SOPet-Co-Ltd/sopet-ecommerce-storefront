@@ -8,7 +8,7 @@ import { cloudflareImageLoader, isR2Host } from "@/lib/images/cloudflare-loader"
 
 /**
  * Wrapper around `next/image` that applies Cloudflare Image Transformations
- * only for images hosted on R2 (prod `r2.sopet.co` and dev `*.r2.dev`).
+ * only for images hosted on R2 (prod `r2.sopet.org` and dev `*.r2.dev`).
  *
  * All other images keep Next.js' default behavior.
  */

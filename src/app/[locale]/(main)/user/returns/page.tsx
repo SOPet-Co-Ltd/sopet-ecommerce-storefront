@@ -3,6 +3,10 @@ import { OrderReturnRequests } from "@/components/sections/OrderReturnRequests/O
 import { verifyCustomer } from "@/lib/data/customer"
 import { getReturns, retrieveReturnReasons } from "@/lib/data/orders"
 
+type ReturnRequestLike = {
+  line_items: { created_at: string }[]
+}
+
 export default async function ReturnsPage({
   searchParams,
 }: {
@@ -22,12 +26,14 @@ export default async function ReturnsPage({
         <div className="md:col-span-3">
           <h1 className="heading-md uppercase">Returns</h1>
           <OrderReturnRequests
-            returns={order_return_requests.sort((a, b) => {
-              return (
-                new Date(b.line_items[0].created_at).getTime() -
-                new Date(a.line_items[0].created_at).getTime()
-              )
-            })}
+            returns={[...(order_return_requests as ReturnRequestLike[])].sort(
+              (a, b) => {
+                return (
+                  new Date(b.line_items[0].created_at).getTime() -
+                  new Date(a.line_items[0].created_at).getTime()
+                )
+              }
+            )}
             user={user}
             page={page}
             currentReturn={returnId || ""}

@@ -1,8 +1,9 @@
-import { Button } from "@/components/atoms"
+import { Button } from "@/components/atoms/Button/Button"
 import { convertToLocale } from "@/lib/helpers/money"
+import type { OrderDetails } from "@/types/order"
 
 type OrderDetailsSummaryProps = {
-  order: any
+  order: OrderDetails
 }
 
 const OrderDetailsSummary = ({ order }: OrderDetailsSummaryProps) => {
