@@ -7,6 +7,8 @@ import {
   getCurrentCustomerId,
 } from "@/lib/data/reviews"
 
+export const dynamic = "force-dynamic"
+
 export default async function OrderDetailsPage({
   params,
 }: {

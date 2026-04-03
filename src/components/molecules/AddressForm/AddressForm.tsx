@@ -169,7 +169,10 @@ const Form = forwardRef<AddressFormHandle, Props>(
                 placeholder="กรอกชื่อ-นามสกุล"
                 state={errors.recipientFullName ? "error" : "default"}
                 description={(errors.recipientFullName as FieldError)?.message}
-                {...register("recipientFullName")}
+                {...register("recipientFullName", {
+                  // Prevent whitespace-only values like " " from passing validation
+                  setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
+                })}
               />
             </div>
             <div>
@@ -182,7 +185,10 @@ const Form = forwardRef<AddressFormHandle, Props>(
                 placeholder="กรอกเบอร์โทรศัพท์"
                 state={errors.phone ? "error" : "default"}
                 description={(errors.phone as FieldError)?.message}
-                {...register("phone")}
+                {...register("phone", {
+                  // Prevent whitespace-only values like " " from passing validation
+                  setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
+                })}
               />
             </div>
 
@@ -338,7 +344,10 @@ const Form = forwardRef<AddressFormHandle, Props>(
                 placeholder="กรอกที่อยู่"
                 state={errors.address ? "error" : "default"}
                 description={(errors.address as FieldError)?.message}
-                {...register("address")}
+                {...register("address", {
+                  // Prevent whitespace-only values like " " from passing validation
+                  setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
+                })}
               />
             </div>
 

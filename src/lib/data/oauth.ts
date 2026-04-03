@@ -20,12 +20,8 @@ export async function initiateOAuth(provider: "google" | "facebook" | "line") {
     return
   }
 
-  // Backend callback URL (where OAuth provider redirects)
-  // Using /auth/oauth/ instead of /store/auth/oauth/ to avoid publishable key requirement
-  const backendCallbackUrl = `${backendUrl}/auth/oauth/${provider}/callback`
-
-  // No need to pass frontend_callback - backend will redirect to /user by default
-  const oauthUrl = `${backendUrl}/store/auth/oauth/${provider}?redirect_uri=${encodeURIComponent(backendCallbackUrl)}`
+  // Redirect URI for authorize + token steps comes from backend env (getOAuthCallbackRedirectUri).
+  const oauthUrl = `${backendUrl}/store/auth/oauth/${provider}`
 
   try {
     // Fetch the OAuth URL from backend with the required publishable API key header

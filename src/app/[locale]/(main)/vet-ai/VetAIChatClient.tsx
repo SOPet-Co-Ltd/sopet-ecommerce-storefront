@@ -1,11 +1,16 @@
 "use client"
 
-import { FormEvent, useState } from "react"
+import { FormEvent, useEffect, useState } from "react"
 
 import { Input } from "@/components/atoms/InputSOPet/Input"
 import { MessageSendIcon, VetAIColoredIcon, VetAIIcon } from "@/icons"
 import { sendVetAiMessage } from "@/lib/data/vet-ai"
 import { cn } from "@/lib/utils"
+import {
+  getVetAiSession,
+  saveVetAiSession,
+  type VetAiStoredMessage,
+} from "@/lib/vet-ai-session"
 
 type ChatMessage = {
   message: string
@@ -17,6 +22,25 @@ export const VetAIChatClient = () => {
   const [isSending, setIsSending] = useState(false)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [conversationId, setConversationId] = useState<string>("")
+  const [oldMessagesCount, setOldMessagesCount] = useState(0)
+
+  useEffect(() => {
+    const session = getVetAiSession()
+    if (!session) {
+      return
+    }
+
+    const messages: ChatMessage[] = session.messages.map(
+      (m: VetAiStoredMessage) => ({
+        message: m.message,
+        isUser: m.isUser,
+      })
+    )
+
+    setConversationId(session.conversationId)
+    setChatMessages(messages)
+    setOldMessagesCount(messages.length)
+  }, [])
 
   const handleSendMessage = async (event?: FormEvent) => {
     event?.preventDefault()
@@ -27,7 +51,19 @@ export const VetAIChatClient = () => {
     }
 
     setMessageInput("")
-    setChatMessages((prev) => [...prev, { message: trimmed, isUser: true }])
+    setChatMessages((prev) => {
+      const updated = [...prev, { message: trimmed, isUser: true }]
+      if (conversationId) {
+        saveVetAiSession(
+          conversationId,
+          updated.map((m) => ({
+            message: m.message,
+            isUser: m.isUser,
+          }))
+        )
+      }
+      return updated
+    })
     setIsSending(true)
 
     const result = await sendVetAiMessage(trimmed, {
@@ -36,18 +72,30 @@ export const VetAIChatClient = () => {
     })
 
     setIsSending(false)
-    if (result.ok) {
-      setConversationId(result.conversationId)
-    }
-    setChatMessages((prev) => [
-      ...prev,
-      {
+
+    setChatMessages((prev) => {
+      const aiMessage = {
         message: result.ok
           ? result.reply
           : result.error || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
         isUser: false,
-      },
-    ])
+      } as ChatMessage
+
+      const updated = [...prev, aiMessage]
+
+      if (result.ok) {
+        setConversationId(result.conversationId)
+        saveVetAiSession(
+          result.conversationId,
+          updated.map((m) => ({
+            message: m.message,
+            isUser: m.isUser,
+          }))
+        )
+      }
+
+      return updated
+    })
   }
 
   return (
@@ -64,13 +112,23 @@ export const VetAIChatClient = () => {
         </header>
 
         <div className="flex flex-col w-full gap-2 p-5 md:p-0 flex-1 mb-24">
-          {chatMessages.map((message, index) => (
-            <ChatMessage
-              key={`${message.message}-${index}`}
-              message={message.message}
-              isUser={message.isUser}
-            />
-          ))}
+          {chatMessages.map((message, index) => {
+            const elements: JSX.Element[] = []
+
+            if (oldMessagesCount > 0 && index === oldMessagesCount) {
+              elements.push(<ConversationDivider key="vetai-divider" />)
+            }
+
+            elements.push(
+              <ChatMessage
+                key={`${message.message}-${index}`}
+                message={message.message}
+                isUser={message.isUser}
+              />
+            )
+
+            return elements
+          })}
           {isSending && <ChatMessage message="กำลังพิมพ์..." isUser={false} />}
         </div>
       </section>
@@ -142,6 +200,18 @@ const ChatMessage = ({ message, isUser }: ChatMessageProps) => {
           </p>
         </div>
       </div>
+    </div>
+  )
+}
+
+const ConversationDivider = () => {
+  return (
+    <div className="flex items-center gap-2 my-4">
+      <div className="h-px flex-1 bg-sop-neutral-grayfixed-200/40" />
+      <span className="sop-body-xs-regular text-sop-neutral-grayfixed-200">
+        ข้อความใหม่
+      </span>
+      <div className="h-px flex-1 bg-sop-neutral-grayfixed-200/40" />
     </div>
   )
 }
