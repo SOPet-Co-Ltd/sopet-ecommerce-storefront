@@ -155,7 +155,7 @@ export default function CouponsPage() {
       </section>
 
       {/* Coupon Categories */}
-      <div className="container mx-auto px-2 lg:px-0 -mt-sop-20px sm:mt-8 relative z-20 flex flex-col gap-8 sm:gap-12">
+      <div className="container mx-auto lg:px-0 -mt-sop-20px sm:mt-8 relative z-20 flex flex-col gap-8 sm:gap-12">
         {isLoading ? (
           <div className="flex justify-center items-center py-20">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sop-primary-500"></div>
