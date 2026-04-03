@@ -11,8 +11,6 @@ export const dynamic = "force-dynamic"
 export default async function UserPage() {
   const orders = await listOrders(100, 0)
 
-  // Compute, for each order, whether the authenticated customer has reviewed
-  // at least one product in that order.
   const customerId = await getCurrentCustomerId()
 
   let reviewedByOrderId: Record<string, boolean> = {}

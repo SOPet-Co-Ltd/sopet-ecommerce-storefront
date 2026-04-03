@@ -1,5 +1,6 @@
 import {
   BannerSection,
+  HomeCouponSection,
   HomeFaqSection,
   HomeFooterSection,
   HomeRecommendedProductSection,
@@ -165,7 +166,7 @@ export default async function Home({
   const bannersData = banners.status === "fulfilled" ? banners.value : []
 
   return (
-    <main className="flex flex-col row-start-2 items-center sm:items-start text-primary">
+    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full pb-10">
       <link
         rel="preload"
         as="image"
@@ -205,6 +206,10 @@ export default async function Home({
       <BannerSection banners={bannersData} />
 
       <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
+        <div className="w-full">
+          <HomeCouponSection />
+        </div>
+
         {/* Bought items */}
         <div className="w-full">
           <Suspense fallback={null}>
