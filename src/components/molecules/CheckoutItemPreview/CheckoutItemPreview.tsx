@@ -57,6 +57,8 @@ const CheckoutItemPreview = ({
   const [editingSellerId, setEditingSellerId] = useState<string | null>(null)
   const [isShippingOpen, setIsShippingOpen] = useState(false)
 
+  const router = useRouter()
+
   const shippingMethods = cart?.shipping_methods || []
   const shippingOptionsById = useMemo(
     () =>
@@ -118,11 +120,17 @@ const CheckoutItemPreview = ({
     }
 
     setSellerShippingSelections(initial)
-  }, [cart, availableShippingMethods, shippingMethods])
+  }, [cart, availableShippingMethods, shippingMethods, router])
+
+  // Get shipping options for the currently editing seller (hooks before early return)
+  const shippingOptionsForEditingSeller = useMemo(() => {
+    if (!editingSellerId || !availableShippingMethods) return []
+    return availableShippingMethods.filter(
+      (opt) => opt.seller_id === editingSellerId
+    )
+  }, [editingSellerId, availableShippingMethods])
 
   if (!cart) return null
-
-  const router = useRouter()
 
   const handleOpenShippingDialog = (sellerId: string) => {
     setEditingSellerId(sellerId)
@@ -149,14 +157,6 @@ const CheckoutItemPreview = ({
       }
     }
   }
-
-  // Get shipping options for the currently editing seller
-  const shippingOptionsForEditingSeller = useMemo(() => {
-    if (!editingSellerId || !availableShippingMethods) return []
-    return availableShippingMethods.filter(
-      (opt) => opt.seller_id === editingSellerId
-    )
-  }, [editingSellerId, availableShippingMethods])
 
   const groupedItems: GroupedItems = groupItemsBySeller(cart)
 

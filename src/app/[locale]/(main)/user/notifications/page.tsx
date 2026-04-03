@@ -33,7 +33,7 @@ const isPromotionUnread = (dateString?: string | null) => {
   return now - promoDate < 7 * 24 * 60 * 60 * 1000
 }
 
-export default function page() {
+export default function NotificationsPage() {
   const [activeTab, setActiveTab] = useState("noti")
 
   // Orders State
