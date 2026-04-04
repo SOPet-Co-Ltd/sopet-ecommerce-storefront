@@ -63,10 +63,7 @@ export function HomeCouponSectionClient({
       </div>
       <div className={HOME_COUPON_SCROLL_ROW_CLASS}>
         {coupons.map((item, i) => (
-          <div
-            key={item.id ?? i}
-            className="w-[280px] shrink-0 snap-start sm:w-[320px]"
-          >
+          <div key={item.id ?? i} className="shrink-0 snap-start ">
             <CouponCard
               coupon={item}
               onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
