@@ -1,5 +1,10 @@
 "use server"
 
+import {
+  REVALIDATE_STOREFRONT,
+  STOREFRONT_BANNERS_TAG,
+  STOREFRONT_SPONSORS_TAG,
+} from "@/lib/cache/constants"
 import { sdk } from "../config"
 
 export type StorefrontConfigMedia = {
@@ -67,6 +72,7 @@ const normalizeStorefrontItems = (
   return filtered
 }
 
+/** Cached fetch; invalidate via POST `/api/revalidate/storefront` when sponsors change. */
 export const listStorefrontSponsors = async (): Promise<
   StorefrontSponsor[]
 > => {
@@ -77,7 +83,8 @@ export const listStorefrontSponsors = async (): Promise<
         method: "GET",
         cache: "force-cache",
         next: {
-          revalidate: 60,
+          revalidate: REVALIDATE_STOREFRONT,
+          tags: [STOREFRONT_SPONSORS_TAG],
         },
       }
     )
@@ -88,6 +95,7 @@ export const listStorefrontSponsors = async (): Promise<
   }
 }
 
+/** Cached fetch; invalidate via POST `/api/revalidate/storefront` when banners change. */
 export const listStorefrontBanners = async (): Promise<StorefrontBanner[]> => {
   try {
     const response = await sdk.client.fetch<{ banners?: unknown }>(
@@ -96,7 +104,8 @@ export const listStorefrontBanners = async (): Promise<StorefrontBanner[]> => {
         method: "GET",
         cache: "force-cache",
         next: {
-          revalidate: 60,
+          revalidate: REVALIDATE_STOREFRONT,
+          tags: [STOREFRONT_BANNERS_TAG],
         },
       }
     )

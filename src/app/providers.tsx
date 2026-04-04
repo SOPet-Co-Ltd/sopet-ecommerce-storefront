@@ -1,5 +1,7 @@
 "use client"
 
+import { NavigationProgress } from "@/components/atoms/NavigationProgress/NavigationProgress"
+import { RouteLoadingProvider } from "@/components/atoms/RouteLoadingFallback/RouteLoadingProvider"
 import { CartProvider, ProductCacheProvider } from "@/components/providers"
 import { Cart } from "@/types/cart"
 import type React from "react"
@@ -13,7 +15,12 @@ interface ProvidersProps extends PropsWithChildren {
 export function Providers({ children, cart }: ProvidersProps) {
   return (
     <CartProvider cart={cart}>
-      <ProductCacheProvider>{children}</ProductCacheProvider>
+      <ProductCacheProvider>
+        <RouteLoadingProvider>
+          <NavigationProgress />
+          {children}
+        </RouteLoadingProvider>
+      </ProductCacheProvider>
     </CartProvider>
   )
 }

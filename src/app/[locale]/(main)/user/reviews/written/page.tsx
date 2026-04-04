@@ -3,6 +3,23 @@ import { ReviewsWritten } from "@/components/organisms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"
 import { getReviews } from "@/lib/data/reviews"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/reviews/written",
+    title: "รีวิวที่เขียนแล้ว",
+    description: "ดูประวัติรีวิวสินค้าที่คุณเคยให้คะแนน",
+    indexable: false,
+  })
+}
 
 export default async function Page() {
   const user = await verifyCustomer()

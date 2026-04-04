@@ -76,6 +76,7 @@ export const FOOTER_MENUS = {
 }
 
 export const FOOTER_LINKS = [
-  { label: "Privacy Policy", href: "/privacy-policy" },
-  { label: "Cookie Policy", href: "/cookie-policy" },
+  { label: "นโยบายการใช้งาน", href: "/policy/terms-of-service" },
+  { label: "นโยบายการคืนเงิน", href: "/policy/refund-policy" },
+  { label: "นโยบายความเป็นส่วนตัว", href: "/policy/privacy-policy" },
 ]

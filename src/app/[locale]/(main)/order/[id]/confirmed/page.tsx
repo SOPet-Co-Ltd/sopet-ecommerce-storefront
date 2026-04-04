@@ -1,14 +1,27 @@
 import { OrderConfirmedSection } from "@/components/sections/OrderConfirmedSection/OrderConfirmedSection"
 import { retrieveOrder } from "@/lib/data/orders"
-import { Metadata } from "next"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
 type Props = {
-  params: Promise<{ id: string }>
+  params: Promise<{ locale: string; id: string }>
 }
-export const metadata: Metadata = {
-  title: "Order Confirmed",
-  description: "You purchase was successful",
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string }>
+}): Promise<Metadata> {
+  const { locale, id } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: `order/${id}/confirmed`,
+    title: "สั่งซื้อสำเร็จ",
+    description:
+      "ขอบคุณสำหรับการสั่งซื้อ คุณจะได้รับการยืนยันและสามารถตรวจสอบรายละเอียดคำสั่งซื้อได้ในบัญชีของคุณ",
+    indexable: false,
+  })
 }
 
 export default async function OrderConfirmedPage(props: Props) {

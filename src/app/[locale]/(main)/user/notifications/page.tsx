@@ -1,15 +1,29 @@
 "use client"
 
-import React, { useEffect, useState, useRef, useCallback } from "react"
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { NotificationCard } from "@/components/molecules/NotificationCard"
 import { listOrders } from "@/lib/data/orders"
 import { listCampaigns, type CampaignListItem } from "@/lib/data/campaigns"
 import { fetchCoupons, type CouponApiData } from "@/lib/data/coupons"
 
-const TABS = [
+type NotificationTab = "noti" | "promo"
+
+const TAB_IDS: NotificationTab[] = ["noti", "promo"]
+
+const TAB_QUERY_KEY = "tab"
+
+const TABS: Array<{ id: NotificationTab; label: string }> = [
   { id: "noti", label: "การแจ้งเตือน" },
   { id: "promo", label: "โปรโมชั่น" },
 ]
+
+function notificationsTabFromQuery(value: string | null): NotificationTab {
+  if (value && TAB_IDS.includes(value as NotificationTab)) {
+    return value as NotificationTab
+  }
+  return "noti"
+}
 
 const LIMIT = 10
 
@@ -25,16 +39,120 @@ type PromotionNotification = {
   href: string
 }
 
+const PROMO_NEW_MS = 7 * 24 * 60 * 60 * 1000
+
+const TH_DATE_TIME: Intl.DateTimeFormatOptions = {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+}
+
 const isPromotionUnread = (dateString?: string | null) => {
   if (!dateString) return false
   const promoDate = new Date(dateString).getTime()
-  const now = new Date().getTime()
-  // Assuming 'new' is within the last 7 days
-  return now - promoDate < 7 * 24 * 60 * 60 * 1000
+  const now = Date.now()
+  return now - promoDate < PROMO_NEW_MS
+}
+
+function mapCampaignsAndCouponsToPromotions(
+  newCampaigns: CampaignListItem[],
+  newCoupons: CouponApiData[]
+): PromotionNotification[] {
+  return [
+    ...newCampaigns.map((campaign) => ({
+      id: `camp_${campaign.id}`,
+      title: campaign.name || "โปรโมชั่นพิเศษ",
+      description: campaign.description || "รายละเอียดโปรโมชั่น",
+      date: campaign.created_at
+        ? new Date(campaign.created_at).toLocaleString("th-TH", TH_DATE_TIME)
+        : "",
+      image: "/images/placeholder.svg",
+      isUnread: isPromotionUnread(campaign.created_at),
+      href: "/coupons",
+    })),
+    ...newCoupons.map((coupon) => ({
+      id: `coup_${coupon.id}`,
+      title: coupon.title || `โค้ดส่วนลด: ${coupon.code}`,
+      description:
+        coupon.description || `ใช้โค้ด ${coupon.code} เพื่อรับส่วนลด`,
+      date: coupon.expiry_date ? `ใช้ได้ถึง: ${coupon.expiry_date}` : "",
+      image: "/images/placeholder.svg",
+      isUnread: false,
+      href: "/coupons",
+    })),
+  ]
+}
+
+function getOrderNotificationCopy(order: NotificationOrder): {
+  title: string
+  description: string
+} {
+  const orderStatus = String(order.status || "")
+  const fulfillmentStatus = String(order.fulfillment_status || "")
+  const paymentStatus = String(order.payment_status || "")
+  const displayId = order.display_id
+
+  if (orderStatus === "canceled") {
+    return {
+      title: "คำสั่งซื้อของคุณถูกยกเลิก",
+      description: `คำสั่งซื้อหมายเลข ${displayId} ถูกยกเลิก`,
+    }
+  }
+  if (
+    orderStatus === "completed" ||
+    fulfillmentStatus === "shipped" ||
+    fulfillmentStatus === "fulfilled"
+  ) {
+    return {
+      title: "คำสั่งซื้อของคุณ ส่งสำเร็จแล้ว",
+      description: `คำสั่งซื้อหมายเลข ${displayId} ส่งสำเร็จแล้ว`,
+    }
+  }
+  if (paymentStatus === "captured" || fulfillmentStatus !== "not_fulfilled") {
+    return {
+      title: "คำสั่งซื้อของคุณ กำลังเตรียมการจัดส่ง",
+      description: `ผู้ขายได้รับคำสั่งซื้อหมายเลข ${displayId} แล้ว กำลังเตรียมการจัดส่ง`,
+    }
+  }
+  if (
+    paymentStatus === "pending" ||
+    paymentStatus === "not_paid" ||
+    paymentStatus === "awaiting"
+  ) {
+    return {
+      title: "คำสั่งซื้อของคุณรอการชำระเงิน",
+      description: `คำสั่งซื้อหมายเลข ${displayId} รอการชำระเงิน`,
+    }
+  }
+  return {
+    title: "คำสั่งซื้อของคุณ",
+    description: `อัปเดตสถานะคำสั่งซื้อหมายเลข ${displayId}`,
+  }
 }
 
 export default function NotificationsPage() {
-  const [activeTab, setActiveTab] = useState("noti")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const activeTab = notificationsTabFromQuery(searchParams.get(TAB_QUERY_KEY))
+
+  const setTab = useCallback(
+    (id: NotificationTab) => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (id === "noti") {
+        params.delete(TAB_QUERY_KEY)
+      } else {
+        params.set(TAB_QUERY_KEY, id)
+      }
+      const query = params.toString()
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      })
+    },
+    [pathname, router, searchParams]
+  )
 
   // Orders State
   const [orders, setOrders] = useState<NotificationOrder[]>([])
@@ -53,28 +171,18 @@ export default function NotificationsPage() {
   // Local storage state for read notifications (Orders)
   const [readOrderIds, setReadOrderIds] = useState<string[]>([])
 
-  useEffect(() => {
-    fetchOrders(0)
-    fetchPromotions(0)
-
-    // Load read order IDs on mount
-    try {
-      const stored = localStorage.getItem("sopet_read_orders")
-      if (stored) {
-        setReadOrderIds(JSON.parse(stored))
-      }
-    } catch {}
+  const handleOrderClick = useCallback((id: string) => {
+    setReadOrderIds((prev) => {
+      if (prev.includes(id)) return prev
+      const nextIds = [...prev, id]
+      try {
+        localStorage.setItem("sopet_read_orders", JSON.stringify(nextIds))
+      } catch {}
+      return nextIds
+    })
   }, [])
 
-  const handleOrderClick = (id: string) => {
-    if (!readOrderIds.includes(id)) {
-      const nextIds = [...readOrderIds, id]
-      setReadOrderIds(nextIds)
-      localStorage.setItem("sopet_read_orders", JSON.stringify(nextIds))
-    }
-  }
-
-  const fetchOrders = async (offset: number) => {
+  const fetchOrders = useCallback(async (offset: number) => {
     setLoadingOrders(true)
     try {
       const data = await listOrders(LIMIT, offset)
@@ -108,9 +216,9 @@ export default function NotificationsPage() {
       setLoadingOrders(false)
       setInitialOrdersLoaded(true)
     }
-  }
+  }, [])
 
-  const fetchPromotions = async (offset: number) => {
+  const fetchPromotions = useCallback(async (offset: number) => {
     setLoadingPromos(true)
     try {
       const [campaignsData, couponsData] = await Promise.all([
@@ -120,35 +228,10 @@ export default function NotificationsPage() {
 
       const newCampaigns = campaignsData || []
       const newCoupons = couponsData || []
-      const combined: PromotionNotification[] = [
-        ...newCampaigns.map((campaign: CampaignListItem) => ({
-          id: `camp_${campaign.id}`,
-          title: campaign.name || "โปรโมชั่นพิเศษ",
-          description: campaign.description || "รายละเอียดโปรโมชั่น",
-          date: campaign.created_at
-            ? new Date(campaign.created_at).toLocaleString("th-TH", {
-                year: "numeric",
-                month: "2-digit",
-                day: "2-digit",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "",
-          image: "/images/placeholder.svg",
-          isUnread: isPromotionUnread(campaign.created_at),
-          href: "/coupons",
-        })),
-        ...newCoupons.map((coupon: CouponApiData) => ({
-          id: `coup_${coupon.id}`,
-          title: coupon.title || `โค้ดส่วนลด: ${coupon.code}`,
-          description:
-            coupon.description || `ใช้โค้ด ${coupon.code} เพื่อรับส่วนลด`,
-          date: coupon.expiry_date ? `ใช้ได้ถึง: ${coupon.expiry_date}` : "",
-          image: "/images/placeholder.svg",
-          isUnread: false,
-          href: "/coupons",
-        })),
-      ]
+      const combined = mapCampaignsAndCouponsToPromotions(
+        newCampaigns,
+        newCoupons
+      )
 
       if (offset === 0) {
         setPromotions(combined)
@@ -179,7 +262,23 @@ export default function NotificationsPage() {
       setLoadingPromos(false)
       setInitialPromosLoaded(true)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    fetchOrders(0)
+    try {
+      const stored = localStorage.getItem("sopet_read_orders")
+      if (stored) {
+        setReadOrderIds(JSON.parse(stored))
+      }
+    } catch {}
+  }, [fetchOrders])
+
+  useEffect(() => {
+    if (activeTab !== "promo") return
+    if (initialPromosLoaded || loadingPromos) return
+    fetchPromotions(0)
+  }, [activeTab, fetchPromotions, initialPromosLoaded, loadingPromos])
 
   const observer = useRef<IntersectionObserver | null>(null)
   const lastElementRef = useCallback(
@@ -214,7 +313,19 @@ export default function NotificationsPage() {
       promosHasMore,
       ordersOffset,
       promosOffset,
+      fetchOrders,
+      fetchPromotions,
     ]
+  )
+
+  const notiTabHasUnread = useMemo(
+    () => orders.length > 0 && !readOrderIds.includes(orders[0].id),
+    [orders, readOrderIds]
+  )
+
+  const promoTabHasUnread = useMemo(
+    () => promotions.some((p) => p.isUnread),
+    [promotions]
   )
 
   const renderNotifications = () => {
@@ -237,55 +348,15 @@ export default function NotificationsPage() {
     return (
       <>
         {orders.map((order, index) => {
-          let title = "คำสั่งซื้อของคุณ"
-          let description = ""
-          let isUnread = false
-          const orderStatus = String(order.status || "")
-          const fulfillmentStatus = String(order.fulfillment_status || "")
-          const paymentStatus = String(order.payment_status || "")
-
-          // เอาเฉพาะ order ล่าสุด เท่านั้นที่จะเช็คสถานะการแจ้งเตือน
+          const { title, description } = getOrderNotificationCopy(order)
           const isLatestOrder = index === 0
-
-          if (isLatestOrder && !readOrderIds.includes(order.id)) {
-            isUnread = true
-          }
-
-          if (orderStatus === "canceled") {
-            title = "คำสั่งซื้อของคุณถูกยกเลิก"
-            description = `คำสั่งซื้อหมายเลข ${order.display_id} ถูกยกเลิก`
-          } else if (
-            orderStatus === "completed" ||
-            fulfillmentStatus === "shipped" ||
-            fulfillmentStatus === "fulfilled"
-          ) {
-            title = "คำสั่งซื้อของคุณ ส่งสำเร็จแล้ว"
-            description = `คำสั่งซื้อหมายเลข ${order.display_id} ส่งสำเร็จแล้ว`
-          } else if (
-            paymentStatus === "captured" ||
-            fulfillmentStatus !== "not_fulfilled"
-          ) {
-            title = "คำสั่งซื้อของคุณ กำลังเตรียมการจัดส่ง"
-            description = `ผู้ขายได้รับคำสั่งซื้อหมายเลข ${order.display_id} แล้ว กำลังเตรียมการจัดส่ง`
-          } else if (
-            paymentStatus === "pending" ||
-            paymentStatus === "not_paid" ||
-            paymentStatus === "awaiting"
-          ) {
-            title = "คำสั่งซื้อของคุณรอการชำระเงิน"
-            description = `คำสั่งซื้อหมายเลข ${order.display_id} รอการชำระเงิน`
-          } else {
-            description = `อัปเดตสถานะคำสั่งซื้อหมายเลข ${order.display_id}`
-          }
+          const isUnread = isLatestOrder && !readOrderIds.includes(order.id)
 
           const image = order.items?.[0]?.thumbnail || "/images/placeholder.svg"
-          const date = new Date(order.created_at).toLocaleString("th-TH", {
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
+          const date = new Date(order.created_at).toLocaleString(
+            "th-TH",
+            TH_DATE_TIME
+          )
 
           const isLast = index === orders.length - 1
 
@@ -366,14 +437,12 @@ export default function NotificationsPage() {
         <div className="flex w-full items-center gap-2 overflow-x-auto whitespace-nowrap snap-x snap-mandatory touch-pan-x overscroll-x-contain scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map((tab) => {
             const hasUnread =
-              tab.id === "noti"
-                ? orders.length > 0 && !readOrderIds.includes(orders[0].id)
-                : promotions.some((p) => p.isUnread)
+              tab.id === "noti" ? notiTabHasUnread : promoTabHasUnread
 
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => setTab(tab.id)}
                 type="button"
                 className={`
                   relative h-sop-32px px-3 py-2 transition-all shrink-0 snap-start

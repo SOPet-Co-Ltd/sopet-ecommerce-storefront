@@ -1,6 +1,5 @@
 import { ProductDetails, ProductGallery } from "@/components/organisms"
-import { listProducts } from "@/lib/data/products"
-import NotFound from "@/app/not-found"
+import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
 import { Breadcrumbs } from "@/components/atoms"
 import { ProductDetailsSeller } from "@/components/cells"
 import {
@@ -10,8 +9,11 @@ import {
   ProductDetailWarning,
 } from ".."
 import { Suspense } from "react"
+import { notFound } from "next/navigation"
 import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
 import { ProductViewTracker } from "@/components/atoms/ProductViewTracker/ProductViewTracker"
+import { ProductDetailReviewSkeleton } from "./ProductDetailReviewSkeleton"
+import { SellerProductsSectionSkeleton } from "./SellerProductsSectionSkeleton"
 
 export const ProductDetailsPage = async ({
   handle,
@@ -20,17 +22,12 @@ export const ProductDetailsPage = async ({
   handle: string
   locale: string
 }) => {
-  const prod = await listProducts({
-    countryCode: locale,
-    queryParams: { handle: [handle], limit: 1 },
-    forceCache: true,
-  }).then(({ response }) => response.products[0])
+  const prod = await getProductByHandleForPdp(handle, locale)
 
-  // TODO - return NotFound page if product is not found
-  if (!prod) return NotFound()
+  if (!prod) notFound()
 
   if (prod.seller?.store_status === "SUSPENDED") {
-    return NotFound()
+    notFound()
   }
 
   const breadcrumbs = !prod.collection
@@ -72,17 +69,18 @@ export const ProductDetailsPage = async ({
 
       <ProductDetailWarning warning={productWarning} />
 
-      <ProductDetailReview productId={prod.id} />
+      <Suspense fallback={<ProductDetailReviewSkeleton />}>
+        <ProductDetailReview productId={prod.id} />
+      </Suspense>
 
-      <div className="my-8">
-        <Suspense fallback={<div>กำลังโหลดสินค้าเพิ่มเติมจากผู้ขาย...</div>}>
-          <HomeProductSection
-            heading="สินค้าจากร้านเดียวกัน"
-            sellerProducts={prod.seller?.products}
-            locale={locale}
-          />
-        </Suspense>
-      </div>
+      <Suspense fallback={<SellerProductsSectionSkeleton />}>
+        <HomeProductSection
+          heading="สินค้าจากร้านเดียวกัน"
+          sellerProducts={prod.seller?.products}
+          locale={locale}
+          excludeProductId={prod.id}
+        />
+      </Suspense>
     </>
   )
 }

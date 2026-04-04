@@ -3,7 +3,10 @@
 import { Text } from "@medusajs/ui"
 import Link from "next/link"
 import { Button } from "@/components/atoms"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
+import { cn } from "@/lib/utils"
+
+export type CouponCategory = "new_customer" | "shipping" | "special"
 
 export type CouponData = {
   id: string
@@ -13,7 +16,7 @@ export type CouponData = {
   expiry: string
   conditionsUrl: string
   conditions?: string | null
-  category?: string
+  category?: CouponCategory | string
   vendorName?: string
   imageColor?: string
   leftTextTop?: string
@@ -31,6 +34,48 @@ export type CouponCardProps = {
   mode?: "collect" | "use"
 }
 
+/**
+ * Left stub: 140×160px, r=12 rounded top-left & bottom-left, semicircular notch on the
+ * left edge centered at y=80 (same geometry as SVG like M8 8 … half-circle on the left).
+ */
+const COUPON_STUB_CLIP_PATH =
+  "path('M140 0H0V72C4.41828 72 8 75.5817 8 80C8 84.4183 4.41828 88 0 88V160H140V0Z')"
+
+const NEW_CUSTOMER_GRADIENT =
+  "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)"
+
+function leftStubClassAndStyle(coupon: CouponData): {
+  className: string
+  style: CSSProperties
+} {
+  const cat = coupon.category
+  const base =
+    "w-[140px] h-sop-160px shrink-0 flex flex-col items-center justify-center text-center p-2 relative"
+
+  if (cat === "shipping") {
+    return {
+      className: cn(base, "bg-sop-additionalblue-500"),
+      style: { clipPath: COUPON_STUB_CLIP_PATH },
+    }
+  }
+
+  if (cat === "special") {
+    return {
+      className: cn(base, "bg-sop-secondary-500"),
+      style: { clipPath: COUPON_STUB_CLIP_PATH },
+    }
+  }
+
+  // new_customer (default) or unknown: optional API imageColor, else gradient
+  return {
+    className: cn(base, coupon.imageColor || ""),
+    style: {
+      clipPath: COUPON_STUB_CLIP_PATH,
+      ...(!coupon.imageColor ? { background: NEW_CUSTOMER_GRADIENT } : {}),
+    },
+  }
+}
+
 export const CouponCard = ({
   coupon,
   onApply,
@@ -45,14 +90,15 @@ export const CouponCard = ({
       ? externalIsApplied
       : coupon.is_collected || localApplied
   const isUsed = coupon.is_used || false
+  const leftStub = leftStubClassAndStyle(coupon)
 
   return (
     <div
-      className={`flex w-full max-w-[320px] min-h-[156px] h-full rounded-xl overflow-hidden hover:shadow-md transition-shadow relative group ${
-        onApply && !isApplied ? "cursor-pointer" : ""
+      className={`flex w-[305px] h-sop-160px rounded-xl overflow-hidden hover:shadow-md transition-shadow relative group ${
+        onApply && !isApplied && !isLoading ? "cursor-pointer" : ""
       }`}
       onClick={
-        onApply && !isApplied
+        onApply && !isApplied && !isLoading
           ? () => {
               setLocalApplied(true)
               if (onApply) onApply()
@@ -60,52 +106,38 @@ export const CouponCard = ({
           : undefined
       }
     >
-      {/* Left Part - Promotional Background */}
-      <div
-        className={`w-[110px] sm:w-[130px] shrink-0 ${
-          coupon.imageColor || ""
-        } flex flex-col items-center justify-center text-center p-2 relative`}
-        style={
-          !coupon.imageColor
-            ? {
-                background:
-                  "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)",
-              }
-            : undefined
-        }
-      >
+      {/* Left Part — category: new_customer = gradient (or imageColor), shipping = blue, special = secondary */}
+      <div className={leftStub.className} style={leftStub.style}>
         <div className="text-white sop-body-lg-medium text-center drop-shadow-sm mb-1 leading-tight px-1 wrap-break-word">
           {coupon.leftTextTop || "Promotion"}
         </div>
         <div className="text-white sop-body-xs-regular text-center drop-shadow-sm px-1 leading-tight wrap-break-word">
           {coupon.leftTextBottom || "Image"}
         </div>
-        {/* Circle Cutouts - Left Side */}
-        <div className="absolute -left-sop-8px top-1/2 -translate-y-1/2 w-6 h-6 bg-sop-primary-100 rounded-full z-10" />
       </div>
 
       {/* Right Part - White Details */}
-      <div className="flex-1 bg-white p-3 sm:p-4 flex flex-col justify-start relative border border-l-0 border-gray-100 rounded-r-xl overflow-hidden">
-        <div className="flex flex-col mb-1.5">
+      <div className="flex h-sop-160px w-[165px] shrink-0 min-h-0 flex-col bg-white px-4 py-3 relative overflow-hidden border border-l-0 border-gray-100 rounded-r-xl">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-1 overflow-hidden">
           {coupon.vendorName && (
-            <div className="flex items-center gap-1 mb-1">
-              <span className="bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded text-sop-3XS font-medium leading-none whitespace-nowrap shrink-0">
+            <div className="flex min-w-0 items-center gap-1 shrink-0">
+              <span className="shrink-0 rounded bg-orange-100 px-1.5 py-0.5 text-sop-3XS font-medium leading-none whitespace-nowrap text-orange-600">
                 ร้านค้า
               </span>
-              <Text className="sop-body-xs-regular text-gray-600 leading-none truncate">
+              <Text className="min-w-0 sop-body-xs-regular leading-none text-gray-600 truncate">
                 {coupon.vendorName}
               </Text>
             </div>
           )}
-          <Text className="sop-body-md-medium text-gray-900 leading-tight mb-1 wrap-break-word">
+          <Text className="shrink-0 sop-body-md-medium leading-tight text-gray-900 wrap-break-word line-clamp-1">
             {coupon.title}
           </Text>
-          <Text className="sop-body-xs-light text-gray-500 leading-snug wrap-break-word line-clamp-2">
+          <Text className="min-h-0 flex-1 sop-body-xs-light leading-snug text-gray-500 wrap-break-word line-clamp-2">
             {coupon.description}
           </Text>
         </div>
 
-        <div className="mt-auto flex flex-col justify-start items-start w-full gap-0.5">
+        <div className="mt-1 flex w-full shrink-0 flex-col gap-0.5 pt-0.5">
           <Link
             href={coupon.conditionsUrl || "#"}
             className="sop-body-xs-regular text-sop-primary-500 underline"
@@ -122,14 +154,14 @@ export const CouponCard = ({
           <Text className="sop-body-xs-light text-gray-400">
             สิ้นสุด {coupon.expiry}
           </Text>
-
-          <div className="flex justify-end w-full mt-1.5">
+          <div className="mt-1 flex w-full justify-end">
             <Button
-              className={`rounded-full px-3 sm:px-4 h-auto min-h-sop-24px sm:min-h-sop-32px py-1 sm:py-1.5 border-none shadow-sm whitespace-nowrap transition-colors ${
+              className={cn(
                 isApplied || isUsed
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
-                  : "bg-[#82C3A2] hover:bg-[#6fb390] text-white"
-              }`}
+                  ? "cursor-not-allowed bg-sop-neutral-grayalpha-200 text-sop-neutral-gray-300 hover:bg-sop-neutral-grayalpha-200"
+                  : "bg-sop-additionalgreen-500 text-sop-neutral-grayfixed-600 hover:bg-sop-additionalgreen-600"
+              )}
+              size="sm"
               onClick={(e) => {
                 e.stopPropagation()
                 if (!isApplied && !isUsed) {

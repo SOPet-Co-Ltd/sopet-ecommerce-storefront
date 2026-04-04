@@ -825,3 +825,100 @@ input[type="range"].slider-thumb:focus::-moz-range-thumb {
     height: var(--vetai-icon-size-desktop, var(--vetai-icon-size-mobile, 24px));
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Skeleton loaders — SOPet brand shimmer                                       */
+/* -------------------------------------------------------------------------- */
+@keyframes sop-skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: -100% 50%;
+  }
+}
+
+.sop-skeleton-shimmer {
+  background: linear-gradient(
+    105deg,
+    var(--color-sop-primary-100) 0%,
+    var(--color-sop-primary-100) 32%,
+    var(--color-sop-primary-300) 50%,
+    var(--color-sop-primary-100) 68%,
+    var(--color-sop-primary-100) 100%
+  );
+  background-size: 220% 100%;
+  animation: sop-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+.sop-skeleton-shimmer-on-primary {
+  background: linear-gradient(
+    105deg,
+    var(--color-sop-primary-200) 0%,
+    var(--color-sop-primary-200) 32%,
+    var(--color-sop-primary-400) 50%,
+    var(--color-sop-primary-200) 68%,
+    var(--color-sop-primary-200) 100%
+  );
+  background-size: 220% 100%;
+  animation: sop-skeleton-shimmer 1.8s ease-in-out infinite;
+  opacity: 0.9;
+}
+
+.sop-skeleton-shimmer-neutral {
+  background: linear-gradient(
+    105deg,
+    var(--color-sop-neutral-gray-500) 0%,
+    var(--color-sop-neutral-gray-500) 32%,
+    var(--color-sop-neutral-gray-600) 50%,
+    var(--color-sop-neutral-gray-500) 68%,
+    var(--color-sop-neutral-gray-500) 100%
+  );
+  background-size: 220% 100%;
+  animation: sop-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+.sop-skeleton-shimmer-cta {
+  background: linear-gradient(
+    105deg,
+    var(--color-sop-secondary-100) 0%,
+    var(--color-sop-secondary-100) 30%,
+    var(--color-sop-secondary-300) 50%,
+    var(--color-sop-secondary-100) 70%,
+    var(--color-sop-secondary-100) 100%
+  );
+  background-size: 220% 100%;
+  animation: sop-skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Top bar: instant feedback while App Router navigates */
+@keyframes sop-nav-progress-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.sop-nav-progress {
+  background: color-mix(in srgb, var(--color-sop-primary-200) 35%, transparent);
+}
+
+.sop-nav-progress::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 42%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--color-sop-secondary-200),
+    var(--color-sop-secondary-400),
+    var(--color-sop-secondary-200),
+    transparent
+  );
+  animation: sop-nav-progress-slide 0.95s ease-in-out infinite;
+}

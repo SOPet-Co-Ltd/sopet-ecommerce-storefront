@@ -3,11 +3,16 @@ import { getPercentageDiff } from "./get-precentage-diff"
 import { convertToLocale } from "./money"
 import { BaseHit, Hit } from "instantsearch.js"
 
+const variantHasDisplayablePrice = (v: any) => {
+  const cp = v?.calculated_price
+  return !!(
+    cp &&
+    (cp.calculated_amount_with_tax != null || cp.calculated_amount != null)
+  )
+}
+
 export const getPricesForVariant = (variant: any) => {
-  if (
-    !variant?.calculated_price?.calculated_amount_with_tax &&
-    !variant?.calculated_price?.calculated_amount
-  ) {
+  if (!variantHasDisplayablePrice(variant)) {
     return null
   }
 
@@ -82,13 +87,16 @@ export function getProductPrice({
     }
 
     return product.variants
-      .filter((v: any) => !!v.calculated_price)
+      .filter((v: any) => variantHasDisplayablePrice(v))
       .sort((a: any, b: any) => {
-        return a.calculated_price.calculated_amount_with_tax &&
-          b.calculated_price.calculated_amount_with_tax
-          ? a.calculated_price.calculated_amount_with_tax -
-              b.calculated_price.calculated_amount_with_tax
-          : a.calculated_amount - b.calculated_amount
+        const awt = a.calculated_price?.calculated_amount_with_tax
+        const bwt = b.calculated_price?.calculated_amount_with_tax
+        if (awt != null && bwt != null) {
+          return awt - bwt
+        }
+        const aa = a.calculated_price?.calculated_amount ?? 0
+        const ba = b.calculated_price?.calculated_amount ?? 0
+        return aa - ba
       })[0]
   }
 
@@ -98,13 +106,16 @@ export function getProductPrice({
     }
 
     return product.variants
-      .filter((v: any) => !!v.calculated_price)
+      .filter((v: any) => variantHasDisplayablePrice(v))
       .sort((a: any, b: any) => {
-        return a.calculated_price.calculated_amount_with_tax &&
-          b.calculated_price.calculated_amount_with_tax
-          ? b.calculated_price.calculated_amount_with_tax -
-              a.calculated_price.calculated_amount_with_tax
-          : b.calculated_amount - a.calculated_amount
+        const awt = a.calculated_price?.calculated_amount_with_tax
+        const bwt = b.calculated_price?.calculated_amount_with_tax
+        if (awt != null && bwt != null) {
+          return bwt - awt
+        }
+        const aa = a.calculated_price?.calculated_amount ?? 0
+        const ba = b.calculated_price?.calculated_amount ?? 0
+        return ba - aa
       })[0]
   }
 

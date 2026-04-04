@@ -17,6 +17,12 @@ import {
   listStorefrontBanners,
   listStorefrontSponsors,
 } from "@/lib/data/storefront-config"
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  DEFAULT_SITE_NAME,
+} from "@/lib/site-defaults"
+import { getAuthHeaders } from "@/lib/data/cookies"
+import { getRequestBaseUrl } from "@/lib/helpers/request-base-url"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
 import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
@@ -31,17 +37,19 @@ const HOME_FAQ_ITEMS: HomeFaqItem[] = [
   {
     id: "shipping-methods",
     question: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
-    answer: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+    answer:
+      "ยี่ห้อขนส่งของเราอาจจะขึ้นอยู่กับรพ.ที่จัดส่ง โดยปกติจะมี Flash และไปรษณีย์ไทย โดยเป็นการส่งด่วนใน 1-2 วัน",
   },
   {
     id: "contact-us",
     question: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
-    answer: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+    answer: 'สามารถกดที่ปุ่ม "Vet AI" มุมขวาล่าง หรือโทร 096-876-5031 ได้เลย',
   },
   {
     id: "about-us",
     question: "SOPet คืออะไร",
-    answer: "SOPet คืออะไร",
+    answer:
+      "เราเป็นเว็บไซต์แพลตฟอร์มที่ค้นหายาและสินค้าราคาถูกที่สุดจากรพ.และร้านขายยาสัตว์ทั่วไทย พร้อมดีลโค้ดลด ส่วนลดพิเศษ",
   },
 ]
 
@@ -53,9 +61,10 @@ export async function generateMetadata({
   const { locale } = await params
 
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
 
   // Build alternates based on available regions (locales)
   let languages: Record<string, string> = {}
@@ -80,9 +89,8 @@ export async function generateMetadata({
     languages = { [toHreflang(locale)]: `${baseUrl}/${locale}` }
   }
 
-  const title = "Home"
-  const description =
-    "Welcome to Mercur B2C Demo! Create a modern marketplace that you own and customize in every aspect with high-performance, fully customizable storefront."
+  const title = "หน้าหลัก"
+  const description = DEFAULT_SITE_DESCRIPTION
   const ogImage = "/B2C_Storefront_Open_Graph.png"
   const canonical = `${baseUrl}/${locale}`
 
@@ -109,23 +117,18 @@ export async function generateMetadata({
     },
     openGraph: {
       title: `${title} | ${
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront"
+        process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
       }`,
       description,
       url: canonical,
-      siteName:
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront",
+      siteName: process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME,
       type: "website",
       images: [
         {
           url: ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`,
           width: 1200,
           height: 630,
-          alt:
-            process.env.NEXT_PUBLIC_SITE_NAME ||
-            "Mercur B2C Demo - Marketplace Storefront",
+          alt: process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME,
         },
       ],
     },
@@ -150,13 +153,12 @@ export default async function Home({
   ])
 
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
 
-  const siteName =
-    process.env.NEXT_PUBLIC_SITE_NAME ||
-    "Mercur B2C Demo - Marketplace Storefront"
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
 
   if (sponsors.status === "rejected" || banners.status === "rejected") {
     return <div>Error loading storefront config</div>
@@ -165,8 +167,12 @@ export default async function Home({
   const sponsorsData = sponsors.status === "fulfilled" ? sponsors.value : []
   const bannersData = banners.status === "fulfilled" ? banners.value : []
 
+  const authHeaders = await getAuthHeaders()
+  const isSignedIn =
+    "authorization" in authHeaders && Boolean(authHeaders.authorization)
+
   return (
-    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full pb-10">
+    <main className="flex flex-col row-start-2 items-center sm:items-start text-primary w-full">
       <link
         rel="preload"
         as="image"
@@ -210,12 +216,14 @@ export default async function Home({
           <HomeCouponSection />
         </div>
 
-        {/* Bought items */}
-        <div className="w-full">
-          <Suspense fallback={null}>
-            <HomeRecentOrdersSection locale={locale} />
-          </Suspense>
-        </div>
+        {/* Bought items — only for signed-in customers */}
+        {isSignedIn ? (
+          <div className="w-full">
+            <Suspense fallback={null}>
+              <HomeRecentOrdersSection locale={locale} />
+            </Suspense>
+          </div>
+        ) : null}
 
         {/* Recommended Products Section */}
         <div className="w-full">

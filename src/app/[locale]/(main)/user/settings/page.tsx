@@ -2,6 +2,23 @@ import { LoginForm, ProfileDetails } from "@/components/molecules"
 import { UserNavigation } from "@/components/molecules"
 import { ProfilePassword } from "@/components/molecules/ProfileDetails/ProfilePassword"
 import { verifyCustomer } from "@/lib/data/customer"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/settings",
+    title: "ตั้งค่าบัญชี",
+    description: "อัปเดตข้อมูลส่วนตัวและรหัสผ่านของบัญชีคุณ",
+    indexable: false,
+  })
+}
 
 export default async function ReviewsPage() {
   const user = await verifyCustomer()
