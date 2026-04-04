@@ -1,4 +1,23 @@
+import type { Metadata } from "next"
 import { PolicyMarkdownLayout } from "../PolicyMarkdownLayout"
+import { buildPolicyPageMetadata } from "../policy-metadata"
+
+type PolicyPageParams = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({
+  params,
+}: PolicyPageParams): Promise<Metadata> {
+  const { locale } = await params
+  return buildPolicyPageMetadata({
+    locale,
+    pathSegment: "terms-of-service",
+    title: "นโยบายการใช้งาน",
+    description:
+      "เงื่อนไขการให้บริการ ข้อกำหนดผู้ขายสินค้าสัตว์เลี้ยง และการใช้งานแพลตฟอร์ม SOPet ตามกฎหมายไทย",
+  })
+}
 
 const TERMS_OF_SERVICE = `
 ## เงื่อนไขการให้บริการของ SOPet

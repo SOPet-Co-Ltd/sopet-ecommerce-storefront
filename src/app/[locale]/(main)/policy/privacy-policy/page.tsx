@@ -1,4 +1,23 @@
+import type { Metadata } from "next"
 import { PolicyMarkdownLayout } from "../PolicyMarkdownLayout"
+import { buildPolicyPageMetadata } from "../policy-metadata"
+
+type PolicyPageParams = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({
+  params,
+}: PolicyPageParams): Promise<Metadata> {
+  const { locale } = await params
+  return buildPolicyPageMetadata({
+    locale,
+    pathSegment: "privacy-policy",
+    title: "นโยบายความเป็นส่วนตัว",
+    description:
+      "วิธีที่ SOPet เก็บรวบรวม ใช้ และปกป้องข้อมูลส่วนบุคคลของคุณ รวมถึงสิทธิ์และช่องทางติดต่อ",
+  })
+}
 
 const PRIVACY_POLICY = `
 อัปเดตครั้งล่าสุดเมื่อ: 4 เมษายน 2026

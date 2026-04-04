@@ -1,4 +1,23 @@
+import type { Metadata } from "next"
 import { PolicyMarkdownLayout } from "../PolicyMarkdownLayout"
+import { buildPolicyPageMetadata } from "../policy-metadata"
+
+type PolicyPageParams = {
+  params: Promise<{ locale: string }>
+}
+
+export async function generateMetadata({
+  params,
+}: PolicyPageParams): Promise<Metadata> {
+  const { locale } = await params
+  return buildPolicyPageMetadata({
+    locale,
+    pathSegment: "refund-policy",
+    title: "นโยบายการคืนเงิน",
+    description:
+      "เงื่อนไขการคืนเงินและคืนสินค้าสำหรับการสั่งซื้อผ่านแพลตฟอร์ม SOPet รวมถึงกรณีสินค้าชำรุด หมดอายุ และการคืนโดยไม่มีเหตุผล",
+  })
+}
 
 const REFUND_POLICY = `
 อัปเดตครั้งล่าสุดเมื่อ: 4 เมษายน 2026
