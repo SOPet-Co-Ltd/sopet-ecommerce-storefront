@@ -71,11 +71,11 @@ export const Navbar = ({
               Vet AI
             </p>
           </LocalizedClientLink>
-          {/* <LocalizedClientLink href="/user/messages"> */}
-          <p>
-            <UserManagementBellIcon size={18} color="#454547" />
-          </p>
-          {/* </LocalizedClientLink> */}
+          <LocalizedClientLink href="/user/notifications">
+            <p>
+              <UserManagementBellIcon size={18} color="#454547" />
+            </p>
+          </LocalizedClientLink>
           <LocalizedClientLink href="/cart">
             <p>
               <UserManagementShoppingBagIcon size={18} color="#454547" />
