@@ -17,6 +17,10 @@ import {
   listStorefrontBanners,
   listStorefrontSponsors,
 } from "@/lib/data/storefront-config"
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  DEFAULT_SITE_NAME,
+} from "@/lib/site-defaults"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
 import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
@@ -82,9 +86,8 @@ export async function generateMetadata({
     languages = { [toHreflang(locale)]: `${baseUrl}/${locale}` }
   }
 
-  const title = "Home"
-  const description =
-    "Welcome to Mercur B2C Demo! Create a modern marketplace that you own and customize in every aspect with high-performance, fully customizable storefront."
+  const title = "หน้าหลัก"
+  const description = DEFAULT_SITE_DESCRIPTION
   const ogImage = "/B2C_Storefront_Open_Graph.png"
   const canonical = `${baseUrl}/${locale}`
 
@@ -111,23 +114,18 @@ export async function generateMetadata({
     },
     openGraph: {
       title: `${title} | ${
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront"
+        process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
       }`,
       description,
       url: canonical,
-      siteName:
-        process.env.NEXT_PUBLIC_SITE_NAME ||
-        "Mercur B2C Demo - Marketplace Storefront",
+      siteName: process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME,
       type: "website",
       images: [
         {
           url: ogImage.startsWith("http") ? ogImage : `${baseUrl}${ogImage}`,
           width: 1200,
           height: 630,
-          alt:
-            process.env.NEXT_PUBLIC_SITE_NAME ||
-            "Mercur B2C Demo - Marketplace Storefront",
+          alt: process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME,
         },
       ],
     },
@@ -156,9 +154,7 @@ export default async function Home({
   const protocol = headersList.get("x-forwarded-proto") || "https"
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
 
-  const siteName =
-    process.env.NEXT_PUBLIC_SITE_NAME ||
-    "Mercur B2C Demo - Marketplace Storefront"
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
 
   if (sponsors.status === "rejected" || banners.status === "rejected") {
     return <div>Error loading storefront config</div>

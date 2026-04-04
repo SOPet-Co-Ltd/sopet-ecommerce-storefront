@@ -6,6 +6,23 @@ import { ProductCard } from "@/components/organisms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { Button } from "@/components/atoms"
 import { isEmpty } from "lodash"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/favorites",
+    title: "สินค้าที่ชอบ",
+    description: "สินค้าที่คุณกดถูกใจจากการเลือกซื้อบน SOPet",
+    indexable: false,
+  })
+}
 
 export default async function FavoritesPage({
   params,

@@ -5,10 +5,45 @@ import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
 import { getCollectionByHandle } from "@/lib/data/collections"
 import { getRegion } from "@/lib/data/regions"
 import isBot from "@/lib/helpers/isBot"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 import { Suspense } from "react"
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ handle: string; locale: string }>
+}): Promise<Metadata> {
+  const { handle, locale } = await params
+  const collection = await getCollectionByHandle(handle)
+
+  if (!collection) {
+    return { title: "ไม่พบคอลเลกชัน" }
+  }
+
+  const title = collection.title
+  const site = process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"
+  const metaDesc = collection.metadata
+  const rawDesc =
+    metaDesc && typeof metaDesc === "object" && metaDesc !== null
+      ? (metaDesc as Record<string, unknown>)["description"]
+      : undefined
+  const description =
+    typeof rawDesc === "string" && rawDesc.trim()
+      ? rawDesc.trim()
+      : `เลือกซื้อสินค้าในคอลเลกชัน ${title} บน ${site}`
+
+  return buildPageMetadata({
+    locale,
+    pathname: `collections/${handle}`,
+    title,
+    description,
+    indexable: true,
+  })
+}
 
 const SingleCollectionsPage = async ({
   params,

@@ -4,9 +4,26 @@ import {
   retrieveReturnReasons,
   retriveReturnMethods,
 } from "@/lib/data/orders"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import { notFound } from "next/navigation"
+import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string }>
+}): Promise<Metadata> {
+  const { locale, id } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: `user/orders/${id}/return`,
+    title: "คืนสินค้า / ขอคืนเงิน",
+    description: "กรอกคำขอคืนสินค้าหรือคืนเงินสำหรับคำสั่งซื้อนี้",
+    indexable: false,
+  })
+}
 
 export default async function ReturnOrderPage({
   params,

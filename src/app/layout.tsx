@@ -4,6 +4,10 @@ import "./globals.css"
 import { Toaster as MedusaToaster } from "@medusajs/ui"
 import { Toaster as SonnerToaster } from "sonner"
 import { retrieveCart } from "@/lib/data/cart"
+import {
+  DEFAULT_SITE_DESCRIPTION,
+  DEFAULT_SITE_NAME,
+} from "@/lib/site-defaults"
 import { Providers } from "./providers"
 
 const mitr = Mitr({
@@ -16,17 +20,11 @@ const mitr = Mitr({
 
 export const metadata: Metadata = {
   title: {
-    template: `%s | ${
-      process.env.NEXT_PUBLIC_SITE_NAME ||
-      "Mercur B2C Demo - Marketplace Storefront"
-    }`,
-    default:
-      process.env.NEXT_PUBLIC_SITE_NAME ||
-      "Mercur B2C Demo - Marketplace Storefront",
+    template: `%s | ${process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME}`,
+    default: process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME,
   },
   description:
-    process.env.NEXT_PUBLIC_SITE_DESCRIPTION ||
-    "Mercur B2C Demo - Marketplace Storefront",
+    process.env.NEXT_PUBLIC_SITE_DESCRIPTION || DEFAULT_SITE_DESCRIPTION,
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
   ),

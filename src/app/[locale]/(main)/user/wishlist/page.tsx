@@ -8,6 +8,23 @@ import { WishlistItem } from "@/components/cells"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { HttpTypes } from "@medusajs/types"
 import { UserNavigation } from "@/components/molecules"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/wishlist",
+    title: "วิชลิสต์",
+    description: "สินค้าที่คุณบันทึกไว้เพื่อกลับมาซื้อภายหลัง",
+    indexable: false,
+  })
+}
 
 export default async function Wishlist() {
   const user = await verifyCustomer()

@@ -8,38 +8,44 @@ export const generateProductMetadata = async (
   const headersList = await headers()
   const host = headersList.get("host")
   const protocol = headersList.get("x-forwarded-proto") || "https"
+  const thumb = product?.thumbnail
+
+  const openGraph: Metadata["openGraph"] = {
+    title: product?.title,
+    description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
+    url: `${protocol}://${host}/products/${product?.handle}`,
+    siteName: process.env.NEXT_PUBLIC_SITE_NAME,
+    type: "website",
+  }
+
+  if (thumb) {
+    openGraph.images = [
+      {
+        url: thumb,
+        width: 1200,
+        height: 630,
+        alt: product?.title,
+      },
+    ]
+  }
+
+  const twitter: Metadata["twitter"] = {
+    card: "summary_large_image",
+    title: product?.title,
+    description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
+  }
+
+  if (thumb) {
+    twitter.images = [thumb]
+  }
 
   return {
     title: product?.title,
     description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
     robots: "index, follow",
     metadataBase: new URL(`${protocol}://${host}/products/${product?.handle}`),
-
-    openGraph: {
-      title: product?.title,
-      description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
-      url: `${protocol}://${host}/products/${product?.handle}`,
-      siteName: process.env.NEXT_PUBLIC_SITE_NAME,
-      images: [
-        {
-          url:
-            product?.thumbnail ||
-            `${protocol}://${host}/images/placeholder.svg`,
-          width: 1200,
-          height: 630,
-          alt: product?.title,
-        },
-      ],
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: product?.title,
-      description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
-      images: [
-        product?.thumbnail || `${protocol}://${host}/images/placeholder.svg`,
-      ],
-    },
+    openGraph,
+    twitter,
   }
 }
 
@@ -63,26 +69,12 @@ export const generateCategoryMetadata = async (
       description: `${category.name} Category - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
       url: `${protocol}://${host}/categories/${category.handle}`,
       siteName: process.env.NEXT_PUBLIC_SITE_NAME,
-      images: [
-        {
-          url:
-            `${protocol}://${host}/images/categories/${category.handle}.png` ||
-            `${protocol}://${host}/images/placeholder.svg`,
-          width: 1200,
-          height: 630,
-          alt: category.name,
-        },
-      ],
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
       title: category.name,
       description: `${category.name} Category - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
-      images: [
-        `${protocol}://${host}/images/categories/${category.handle}.png` ||
-          `${protocol}://${host}/images/placeholder.svg`,
-      ],
     },
   }
 }

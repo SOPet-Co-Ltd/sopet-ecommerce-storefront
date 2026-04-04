@@ -1,6 +1,23 @@
 import { UserContainer, SaveQRCodeButton } from "@/components/molecules"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import { cn } from "@/lib/utils"
+import type { Metadata } from "next"
 import Image from "next/image"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/help",
+    title: "ศูนย์ช่วยเหลือ",
+    description: "ติดต่อทีม SOPet และรับความช่วยเหลือเมื่อมีปัญหาการใช้งาน",
+    indexable: false,
+  })
+}
 
 const HelpPage = () => {
   return (

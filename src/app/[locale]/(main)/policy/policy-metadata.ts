@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
+import { DEFAULT_SITE_NAME } from "@/lib/site-defaults"
 
-const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"
+const siteName = process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
 
 export function buildPolicyPageMetadata(options: {
   locale: string
@@ -26,7 +27,6 @@ export function buildPolicyPageMetadata(options: {
       url: canonical,
       siteName,
       type: "website",
-      images: [{ url: `${base}/images/logo.png` }],
     },
   }
 }
