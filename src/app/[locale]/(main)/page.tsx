@@ -31,17 +31,19 @@ const HOME_FAQ_ITEMS: HomeFaqItem[] = [
   {
     id: "shipping-methods",
     question: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
-    answer: "SOPet ใช้ขนส่งแบบไหน และจัดส่งภายในกี่วัน ?",
+    answer:
+      "ยี่ห้อขนส่งของเราอาจจะขึ้นอยู่กับรพ.ที่จัดส่ง โดยปกติจะมี Flash และไปรษณีย์ไทย โดยเป็นการส่งด่วนใน 1-2 วัน",
   },
   {
     id: "contact-us",
     question: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
-    answer: "หากพบปัญหา สามารถสอบถาม และติดต่อผ่านช่องทางไหนได้บ้าง ?",
+    answer: 'สามารถกดที่ปุ่ม "Vet AI" มุมขวาล่าง หรือโทร 096-876-5031 ได้เลย',
   },
   {
     id: "about-us",
     question: "SOPet คืออะไร",
-    answer: "SOPet คืออะไร",
+    answer:
+      "เราเป็นเว็บไซต์แพลตฟอร์มที่ค้นหายาและสินค้าราคาถูกที่สุดจากรพ.และร้านขายยาสัตว์ทั่วไทย พร้อมดีลโค้ดลด ส่วนลดพิเศษ",
   },
 ]
 
@@ -166,7 +168,7 @@ export default async function Home({
   const bannersData = banners.status === "fulfilled" ? banners.value : []
 
   return (
-    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full pb-10">
+    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full">
       <link
         rel="preload"
         as="image"
