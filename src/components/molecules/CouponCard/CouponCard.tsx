@@ -3,8 +3,10 @@
 import { Text } from "@medusajs/ui"
 import Link from "next/link"
 import { Button } from "@/components/atoms"
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import { cn } from "@/lib/utils"
+
+export type CouponCategory = "new_customer" | "shipping" | "special"
 
 export type CouponData = {
   id: string
@@ -14,7 +16,7 @@ export type CouponData = {
   expiry: string
   conditionsUrl: string
   conditions?: string | null
-  category?: string
+  category?: CouponCategory | string
   vendorName?: string
   imageColor?: string
   leftTextTop?: string
@@ -39,6 +41,41 @@ export type CouponCardProps = {
 const COUPON_STUB_CLIP_PATH =
   "path('M140 0H0V72C4.41828 72 8 75.5817 8 80C8 84.4183 4.41828 88 0 88V160H140V0Z')"
 
+const NEW_CUSTOMER_GRADIENT =
+  "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)"
+
+function leftStubClassAndStyle(coupon: CouponData): {
+  className: string
+  style: CSSProperties
+} {
+  const cat = coupon.category
+  const base =
+    "w-[140px] h-sop-160px shrink-0 flex flex-col items-center justify-center text-center p-2 relative"
+
+  if (cat === "shipping") {
+    return {
+      className: cn(base, "bg-sop-additionalblue-500"),
+      style: { clipPath: COUPON_STUB_CLIP_PATH },
+    }
+  }
+
+  if (cat === "special") {
+    return {
+      className: cn(base, "bg-sop-secondary-500"),
+      style: { clipPath: COUPON_STUB_CLIP_PATH },
+    }
+  }
+
+  // new_customer (default) or unknown: optional API imageColor, else gradient
+  return {
+    className: cn(base, coupon.imageColor || ""),
+    style: {
+      clipPath: COUPON_STUB_CLIP_PATH,
+      ...(!coupon.imageColor ? { background: NEW_CUSTOMER_GRADIENT } : {}),
+    },
+  }
+}
+
 export const CouponCard = ({
   coupon,
   onApply,
@@ -53,6 +90,7 @@ export const CouponCard = ({
       ? externalIsApplied
       : coupon.is_collected || localApplied
   const isUsed = coupon.is_used || false
+  const leftStub = leftStubClassAndStyle(coupon)
 
   return (
     <div
@@ -68,21 +106,8 @@ export const CouponCard = ({
           : undefined
       }
     >
-      {/* Left Part - Promotional Background */}
-      <div
-        className={`w-[140px] h-sop-160px shrink-0 ${
-          coupon.imageColor || ""
-        } flex flex-col items-center justify-center text-center p-2 relative`}
-        style={{
-          clipPath: COUPON_STUB_CLIP_PATH,
-          ...(!coupon.imageColor
-            ? {
-                background:
-                  "linear-gradient(90deg, var(--sop-ref-palette-primary-500, #9C6ADE) 30.29%, var(--sop-ref-palette-tertiary-500, #5587A0) 100%)",
-              }
-            : {}),
-        }}
-      >
+      {/* Left Part — category: new_customer = gradient (or imageColor), shipping = blue, special = secondary */}
+      <div className={leftStub.className} style={leftStub.style}>
         <div className="text-white sop-body-lg-medium text-center drop-shadow-sm mb-1 leading-tight px-1 wrap-break-word">
           {coupon.leftTextTop || "Promotion"}
         </div>
