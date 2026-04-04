@@ -3,6 +3,7 @@ import { sdk } from "@/lib/config"
 import { listCollections } from "@/lib/data/collections"
 import { getAuthHeaders, getCacheOptions } from "@/lib/data/cookies"
 import { getRegion, listRegions } from "@/lib/data/regions"
+import { REVALIDATE_REGIONS } from "@/lib/cache/constants"
 import { getPublicSiteUrl } from "@/lib/site-defaults"
 
 /** Cap product list API pages per locale to bound build/runtime cost; raise or add generateSitemaps if the catalog outgrows this. */
@@ -42,7 +43,7 @@ async function fetchCategoryRows(): Promise<
   try {
     const next = {
       ...(await getCacheOptions("product-categories")),
-      revalidate: 3600,
+      revalidate: REVALIDATE_REGIONS,
     }
     const { product_categories } = await sdk.client.fetch<{
       product_categories: { handle?: string; updated_at?: string }[]

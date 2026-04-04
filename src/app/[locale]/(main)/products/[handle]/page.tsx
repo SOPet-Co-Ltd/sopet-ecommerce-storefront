@@ -3,6 +3,7 @@ import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
 import { generateProductMetadata } from "@/lib/helpers/seo"
 import type { Metadata } from "next"
 
+/** Must match `REVALIDATE_PRODUCT_LIST` in `@/lib/cache/constants` (Next requires a numeric literal here). */
 export const revalidate = 60
 
 export async function generateMetadata({
@@ -21,7 +22,7 @@ export async function generateMetadata({
     }
   }
 
-  return generateProductMetadata(prod)
+  return generateProductMetadata(prod, locale)
 }
 
 export default async function ProductPage({

@@ -1,19 +1,24 @@
+import { getRequestBaseUrl } from "@/lib/helpers/request-base-url"
 import { HttpTypes } from "@medusajs/types"
 import { Metadata } from "next"
 import { headers } from "next/headers"
 
 export const generateProductMetadata = async (
-  product: HttpTypes.StoreProduct
+  product: HttpTypes.StoreProduct,
+  locale: string
 ): Promise<Metadata> => {
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
+  const canonicalUrl = `${baseUrl}/${locale}/products/${product.handle}`
   const thumb = product?.thumbnail
 
   const openGraph: Metadata["openGraph"] = {
     title: product?.title,
     description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
-    url: `${protocol}://${host}/products/${product?.handle}`,
+    url: canonicalUrl,
     siteName: process.env.NEXT_PUBLIC_SITE_NAME,
     type: "website",
   }
@@ -43,31 +48,35 @@ export const generateProductMetadata = async (
     title: product?.title,
     description: `${product?.title} - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
     robots: "index, follow",
-    metadataBase: new URL(`${protocol}://${host}/products/${product?.handle}`),
+    metadataBase: new URL(baseUrl),
+    alternates: { canonical: canonicalUrl },
     openGraph,
     twitter,
   }
 }
 
 export const generateCategoryMetadata = async (
-  category: HttpTypes.StoreProductCategory
+  category: HttpTypes.StoreProductCategory,
+  locale: string
 ) => {
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
+  const canonicalUrl = `${baseUrl}/${locale}/categories/${category.handle}`
 
   return {
     robots: "index, follow",
-    metadataBase: new URL(
-      `${protocol}://${host}/categories/${category.handle}`
-    ),
+    metadataBase: new URL(baseUrl),
+    alternates: { canonical: canonicalUrl },
     title: `${category.name} Category`,
     description: `${category.name} Category - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
 
     openGraph: {
       title: category.name,
       description: `${category.name} Category - ${process.env.NEXT_PUBLIC_SITE_NAME}`,
-      url: `${protocol}://${host}/categories/${category.handle}`,
+      url: canonicalUrl,
       siteName: process.env.NEXT_PUBLIC_SITE_NAME,
       type: "website",
     },

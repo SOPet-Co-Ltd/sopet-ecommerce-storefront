@@ -1,4 +1,6 @@
 "use server"
+
+import { REVALIDATE_PRODUCT_LIST } from "@/lib/cache/constants"
 import { getAuthHeaders } from "./cookies"
 
 const MEDUSA_BACKEND_URL =
@@ -69,7 +71,7 @@ export async function fetchCoupons(
     }
 
     if (!hasAuthorization(authHeaders)) {
-      fetchOptions.next = { revalidate: 60 } // cache public requests
+      fetchOptions.next = { revalidate: REVALIDATE_PRODUCT_LIST }
     } else {
       fetchOptions.cache = "no-store" // never cache personalized requests
       url.searchParams.set("t", Date.now().toString()) // force cache-busting

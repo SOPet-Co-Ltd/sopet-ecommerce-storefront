@@ -8,6 +8,9 @@ const BACKEND_URL =
   process.env.MEDUSA_BACKEND_URL ||
   "http://localhost:9000"
 
+const PUBLISHABLE_KEY =
+  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY?.trim() ?? ""
+
 function getOrCreateSessionId(): string {
   if (typeof window === "undefined") return ""
   try {
@@ -41,6 +44,7 @@ export function ProductViewTracker({
 
   useEffect(() => {
     if (!productId || sent.current) return
+    if (!PUBLISHABLE_KEY) return
     sent.current = true
 
     const sessionId = getOrCreateSessionId()
@@ -48,7 +52,10 @@ export function ProductViewTracker({
     fetch(`${BACKEND_URL}/store/product-events`, {
       method: "POST",
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-publishable-api-key": PUBLISHABLE_KEY,
+      },
       body: JSON.stringify({
         event_type: "view",
         product_id: productId,

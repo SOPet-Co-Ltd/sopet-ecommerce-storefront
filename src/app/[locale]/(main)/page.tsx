@@ -22,6 +22,7 @@ import {
   DEFAULT_SITE_NAME,
 } from "@/lib/site-defaults"
 import { getAuthHeaders } from "@/lib/data/cookies"
+import { getRequestBaseUrl } from "@/lib/helpers/request-base-url"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
 import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
@@ -60,9 +61,10 @@ export async function generateMetadata({
   const { locale } = await params
 
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
 
   // Build alternates based on available regions (locales)
   let languages: Record<string, string> = {}
@@ -151,9 +153,10 @@ export default async function Home({
   ])
 
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
 
   const siteName = process.env.NEXT_PUBLIC_SITE_NAME || DEFAULT_SITE_NAME
 

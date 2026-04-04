@@ -11,8 +11,10 @@ import { headers } from "next/headers"
 import Script from "next/script"
 import { getRegion, listRegions } from "@/lib/data/regions"
 import { listProducts } from "@/lib/data/products"
+import { getRequestBaseUrl } from "@/lib/helpers/request-base-url"
 import { toHreflang } from "@/lib/helpers/hreflang"
 
+/** Must match `REVALIDATE_PRODUCT_LIST` in `@/lib/cache/constants` (Next requires a numeric literal here). */
 export const revalidate = 60
 
 export async function generateMetadata({
@@ -22,9 +24,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { category, locale } = await params
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
 
   const cat = await getCategoryByHandle([category])
   if (!cat) {
@@ -107,9 +110,10 @@ async function Category({
 
   // Small cached list for JSON-LD itemList
   const headersList = await headers()
-  const host = headersList.get("host")
-  const protocol = headersList.get("x-forwarded-proto") || "https"
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `${protocol}://${host}`
+  const baseUrl = getRequestBaseUrl(
+    headersList,
+    process.env.NEXT_PUBLIC_BASE_URL
+  )
   const {
     response: { products: jsonLdProducts },
   } = await listProducts({

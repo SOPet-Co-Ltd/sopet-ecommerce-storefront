@@ -1,5 +1,6 @@
 "use server"
 
+import { REVALIDATE_PRODUCT_LIST } from "@/lib/cache/constants"
 import { sdk } from "../config"
 import { sortProducts } from "@/lib/helpers/sort-products"
 import { HttpTypes } from "@medusajs/types"
@@ -108,7 +109,7 @@ const fetchProductStats = async (
       {
         method: "GET",
         headers,
-        next: useCached ? { revalidate: 60 } : undefined,
+        next: useCached ? { revalidate: REVALIDATE_PRODUCT_LIST } : undefined,
         cache: useCached ? "force-cache" : "no-cache",
       }
     )
@@ -266,7 +267,7 @@ export const listProducts = async (
       method: "GET",
       query: buildProductsQuery(params, region, limit, offset),
       headers,
-      next: useCached ? { revalidate: 60 } : undefined,
+      next: useCached ? { revalidate: REVALIDATE_PRODUCT_LIST } : undefined,
       cache: useCached ? "force-cache" : "no-cache",
     })
 
@@ -402,7 +403,7 @@ export const getSectionProducts = async ({
         method: "GET",
         query: { limit, offset, country_code: countryCode },
         headers,
-        next: { revalidate: 60 },
+        next: { revalidate: REVALIDATE_PRODUCT_LIST },
         cache: "force-cache",
       }
     )
