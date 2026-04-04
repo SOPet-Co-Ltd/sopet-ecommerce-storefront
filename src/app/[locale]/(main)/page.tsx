@@ -164,7 +164,7 @@ export default async function Home({
   const bannersData = banners.status === "fulfilled" ? banners.value : []
 
   return (
-    <main className="flex flex-col gap-10 row-start-2 items-center sm:items-start text-primary w-full">
+    <main className="flex flex-col row-start-2 items-center sm:items-start text-primary w-full">
       <link
         rel="preload"
         as="image"
