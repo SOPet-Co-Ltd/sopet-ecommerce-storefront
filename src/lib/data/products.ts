@@ -244,8 +244,16 @@ export const listProducts = async (
   }
 
   const headers = await getAuthHeaders()
+  const requestsSpecificProducts = Boolean(
+    (params.queryParams?.handle?.length ?? 0) > 0 ||
+    (params.queryParams?.id?.length ?? 0) > 0
+  )
   const useCached =
-    forceCache || (limit <= 8 && !params.category_id && !params.collection_id)
+    forceCache ||
+    (!requestsSpecificProducts &&
+      limit <= 8 &&
+      !params.category_id &&
+      !params.collection_id)
 
   try {
     const { products: productsRaw, count } = await sdk.client.fetch<{
