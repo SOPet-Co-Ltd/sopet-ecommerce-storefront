@@ -5,6 +5,7 @@ import {
   listProducts,
   getSectionProducts,
   type ProductSectionType,
+  type ProductWithSeller,
 } from "@/lib/data/products"
 import { Product } from "@/types/product"
 import Link from "next/link"
@@ -16,36 +17,52 @@ export const HomeProductSection = async ({
   home = false,
   section,
   viewAllHref,
+  excludeProductId,
 }: {
   heading: string
   locale?: string
-  sellerProducts?: Product[]
+  sellerProducts?: Product[] | ProductWithSeller[]
   home?: boolean
   section?: ProductSectionType
   viewAllHref?: string
+  /** When set (e.g. PDP), omit this product from the embedded seller list. */
+  excludeProductId?: string
 }) => {
-  const products = section
-    ? (
-        await getSectionProducts({
-          section,
-          countryCode: locale,
-          limit: section === "recommended" ? 25 : home ? 10 : 12,
-          offset: 0,
-        })
-      ).products
-    : (
-        await listProducts({
-          countryCode: locale,
-          queryParams: {
-            limit: home ? 10 : undefined,
-            order: "created_at",
-            handle: home
-              ? undefined
-              : sellerProducts.map((product) => product.handle),
-          },
-          forceCache: !home,
-        })
-      ).response.products
+  const sellerList = sellerProducts ?? []
+
+  let products: ProductWithSeller[]
+
+  if (section) {
+    products = (
+      await getSectionProducts({
+        section,
+        countryCode: locale,
+        limit: section === "recommended" ? 25 : home ? 10 : 12,
+        offset: 0,
+      })
+    ).products
+  } else if (!home && sellerList.length === 0) {
+    products = []
+  } else if (!home && sellerList.length > 0) {
+    const embedded = sellerList as ProductWithSeller[]
+    products = excludeProductId
+      ? embedded.filter((p) => p.id !== excludeProductId)
+      : embedded
+  } else {
+    products = (
+      await listProducts({
+        countryCode: locale,
+        queryParams: {
+          limit: home ? 10 : undefined,
+          order: "created_at",
+          handle: home
+            ? undefined
+            : sellerList.map((product) => product.handle),
+        },
+        forceCache: !home,
+      })
+    ).response.products
+  }
   const href =
     viewAllHref ?? (section ? `/${locale}/products?section=${section}` : "#")
   const headingClass =
