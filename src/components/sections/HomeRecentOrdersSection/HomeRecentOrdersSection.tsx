@@ -6,7 +6,7 @@ export const HomeRecentOrdersSection = async ({
 }: {
   locale?: string
 }) => {
-  const products = await getRecentOrderProducts()
+  const products = await getRecentOrderProducts({ countryCode: locale })
 
   // Only render section if customer has recent order products
   if (!products || products.length === 0) {

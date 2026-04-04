@@ -1,66 +1,24 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
-import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { SellerProps } from "@/types/seller"
-
-const optionsAsKeymap = (
-  variantOptions: HttpTypes.StoreProductVariant["options"]
-) => {
-  return variantOptions?.reduce(
-    (
-      acc: Record<string, string>,
-      varopt: HttpTypes.StoreProductOptionValue
-    ) => {
-      acc[varopt.option?.title.toLowerCase() || ""] = varopt.value
-
-      return acc
-    },
-    {}
-  )
-}
 
 export const ProductCardShowPrice = ({
   product,
 }: {
   product: HttpTypes.StoreProduct & { seller?: SellerProps }
 }) => {
-  const { allSearchParams } = useGetAllSearchParams()
-
-  const { cheapestVariant, cheapestPrice, expensivePrice } = getProductPrice({
+  const { cheapestPrice, cheapestVariant } = getProductPrice({
     product,
   })
 
-  // Check if product has any valid prices in current region
+  // Cards are shown in grids alongside listing/search URL params (filters, query,
+  // price range). Those must not participate in variant selection — only PDP
+  // should combine URL with options. Always show the cheapest priced variant.
   const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
-  // set default variant
-  const selectedVariant = hasAnyPrice
-    ? {
-        ...optionsAsKeymap(cheapestVariant.options ?? null),
-        ...allSearchParams,
-      }
-    : allSearchParams
-
-  // get selected variant id
-  const variantId =
-    product.variants?.find(({ options }: { options: any }) =>
-      options?.every((option: any) =>
-        selectedVariant[option.option?.title.toLowerCase() || ""]?.includes(
-          option.value
-        )
-      )
-    )?.id || ""
-
-  // get variant price
-  const { variantPrice } = getProductPrice({
-    product,
-    variantId,
-  })
-
-  // Determine which price to display
-  const displayPrice = variantPrice || cheapestPrice
+  const displayPrice = cheapestPrice
 
   return (
     <div className="flex gap-2 items-center">

@@ -45,9 +45,23 @@ export const HomeProductSection = async ({
     products = []
   } else if (!home && sellerList.length > 0) {
     const embedded = sellerList as ProductWithSeller[]
-    products = excludeProductId
+    const filtered = excludeProductId
       ? embedded.filter((p) => p.id !== excludeProductId)
       : embedded
+    const ids = filtered.map((p) => p.id).filter(Boolean)
+    if (ids.length === 0) {
+      products = []
+    } else {
+      const { response } = await listProducts({
+        countryCode: locale,
+        pageParam: 1,
+        queryParams: { id: ids, limit: ids.length },
+      })
+      const byId = new Map(response.products.map((p) => [p.id, p]))
+      products = ids
+        .map((id) => byId.get(id))
+        .filter((p): p is ProductWithSeller => p != null)
+    }
   } else {
     products = (
       await listProducts({
