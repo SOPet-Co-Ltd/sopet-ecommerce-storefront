@@ -75,12 +75,7 @@ export const getRecentOrderProducts = async ({
                 seller?: SellerProps
               })
             | undefined
-          if (
-            withMeta &&
-            withMeta.id &&
-            !productMap.has(withMeta.id) &&
-            withMeta.metadata?.published_to_algolia === true
-          ) {
+          if (withMeta && withMeta.id && !productMap.has(withMeta.id)) {
             productMap.set(withMeta.id, withMeta)
           }
         })
@@ -98,6 +93,7 @@ export const getRecentOrderProducts = async ({
       countryCode,
       pageParam: 1,
       queryParams: { id: orderedIds, limit: orderedIds.length },
+      skipPublishedToAlgoliaFilter: true,
     })
 
     const byId = new Map(pricedProducts.map((p) => [p.id, p]))

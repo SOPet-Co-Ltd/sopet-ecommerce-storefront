@@ -49,10 +49,10 @@ export const CouponCard = ({
   return (
     <div
       className={`flex w-full max-w-[320px] min-h-[156px] h-full rounded-xl overflow-hidden hover:shadow-md transition-shadow relative group ${
-        onApply && !isApplied ? "cursor-pointer" : ""
+        onApply && !isApplied && !isLoading ? "cursor-pointer" : ""
       }`}
       onClick={
-        onApply && !isApplied
+        onApply && !isApplied && !isLoading
           ? () => {
               setLocalApplied(true)
               if (onApply) onApply()

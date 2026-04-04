@@ -35,6 +35,8 @@ type ListProductsParams = {
   countryCode?: string
   regionId?: string
   forceCache?: boolean
+  /** When true, return all fetched products (e.g. re-hydrating items the user already purchased). */
+  skipPublishedToAlgoliaFilter?: boolean
 }
 
 type ListProductsResponse = {
@@ -221,6 +223,7 @@ export const listProducts = async (
     countryCode,
     regionId,
     forceCache = false,
+    skipPublishedToAlgoliaFilter = false,
   } = params
 
   if (!countryCode && !regionId) {
@@ -273,9 +276,11 @@ export const listProducts = async (
       useCached
     )
 
-    const publishedProducts = productsWithStats.filter(
-      (p) => p.metadata?.published_to_algolia === true
-    )
+    const publishedProducts = skipPublishedToAlgoliaFilter
+      ? productsWithStats
+      : productsWithStats.filter(
+          (p) => p.metadata?.published_to_algolia === true
+        )
     const nextPage = count > offset + limit ? pageParamValue + 1 : null
 
     return {
