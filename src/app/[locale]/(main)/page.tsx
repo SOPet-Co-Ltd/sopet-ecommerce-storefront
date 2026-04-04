@@ -21,6 +21,7 @@ import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_NAME,
 } from "@/lib/site-defaults"
+import { getAuthHeaders } from "@/lib/data/cookies"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
 import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
@@ -163,6 +164,10 @@ export default async function Home({
   const sponsorsData = sponsors.status === "fulfilled" ? sponsors.value : []
   const bannersData = banners.status === "fulfilled" ? banners.value : []
 
+  const authHeaders = await getAuthHeaders()
+  const isSignedIn =
+    "authorization" in authHeaders && Boolean(authHeaders.authorization)
+
   return (
     <main className="flex flex-col row-start-2 items-center sm:items-start text-primary w-full">
       <link
@@ -208,12 +213,14 @@ export default async function Home({
           <HomeCouponSection />
         </div>
 
-        {/* Bought items */}
-        <div className="w-full">
-          <Suspense fallback={null}>
-            <HomeRecentOrdersSection locale={locale} />
-          </Suspense>
-        </div>
+        {/* Bought items — only for signed-in customers */}
+        {isSignedIn ? (
+          <div className="w-full">
+            <Suspense fallback={null}>
+              <HomeRecentOrdersSection locale={locale} />
+            </Suspense>
+          </div>
+        ) : null}
 
         {/* Recommended Products Section */}
         <div className="w-full">

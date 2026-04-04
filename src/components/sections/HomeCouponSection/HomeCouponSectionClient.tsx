@@ -49,7 +49,7 @@ export function HomeCouponSectionClient({
   }, [])
 
   return (
-    <section className="w-full mb-12">
+    <section className="w-full">
       <div className="flex justify-between items-center px-4 md:px-0 mb-6">
         <h2 className="sop-body-lg-medium md:sop-headline-md-medium">
           โค้ดส่วนลด
