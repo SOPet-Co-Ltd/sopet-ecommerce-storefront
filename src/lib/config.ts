@@ -35,12 +35,14 @@ type FetchQueryOptions = Omit<RequestInit, "headers" | "body"> & {
   headers?: Record<string, string | null | { tags: string[] }>
   query?: Record<string, string | number>
   body?: Record<string, unknown>
+  /** Override default Medusa fetch timeout for this request (ms). */
+  medusaTimeoutMs?: number
 }
 
 function mergeFetchSignal(
-  userSignal: AbortSignal | null | undefined
+  userSignal: AbortSignal | null | undefined,
+  timeoutMs: number = getMedusaRequestTimeoutMs()
 ): AbortSignal | undefined {
-  const timeoutMs = getMedusaRequestTimeoutMs()
   const sig = userSignal ?? undefined
   if (
     typeof AbortSignal === "undefined" ||
@@ -66,6 +68,7 @@ export async function fetchQuery(
     headers,
     body,
     signal: userSignal,
+    medusaTimeoutMs,
     ...rest
   }: FetchQueryOptions
 ) {
@@ -78,7 +81,10 @@ export async function fetchQuery(
 
   const publishableKey = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
 
-  const mergedSignal = mergeFetchSignal(userSignal)
+  const mergedSignal = mergeFetchSignal(
+    userSignal,
+    medusaTimeoutMs ?? getMedusaRequestTimeoutMs()
+  )
 
   const init: RequestInit = {
     ...rest,

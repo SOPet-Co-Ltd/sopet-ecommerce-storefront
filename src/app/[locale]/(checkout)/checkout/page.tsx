@@ -7,7 +7,7 @@ import { retrieveCart } from "@/lib/data/cart"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 
 export async function generateMetadata({
   params,
@@ -25,11 +25,16 @@ export async function generateMetadata({
   })
 }
 
-export default async function CheckoutPage() {
-  let cart = await retrieveCart()
+export default async function CheckoutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}) {
+  const { locale } = await params
+  const cart = await retrieveCart()
 
   if (!cart) {
-    return notFound()
+    redirect(`/${locale}/cart?checkout=unavailable`)
   }
 
   const lineFingerprint = checkoutLineFingerprint(cart)
