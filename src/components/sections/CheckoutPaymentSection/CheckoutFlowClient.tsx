@@ -95,12 +95,11 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
   const showGuestOTPDialog = !customer && !isOTPVerified
   const authGateOk = Boolean(customer) || isOTPVerified
   const dataBootstrapPending = isLoading || (isOTPVerified && isRefreshing)
-  const stripeBootstrapPending = Boolean(
+
+  const showCheckoutShell = authGateOk && !dataBootstrapPending
+  const stripePaymentBlocking = Boolean(
     stripeKey && stripePromise && !stripeBootReady
   )
-
-  const showFullCheckout =
-    authGateOk && !dataBootstrapPending && !stripeBootstrapPending
 
   const handleGuestVerified = useCallback(
     async (phone: string) => {
@@ -141,7 +140,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {authGateOk && !showFullCheckout && (
+      {authGateOk && dataBootstrapPending && (
         <div
           className="fixed inset-0 z-45 flex flex-col items-center justify-center gap-3 bg-sop-base-white/96 px-6"
           role="status"
@@ -155,7 +154,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {showFullCheckout && stripeLoadError && (
+      {showCheckoutShell && stripeBootReady && stripeLoadError && (
         <div
           className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-4"
           role="alert"
@@ -164,7 +163,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {showFullCheckout && (
+      {showCheckoutShell && (
         <>
           <CartAddressSection cart={cart} verifiedPhone={verifiedPhone} />
 
@@ -172,10 +171,24 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
 
           <CheckoutDiscountSection cart={cart} />
 
-          <StripePaymentElementsBoundary cart={cart}>
-            <CheckoutPaymentSection cart={cart} />
-            <CheckoutSummarySection cart={cart} />
-          </StripePaymentElementsBoundary>
+          {stripePaymentBlocking ? (
+            <div
+              className="flex flex-col items-center justify-center gap-3 rounded-lg border border-sop-neutral-gray-light bg-sop-base-white px-6 py-12"
+              role="status"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              <RouteLoadingSpinnerBlock variant="compact" />
+              <Text className="text-xs text-gray-500 text-center">
+                กำลังโหลดระบบชำระเงิน…
+              </Text>
+            </div>
+          ) : (
+            <StripePaymentElementsBoundary cart={cart}>
+              <CheckoutPaymentSection cart={cart} />
+              <CheckoutSummarySection cart={cart} />
+            </StripePaymentElementsBoundary>
+          )}
         </>
       )}
     </CheckoutPaymentProvider>

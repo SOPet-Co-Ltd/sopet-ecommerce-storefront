@@ -1,4 +1,5 @@
 import Medusa from "@medusajs/js-sdk"
+import { getMedusaRequestTimeoutMs } from "@/lib/helpers/request-timeout"
 
 // Defaults to standard port for Medusa server
 export const MEDUSA_BACKEND_URL =
@@ -36,9 +37,37 @@ type FetchQueryOptions = Omit<RequestInit, "headers" | "body"> & {
   body?: Record<string, unknown>
 }
 
+function mergeFetchSignal(
+  userSignal: AbortSignal | null | undefined
+): AbortSignal | undefined {
+  const timeoutMs = getMedusaRequestTimeoutMs()
+  const sig = userSignal ?? undefined
+  if (
+    typeof AbortSignal === "undefined" ||
+    typeof AbortSignal.timeout !== "function"
+  ) {
+    return sig
+  }
+  const timeoutSig = AbortSignal.timeout(timeoutMs)
+  if (!sig) {
+    return timeoutSig
+  }
+  if (typeof AbortSignal.any === "function") {
+    return AbortSignal.any([sig, timeoutSig])
+  }
+  return sig
+}
+
 export async function fetchQuery(
   url: string,
-  { method, query, headers, body, ...rest }: FetchQueryOptions
+  {
+    method,
+    query,
+    headers,
+    body,
+    signal: userSignal,
+    ...rest
+  }: FetchQueryOptions
 ) {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(query || {})) {
@@ -49,9 +78,12 @@ export async function fetchQuery(
 
   const publishableKey = process.env["NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"] || ""
 
+  const mergedSignal = mergeFetchSignal(userSignal)
+
   const init: RequestInit = {
     ...rest,
     ...(method ? { method } : {}),
+    ...(mergedSignal ? { signal: mergedSignal } : {}),
     headers: {
       "Content-Type": "application/json",
       "x-publishable-api-key": publishableKey,
@@ -60,10 +92,22 @@ export async function fetchQuery(
     ...(body ? { body: JSON.stringify(body) } : {}),
   }
 
-  const res = await fetch(
-    `${MEDUSA_BACKEND_URL}${url}${params.toString() ? `?${params.toString()}` : ""}`,
-    init
-  )
+  let res: Response
+  try {
+    res = await fetch(
+      `${MEDUSA_BACKEND_URL}${url}${params.toString() ? `?${params.toString()}` : ""}`,
+      init
+    )
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Network error or request aborted"
+    return {
+      ok: false,
+      status: 0,
+      error: { message },
+      data: null,
+    }
+  }
 
   let data
   try {

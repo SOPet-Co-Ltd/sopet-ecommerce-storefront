@@ -11,10 +11,14 @@ import {
 } from "react"
 import type { HttpTypes } from "@medusajs/types"
 import {
+  getCheckoutCustomer,
   getCustomerPaymentMethods,
-  verifyCustomer,
   type CustomerPaymentMethod,
 } from "@/lib/data/customer"
+import {
+  getMedusaRequestTimeoutMs,
+  withRequestTimeout,
+} from "@/lib/helpers/request-timeout"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import type { StoreCardShippingMethod } from "@/types/cart"
@@ -53,12 +57,33 @@ async function fetchCheckoutBundle(
   savedStripePaymentMethods: CustomerPaymentMethod[]
   bundleError: string | null
 }> {
+  const ms = getMedusaRequestTimeoutMs()
+  const timeoutMsg = "คำขอหมดเวลา กรุณารีเฟรชหน้าหรือลองอีกครั้ง"
+
+  const checkoutPerfClient =
+    process.env.NODE_ENV === "development" ||
+    process.env["NEXT_PUBLIC_CHECKOUT_PERF_LOG"] === "1"
+
+  const bundleT0 =
+    checkoutPerfClient && typeof performance !== "undefined"
+      ? performance.now()
+      : null
+
   const settled = await Promise.allSettled([
-    listCartShippingMethods(cartId, false),
-    regionId ? listCartPaymentMethods(regionId) : Promise.resolve(null),
-    verifyCustomer(),
-    getCustomerPaymentMethods(),
+    withRequestTimeout(listCartShippingMethods(cartId, false), ms, timeoutMsg),
+    regionId
+      ? withRequestTimeout(listCartPaymentMethods(regionId), ms, timeoutMsg)
+      : Promise.resolve(null),
+    withRequestTimeout(getCheckoutCustomer(), ms, timeoutMsg),
+    withRequestTimeout(getCustomerPaymentMethods(), ms, timeoutMsg),
   ])
+
+  if (bundleT0 !== null && typeof performance !== "undefined") {
+    console.info(
+      "[checkout-perf] bundle",
+      `${(performance.now() - bundleT0).toFixed(1)}ms`
+    )
+  }
 
   const [shippingRes, providersRes, customerRes, pmRes] = settled
 
