@@ -104,7 +104,13 @@ export async function ensureCheckoutCartQuantitiesCapped(
       )
     )
     const next = await retrieveCart(cart.id)
-    return { cart: next ?? cart, mutated: true }
+    if (!next) {
+      console.warn(
+        "[ensureCheckoutCartQuantitiesCapped] retrieveCart returned null after cap; skipping client refresh to avoid checkout 404"
+      )
+      return { cart, mutated: false }
+    }
+    return { cart: next, mutated: true }
   } catch {
     return { cart, mutated: false }
   }

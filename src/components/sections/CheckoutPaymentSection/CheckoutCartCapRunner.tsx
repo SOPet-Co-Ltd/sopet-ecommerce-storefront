@@ -43,7 +43,7 @@ export function CheckoutCartCapRunner({
         } catch {
           // ignore
         }
-        if (res.mutated) {
+        if (res.mutated && res.lineFingerprint) {
           router.refresh()
         }
       })

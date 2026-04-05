@@ -59,7 +59,9 @@ const CheckoutItemPreview = ({
 
   const router = useRouter()
 
-  const shippingMethods = cart?.shipping_methods || []
+  /** Avoid `|| []` in effect deps — use stable `undefined` until cart has methods. */
+  const shippingMethodsFromCart = cart?.shipping_methods
+  const shippingMethods = shippingMethodsFromCart ?? []
   const shippingOptionsById = useMemo(
     () =>
       new Map(
@@ -72,10 +74,11 @@ const CheckoutItemPreview = ({
   useEffect(() => {
     if (!cart || !availableShippingMethods?.length) return
 
+    const methodsOnCart = shippingMethodsFromCart ?? []
     const initial: Record<string, string> = {}
     const sellerIdsInCart = new Set<string>()
 
-    for (const sm of shippingMethods) {
+    for (const sm of methodsOnCart) {
       const opt = availableShippingMethods.find(
         (o) => o.id === sm.shipping_option_id
       )
@@ -106,21 +109,26 @@ const CheckoutItemPreview = ({
       setSellerShippingSelections(newSelections)
       // Auto-persist to backend if we added defaults
       const allOptionIds = Object.values(newSelections).filter(Boolean)
-      setMultiShippingMethods({
+      let cancelled = false
+      void setMultiShippingMethods({
         cartId: cart.id,
         optionIds: allOptionIds,
       })
         .then(() => {
-          router.refresh()
+          if (!cancelled) {
+            router.refresh()
+          }
         })
         .catch((err) => {
           console.error("Failed to auto-select shipping methods", err)
         })
-      return
+      return () => {
+        cancelled = true
+      }
     }
 
     setSellerShippingSelections(initial)
-  }, [cart, availableShippingMethods, shippingMethods, router])
+  }, [cart, availableShippingMethods, shippingMethodsFromCart, router])
 
   // Get shipping options for the currently editing seller (hooks before early return)
   const shippingOptionsForEditingSeller = useMemo(() => {
