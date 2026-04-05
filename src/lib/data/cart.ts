@@ -19,17 +19,28 @@ import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
 import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
+import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
+import { withRequestTimeout } from "@/lib/helpers/request-timeout"
+
+const checkoutPerfLog =
+  process.env["CHECKOUT_PERF_LOG"] === "1" ||
+  process.env["CHECKOUT_PERF_LOG"] === "true"
+
+function logCheckoutPerf(phase: string, ms: number) {
+  if (checkoutPerfLog) {
+    console.info(`[checkout-perf] ${phase} ${ms.toFixed(1)}ms`)
+  }
+}
 
 /**
  * On checkout enter: cap each line item quantity at variant inventory.
  * Fetches product/variant inventory and updates any item that exceeds max.
- * Returns the updated cart or the original if no changes.
  */
 export async function ensureCheckoutCartQuantitiesCapped(
   cart: Cart
-): Promise<Cart | null> {
+): Promise<{ cart: Cart; mutated: boolean }> {
   const items = cart?.items ?? []
-  if (!items.length || !cart.region_id) return cart
+  if (!items.length || !cart.region_id) return { cart, mutated: false }
 
   const productIds = Array.from(
     new Set(
@@ -38,7 +49,7 @@ export async function ensureCheckoutCartQuantitiesCapped(
         .filter((id): id is string => typeof id === "string" && id.length > 0)
     )
   )
-  if (!productIds.length) return cart
+  if (!productIds.length) return { cart, mutated: false }
 
   let products: Array<{
     variants?: Array<{ id: string; inventory_quantity?: number }> | null
@@ -51,7 +62,7 @@ export async function ensureCheckoutCartQuantitiesCapped(
     })
     products = (result?.response?.products ?? []) as typeof products
   } catch {
-    return cart
+    return { cart, mutated: false }
   }
 
   const variantToMax = new Map<string, number>()
@@ -80,19 +91,41 @@ export async function ensureCheckoutCartQuantitiesCapped(
     }
   }
 
-  if (!updates.length) return cart
+  if (!updates.length) return { cart, mutated: false }
 
   try {
-    for (const u of updates) {
-      await updateLineItem({
-        lineId: u.lineId,
-        quantity: u.quantity,
-        variantId: u.variantId,
-      })
-    }
-    return retrieveCart(cart.id)
+    await Promise.all(
+      updates.map((u) =>
+        updateLineItem({
+          lineId: u.lineId,
+          quantity: u.quantity,
+          variantId: u.variantId,
+        })
+      )
+    )
+    const next = await retrieveCart(cart.id)
+    return { cart: next ?? cart, mutated: true }
   } catch {
-    return cart
+    return { cart, mutated: false }
+  }
+}
+
+/**
+ * Runs quantity cap after checkout shell has rendered (non-blocking for TTFB).
+ */
+export async function runCheckoutCartQuantityCapFromCookie(): Promise<{
+  mutated: boolean
+  lineFingerprint: string
+}> {
+  const cart = await retrieveCart()
+  if (!cart) {
+    return { mutated: false, lineFingerprint: "" }
+  }
+  const { cart: nextCart, mutated } =
+    await ensureCheckoutCartQuantitiesCapped(cart)
+  return {
+    mutated,
+    lineFingerprint: checkoutLineFingerprint(nextCart),
   }
 }
 
@@ -102,6 +135,7 @@ export async function ensureCheckoutCartQuantitiesCapped(
  * @returns The cart object if found, or null if not found.
  */
 export async function retrieveCart(cartId?: string): Promise<Cart | null> {
+  const tAll = performance.now()
   const id = cartId || (await getCartId())
 
   if (!id) {
@@ -112,6 +146,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
+  const tCart = performance.now()
   const { data, error } = await fetchQuery(
     `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
     {
@@ -120,6 +155,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
       cache: "no-store",
     }
   )
+  logCheckoutPerf("retrieveCart:GET_cart", performance.now() - tCart)
 
   if (error || !data?.cart) {
     console.error(`[retrieveCart] Error fetching cart ${id}:`, error)
@@ -128,46 +164,75 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
 
   const cart = data.cart as Cart
 
-  // Enrich cart items with seller info (not available via cart endpoint)
-  try {
-    const productIds = [
-      ...new Set(
-        (cart.items || [])
-          .map((item: any) => item.product_id || item.product?.id)
-          .filter(Boolean)
-      ),
-    ]
+  const needsSellerFetch = (cart.items || []).some((item) => {
+    const row = item as {
+      product_id?: string
+      product?: { id?: string; seller?: unknown }
+    }
+    const pid = row.product_id || row.product?.id
+    if (!pid) return false
+    return !row.product?.seller
+  })
 
-    if (productIds.length > 0) {
-      const { products: sellerProducts } = await sdk.client.fetch<{
-        products: Array<{ id: string; seller?: { id: string; name: string } }>
-      }>(`/store/products`, {
-        method: "GET",
-        query: {
-          id: productIds,
-          fields: "*seller",
-          limit: productIds.length,
-        },
-        headers,
-        cache: "no-store",
-      })
+  if (needsSellerFetch) {
+    const tSeller = performance.now()
+    try {
+      const productIds = [
+        ...new Set(
+          (cart.items || [])
+            .map((item) => {
+              const row = item as {
+                product_id?: string
+                product?: { id?: string }
+              }
+              return row.product_id || row.product?.id
+            })
+            .filter(Boolean)
+        ),
+      ] as string[]
 
-      const sellerMap = new Map<string, any>()
-      for (const p of sellerProducts || []) {
-        if (p.seller) sellerMap.set(p.id, p.seller)
-      }
-      for (const item of cart.items || []) {
-        const pid = (item as any).product_id || (item as any).product?.id
-        if (pid && sellerMap.has(pid)) {
-          if (!(item as any).product) (item as any).product = {}
-          ;(item as any).product.seller = sellerMap.get(pid)
+      if (productIds.length > 0) {
+        const { products: sellerProducts } = await withRequestTimeout(
+          sdk.client.fetch<{
+            products: Array<{
+              id: string
+              seller?: { id: string; name: string }
+            }>
+          }>(`/store/products`, {
+            method: "GET",
+            query: {
+              id: productIds,
+              fields: "*seller",
+              limit: productIds.length,
+            },
+            headers,
+            cache: "no-store",
+          })
+        )
+
+        const sellerMap = new Map<string, { id: string; name: string }>()
+        for (const p of sellerProducts || []) {
+          if (p.seller) sellerMap.set(p.id, p.seller)
+        }
+        for (const item of cart.items || []) {
+          const row = item as {
+            product_id?: string
+            product?: { id?: string; seller?: { id: string; name: string } }
+          }
+          const pid = row.product_id || row.product?.id
+          if (pid && sellerMap.has(pid)) {
+            if (!row.product) row.product = {}
+            row.product.seller = sellerMap.get(pid)!
+          }
         }
       }
+    } catch (e) {
+      console.warn("[retrieveCart] Failed to enrich seller data:", e)
     }
-  } catch (e) {
-    console.warn("[retrieveCart] Failed to enrich seller data:", e)
+    logCheckoutPerf("retrieveCart:seller_enrich", performance.now() - tSeller)
   }
 
+  logCheckoutPerf("retrieveCart:total", performance.now() - tAll)
   return cart
 }
 

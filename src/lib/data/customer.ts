@@ -75,6 +75,35 @@ export const verifyCustomer =
     }
   }
 
+/**
+ * Lighter customer payload for checkout (no order graph).
+ */
+export async function getCheckoutCustomer(): Promise<HttpTypes.StoreCustomer | null> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return null
+  }
+
+  try {
+    const result = await sdk.client.fetch<{
+      customer: HttpTypes.StoreCustomer
+    }>(`/store/auth/me`, {
+      method: "GET",
+      headers,
+      query: {
+        fields: "*addresses",
+        relations: "*addresses",
+      },
+      cache: "no-store",
+    })
+
+    return result.customer
+  } catch {
+    return null
+  }
+}
+
 export const updateCustomer = async (body: HttpTypes.StoreUpdateCustomer) => {
   const headers = {
     ...(await getAuthHeaders()),
