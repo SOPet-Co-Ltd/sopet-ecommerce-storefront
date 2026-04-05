@@ -20,7 +20,10 @@ import { Cart } from "@/types/cart"
 import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
-import { withRequestTimeout } from "@/lib/helpers/request-timeout"
+import {
+  getCheckoutCartFetchTimeoutMs,
+  withRequestTimeout,
+} from "@/lib/helpers/request-timeout"
 
 const checkoutPerfLog =
   process.env["CHECKOUT_PERF_LOG"] === "1" ||
@@ -152,23 +155,37 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  const tCart = performance.now()
-  const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
-    {
+  const cartUrl = `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`
+
+  const fetchCart = () =>
+    fetchQuery(cartUrl, {
       method: "GET",
       headers,
       cache: "no-store",
+      medusaTimeoutMs: getCheckoutCartFetchTimeoutMs(),
+    })
+
+  const tCart = performance.now()
+  let result = await fetchCart()
+  if (result.error || !result.data?.cart) {
+    const retryable =
+      result.status === 0 ||
+      result.status === 408 ||
+      result.status === 429 ||
+      (result.status >= 500 && result.status < 600)
+    if (retryable) {
+      await new Promise((r) => setTimeout(r, 500))
+      result = await fetchCart()
     }
-  )
+  }
   logCheckoutPerf("retrieveCart:GET_cart", performance.now() - tCart)
 
-  if (error || !data?.cart) {
-    console.error(`[retrieveCart] Error fetching cart ${id}:`, error)
+  if (result.error || !result.data?.cart) {
+    console.error(`[retrieveCart] Error fetching cart ${id}:`, result.error)
     return null
   }
 
-  const cart = data.cart as Cart
+  const cart = result.data.cart as Cart
 
   const needsSellerFetch = (cart.items || []).some((item) => {
     const row = item as {

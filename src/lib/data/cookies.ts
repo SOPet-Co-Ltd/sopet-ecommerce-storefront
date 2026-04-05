@@ -72,8 +72,10 @@ export const setCartId = async (cartId: string) => {
   cookies.set("_medusa_cart_id", cartId, {
     maxAge: 60 * 60 * 24 * 7,
     httpOnly: true,
-    sameSite: "strict",
+    /** `lax` matches auth cookie — `strict` omits cookie on many real navigations and breaks checkout after refresh. */
+    sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    path: "/",
   })
 }
 

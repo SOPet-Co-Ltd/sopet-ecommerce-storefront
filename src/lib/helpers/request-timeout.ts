@@ -9,6 +9,19 @@ export function getMedusaRequestTimeoutMs(): number {
 }
 
 /**
+ * Checkout cart GET is heavy; use a longer budget than generic API calls to avoid
+ * false empty cart + redirect loops when Medusa is slow.
+ */
+export function getCheckoutCartFetchTimeoutMs(): number {
+  const raw = process.env["CHECKOUT_CART_FETCH_TIMEOUT_MS"]
+  const n = Number(raw)
+  if (Number.isFinite(n) && n > 0) {
+    return n
+  }
+  return Math.max(getMedusaRequestTimeoutMs(), 45_000)
+}
+
+/**
  * Rejects with `Error` if `promise` does not settle within `ms`.
  */
 export async function withRequestTimeout<T>(
