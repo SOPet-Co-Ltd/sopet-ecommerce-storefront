@@ -2,6 +2,23 @@ import { LoginForm, UserNavigation } from "@/components/molecules"
 import { ReviewsToWrite } from "@/components/organisms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/reviews",
+    title: "รีวิวที่ต้องเขียน",
+    description: "ให้คะแนนและรีวิวสินค้าหลังได้รับคำสั่งซื้อ",
+    indexable: false,
+  })
+}
 
 export default async function Page() {
   const user = await verifyCustomer()

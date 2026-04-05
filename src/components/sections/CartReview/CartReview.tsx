@@ -1,21 +1,14 @@
 "use client"
 
-import PaymentButton from "./PaymentButton"
 import CheckoutItemPreview from "@/components/molecules/CheckoutItemPreview/CheckoutItemPreview"
-import { StoreCardShippingMethod, Cart } from "@/types/cart"
-import { HttpTypes } from "@medusajs/types"
-import { Heading } from "@medusajs/ui"
+import { Cart } from "@/types/cart"
+import { Heading, Text } from "@medusajs/ui"
 import { ClipboardListIcon } from "@/icons"
+import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
 
-const Review = ({
-  cart,
-  shippingMethods,
-  customer,
-}: {
-  cart: Cart
-  shippingMethods: StoreCardShippingMethod[]
-  customer?: HttpTypes.StoreCustomer | null
-}) => {
+const Review = ({ cart }: { cart: Cart }) => {
+  const { shippingMethods, isLoading } = useCheckoutPageData()
+
   return (
     <div>
       <div className="bg-sop-base-white pt-2 px-4 ">
@@ -30,10 +23,16 @@ const Review = ({
         </div>
       </div>
       <div className="w-full">
-        <CheckoutItemPreview
-          cart={cart}
-          availableShippingMethods={shippingMethods}
-        />
+        {isLoading ? (
+          <Text className="text-sm text-gray-500 px-4 py-4">
+            กำลังโหลดตัวเลือกการจัดส่ง…
+          </Text>
+        ) : (
+          <CheckoutItemPreview
+            cart={cart}
+            availableShippingMethods={shippingMethods}
+          />
+        )}
       </div>
     </div>
   )

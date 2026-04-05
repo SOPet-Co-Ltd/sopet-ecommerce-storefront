@@ -17,6 +17,7 @@ import { getRegion } from "./regions"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
+import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 
 /**
@@ -112,7 +113,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   }
 
   const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title`,
+    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
     {
       method: "GET",
       headers,
@@ -125,7 +126,49 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     return null
   }
 
-  return data.cart as Cart
+  const cart = data.cart as Cart
+
+  // Enrich cart items with seller info (not available via cart endpoint)
+  try {
+    const productIds = [
+      ...new Set(
+        (cart.items || [])
+          .map((item: any) => item.product_id || item.product?.id)
+          .filter(Boolean)
+      ),
+    ]
+
+    if (productIds.length > 0) {
+      const { products: sellerProducts } = await sdk.client.fetch<{
+        products: Array<{ id: string; seller?: { id: string; name: string } }>
+      }>(`/store/products`, {
+        method: "GET",
+        query: {
+          id: productIds,
+          fields: "*seller",
+          limit: productIds.length,
+        },
+        headers,
+        cache: "no-store",
+      })
+
+      const sellerMap = new Map<string, any>()
+      for (const p of sellerProducts || []) {
+        if (p.seller) sellerMap.set(p.id, p.seller)
+      }
+      for (const item of cart.items || []) {
+        const pid = (item as any).product_id || (item as any).product?.id
+        if (pid && sellerMap.has(pid)) {
+          if (!(item as any).product) (item as any).product = {}
+          ;(item as any).product.seller = sellerMap.get(pid)
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[retrieveCart] Failed to enrich seller data:", e)
+  }
+
+  return cart
 }
 
 export async function getOrSetCart(countryCode: string) {
@@ -365,6 +408,10 @@ export async function updateLineItem({
   }
 
   try {
+    const cartBefore = await retrieveCart(cartId)
+    const previousProviderId =
+      cartBefore?.payment_collection?.payment_sessions?.[0]?.provider_id
+
     const body: Record<string, unknown> = { quantity }
 
     if (variantId) {
@@ -379,6 +426,19 @@ export async function updateLineItem({
         headers,
       }
     )
+
+    if (previousProviderId) {
+      const updatedCart = await retrieveCart(cartId)
+      if (
+        updatedCart?.payment_collection &&
+        (!updatedCart.payment_collection.payment_sessions ||
+          updatedCart.payment_collection.payment_sessions.length === 0)
+      ) {
+        await initiatePaymentSession(updatedCart, {
+          provider_id: previousProviderId,
+        }).catch((e) => console.warn("Auto re-initiate failed", e))
+      }
+    }
 
     const cartCacheTag = await getCacheTag("carts")
     await revalidateTag(cartCacheTag)
@@ -418,15 +478,30 @@ export async function deleteLineItem(lineId: string) {
     ...(await getAuthHeaders()),
   }
 
+  const cartBefore = await retrieveCart(cartId)
+  const previousProviderId =
+    cartBefore?.payment_collection?.payment_sessions?.[0]?.provider_id
+
   await fetchQuery(`/store/carts/${cartId}/line-items/${lineId}`, {
     method: "DELETE",
     headers,
   })
-    .then(async () => {
-      const cartCacheTag = await getCacheTag("carts")
-      await revalidateTag(cartCacheTag)
-    })
-    .catch(medusaError)
+
+  if (previousProviderId) {
+    const updatedCart = await retrieveCart(cartId)
+    if (
+      updatedCart?.payment_collection &&
+      (!updatedCart.payment_collection.payment_sessions ||
+        updatedCart.payment_collection.payment_sessions.length === 0)
+    ) {
+      await initiatePaymentSession(updatedCart, {
+        provider_id: previousProviderId,
+      }).catch((e) => console.warn("Auto re-initiate failed", e))
+    }
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  await revalidateTag(cartCacheTag)
 }
 
 export async function setShippingMethod({
@@ -445,6 +520,32 @@ export async function setShippingMethod({
     method: "POST",
     headers,
   })
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return res
+}
+
+export async function setMultiShippingMethods({
+  cartId,
+  optionIds,
+}: {
+  cartId: string
+  optionIds: string[]
+}) {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/multi-shipping-methods`,
+    {
+      body: { option_ids: optionIds },
+      method: "POST",
+      headers,
+    }
+  )
 
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
@@ -509,6 +610,159 @@ export async function initiatePaymentSession(
     .catch(medusaError)
 }
 
+export async function prepareMarketplacePayments(
+  cartId: string
+): Promise<MpCheckoutV1> {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/marketplace-payments/prepare`,
+    {
+      method: "POST",
+      headers,
+    }
+  )
+
+  if (!res.ok || !res.data) {
+    throw new Error(
+      res.error?.message || "Failed to prepare marketplace checkout"
+    )
+  }
+
+  const mp = (res.data as { marketplace_checkout?: MpCheckoutV1 })
+    .marketplace_checkout
+  if (!mp || mp.version !== 1 || !mp.slices?.length) {
+    throw new Error("Invalid marketplace checkout response")
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return mp
+}
+
+export async function createMarketplacePaymentSession(
+  cartId: string,
+  input: {
+    payment_collection_id: string
+    provider_id: string
+    data?: Record<string, unknown>
+  }
+): Promise<HttpTypes.StorePaymentCollection> {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/marketplace-payments/payment-sessions`,
+    {
+      method: "POST",
+      headers,
+      body: {
+        payment_collection_id: input.payment_collection_id,
+        provider_id: input.provider_id,
+        ...(input.data ? { data: input.data } : {}),
+      },
+    }
+  )
+
+  if (!res.ok || !res.data) {
+    throw new Error(
+      res.error?.message || "Failed to create marketplace payment session"
+    )
+  }
+
+  const pc = (
+    res.data as { payment_collection?: HttpTypes.StorePaymentCollection }
+  ).payment_collection
+  if (!pc?.id) {
+    throw new Error("Invalid marketplace payment session response")
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return pc
+}
+
+/**
+ * Completes checkout for marketplace carts (per-seller payment collections).
+ */
+/** Clear Medusa cart cookie after a successful checkout (e.g. PromptPay full-page flow). */
+export async function clearCheckoutCartCookie() {
+  await removeCartId()
+}
+
+export async function completeMarketplaceOrder(
+  cartId?: string,
+  options?: { redirect?: boolean }
+) {
+  const id = cartId || (await getCartId())
+
+  if (!id) {
+    throw new Error("No existing cart found when placing an order")
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  let cartBeforeComplete = await retrieveCart(id)
+  if (!cartBeforeComplete?.customer_id) {
+    throw new Error(
+      "Cart is not linked to a customer. Please sign in again before placing the order."
+    )
+  }
+
+  if (!cartBeforeComplete?.email) {
+    const customerPhone = (
+      cartBeforeComplete as { customer?: { phone?: string } }
+    )?.customer?.phone
+    const fallbackEmail = customerPhone
+      ? `${customerPhone}@sopet.co.th`
+      : "no-reply@sopet.co.th"
+
+    await updateCart({ email: fallbackEmail })
+    cartBeforeComplete = await retrieveCart(id)
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${id}/marketplace-payments/complete`,
+    {
+      method: "POST",
+      headers,
+    }
+  )
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  const orderId = getOrderIdFromPlaceOrderResponse(res)
+  const appliedPromoCodes = (
+    cartBeforeComplete as { promotions?: { code?: string }[] }
+  )?.promotions
+    ?.map((p) => p.code)
+    .filter(Boolean) as string[] | undefined
+  if (res?.ok && appliedPromoCodes?.length) {
+    const { markCouponAsUsed } = await import("@/lib/data/coupons")
+    Promise.all(appliedPromoCodes.map((code) => markCouponAsUsed(code))).catch(
+      (err) => console.error("Error marking coupons as used:", err)
+    )
+  }
+  if (res?.ok) {
+    revalidatePath("/user/reviews")
+    revalidatePath("/user/orders")
+  }
+  if (orderId && options?.redirect !== false) {
+    removeCartId()
+    redirect(`/order/${orderId}/confirmed`)
+  }
+
+  return res
+}
+
 export async function applyPromotions(codes: string[]) {
   const cartId = await getCartId()
 
@@ -520,24 +774,21 @@ export async function applyPromotions(codes: string[]) {
     ...(await getAuthHeaders()),
   }
 
-  return sdk.store.cart
-    .update(cartId, { promo_codes: codes }, {}, headers)
-    .then(async ({ cart }) => {
-      const cartCacheTag = await getCacheTag("carts")
-      revalidateTag(cartCacheTag)
-      // @ts-ignore
-      const applied = cart.promotions?.some((promotion: any) =>
-        codes.includes(promotion.code)
-      )
-      return applied
-    })
-    .catch((err) => {
-      console.error("[applyPromotions] Error applying promotion:", err)
-      // If the error is about invalid code, we just return false (not applied)
-      // The backend (Medusa v2) throws 500 or 400 for invalid codes often.
-      // We suppress this specific error to prevent frontend crashes/error boundaries.
-      return false
-    })
+  try {
+    await sdk.store.cart.update(cartId, { promo_codes: codes }, {}, headers)
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+
+    // Re-fetch cart with promotions to verify the code was actually applied
+    const updatedCart = await retrieveCart(cartId)
+    const applied = (updatedCart as any)?.promotions?.some((promotion: any) =>
+      codes.includes(promotion.code)
+    )
+    return !!applied
+  } catch (err) {
+    console.error("[applyPromotions] Error applying promotion:", err)
+    return false
+  }
 }
 
 export async function removeShippingMethod(shippingMethodId: string) {
@@ -641,10 +892,26 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
       },
     }
 
-    const email = getText("email")
-    if (email) {
-      data.email = email
+    let email = getText("email") || getText("shipping_address.email")
+
+    if (!email) {
+      const cartId = await getCartId()
+      if (cartId) {
+        const cart = await retrieveCart(cartId)
+        const customer = (cart as any)?.customer
+        if (customer?.phone) {
+          email = `${customer.phone}@sopet.co.th`
+        } else if (customer?.email) {
+          email = customer.email
+        }
+      }
     }
+
+    if (!email) {
+      email = "no-reply@sopet.co.th"
+    }
+
+    data.email = email
 
     // Note: Only set billing_address when a separate billing form is provided.
 
@@ -676,11 +943,22 @@ export async function placeOrder(
   }
 
   // Ensure cart is linked to a customer before completing the order
-  const cartBeforeComplete = await retrieveCart(id)
+  let cartBeforeComplete = await retrieveCart(id)
   if (!cartBeforeComplete?.customer_id) {
     throw new Error(
       "Cart is not linked to a customer. Please sign in again before placing the order."
     )
+  }
+
+  if (!cartBeforeComplete?.email) {
+    // Force a fallback email if missing to bypass Medusa v2 requirement
+    // Use customer's phone if available for better identification
+    const customerPhone = (cartBeforeComplete as any)?.customer?.phone
+    const fallbackEmail = customerPhone
+      ? `${customerPhone}@sopet.co.th`
+      : "no-reply@sopet.co.th"
+
+    await updateCart({ email: fallbackEmail })
   }
 
   const res = await fetchQuery(`/store/carts/${id}/complete`, {
@@ -692,6 +970,17 @@ export async function placeOrder(
   revalidateTag(cartCacheTag)
 
   const orderId = getOrderIdFromPlaceOrderResponse(res)
+  if (res?.data?.order_set) {
+    const appliedPromoCodes = (cartBeforeComplete as any)?.promotions
+      ?.map((p: any) => p.code)
+      .filter(Boolean) as string[] | undefined
+    if (appliedPromoCodes && appliedPromoCodes.length > 0) {
+      const { markCouponAsUsed } = await import("@/lib/data/coupons")
+      Promise.all(
+        appliedPromoCodes.map((code) => markCouponAsUsed(code))
+      ).catch((err) => console.error("Error marking coupons as used:", err))
+    }
+  }
   if (res?.ok) {
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
@@ -728,7 +1017,8 @@ export async function clearCart() {
     }
   }
   removeCartId()
-  revalidatePath("/")
+  // Cart tag + caller `router.refresh()` update the UI. Avoid `revalidatePath("/")`
+  // here — it invalidates the whole tree and can amplify PDP/RSC refetch storms.
 }
 
 /**

@@ -12,19 +12,22 @@ export async function generateMetadata({
 }: VetAIPageParams): Promise<Metadata> {
   const { locale } = await params
 
+  const siteName = process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"
+  const canonicalPath = `/${locale}/vet-ai`
+
   return {
-    title: "Vet AI | SOPet",
-    description: "Vet AI - SOPet",
+    title: "Vet AI",
+    description:
+      "ปรึกษาคำถามด้านสุขภาพสัตว์เลี้ยงเบื้องต้นกับผู้ช่วย AI จาก SOPet — ไม่ใช่คำแนะนำทางการแพทย์ที่สมบูรณ์ หากฉุกเฉินโปรดติดต่อสัตวแพทย์",
+    alternates: { canonical: canonicalPath },
+    robots: { index: true, follow: true },
     openGraph: {
-      title: "Vet AI | SOPet",
-      description: "Vet AI - SOPet",
-      url: `${process.env.NEXT_PUBLIC_BASE_URL}/${locale}/vetai`,
-      siteName: "SOPet",
-      images: [
-        {
-          url: `${process.env.NEXT_PUBLIC_BASE_URL}/images/logo.png`,
-        },
-      ],
+      title: `Vet AI | ${siteName}`,
+      description:
+        "ปรึกษาคำถามด้านสุขภาพสัตว์เลี้ยงเบื้องต้นกับผู้ช่วย AI จาก SOPet",
+      url: canonicalPath,
+      siteName,
+      type: "website",
     },
   }
 }

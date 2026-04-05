@@ -1,5 +1,6 @@
 "use server"
 
+import { REVALIDATE_PRODUCT_LIST } from "@/lib/cache/constants"
 import { sdk } from "../config"
 import { sortProducts } from "@/lib/helpers/sort-products"
 import { HttpTypes } from "@medusajs/types"
@@ -35,6 +36,8 @@ type ListProductsParams = {
   countryCode?: string
   regionId?: string
   forceCache?: boolean
+  /** When true, return all fetched products (e.g. re-hydrating items the user already purchased). */
+  skipPublishedToAlgoliaFilter?: boolean
 }
 
 type ListProductsResponse = {
@@ -106,7 +109,7 @@ const fetchProductStats = async (
       {
         method: "GET",
         headers,
-        next: useCached ? { revalidate: 60 } : undefined,
+        next: useCached ? { revalidate: REVALIDATE_PRODUCT_LIST } : undefined,
         cache: useCached ? "force-cache" : "no-cache",
       }
     )
@@ -221,6 +224,7 @@ export const listProducts = async (
     countryCode,
     regionId,
     forceCache = false,
+    skipPublishedToAlgoliaFilter = false,
   } = params
 
   if (!countryCode && !regionId) {
@@ -244,8 +248,16 @@ export const listProducts = async (
   }
 
   const headers = await getAuthHeaders()
+  const requestsSpecificProducts = Boolean(
+    (params.queryParams?.handle?.length ?? 0) > 0 ||
+    (params.queryParams?.id?.length ?? 0) > 0
+  )
   const useCached =
-    forceCache || (limit <= 8 && !params.category_id && !params.collection_id)
+    forceCache ||
+    (!requestsSpecificProducts &&
+      limit <= 8 &&
+      !params.category_id &&
+      !params.collection_id)
 
   try {
     const { products: productsRaw, count } = await sdk.client.fetch<{
@@ -255,7 +267,7 @@ export const listProducts = async (
       method: "GET",
       query: buildProductsQuery(params, region, limit, offset),
       headers,
-      next: useCached ? { revalidate: 60 } : undefined,
+      next: useCached ? { revalidate: REVALIDATE_PRODUCT_LIST } : undefined,
       cache: useCached ? "force-cache" : "no-cache",
     })
 
@@ -265,9 +277,11 @@ export const listProducts = async (
       useCached
     )
 
-    const publishedProducts = productsWithStats.filter(
-      (p) => p.metadata?.published_to_algolia === true
-    )
+    const publishedProducts = skipPublishedToAlgoliaFilter
+      ? productsWithStats
+      : productsWithStats.filter(
+          (p) => p.metadata?.published_to_algolia === true
+        )
     const nextPage = count > offset + limit ? pageParamValue + 1 : null
 
     return {
@@ -389,7 +403,7 @@ export const getSectionProducts = async ({
         method: "GET",
         query: { limit, offset, country_code: countryCode },
         headers,
-        next: { revalidate: 60 },
+        next: { revalidate: REVALIDATE_PRODUCT_LIST },
         cache: "force-cache",
       }
     )

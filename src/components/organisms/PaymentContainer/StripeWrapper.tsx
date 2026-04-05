@@ -20,9 +20,7 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
   stripePromise,
   children,
 }) => {
-  const clientSecret = paymentSession?.data?.client_secret as
-    | string
-    | undefined
+  const clientSecret = paymentSession?.data?.client_secret as string | undefined
   const options: StripeElementsOptions | undefined = clientSecret
     ? { clientSecret }
     : undefined
@@ -42,6 +40,7 @@ const StripeWrapper: React.FC<StripeWrapperProps> = ({
   return (
     <StripeContext.Provider value={true}>
       <Elements
+        key={clientSecret ?? "stripe-elements-no-client-secret"}
         {...(options ? { options } : {})}
         stripe={stripePromise}
       >

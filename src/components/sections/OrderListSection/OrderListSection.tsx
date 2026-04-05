@@ -83,22 +83,20 @@ const OrderListSection = ({
     return orders.filter((order) => {
       const displayStatus = getOrderDisplayStatus(order)
 
-      if (activeTab === "to-pay") {
-        return displayStatus === "to-pay"
+      switch (activeTab) {
+        case "to-pay":
+          return displayStatus === "to-pay"
+        case "to-ship":
+          return displayStatus === "preparing"
+        case "to-receive":
+          return displayStatus === "to-receive"
+        case "completed":
+          return displayStatus === "completed"
+        case "cancelled":
+          return displayStatus === "cancelled"
+        default:
+          return true
       }
-      if (activeTab === "to-ship") {
-        return displayStatus === "preparing"
-      }
-      if (activeTab === "to-receive") {
-        return displayStatus === "to-receive"
-      }
-      if (activeTab === "completed") {
-        return displayStatus === "completed"
-      }
-      if (activeTab === "cancelled") {
-        return displayStatus === "cancelled"
-      }
-      return true
     })
   }, [orders, activeTab])
 

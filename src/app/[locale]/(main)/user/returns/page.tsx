@@ -3,8 +3,26 @@ import { OrderReturnRequests } from "@/components/sections/OrderReturnRequests/O
 import { verifyCustomer } from "@/lib/data/customer"
 import { getReturns, retrieveReturnReasons } from "@/lib/data/orders"
 
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
 type ReturnRequestLike = {
   line_items: { created_at: string }[]
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/returns",
+    title: "คำขอคืนสินค้า",
+    description: "ติดตามสถานะคำขอคืนสินค้าและคืนเงินของคุณ",
+    indexable: false,
+  })
 }
 
 export default async function ReturnsPage({

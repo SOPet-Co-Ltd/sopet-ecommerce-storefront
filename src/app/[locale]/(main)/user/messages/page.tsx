@@ -2,6 +2,23 @@ import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
 import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { UserMessagesSection } from "@/components/sections/UserMessagesSection/UserMessagesSection"
 import { verifyCustomer } from "@/lib/data/customer"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/messages",
+    title: "ข้อความ",
+    description: "สนทนากับร้านค้าและติดตามข้อความที่เกี่ยวกับคำสั่งซื้อ",
+    indexable: false,
+  })
+}
 
 export default async function MessagesPage() {
   const user = await verifyCustomer()

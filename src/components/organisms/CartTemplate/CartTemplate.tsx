@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
 import { DiscountIcon, TicketSaleIcon } from "@/icons"
 import { Cart } from "@/types/cart"
+import { DiscountModal } from "@/components/molecules/DiscountModal/DiscountModal"
 
 type ProductWithSeller = HttpTypes.StoreProduct & {
   seller?: { name?: string; store_name?: string }
@@ -37,6 +38,9 @@ export const CartTemplate = ({
   onItemVariantChange,
 }: CartTemplateProps) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([])
+  const [discountModalVendor, setDiscountModalVendor] = useState<string | null>(
+    null
+  )
   const router = useRouter()
 
   useEffect(() => {
@@ -148,9 +152,14 @@ export const CartTemplate = ({
   // Group items by seller
   const itemsBySeller = sortedItems.reduce(
     (acc: Record<string, HttpTypes.StoreCartLineItem[]>, item) => {
+      // Safely probe various possible locations for the vendor name based on Medusa extensions
+      const prod = item.product as any
       const sellerName =
-        (item.product as ProductWithSeller)?.seller?.name ||
-        (item.product as ProductWithSeller)?.seller?.store_name ||
+        prod?.seller?.name ||
+        prod?.store?.name ||
+        prod?.collection?.title ||
+        prod?.vendor ||
+        (item.variant as any)?.product?.seller?.name ||
         "SOPet"
       if (!acc[sellerName]) {
         acc[sellerName] = []
@@ -229,6 +238,13 @@ export const CartTemplate = ({
           </h1>
         </div>
 
+        {Object.keys(itemsBySeller).length > 1 && (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 mb-4">
+            คุณมีสินค้าจากหลายร้าน หน้าชำระเงินจะแบ่งยอดชำระต่อร้าน
+            และชำระด้วยบัตรได้ในครั้งเดียว (PromptPay ใช้ได้เมื่อมีร้านเดียว)
+          </p>
+        )}
+
         <div className="flex gap-6">
           <div className=" flex flex-col gap-4 w-full">
             {Object.entries(itemsBySeller).map(([sellerName, items]) => {
@@ -276,8 +292,11 @@ export const CartTemplate = ({
                         ส่วนลดร้านค้า
                       </p>
                     </div>
-                    {/* TODO - Add function to show other discounts */}
-                    <button className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline">
+                    {/* Store coupons button */}
+                    <button
+                      className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline"
+                      onClick={() => setDiscountModalVendor(sellerName)}
+                    >
                       ดูส่วนลดอื่นๆ
                     </button>
                   </div>
@@ -308,6 +327,14 @@ export const CartTemplate = ({
           </div>
         </div>
       </div>
+
+      <DiscountModal
+        isOpen={!!discountModalVendor}
+        close={() => setDiscountModalVendor(null)}
+        cart={cart as any}
+        vendorName={discountModalVendor || undefined}
+        showAppliedPromotions={true}
+      />
     </div>
   )
 }

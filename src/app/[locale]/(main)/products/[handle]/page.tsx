@@ -1,7 +1,10 @@
 import { ProductDetailsPage } from "@/components/sections"
-import { listProducts } from "@/lib/data/products"
+import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
 import { generateProductMetadata } from "@/lib/helpers/seo"
 import type { Metadata } from "next"
+
+/** Must match `REVALIDATE_PRODUCT_LIST` in `@/lib/cache/constants` (Next requires a numeric literal here). */
+export const revalidate = 60
 
 export async function generateMetadata({
   params,
@@ -10,21 +13,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { handle, locale } = await params
 
-  const prod = await listProducts({
-    countryCode: locale,
-    queryParams: { handle: [handle], limit: 1 },
-    forceCache: true,
-  }).then(({ response }) => response.products[0])
+  const prod = await getProductByHandleForPdp(handle, locale)
 
-  return generateProductMetadata(prod)
+  if (!prod) {
+    return {
+      title: process.env.NEXT_PUBLIC_SITE_NAME ?? "Product",
+      robots: { index: false, follow: false },
+    }
+  }
+
+  return generateProductMetadata(prod, locale)
 }
 
 export default async function ProductPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ handle: string; locale: string }>
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
   const { handle, locale } = await params
 

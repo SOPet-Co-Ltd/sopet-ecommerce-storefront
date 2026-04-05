@@ -1,7 +1,7 @@
 "use client"
 
 import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
-import { setShippingMethod } from "@/lib/data/cart"
+import { setMultiShippingMethods } from "@/lib/data/cart"
 import { calculatePriceForShippingOption } from "@/lib/data/fulfillment"
 import { convertToLocale } from "@/lib/helpers/money"
 import { CheckCircleSolid, ChevronUpDown, Loader } from "@medusajs/icons"
@@ -48,6 +48,8 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
   const [missingShippingSellers, setMissingShippingSellers] = useState<
     string[]
   >([])
+  // Track per-seller shipping option selections
+  const [sellerSelections, setSellerSelections] = useState<Record<string, string>>({})
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -83,6 +85,69 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
     }
   }, [cart])
 
+  // Initialize per-seller selections from existing cart shipping methods
+  useEffect(() => {
+    if (!_shippingMethods?.length) return
+
+    const initial: Record<string, string> = {}
+    let hasAllSellers = true
+    const sellerIdsInCart = new Set<string>()
+
+    // Use a Set to track which sellers have a method in the cart
+    if (cart.shipping_methods?.length) {
+      for (const sm of cart.shipping_methods) {
+        const matchingOption = _shippingMethods.find(
+          (opt: any) => opt.id === sm.shipping_option_id
+        )
+        if (matchingOption?.seller_id && sm.shipping_option_id) {
+          initial[matchingOption.seller_id] = sm.shipping_option_id
+          sellerIdsInCart.add(matchingOption.seller_id)
+        }
+      }
+    }
+
+    // Check which sellers are missing a shipping method
+    const allSellerIds = new Set<string>()
+    cart.items?.forEach((item) => {
+      const product = item?.product as ExtendedStoreProduct
+      if (product?.seller?.id) {
+        allSellerIds.add(product.seller.id)
+      }
+    })
+
+    const missingSellerIds = Array.from(allSellerIds).filter(id => !sellerIdsInCart.has(id))
+    
+    if (missingSellerIds.length > 0) {
+      // Pick defaults for missing sellers
+      const newSelections = { ...initial }
+      let changed = false
+      for (const sellerId of missingSellerIds) {
+        const defaultMethod = _shippingMethods.find(m => m.seller_id === sellerId)
+        if (defaultMethod) {
+          newSelections[sellerId] = defaultMethod.id
+          changed = true
+        }
+      }
+      
+      if (changed) {
+        setSellerSelections(newSelections)
+        // Auto-persist to backend
+        const allOptionIds = Object.values(newSelections).filter(Boolean)
+        setMultiShippingMethods({
+          cartId: cart.id,
+          optionIds: allOptionIds
+        }).then(() => {
+          router.refresh()
+        }).catch(err => {
+          console.error("Failed to auto-select shipping methods", err)
+        })
+        return
+      }
+    }
+
+    setSellerSelections(initial)
+  }, [cart.shipping_methods, _shippingMethods, cart.id, cart.items])
+
   useEffect(() => {
     if (_shippingMethods?.length) {
       const promises = _shippingMethods
@@ -107,26 +172,36 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
     router.push(pathname + "?step=payment", { scroll: false })
   }
 
-  const handleSetShippingMethod = async (id: string | null) => {
-    if (!id) {
+  const handleSetShippingMethod = async (sellerId: string, optionId: string | null) => {
+    if (!optionId) {
       return
     }
+
+    // Update local selections for this seller
+    const updated = { ...sellerSelections, [sellerId]: optionId }
+    setSellerSelections(updated)
+
+    // Gather all selected option IDs across all sellers
+    const allOptionIds = Object.values(updated).filter(Boolean)
+    if (allOptionIds.length === 0) return
 
     try {
       setError(null)
       setIsLoadingPrices(true)
-      const res = await setShippingMethod({
+      await setMultiShippingMethods({
         cartId: cart.id,
-        shippingMethodId: id,
+        optionIds: allOptionIds,
       })
-      if (!res.ok) {
-        return setError(res.error?.message)
-      }
+      router.refresh()
     } catch (error: any) {
       setError(
         error?.message?.replace("Error setting up the request: ", "") ||
           "An error occurred"
       )
+      // Revert if failed
+      const prev = { ...sellerSelections }
+      delete prev[sellerId]
+      setSellerSelections(prev)
     } finally {
       setIsLoadingPrices(false)
     }
@@ -227,9 +302,15 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
                         {groupedBySellerId[key][0].seller_name}
                       </Heading>
                       <Listbox
-                        value={cart.shipping_methods?.[0]?.id}
+                        value={
+                          cart.shipping_methods?.find((sm) =>
+                            groupedBySellerId[key].some(
+                              (opt: any) => opt.id === sm.shipping_option_id
+                            )
+                          )?.shipping_option_id
+                        }
                         onChange={(value) => {
-                          handleSetShippingMethod(value)
+                          handleSetShippingMethod(key, value)
                         }}
                       >
                         <div className="relative">
@@ -319,7 +400,10 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
             />
             <Button
               onClick={handleSubmit}
-              disabled={!cart.shipping_methods?.[0]}
+              disabled={
+                !cart.shipping_methods ||
+                cart.shipping_methods.length < Object.keys(groupedBySellerId || {}).length
+              }
               loading={isLoadingPrices}
             >
               Continue to payment

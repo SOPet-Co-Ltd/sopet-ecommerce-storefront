@@ -1,42 +1,32 @@
-import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
+import { CheckoutElementsSecretProvider } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
+import { MarketplaceCheckoutProvider } from "@/components/sections/CheckoutPaymentSection/MarketplaceCheckoutContext"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
 import {
   retrieveCart,
   ensureCheckoutCartQuantitiesCapped,
 } from "@/lib/data/cart"
-import {
-  listAddressesByPhone,
-  retrieveCustomer,
-  verifyCustomer,
-} from "@/lib/data/customer"
-import { listCartShippingMethods } from "@/lib/data/fulfillment"
-import { listCartPaymentMethods } from "@/lib/data/payment"
-import { Metadata } from "next"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { cookies } from "next/headers"
-import { Suspense } from "react"
 
-export const metadata: Metadata = {
-  title: "Checkout",
-  description: "My cart page - Checkout",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "checkout",
+    title: "ชำระเงิน",
+    description:
+      "กรอกที่อยู่จัดส่ง เลือกวิธีชำระเงิน และยืนยันคำสั่งซื้อของคุณอย่างปลอดภัย",
+    indexable: false,
+  })
 }
 
-export default async function CheckoutPage({}) {
-  return (
-    <Suspense
-      fallback={
-        <div className="container flex items-center justify-center">
-          Loading...
-        </div>
-      }
-    >
-      <CheckoutPageContent />
-    </Suspense>
-  )
-}
-
-async function CheckoutPageContent({}) {
+export default async function CheckoutPage() {
   let cart = await retrieveCart()
 
   if (!cart) {
@@ -48,26 +38,13 @@ async function CheckoutPageContent({}) {
     cart = capped
   }
 
-  const shippingMethods = await listCartShippingMethods(cart.id, false)
-
-  const regionId = cart.region_id ?? cart.region?.id
-  const paymentMethods = regionId
-    ? await listCartPaymentMethods(regionId)
-    : null
-
-  // const customer = await retrieveCustomer()
-  const customer = await verifyCustomer()
-
   return (
-    <PaymentWrapper cart={cart}>
-      <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-        <CheckoutFlowClient
-          cart={cart}
-          shippingMethods={shippingMethods || []}
-          paymentMethods={paymentMethods}
-          customer={customer}
-        />
-      </main>
-    </PaymentWrapper>
+    <CheckoutElementsSecretProvider>
+      <MarketplaceCheckoutProvider>
+        <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+          <CheckoutFlowClient cart={cart} />
+        </main>
+      </MarketplaceCheckoutProvider>
+    </CheckoutElementsSecretProvider>
   )
 }

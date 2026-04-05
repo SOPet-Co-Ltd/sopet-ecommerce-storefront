@@ -13,7 +13,7 @@ export const CartItems = ({ cart }: { cart: Cart | null }) => {
 
   if (!Object.keys(groupedItems).length) return <EmptyCart />
 
-  return Object.keys(groupedItems).map((key) => (
+  return Object.keys(groupedItems).sort().map((key) => (
     <div key={key} className="mb-4">
       <CartItemsHeader seller={groupedItems[key]?.seller} />
       <CartItemsProducts

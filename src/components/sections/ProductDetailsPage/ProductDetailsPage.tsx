@@ -1,6 +1,6 @@
 import { ProductDetails, ProductGallery } from "@/components/organisms"
-import { listProducts } from "@/lib/data/products"
-import NotFound from "@/app/not-found"
+import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
+import { getProductReviewStats } from "@/lib/data/reviews"
 import { Breadcrumbs } from "@/components/atoms"
 import { ProductDetailsSeller } from "@/components/cells"
 import {
@@ -10,8 +10,11 @@ import {
   ProductDetailWarning,
 } from ".."
 import { Suspense } from "react"
+import { notFound } from "next/navigation"
 import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
 import { ProductViewTracker } from "@/components/atoms/ProductViewTracker/ProductViewTracker"
+import { ProductDetailReviewSkeleton } from "./ProductDetailReviewSkeleton"
+import { SellerProductsSectionSkeleton } from "./SellerProductsSectionSkeleton"
 
 export const ProductDetailsPage = async ({
   handle,
@@ -20,18 +23,15 @@ export const ProductDetailsPage = async ({
   handle: string
   locale: string
 }) => {
-  const prod = await listProducts({
-    countryCode: locale,
-    queryParams: { handle: [handle], limit: 1 },
-    forceCache: true,
-  }).then(({ response }) => response.products[0])
+  const prod = await getProductByHandleForPdp(handle, locale)
 
-  // TODO - return NotFound page if product is not found
-  if (!prod) return NotFound()
+  if (!prod) notFound()
 
   if (prod.seller?.store_status === "SUSPENDED") {
-    return NotFound()
+    notFound()
   }
+
+  const reviewStats = await getProductReviewStats(prod.id)
 
   const breadcrumbs = !prod.collection
     ? [
@@ -63,7 +63,11 @@ export const ProductDetailsPage = async ({
 
       <div className="bg-sop-base-white grid lg:grid-cols-[4fr_6fr] grid-cols-1 gap-4 lg:p-4 lg:rounded-lg rounded-none pb-4">
         <ProductGallery images={prod?.images || []} />
-        <ProductDetails product={prod} locale={locale} />
+        <ProductDetails
+          product={prod}
+          locale={locale}
+          reviewStats={reviewStats}
+        />
       </div>
 
       <ProductDetailsSeller seller={prod?.seller} />
@@ -72,17 +76,18 @@ export const ProductDetailsPage = async ({
 
       <ProductDetailWarning warning={productWarning} />
 
-      <ProductDetailReview productId={prod.id} />
+      <Suspense fallback={<ProductDetailReviewSkeleton />}>
+        <ProductDetailReview productId={prod.id} reviewStats={reviewStats} />
+      </Suspense>
 
-      <div className="my-8">
-        <Suspense fallback={<div>กำลังโหลดสินค้าเพิ่มเติมจากผู้ขาย...</div>}>
-          <HomeProductSection
-            heading="สินค้าจากร้านเดียวกัน"
-            sellerProducts={prod.seller?.products}
-            locale={locale}
-          />
-        </Suspense>
-      </div>
+      <Suspense fallback={<SellerProductsSectionSkeleton />}>
+        <HomeProductSection
+          heading="สินค้าจากร้านเดียวกัน"
+          sellerProducts={prod.seller?.products}
+          locale={locale}
+          excludeProductId={prod.id}
+        />
+      </Suspense>
     </>
   )
 }

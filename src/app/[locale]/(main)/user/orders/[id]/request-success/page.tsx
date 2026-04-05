@@ -1,6 +1,23 @@
 import { Button } from "@/components/atoms/Button/Button"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string }>
+}): Promise<Metadata> {
+  const { locale, id } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: `user/orders/${id}/request-success`,
+    title: "ส่งคำขอสำเร็จ",
+    description: "เราได้รับคำขอของคุณแล้ว และจะดำเนินการต่อไป",
+    indexable: false,
+  })
+}
 
 export default async function RequestSuccessPage({
   params,

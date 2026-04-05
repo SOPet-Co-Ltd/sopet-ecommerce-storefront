@@ -2,8 +2,8 @@
 
 import { SellerProps } from "@/types/seller"
 import { sdk } from "../config"
-import medusaError from "../helpers/medusa-error"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
+import { listProducts, type ProductWithSeller } from "./products"
 import type { HttpTypes } from "@medusajs/types"
 
 interface RecentOrdersResponse {
@@ -25,11 +25,15 @@ interface RecentOrdersResponse {
 
 /**
  * Fetches recent orders for the logged-in customer and extracts unique products
- * from the order items. Returns null if customer is not authenticated or has no orders.
+ * from the order items. Re-fetches each product via the store products API so variants
+ * include region `calculated_price` (order snapshots do not). Returns null if
+ * unauthenticated or no orders.
  */
-export const getRecentOrderProducts = async (): Promise<Array<
-  HttpTypes.StoreProduct & { seller?: SellerProps }
-> | null> => {
+export const getRecentOrderProducts = async ({
+  countryCode,
+}: {
+  countryCode: string
+}): Promise<ProductWithSeller[] | null> => {
   try {
     const headers = await getAuthHeaders()
 
@@ -71,21 +75,33 @@ export const getRecentOrderProducts = async (): Promise<Array<
                 seller?: SellerProps
               })
             | undefined
-          if (
-            withMeta &&
-            withMeta.id &&
-            !productMap.has(withMeta.id) &&
-            withMeta.metadata?.published_to_algolia === true
-          ) {
+          if (withMeta && withMeta.id && !productMap.has(withMeta.id)) {
             productMap.set(withMeta.id, withMeta)
           }
         })
       }
     })
 
-    const products = Array.from(productMap.values())
+    const orderedIds = Array.from(productMap.keys())
+    if (orderedIds.length === 0) {
+      return null
+    }
 
-    return products.length > 0 ? products : null
+    const {
+      response: { products: pricedProducts },
+    } = await listProducts({
+      countryCode,
+      pageParam: 1,
+      queryParams: { id: orderedIds, limit: orderedIds.length },
+      skipPublishedToAlgoliaFilter: true,
+    })
+
+    const byId = new Map(pricedProducts.map((p) => [p.id, p]))
+    const ordered = orderedIds
+      .map((id) => byId.get(id))
+      .filter((p): p is ProductWithSeller => p != null)
+
+    return ordered.length > 0 ? ordered : null
   } catch (error) {
     // Log error but don't throw - render page without recent orders section
     console.error("Failed to fetch recent order products:", error)

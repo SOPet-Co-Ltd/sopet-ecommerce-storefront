@@ -1,5 +1,12 @@
 import { Heading, Text } from "@medusajs/ui"
+import type { HttpTypes } from "@medusajs/types"
 import type { OrderDetails as OrderDetailsType } from "@/types/order"
+import OrderDetails from "@/components/organisms/OrderDefails/OrderDetails"
+import OrderItems from "@/components/organisms/OrderItems/OrderItems"
+import OrderTotals from "@/components/organisms/OrderDefails/OrderTotals"
+
+const asStoreOrder = (order: OrderDetailsType): HttpTypes.StoreOrder =>
+  order as unknown as HttpTypes.StoreOrder
 
 export const OrderConfirmedSection = ({
   order,
@@ -33,10 +40,17 @@ export const OrderConfirmedSection = ({
               .
             </Text>
           </div>
-          {/* <OrderDetails order={order} />
-          <OrderItems order={order} />
-          <OrderTotals totals={order} />
-          <OrderShipping order={order} /> */}
+          <OrderDetails order={asStoreOrder(order)} />
+          <OrderItems order={asStoreOrder(order)} />
+          <OrderTotals
+            totals={{
+              item_total: order.subtotal,
+              total: order.total,
+              shipping_subtotal: order.shipping_total,
+              currency_code: order.currency_code,
+            }}
+          />
+          {/* <OrderShipping order={order} /> */}
           {/*<PaymentDetails order={order} />
           <Help /> */}
         </div>

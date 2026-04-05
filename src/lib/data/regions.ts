@@ -1,13 +1,14 @@
 "use server"
 
+import { cache } from "react"
 import { sdk } from "../config"
 import medusaError from "@/lib/helpers/medusa-error"
 import { HttpTypes } from "@medusajs/types"
+import { REVALIDATE_REGIONS } from "@/lib/cache/constants"
 import { getCacheOptions } from "./cookies"
 
 // Constants
 const DEFAULT_COUNTRY_CODE = "th"
-const CACHE_REVALIDATE_TIME = 3600 // 1 hour in seconds
 
 // Cache key helper
 const getRegionCacheKey = (id: string): string => `regions-${id}`
@@ -27,13 +28,14 @@ export const clearRegionCache = async (): Promise<void> => {
 /**
  * Retrieves all available regions from the store.
  * Results are cached for 1 hour and can be invalidated using Next.js cache tags.
+ * Wrapped with React `cache()` so a single request dedupes calls (e.g. layout + metadata).
  *
  * @returns Promise resolving to an array of regions, or throws an error if the request fails
  */
-export const listRegions = async (): Promise<HttpTypes.StoreRegion[]> => {
+const listRegionsUncached = async (): Promise<HttpTypes.StoreRegion[]> => {
   const next = {
     ...(await getCacheOptions("regions")),
-    revalidate: CACHE_REVALIDATE_TIME,
+    revalidate: REVALIDATE_REGIONS,
   }
 
   return sdk.client
@@ -45,6 +47,8 @@ export const listRegions = async (): Promise<HttpTypes.StoreRegion[]> => {
     .then(({ regions }) => regions)
     .catch(medusaError)
 }
+
+export const listRegions = cache(listRegionsUncached)
 
 /**
  * Retrieves a specific region by its ID.
@@ -58,7 +62,7 @@ export const retrieveRegion = async (
 ): Promise<HttpTypes.StoreRegion> => {
   const next = {
     ...(await getCacheOptions(getRegionCacheKey(id))),
-    revalidate: CACHE_REVALIDATE_TIME,
+    revalidate: REVALIDATE_REGIONS,
   }
 
   return sdk.client

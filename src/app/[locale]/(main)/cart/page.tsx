@@ -1,12 +1,25 @@
 import { Cart } from "@/types/cart"
 import { getCartForCustomerCartPage } from "@/lib/data/customer-cart-page"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 import { CartPageClient } from "./CartPageClient"
 
 export const dynamic = "force-dynamic"
 
-export const metadata = {
-  title: "Cart",
-  description: "View your cart",
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "cart",
+    title: "ตะกร้าสินค้า",
+    description:
+      "ตรวจสอบสินค้าในตะกร้า ปรับจำนวน และดำเนินการชำระเงินเมื่อพร้อมบน SOPet",
+    indexable: false,
+  })
 }
 
 export default async function CartPage({

@@ -21,5 +21,8 @@ export function getOrderIdFromPlaceOrderResponse(res: {
     const id = (d.order as { id?: string }).id
     if (typeof id === "string") return id
   }
+  if (d.type === "order" && typeof d.order_id === "string") {
+    return d.order_id
+  }
   return null
 }

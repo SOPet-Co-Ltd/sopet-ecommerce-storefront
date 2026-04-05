@@ -5,14 +5,29 @@ import {
   checkCustomerHasReviewed,
   getCurrentCustomerId,
 } from "@/lib/data/reviews"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "user/orders",
+    title: "คำสั่งซื้อของฉัน",
+    description: "ดูสถานะและประวัติคำสั่งซื้อทั้งหมดของคุณบน SOPet",
+    indexable: false,
+  })
+}
 
 export default async function UserPage() {
   const orders = await listOrders(100, 0)
 
-  // Compute, for each order, whether the authenticated customer has reviewed
-  // at least one product in that order.
   const customerId = await getCurrentCustomerId()
 
   let reviewedByOrderId: Record<string, boolean> = {}

@@ -6,8 +6,26 @@ import {
   checkCustomerHasReviewed,
   getCurrentCustomerId,
 } from "@/lib/data/reviews"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; id: string }>
+}): Promise<Metadata> {
+  const { locale, id } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: `user/orders/${id}`,
+    title: "รายละเอียดคำสั่งซื้อ",
+    description:
+      "ดูรายการสินค้า สถานะจัดส่ง และข้อมูลการชำระเงินของคำสั่งซื้อนี้",
+    indexable: false,
+  })
+}
 
 export default async function OrderDetailsPage({
   params,

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation"
 import { OAuthSuccessView } from "@/components/molecules"
 import { ensureStripeCustomer, verifyCustomer } from "@/lib/data/customer"
 import type { OAuthSuccessProvider } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
+import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Metadata } from "next"
 
 const KNOWN_OAUTH_PROVIDERS: OAuthSuccessProvider[] = [
   "google",
@@ -27,6 +29,21 @@ type OAuthSuccessPageProps = {
   searchParams: Promise<{
     [key: string]: string | string[] | undefined
   }>
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>
+}): Promise<Metadata> {
+  const { locale } = await params
+  return buildPageMetadata({
+    locale,
+    pathname: "auth/oauth-success",
+    title: "เข้าสู่ระบบสำเร็จ",
+    description: "ยืนยันการเข้าสู่ระบบด้วยบัญชีโซเชียลเรียบร้อยแล้ว",
+    indexable: false,
+  })
 }
 
 export default async function OAuthSuccessPage({

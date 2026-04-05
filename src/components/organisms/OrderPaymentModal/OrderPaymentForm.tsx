@@ -11,7 +11,8 @@ interface OrderPaymentFormProps {
   onClose: () => void
   onPaymentSuccess?: () => void | Promise<void>
   selectedCardId?: string | null
-  clientSecret: string
+  /** One secret (single seller) or one per marketplace payment collection (multi-seller). */
+  clientSecrets: string[]
 }
 
 const toErrorMessage = (error: unknown): string => {
@@ -31,13 +32,11 @@ export const OrderPaymentForm = ({
   onClose,
   onPaymentSuccess,
   selectedCardId,
-  clientSecret,
+  clientSecrets,
 }: OrderPaymentFormProps) => {
   const stripe = useStripe()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  console.log("OrderPaymentForm received selectedCardId:", selectedCardId)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +49,7 @@ export const OrderPaymentForm = ({
     setError(null)
 
     try {
-      if (!clientSecret) {
+      if (!clientSecrets.length) {
         throw new Error("ไม่พบข้อมูล Payment Session")
       }
 
@@ -58,29 +57,35 @@ export const OrderPaymentForm = ({
         throw new Error("กรุณาเลือกบัตรที่บันทึกไว้")
       }
 
-      // Confirm with a pre-saved payment method
-      const confirmResult = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: selectedCardId,
-      })
+      for (const secret of clientSecrets) {
+        const confirmResult = await stripe.confirmCardPayment(secret, {
+          payment_method: selectedCardId,
+        })
 
-      const stripeError = confirmResult.error
-      const paymentIntent = confirmResult.paymentIntent
+        const stripeError = confirmResult.error
+        const paymentIntent = confirmResult.paymentIntent
 
-      if (stripeError) {
-        throw new Error(stripeError.message)
-      }
-
-      if (
-        paymentIntent?.status === "succeeded" ||
-        paymentIntent?.status === "processing" ||
-        paymentIntent?.status === "requires_action"
-      ) {
-        // Payment successful or needs redirect for QR
-        if (onPaymentSuccess) {
-          await onPaymentSuccess()
+        if (stripeError) {
+          throw new Error(stripeError.message)
         }
-        onClose()
+
+        if (
+          paymentIntent?.status !== "succeeded" &&
+          paymentIntent?.status !== "processing" &&
+          paymentIntent?.status !== "requires_action"
+        ) {
+          throw new Error(
+            paymentIntent?.status
+              ? `สถานะการชำระเงินไม่คาดหมาย: ${paymentIntent.status}`
+              : "การชำระเงินไม่สำเร็จ"
+          )
+        }
       }
+
+      if (onPaymentSuccess) {
+        await onPaymentSuccess()
+      }
+      onClose()
     } catch (error: unknown) {
       setError(toErrorMessage(error))
     } finally {

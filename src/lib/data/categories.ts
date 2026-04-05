@@ -1,3 +1,7 @@
+import {
+  REVALIDATE_CATEGORY_DETAIL,
+  REVALIDATE_CATEGORY_LIST,
+} from "@/lib/cache/constants"
 import { sdk } from "@/lib/config"
 import { HttpTypes } from "@medusajs/types"
 
@@ -22,7 +26,7 @@ export const listCategories = async ({
         ...query,
       },
       cache: "force-cache",
-      next: { revalidate: 3600 },
+      next: { revalidate: REVALIDATE_CATEGORY_LIST },
     })
     .then(({ product_categories }) => product_categories)
 
@@ -54,7 +58,7 @@ export const getCategoryByHandle = async (categoryHandle: string[]) => {
           handle,
         },
         cache: "force-cache",
-        next: { revalidate: 300 },
+        next: { revalidate: REVALIDATE_CATEGORY_DETAIL },
       }
     )
     .then(({ product_categories }) => product_categories[0])

@@ -1,7 +1,7 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { clearCart } from "@/lib/data/cart"
 
 const CART_CLEARED_PATH_KEY = "sopet_cart_cleared_path"
@@ -14,6 +14,8 @@ const CART_CLEARED_PATH_KEY = "sopet_cart_cleared_path"
 export default function ClearCartOnNonCheckout() {
   const pathname = usePathname()
   const router = useRouter()
+  const routerRef = useRef(router)
+  routerRef.current = router
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -25,8 +27,10 @@ export default function ClearCartOnNonCheckout() {
     const key = pathname ?? ""
     if (sessionStorage.getItem(CART_CLEARED_PATH_KEY) === key) return
     sessionStorage.setItem(CART_CLEARED_PATH_KEY, key)
-    clearCart().then(() => router.refresh())
-  }, [pathname, router])
+    clearCart().then(() => routerRef.current.refresh())
+    // `router` is intentionally omitted — unstable identity re-ran this effect and
+    // stacked refreshes with `revalidateTag("carts")` from the server action.
+  }, [pathname])
 
   return null
 }

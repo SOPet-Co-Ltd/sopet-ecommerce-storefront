@@ -14,9 +14,13 @@ const OrderStatusStepper = ({
 }: OrderStatusStepperProps) => {
   const currentStep = useMemo(() => {
     if (status === "canceled") return -1
-    if (paymentStatus === "awaiting") return 0
-    if (fulfillmentStatus === "not_fulfilled" && paymentStatus === "captured")
-      return 1 // Paid, preparing to ship
+    const awaitingPayment =
+      paymentStatus === "awaiting" || paymentStatus === "not_paid"
+    const paidEnoughToShip =
+      paymentStatus === "captured" || paymentStatus === "authorized"
+
+    if (awaitingPayment) return 0
+    if (fulfillmentStatus === "not_fulfilled" && paidEnoughToShip) return 1 // Paid / authorized, preparing to ship
     if (fulfillmentStatus === "shipped") return 2
     if (fulfillmentStatus === "fulfilled" || fulfillmentStatus === "delivered")
       return 3
