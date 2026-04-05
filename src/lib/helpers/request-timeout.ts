@@ -1,24 +1,35 @@
-const DEFAULT_MS = 25_000
-
+/**
+ * Medusa fetch timeout (ms). **0 = disabled** (default) so slow UAT/backends are not aborted.
+ * Set `MEDUSA_FETCH_TIMEOUT_MS` only if you explicitly want hard caps.
+ */
 export function getMedusaRequestTimeoutMs(): number {
   const raw =
     process.env["MEDUSA_FETCH_TIMEOUT_MS"] ??
     process.env["NEXT_PUBLIC_MEDUSA_FETCH_TIMEOUT_MS"]
+  if (raw === undefined || String(raw).trim() === "") {
+    return 0
+  }
   const n = Number(raw)
-  return Number.isFinite(n) && n > 0 ? n : DEFAULT_MS
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
 
 /**
- * Checkout cart GET is heavy; use a longer budget than generic API calls to avoid
- * false empty cart + redirect loops when Medusa is slow.
+ * Timeout for the heavy checkout cart GET. If unset, follows global (usually off).
+ * Set `CHECKOUT_CART_FETCH_TIMEOUT_MS` to cap only this request.
  */
 export function getCheckoutCartFetchTimeoutMs(): number {
   const raw = process.env["CHECKOUT_CART_FETCH_TIMEOUT_MS"]
-  const n = Number(raw)
-  if (Number.isFinite(n) && n > 0) {
-    return n
+  if (raw !== undefined && String(raw).trim() !== "") {
+    const n = Number(raw)
+    if (Number.isFinite(n) && n > 0) {
+      return n
+    }
   }
-  return Math.max(getMedusaRequestTimeoutMs(), 45_000)
+  const base = getMedusaRequestTimeoutMs()
+  if (base <= 0) {
+    return 0
+  }
+  return Math.max(base, 45_000)
 }
 
 /**
@@ -29,6 +40,9 @@ export async function withRequestTimeout<T>(
   ms: number = getMedusaRequestTimeoutMs(),
   timeoutMessage = "คำขอหมดเวลา กรุณาลองอีกครั้ง"
 ): Promise<T> {
+  if (ms <= 0) {
+    return promise
+  }
   let timeoutId: ReturnType<typeof setTimeout> | undefined
   try {
     return await Promise.race([

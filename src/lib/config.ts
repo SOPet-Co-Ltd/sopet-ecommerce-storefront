@@ -44,6 +44,9 @@ function mergeFetchSignal(
   timeoutMs: number = getMedusaRequestTimeoutMs()
 ): AbortSignal | undefined {
   const sig = userSignal ?? undefined
+  if (timeoutMs <= 0) {
+    return sig
+  }
   if (
     typeof AbortSignal === "undefined" ||
     typeof AbortSignal.timeout !== "function"

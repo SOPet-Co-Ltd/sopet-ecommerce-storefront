@@ -20,10 +20,7 @@ import { Cart } from "@/types/cart"
 import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
-import {
-  getCheckoutCartFetchTimeoutMs,
-  withRequestTimeout,
-} from "@/lib/helpers/request-timeout"
+import { getCheckoutCartFetchTimeoutMs } from "@/lib/helpers/request-timeout"
 
 const checkoutPerfLog =
   process.env["CHECKOUT_PERF_LOG"] === "1" ||
@@ -215,23 +212,21 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
       ] as string[]
 
       if (productIds.length > 0) {
-        const { products: sellerProducts } = await withRequestTimeout(
-          sdk.client.fetch<{
-            products: Array<{
-              id: string
-              seller?: { id: string; name: string }
-            }>
-          }>(`/store/products`, {
-            method: "GET",
-            query: {
-              id: productIds,
-              fields: "*seller",
-              limit: productIds.length,
-            },
-            headers,
-            cache: "no-store",
-          })
-        )
+        const { products: sellerProducts } = await sdk.client.fetch<{
+          products: Array<{
+            id: string
+            seller?: { id: string; name: string }
+          }>
+        }>(`/store/products`, {
+          method: "GET",
+          query: {
+            id: productIds,
+            fields: "*seller",
+            limit: productIds.length,
+          },
+          headers,
+          cache: "no-store",
+        })
 
         const sellerMap = new Map<string, { id: string; name: string }>()
         for (const p of sellerProducts || []) {

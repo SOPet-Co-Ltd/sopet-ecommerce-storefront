@@ -15,10 +15,6 @@ import {
   getCustomerPaymentMethods,
   type CustomerPaymentMethod,
 } from "@/lib/data/customer"
-import {
-  getMedusaRequestTimeoutMs,
-  withRequestTimeout,
-} from "@/lib/helpers/request-timeout"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import type { StoreCardShippingMethod } from "@/types/cart"
@@ -57,9 +53,6 @@ async function fetchCheckoutBundle(
   savedStripePaymentMethods: CustomerPaymentMethod[]
   bundleError: string | null
 }> {
-  const ms = getMedusaRequestTimeoutMs()
-  const timeoutMsg = "คำขอหมดเวลา กรุณารีเฟรชหน้าหรือลองอีกครั้ง"
-
   const checkoutPerfClient =
     process.env.NODE_ENV === "development" ||
     process.env["NEXT_PUBLIC_CHECKOUT_PERF_LOG"] === "1"
@@ -70,12 +63,10 @@ async function fetchCheckoutBundle(
       : null
 
   const settled = await Promise.allSettled([
-    withRequestTimeout(listCartShippingMethods(cartId, false), ms, timeoutMsg),
-    regionId
-      ? withRequestTimeout(listCartPaymentMethods(regionId), ms, timeoutMsg)
-      : Promise.resolve(null),
-    withRequestTimeout(getCheckoutCustomer(), ms, timeoutMsg),
-    withRequestTimeout(getCustomerPaymentMethods(), ms, timeoutMsg),
+    listCartShippingMethods(cartId, false),
+    regionId ? listCartPaymentMethods(regionId) : Promise.resolve(null),
+    getCheckoutCustomer(),
+    getCustomerPaymentMethods(),
   ])
 
   if (bundleT0 !== null && typeof performance !== "undefined") {
