@@ -62,6 +62,7 @@ export function Button({
   loading = false,
   disabled = false,
   className,
+  type,
   ...props
 }: ButtonProps) {
   const isIconUiType =
@@ -148,6 +149,7 @@ export function Button({
 
   return (
     <button
+      type={type ?? "button"}
       disabled={isDisabled}
       aria-busy={loading || undefined}
       className={cn(

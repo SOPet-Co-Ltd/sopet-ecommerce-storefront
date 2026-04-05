@@ -94,6 +94,7 @@ export const orderPaymentSessionSchema = z
     provider_id: z.string(),
     status: z.string(),
     created_at: nullableString,
+    payment_collection_id: z.string().nullish(),
     data: orderPaymentSessionDataSchema.nullish(),
   })
   .passthrough()
@@ -221,6 +222,9 @@ export const orderMutationResponseSchema = z.object({
 
 export const updateOrderPaymentSessionResponseSchema = z.object({
   payment_session: orderPaymentSessionSchema,
+  payment_sessions: z.array(orderPaymentSessionSchema).optional(),
+  order_id: z.string().optional(),
+  payment_collection_ids: z.array(z.string()).optional(),
 })
 
 export const retrievePaymentCollectionResponseSchema = z.object({

@@ -2,7 +2,7 @@ import { ProductDetailsVariantSelection } from "@/components/cells/ProductDetail
 import ProductReviewStars from "@/components/sections/ProductReview/ProductReview"
 
 import { verifyCustomer } from "@/lib/data/customer"
-import { getProductReviewStats } from "@/lib/data/reviews"
+import type { ReviewStats } from "@/lib/data/reviews"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { AdditionalAttributeProps } from "@/types/product"
 import { SellerProps } from "@/types/seller"
@@ -12,12 +12,14 @@ import { HttpTypes } from "@medusajs/types"
 export const ProductDetails = async ({
   product,
   locale,
+  reviewStats,
 }: {
   product: HttpTypes.StoreProduct & {
     seller?: SellerProps
     attribute_values?: AdditionalAttributeProps[]
   }
   locale: string
+  reviewStats: ReviewStats
 }) => {
   const user = await verifyCustomer()
 
@@ -26,8 +28,6 @@ export const ProductDetails = async ({
     const response = await getUserWishlists()
     wishlist = response.wishlists
   }
-
-  const reviewStats = await getProductReviewStats(product.id)
   // Get sold_count from reviewStats (which fetches from stats endpoint)
   // Fallback to product.sold_count if available
   const soldCount =

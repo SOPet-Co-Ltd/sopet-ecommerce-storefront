@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { loadStripe, StripeCardElementOptions } from "@stripe/stripe-js"
+import type { StripeCardElementOptions } from "@stripe/stripe-js"
 import {
   CardNumberElement,
   CardExpiryElement,
@@ -12,9 +12,13 @@ import {
 } from "@stripe/react-stripe-js"
 import { Button, Checkbox, InputSOPet } from "@/components/atoms"
 import { addCustomerPaymentMethod } from "@/lib/data/customer"
+import {
+  getStripePromise,
+  getStripePublishableKey,
+} from "@/lib/stripe/get-stripe"
 
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_KEY
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null
+const stripeKey = getStripePublishableKey()
+const stripePromise = getStripePromise()
 
 type InnerFormProps = {
   onSuccess?: () => void

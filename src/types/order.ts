@@ -96,6 +96,8 @@ export type OrderPaymentSession = {
   provider_id: string
   status: string
   created_at?: string | null | undefined
+  /** Present when returned from Medusa payment APIs; used to align multi-slice secrets with UI collection order. */
+  payment_collection_id?: string | null | undefined
   data?: OrderPaymentSessionData | null | undefined
 }
 
@@ -202,6 +204,23 @@ export type OrderFilters = Record<string, OrderFiltersValue>
 export type OrderMutationResult<T, K extends string> =
   | ({ success: true; error: null } & Record<K, T>)
   | ({ success: false; error: string } & Record<K, null>)
+
+/** Result of POST /store/orders/:id/payment-session (change payment / init session). */
+export type UpdateOrderPaymentSessionMutationResult =
+  | {
+      success: true
+      error: null
+      payment_session: OrderPaymentSession
+      payment_sessions: OrderPaymentSession[]
+      order_id?: string
+      payment_collection_ids?: string[]
+    }
+  | {
+      success: false
+      error: string
+      payment_session: null
+      payment_sessions: null
+    }
 
 export type OrderMutationOrder = {
   id: string

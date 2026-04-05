@@ -6,7 +6,8 @@ import { OrderPaymentModal } from "@/components/organisms/OrderPaymentModal/Orde
 import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderCancelModal"
 import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/ChangePaymentModal"
 import { convertToLocale } from "@/lib/helpers/money"
-import { completeOrder, captureOrderPayment } from "@/lib/data/orders" // Static import for server action
+import { completeOrder, captureOrderPayment } from "@/lib/data/orders"
+import { toast } from "@/lib/helpers/toast"
 import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 import {
   ActionMenu,
@@ -21,9 +22,14 @@ import {
   getOrderStatusLabel,
   getOrderStatusColor,
 } from "@/lib/helpers/order-status"
+import {
+  resolveOrderCheckoutProviderId,
+  setStoredOrderPaymentProviderId,
+} from "@/lib/helpers/order-checkout-payment"
+import { clearOrderPromptPayContinuity } from "@/lib/helpers/order-promptpay-continuity"
 import type { OrderDetails } from "@/types/order"
 import { SmartImage } from "@/components/atoms"
-import { TimeIcon } from "@/icons"
+import { PendingPromptPayCountdownBar } from "@/components/molecules/PendingPromptPayCountdownBar/PendingPromptPayCountdownBar"
 
 type OrderCardProps = {
   order: OrderDetails
@@ -39,6 +45,9 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
   const [forceMethodSelection, setForceMethodSelection] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [paymentSecretsBootstrap, setPaymentSecretsBootstrap] = useState<
+    string[] | null
+  >(null)
 
   const router = useRouter()
 
@@ -153,37 +162,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         </div>
 
         {displayStatus === "to-pay" && (
-          <div className="border-b border-sop-neutral-grayalpha-300 pb-3 md:pb-5">
-            <div className="flex items-center justify-between md:justify-start gap-3 bg-sop-primary-200 rounded-sop-4px px-2 md:px-4 py-4">
-              <div className="flex items-center gap-1">
-                <TimeIcon size={18} color="#000000" />
-                <p className="text-sop-base-black sop-body-sm-regular md:sop-body-md-regular">
-                  ชำระเงินผ่าน QR code ภายใน
-                </p>
-              </div>
-              {/* TODO - Replace placeholder with actual countdown timer */}
-              <div className="flex items-center gap-2">
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Hours*/}
-                  03
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  :
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Minutes */}
-                  15
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  :
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Seconds */}
-                  38
-                </p>
-              </div>
-            </div>
-          </div>
+          <PendingPromptPayCountdownBar order={order} variant="card" />
         )}
 
         {/* Action Buttons */}
@@ -282,7 +261,6 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
           {displayStatus === "to-pay" && (
             <Button
               variant="secondary"
-              className="hidden md:flex"
               onClick={() => setIsCancelModalOpen(true)}
             >
               ยกเลิกคำสั่งซื้อ
@@ -304,12 +282,6 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
                   </LocalizedClientLink>
                 )}
 
-                {displayStatus === "to-pay" && (
-                  <ActionMenuItem onClick={() => setIsCancelModalOpen(true)}>
-                    ยกเลิกคำสั่งซื้อ
-                  </ActionMenuItem>
-                )}
-
                 {displayStatus === "completed" && (
                   <ActionMenuItem
                     onClick={() => console.log("Return order clicked")}
@@ -328,9 +300,12 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         onClose={() => {
           setIsPaymentModalOpen(false)
           setForceMethodSelection(false)
+          setPaymentSecretsBootstrap(null)
         }}
         order={order}
         forceMethodSelection={forceMethodSelection}
+        initialClientSecretsFromChange={paymentSecretsBootstrap}
+        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(null)}
         selectedCardId={
           selectedCardId ||
           (typeof window !== "undefined"
@@ -338,13 +313,20 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             : null)
         }
         onPaymentSuccess={async () => {
-          try {
-            await captureOrderPayment(order.id)
-            router.push(`/order/${order.id}/confirmed`)
-          } catch (error: unknown) {
-            console.error(error)
-            window.location.reload()
+          const result = await captureOrderPayment(order.id)
+          if (!result.success) {
+            toast.error({
+              title: "ยืนยันการชำระเงินไม่สำเร็จ",
+              description: result.error ?? undefined,
+            })
+            throw new Error(result.error || "Capture failed")
           }
+          setStoredOrderPaymentProviderId(order.id, null)
+          clearOrderPromptPayContinuity(order.id)
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem(`order_${order.id}_cardId`)
+          }
+          router.push(`/order/${order.id}/confirmed`)
         }}
       />
 
@@ -352,11 +334,21 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         isOpen={isChangePaymentModalOpen}
         onClose={() => setIsChangePaymentModalOpen(false)}
         orderId={order.id}
+        paymentCollectionIds={order.payment_collections
+          ?.map((c) => c.id)
+          .filter(Boolean)}
         orderTotal={calculatedTotal}
-        {...(order.payment_provider_id
-          ? { currentMethod: order.payment_provider_id }
-          : {})}
-        onConfirm={(cardId) => {
+        currentMethod={resolveOrderCheckoutProviderId(order) ?? undefined}
+        onConfirm={(cardId, providerId, bootstrap) => {
+          clearOrderPromptPayContinuity(order.id)
+          if (providerId) {
+            setStoredOrderPaymentProviderId(order.id, providerId)
+          }
+          if (bootstrap?.clientSecrets?.length) {
+            setPaymentSecretsBootstrap(bootstrap.clientSecrets)
+          } else {
+            setPaymentSecretsBootstrap(null)
+          }
           if (cardId) {
             setSelectedCardId(cardId)
             if (typeof window !== "undefined") {
@@ -377,6 +369,12 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         isOpen={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
         orderId={order.id}
+        onSuccess={() => {
+          setStoredOrderPaymentProviderId(order.id, null)
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem(`order_${order.id}_cardId`)
+          }
+        }}
       />
 
       <ReviewModal

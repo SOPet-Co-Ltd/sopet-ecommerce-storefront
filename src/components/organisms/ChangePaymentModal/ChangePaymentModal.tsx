@@ -11,14 +11,27 @@ import {
 } from "@/lib/data/orders"
 import { toast } from "@/lib/helpers/toast"
 import type { CustomerPaymentMethod } from "@/types/order"
+import {
+  assertOrderPaymentSessionCollectionsMatch,
+  bootstrapFromOrderPaymentSessionsAligned,
+  mapProviderIdToChangePaymentUiMethod,
+  type OrderPaymentChangeBootstrap,
+} from "@/lib/helpers/order-checkout-payment"
 
 interface ChangePaymentModalProps {
   isOpen: boolean
   onClose: () => void
   currentMethod?: string
   orderId: string
+  /** Same order as GET /store/custom/orders/:id merged `payment_collections` (for multi-seller / shared cart). */
+  paymentCollectionIds?: string[]
   orderTotal?: number
-  onConfirm?: (selectedCardId?: string | null) => void
+  /** Second arg is Medusa provider id; third is sessions from API so pay modal uses the same Medusa-linked secrets. */
+  onConfirm?: (
+    selectedCardId?: string | null,
+    providerId?: string,
+    bootstrap?: OrderPaymentChangeBootstrap | null
+  ) => void
 }
 
 const PAYMENT_METHODS = [
@@ -41,39 +54,52 @@ export const ChangePaymentModal = ({
   onClose,
   currentMethod,
   orderId,
+  paymentCollectionIds,
   orderTotal,
   onConfirm,
 }: ChangePaymentModalProps) => {
-  const [selectedMethod, setSelectedMethod] = useState<string | undefined>(
-    currentMethod === "pp_promptpay_stripe-connect" ? "promptpay" : "stripe"
-  )
+  const [selectedMethod, setSelectedMethod] = useState<string | undefined>()
   const [savedMethods, setSavedMethods] = useState<CustomerPaymentMethod[]>([])
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (isOpen) {
-      setIsLoading(true)
-      getOrderCustomerPaymentMethods()
-        .then((res) => {
-          if (res.success) {
-            setSavedMethods(res.paymentMethods)
-            // Auto-select default card if exists
-            const defaultCard = res.paymentMethods.find((pm) => pm.is_default)
-            if (defaultCard) {
-              setSelectedCardId(defaultCard.id)
-            } else if (res.paymentMethods.length > 0) {
-              setSelectedCardId(res.paymentMethods[0]?.id ?? null)
-            }
-          }
-        })
-        .finally(() => setIsLoading(false))
+    if (!isOpen) {
+      return
     }
-  }, [isOpen])
+
+    const mapped = mapProviderIdToChangePaymentUiMethod(currentMethod)
+    setSelectedMethod(mapped)
+
+    setIsLoading(true)
+    getOrderCustomerPaymentMethods()
+      .then((res) => {
+        if (res.success) {
+          setSavedMethods(res.paymentMethods)
+          const defaultCard = res.paymentMethods.find((pm) => pm.is_default)
+          if (defaultCard) {
+            setSelectedCardId(defaultCard.id)
+          } else if (res.paymentMethods.length > 0) {
+            setSelectedCardId(res.paymentMethods[0]?.id ?? null)
+          } else {
+            setSelectedCardId(null)
+          }
+        }
+      })
+      .finally(() => setIsLoading(false))
+  }, [isOpen, currentMethod])
 
   const handleConfirm = async () => {
     if (!selectedMethod) return
+
+    if (selectedMethod === "stripe" && !selectedCardId && !isLoading) {
+      toast.error({
+        title: "ไม่สามารถดำเนินการได้",
+        description: "กรุณาเพิ่มหรือเลือกบัตรสำหรับชำระด้วยบัตร",
+      })
+      return
+    }
 
     setIsSubmitting(true)
     try {
@@ -86,14 +112,40 @@ export const ChangePaymentModal = ({
       // 1. Initialize/Update Payment Session via Server Action
       const finalAmount = orderTotal ? Math.round(orderTotal) : undefined
 
-      const { success, error } = await updateOrderPaymentSession(
+      const result = await updateOrderPaymentSession(
         orderId,
         providerId,
         finalAmount
       )
 
-      if (!success) {
-        throw new Error(error || "Failed to update payment method")
+      if (!result.success) {
+        throw new Error(result.error || "Failed to update payment method")
+      }
+
+      if (result.order_id && result.order_id !== orderId) {
+        throw new Error(
+          "คำสั่งซื้อไม่ตรงกับการชำระเงิน กรุณารีเฟรชแล้วลองอีกครั้ง"
+        )
+      }
+
+      assertOrderPaymentSessionCollectionsMatch(
+        result.payment_collection_ids,
+        paymentCollectionIds
+      )
+
+      const bootstrap = bootstrapFromOrderPaymentSessionsAligned(
+        result.payment_sessions,
+        paymentCollectionIds
+      )
+
+      if (
+        paymentCollectionIds &&
+        paymentCollectionIds.length > 0 &&
+        bootstrap.clientSecrets.length !== paymentCollectionIds.length
+      ) {
+        throw new Error(
+          "ไม่ได้รับ Payment Session ครบทุกร้าน กรุณารีเฟรชแล้วลองอีกครั้ง"
+        )
       }
 
       toast.success({
@@ -101,7 +153,11 @@ export const ChangePaymentModal = ({
         description: "กรุณากดชำระเงินเพื่อดำเนินการต่อ",
       })
 
-      onConfirm?.(selectedMethod === "stripe" ? selectedCardId : null)
+      onConfirm?.(
+        selectedMethod === "stripe" ? selectedCardId : null,
+        providerId,
+        bootstrap.clientSecrets.length > 0 ? bootstrap : null
+      )
       onClose()
     } catch (error: unknown) {
       toast.error({
@@ -236,7 +292,12 @@ export const ChangePaymentModal = ({
             className="flex-1 rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white h-12"
             onClick={handleConfirm}
             loading={isSubmitting}
-            disabled={!selectedMethod || isSubmitting}
+            disabled={
+              !selectedMethod ||
+              isSubmitting ||
+              (selectedMethod === "stripe" &&
+                (isLoading || savedMethods.length === 0 || !selectedCardId))
+            }
           >
             ยืนยัน
           </Button>

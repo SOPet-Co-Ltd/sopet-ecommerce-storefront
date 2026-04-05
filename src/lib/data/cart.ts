@@ -17,6 +17,7 @@ import { getRegion } from "./regions"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { parseVariantIdsFromError } from "@/lib/helpers/parse-variant-error"
 import { Cart } from "@/types/cart"
+import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 
 /**
@@ -112,7 +113,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
   }
 
   const { data, error } = await fetchQuery(
-    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
+    `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`,
     {
       method: "GET",
       headers,
@@ -609,6 +610,159 @@ export async function initiatePaymentSession(
     .catch(medusaError)
 }
 
+export async function prepareMarketplacePayments(
+  cartId: string
+): Promise<MpCheckoutV1> {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/marketplace-payments/prepare`,
+    {
+      method: "POST",
+      headers,
+    }
+  )
+
+  if (!res.ok || !res.data) {
+    throw new Error(
+      res.error?.message || "Failed to prepare marketplace checkout"
+    )
+  }
+
+  const mp = (res.data as { marketplace_checkout?: MpCheckoutV1 })
+    .marketplace_checkout
+  if (!mp || mp.version !== 1 || !mp.slices?.length) {
+    throw new Error("Invalid marketplace checkout response")
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return mp
+}
+
+export async function createMarketplacePaymentSession(
+  cartId: string,
+  input: {
+    payment_collection_id: string
+    provider_id: string
+    data?: Record<string, unknown>
+  }
+): Promise<HttpTypes.StorePaymentCollection> {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${cartId}/marketplace-payments/payment-sessions`,
+    {
+      method: "POST",
+      headers,
+      body: {
+        payment_collection_id: input.payment_collection_id,
+        provider_id: input.provider_id,
+        ...(input.data ? { data: input.data } : {}),
+      },
+    }
+  )
+
+  if (!res.ok || !res.data) {
+    throw new Error(
+      res.error?.message || "Failed to create marketplace payment session"
+    )
+  }
+
+  const pc = (
+    res.data as { payment_collection?: HttpTypes.StorePaymentCollection }
+  ).payment_collection
+  if (!pc?.id) {
+    throw new Error("Invalid marketplace payment session response")
+  }
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  return pc
+}
+
+/**
+ * Completes checkout for marketplace carts (per-seller payment collections).
+ */
+/** Clear Medusa cart cookie after a successful checkout (e.g. PromptPay full-page flow). */
+export async function clearCheckoutCartCookie() {
+  await removeCartId()
+}
+
+export async function completeMarketplaceOrder(
+  cartId?: string,
+  options?: { redirect?: boolean }
+) {
+  const id = cartId || (await getCartId())
+
+  if (!id) {
+    throw new Error("No existing cart found when placing an order")
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  let cartBeforeComplete = await retrieveCart(id)
+  if (!cartBeforeComplete?.customer_id) {
+    throw new Error(
+      "Cart is not linked to a customer. Please sign in again before placing the order."
+    )
+  }
+
+  if (!cartBeforeComplete?.email) {
+    const customerPhone = (
+      cartBeforeComplete as { customer?: { phone?: string } }
+    )?.customer?.phone
+    const fallbackEmail = customerPhone
+      ? `${customerPhone}@sopet.co.th`
+      : "no-reply@sopet.co.th"
+
+    await updateCart({ email: fallbackEmail })
+    cartBeforeComplete = await retrieveCart(id)
+  }
+
+  const res = await fetchQuery(
+    `/store/carts/${id}/marketplace-payments/complete`,
+    {
+      method: "POST",
+      headers,
+    }
+  )
+
+  const cartCacheTag = await getCacheTag("carts")
+  revalidateTag(cartCacheTag)
+
+  const orderId = getOrderIdFromPlaceOrderResponse(res)
+  const appliedPromoCodes = (
+    cartBeforeComplete as { promotions?: { code?: string }[] }
+  )?.promotions
+    ?.map((p) => p.code)
+    .filter(Boolean) as string[] | undefined
+  if (res?.ok && appliedPromoCodes?.length) {
+    const { markCouponAsUsed } = await import("@/lib/data/coupons")
+    Promise.all(appliedPromoCodes.map((code) => markCouponAsUsed(code))).catch(
+      (err) => console.error("Error marking coupons as used:", err)
+    )
+  }
+  if (res?.ok) {
+    revalidatePath("/user/reviews")
+    revalidatePath("/user/orders")
+  }
+  if (orderId && options?.redirect !== false) {
+    removeCartId()
+    redirect(`/order/${orderId}/confirmed`)
+  }
+
+  return res
+}
+
 export async function applyPromotions(codes: string[]) {
   const cartId = await getCartId()
 
@@ -863,7 +1017,8 @@ export async function clearCart() {
     }
   }
   removeCartId()
-  revalidatePath("/")
+  // Cart tag + caller `router.refresh()` update the UI. Avoid `revalidatePath("/")`
+  // here — it invalidates the whole tree and can amplify PDP/RSC refetch storms.
 }
 
 /**

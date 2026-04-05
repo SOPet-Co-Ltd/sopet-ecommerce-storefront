@@ -238,6 +238,13 @@ export const CartTemplate = ({
           </h1>
         </div>
 
+        {Object.keys(itemsBySeller).length > 1 && (
+          <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-4 py-3 mb-4">
+            คุณมีสินค้าจากหลายร้าน หน้าชำระเงินจะแบ่งยอดชำระต่อร้าน
+            และชำระด้วยบัตรได้ในครั้งเดียว (PromptPay ใช้ได้เมื่อมีร้านเดียว)
+          </p>
+        )}
+
         <div className="flex gap-6">
           <div className=" flex flex-col gap-4 w-full">
             {Object.entries(itemsBySeller).map(([sellerName, items]) => {

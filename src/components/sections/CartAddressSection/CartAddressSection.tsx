@@ -1,6 +1,6 @@
 "use client"
 
-import { Heading } from "@medusajs/ui"
+import { Heading, Text } from "@medusajs/ui"
 import { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useState } from "react"
@@ -14,6 +14,7 @@ import {
   useCheckoutPayment,
   type DraftShippingAddress,
 } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
+import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
 
 function draftToCartAddress(
   draft: DraftShippingAddress
@@ -45,16 +46,19 @@ function getDefaultShippingAddress(
 
 type CartAddressSectionProps = {
   cart: Cart | null
-  customer: HttpTypes.StoreCustomer | null
   verifiedPhone?: string
 }
 
 export const CartAddressSection = ({
   cart,
-  customer,
   verifiedPhone,
 }: CartAddressSectionProps) => {
   const router = useRouter()
+  const {
+    customer,
+    isLoading: checkoutDataLoading,
+    refetch,
+  } = useCheckoutPageData()
   const [showAddressDialog, setShowAddressDialog] = useState(false)
   const [editDialogState, setEditDialogState] = useState<{
     isOpen: boolean
@@ -153,7 +157,13 @@ export const CartAddressSection = ({
         </Heading>
       </div>
 
-      {hasSavedAddresses && !showDraftForm ? (
+      {checkoutDataLoading ? (
+        <Text className="text-sm text-gray-500 py-6">
+          กำลังโหลดที่อยู่และข้อมูลลูกค้า…
+        </Text>
+      ) : null}
+
+      {!checkoutDataLoading && hasSavedAddresses && !showDraftForm ? (
         <div>
           {selectedSavedAddress ? (
             <ShippingAddressSummary
@@ -168,7 +178,7 @@ export const CartAddressSection = ({
             />
           ) : null}
         </div>
-      ) : (
+      ) : !checkoutDataLoading ? (
         <div className="pb-8">
           <ShippingAddress
             customer={customer}
@@ -194,7 +204,7 @@ export const CartAddressSection = ({
             </button>
           )}
         </div>
-      )}
+      ) : null}
 
       {showAddressDialog && (
         <AddressSelectionDialog
@@ -227,7 +237,8 @@ export const CartAddressSection = ({
             setEditDialogState({ ...editDialogState, isOpen: false })
           }
           address={editDialogState.address}
-          onSuccess={() => {
+          onSuccess={async () => {
+            await refetch()
             router.refresh()
             setShowAddressDialog(true)
           }}

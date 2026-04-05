@@ -1,13 +1,11 @@
-import PaymentWrapper from "@/components/organisms/PaymentContainer/PaymentWrapper"
+import { CheckoutElementsSecretProvider } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
+import { MarketplaceCheckoutProvider } from "@/components/sections/CheckoutPaymentSection/MarketplaceCheckoutContext"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
 import {
   retrieveCart,
   ensureCheckoutCartQuantitiesCapped,
 } from "@/lib/data/cart"
-import { verifyCustomer } from "@/lib/data/customer"
-import { listCartShippingMethods } from "@/lib/data/fulfillment"
-import { listCartPaymentMethods } from "@/lib/data/payment"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
@@ -40,24 +38,13 @@ export default async function CheckoutPage() {
     cart = capped
   }
 
-  const regionId = cart.region_id ?? cart.region?.id
-
-  const [shippingMethods, paymentMethods, customer] = await Promise.all([
-    listCartShippingMethods(cart.id, false),
-    regionId ? listCartPaymentMethods(regionId) : Promise.resolve(null),
-    verifyCustomer(),
-  ])
-
   return (
-    <PaymentWrapper cart={cart}>
-      <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-        <CheckoutFlowClient
-          cart={cart}
-          shippingMethods={shippingMethods || []}
-          paymentMethods={paymentMethods}
-          customer={customer}
-        />
-      </main>
-    </PaymentWrapper>
+    <CheckoutElementsSecretProvider>
+      <MarketplaceCheckoutProvider>
+        <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+          <CheckoutFlowClient cart={cart} />
+        </main>
+      </MarketplaceCheckoutProvider>
+    </CheckoutElementsSecretProvider>
   )
 }

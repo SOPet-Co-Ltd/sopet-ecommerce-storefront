@@ -1,5 +1,6 @@
 import { ProductDetails, ProductGallery } from "@/components/organisms"
 import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
+import { getProductReviewStats } from "@/lib/data/reviews"
 import { Breadcrumbs } from "@/components/atoms"
 import { ProductDetailsSeller } from "@/components/cells"
 import {
@@ -29,6 +30,8 @@ export const ProductDetailsPage = async ({
   if (prod.seller?.store_status === "SUSPENDED") {
     notFound()
   }
+
+  const reviewStats = await getProductReviewStats(prod.id)
 
   const breadcrumbs = !prod.collection
     ? [
@@ -60,7 +63,11 @@ export const ProductDetailsPage = async ({
 
       <div className="bg-sop-base-white grid lg:grid-cols-[4fr_6fr] grid-cols-1 gap-4 lg:p-4 lg:rounded-lg rounded-none pb-4">
         <ProductGallery images={prod?.images || []} />
-        <ProductDetails product={prod} locale={locale} />
+        <ProductDetails
+          product={prod}
+          locale={locale}
+          reviewStats={reviewStats}
+        />
       </div>
 
       <ProductDetailsSeller seller={prod?.seller} />
@@ -70,7 +77,7 @@ export const ProductDetailsPage = async ({
       <ProductDetailWarning warning={productWarning} />
 
       <Suspense fallback={<ProductDetailReviewSkeleton />}>
-        <ProductDetailReview productId={prod.id} />
+        <ProductDetailReview productId={prod.id} reviewStats={reviewStats} />
       </Suspense>
 
       <Suspense fallback={<SellerProductsSectionSkeleton />}>

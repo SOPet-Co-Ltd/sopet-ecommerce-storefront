@@ -31,6 +31,7 @@ import type {
   OrderMutationResult,
   OrderPaymentCollection,
   OrderPaymentSession,
+  UpdateOrderPaymentSessionMutationResult,
   OrderSetReference,
   ReturnReason,
   ReturnShippingMethod,
@@ -48,6 +49,9 @@ type RetrievePaymentCollectionResponse = {
 }
 type UpdateOrderPaymentSessionResponse = {
   payment_session: OrderPaymentSession
+  payment_sessions?: OrderPaymentSession[] | undefined
+  order_id?: string
+  payment_collection_ids?: string[]
 }
 type RetrieveCustomerPaymentMethodsResponse = {
   payment_methods: CustomerPaymentMethod[]
@@ -423,7 +427,7 @@ export const updateOrderPaymentSession = async (
   orderId: string,
   providerId: string,
   amountToPay?: number
-): Promise<OrderMutationResult<OrderPaymentSession, "payment_session">> => {
+): Promise<UpdateOrderPaymentSessionMutationResult> => {
   const headers = await getAuthHeaders()
 
   return sdk.client
@@ -439,21 +443,36 @@ export const updateOrderPaymentSession = async (
         "updateOrderPaymentSession"
       )
     )
-    .then(async ({ payment_session }) => {
-      await revalidateOrdersCache()
-
-      return {
-        success: true as const,
-        error: null,
+    .then(
+      async ({
         payment_session,
+        payment_sessions,
+        order_id,
+        payment_collection_ids,
+      }) => {
+        await revalidateOrdersCache()
+
+        const paymentSessions = payment_sessions?.length
+          ? payment_sessions
+          : [payment_session]
+
+        return {
+          success: true as const,
+          error: null,
+          payment_session,
+          payment_sessions: paymentSessions,
+          ...(order_id ? { order_id } : {}),
+          ...(payment_collection_ids?.length ? { payment_collection_ids } : {}),
+        }
       }
-    })
+    )
     .catch((error: unknown) => {
       console.error("Update payment session error:", error)
       return {
         success: false as const,
         error: toErrorMessage(error),
         payment_session: null,
+        payment_sessions: null,
       }
     })
 }

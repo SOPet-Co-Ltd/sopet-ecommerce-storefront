@@ -3,18 +3,19 @@ import {
   ProductDetailReviewComment,
   RenderReviewFilterButtons,
 } from "@/components/sections"
-import { getProductReviewStats } from "@/lib/data/reviews"
+import type { ReviewStats } from "@/lib/data/reviews"
 import { cn } from "@/lib/utils"
 
 type ProductDetailReviewProps = {
   productId: string
+  reviewStats: ReviewStats
 }
 
-export const ProductDetailReview = async ({
+export const ProductDetailReview = ({
   productId,
+  reviewStats,
 }: ProductDetailReviewProps) => {
-  const { averageRating, starCounts, totalReviews } =
-    await getProductReviewStats(productId)
+  const { averageRating, starCounts, totalReviews } = reviewStats
 
   const starCount5 = starCounts.find((s) => s.starCount === 5)?.count ?? 0
   const starCount4 = starCounts.find((s) => s.starCount === 4)?.count ?? 0

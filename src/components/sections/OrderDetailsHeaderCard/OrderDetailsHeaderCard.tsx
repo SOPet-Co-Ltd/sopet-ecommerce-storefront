@@ -14,14 +14,20 @@ import { Copy, ChevronLeft } from "lucide-react"
 import { useParams, useRouter } from "next/navigation"
 import { captureOrderPayment } from "@/lib/data/orders"
 import { useReviewSubmission } from "@/hooks/useReviewSubmission"
+import { toast } from "@/lib/helpers/toast"
 
 import {
   getOrderDisplayStatus,
   getOrderStatusLabel,
   getOrderStatusColor,
 } from "@/lib/helpers/order-status"
+import {
+  resolveOrderCheckoutProviderId,
+  setStoredOrderPaymentProviderId,
+} from "@/lib/helpers/order-checkout-payment"
+import { clearOrderPromptPayContinuity } from "@/lib/helpers/order-promptpay-continuity"
 import type { OrderDetails } from "@/types/order"
-import { TimeIcon } from "@/icons"
+import { PendingPromptPayCountdownBar } from "@/components/molecules/PendingPromptPayCountdownBar/PendingPromptPayCountdownBar"
 
 type OrderDetailsHeaderCardProps = {
   order: OrderDetails
@@ -48,6 +54,9 @@ const OrderDetailsHeaderCard = ({
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
+  const [paymentSecretsBootstrap, setPaymentSecretsBootstrap] = useState<
+    string[] | null
+  >(null)
   const router = useRouter()
   const params = useParams<{ locale?: string }>()
   const locale = typeof params?.locale === "string" ? params.locale : "th"
@@ -58,6 +67,7 @@ const OrderDetailsHeaderCard = ({
       sessionStorage.setItem("orders_initial_tab", "to-pay")
     }
     router.push(`/${locale}/user/orders`)
+    setPaymentSecretsBootstrap(null)
     setIsPaymentModalOpen(false)
   }
 
@@ -148,37 +158,8 @@ const OrderDetailsHeaderCard = ({
             </div>
           </div>
 
-          {/* Countdown Bar (Only if pending) */}
           {isToPay && (
-            <div className="flex items-center justify-between md:justify-start gap-3 bg-sop-primary-200 rounded-sop-4px p-2">
-              <div className="flex items-center gap-1">
-                <TimeIcon size={18} color="#000000" />
-                <p className="text-sop-base-black sop-body-sm-regular md:sop-body-md-regular">
-                  ชำระเงินผ่าน QR code ภายใน
-                </p>
-              </div>
-              {/* TODO - Replace placeholder with actual countdown timer */}
-              <div className="flex items-center gap-2">
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Hours*/}
-                  03
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  :
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Minutes */}
-                  15
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  :
-                </p>
-                <p className="text-sop-system-error-400 sop-body-sm-regular md:sop-body-md-regular">
-                  {/* NOTE - Seconds */}
-                  38
-                </p>
-              </div>
-            </div>
+            <PendingPromptPayCountdownBar order={order} variant="header" />
           )}
 
           {/* Action Buttons */}
@@ -265,11 +246,21 @@ const OrderDetailsHeaderCard = ({
         isOpen={isChangePaymentModalOpen}
         onClose={() => setIsChangePaymentModalOpen(false)}
         orderId={order.id}
+        paymentCollectionIds={order.payment_collections
+          ?.map((c) => c.id)
+          .filter(Boolean)}
         orderTotal={order.total}
-        {...(order.payment_provider_id
-          ? { currentMethod: order.payment_provider_id }
-          : {})} // e.g. 'stripe' or 'promptpay'
-        onConfirm={(cardId) => {
+        currentMethod={resolveOrderCheckoutProviderId(order) ?? undefined}
+        onConfirm={(cardId, providerId, bootstrap) => {
+          clearOrderPromptPayContinuity(order.id)
+          if (providerId) {
+            setStoredOrderPaymentProviderId(order.id, providerId)
+          }
+          if (bootstrap?.clientSecrets?.length) {
+            setPaymentSecretsBootstrap(bootstrap.clientSecrets)
+          } else {
+            setPaymentSecretsBootstrap(null)
+          }
           if (cardId) {
             setSelectedCardId(cardId)
             if (typeof window !== "undefined") {
@@ -289,9 +280,14 @@ const OrderDetailsHeaderCard = ({
       />
       <OrderPaymentModal
         isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
+        onClose={() => {
+          setPaymentSecretsBootstrap(null)
+          setIsPaymentModalOpen(false)
+        }}
         onCloseFromQrView={handleClosePaymentModalFromQrView}
         order={order}
+        initialClientSecretsFromChange={paymentSecretsBootstrap}
+        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(null)}
         selectedCardId={
           selectedCardId ||
           (typeof window !== "undefined"
@@ -299,19 +295,32 @@ const OrderDetailsHeaderCard = ({
             : null)
         }
         onPaymentSuccess={async () => {
-          try {
-            await captureOrderPayment(order.id)
-            router.push(`/order/${order.id}/confirmed`)
-          } catch (error: unknown) {
-            console.error("Failed to capture order payment:", error)
-            window.location.reload()
+          const result = await captureOrderPayment(order.id)
+          if (!result.success) {
+            toast.error({
+              title: "ยืนยันการชำระเงินไม่สำเร็จ",
+              description: result.error ?? undefined,
+            })
+            throw new Error(result.error || "Capture failed")
           }
+          setStoredOrderPaymentProviderId(order.id, null)
+          clearOrderPromptPayContinuity(order.id)
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem(`order_${order.id}_cardId`)
+          }
+          router.push(`/order/${order.id}/confirmed`)
         }}
       />
       <OrderCancelModal
         isOpen={isCancelModalOpen}
         onClose={() => setIsCancelModalOpen(false)}
         orderId={order.id}
+        onSuccess={() => {
+          setStoredOrderPaymentProviderId(order.id, null)
+          if (typeof window !== "undefined") {
+            sessionStorage.removeItem(`order_${order.id}_cardId`)
+          }
+        }}
       />
       <ReviewModal
         isOpen={isReviewModalOpen}
