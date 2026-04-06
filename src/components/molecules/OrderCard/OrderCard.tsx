@@ -1,5 +1,7 @@
 "use client"
 
+import { clx } from "@medusajs/ui"
+
 import { Button } from "@/components/atoms/Button/Button"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { OrderPaymentModal } from "@/components/organisms/OrderPaymentModal/OrderPaymentModal"
@@ -51,7 +53,10 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
 
   const router = useRouter()
 
-  const displayStatus = useMemo(() => getOrderDisplayStatus(order), [order])
+  const displayStatus = useMemo(() => {
+    return (order as any).slice_display_status || getOrderDisplayStatus(order)
+  }, [order])
+
   const statusLabel = useMemo(
     () => getOrderStatusLabel(displayStatus),
     [displayStatus]
@@ -61,88 +66,96 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
     [displayStatus]
   )
 
-  const items = order.items
   const { submitReviews } = useReviewSubmission()
 
   const calculatedTotal = useMemo(() => {
     return Number(order.total) || 0
   }, [order.total])
 
+  const sellerName = (order as any).seller_name || order.store?.name || order.seller?.name || "ร้านค้าไม่ระบุ"
+
   return (
     <>
       <div className="bg-sop-base-white flex flex-col gap-2.5 md:gap-sop-20px px-sop-16px py-sop-20px w-full">
-        {/* Header */}
-        <div className="border-b border-sop-neutral-grayalpha-300 pb-sop-12px flex items-center justify-between w-full">
-          <p className="font-medium text-lg text-[#211f23]">
-            {order.store?.name || order.seller?.name || "ร้านค้าไม่ระบุ"}
-          </p>
-          {/* Store Name */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span
-                className={`w-2 h-2 shrink-0 rounded-full bg-current ${statusColor}`}
-              ></span>
-              <span
-                className={`sop-body-sm-regular md:sop-body-md-medium ${statusColor}`}
-              >
-                {statusLabel}
-              </span>
+        <div className="flex flex-col gap-2.5 md:gap-5">
+          {/* Header */}
+          <div className="border-b border-sop-neutral-grayalpha-300 pb-sop-12px flex items-center justify-between w-full">
+            <p className="font-medium text-lg text-[#211f23]">
+              {sellerName}
+            </p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span
+                  className={clx(
+                    "w-2.5 h-2.5 shrink-0 rounded-full bg-current",
+                    statusColor
+                  )}
+                ></span>
+                <span
+                  className={clx(
+                    "sop-body-sm-regular md:sop-body-md-medium",
+                    statusColor
+                  )}
+                >
+                  {statusLabel}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Product Section */}
-        <div className="flex flex-col gap-2.5 md:gap-5">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex gap-2 md:gap-4 items-center w-full border-b border-sop-neutral-grayalpha-300 pb-3 md:pb-5 "
-            >
-              {/* Image */}
-              <div className="relative w-20 h-20 shrink-0 overflow-hidden">
-                {item?.thumbnail ? (
-                  <SmartImage
-                    src={item.thumbnail}
-                    alt={item.title}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
-                    No Image
+          {/* Product Section */}
+          <div className="flex flex-col gap-2.5 md:gap-5">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex gap-2 md:gap-4 items-center w-full border-b border-sop-neutral-grayalpha-300 last:border-0 pb-3 md:pb-5"
+              >
+                {/* Image */}
+                <div className="relative w-20 h-20 shrink-0 overflow-hidden">
+                  {item?.thumbnail ? (
+                    <SmartImage
+                      src={item.thumbnail}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-xs text-gray-400 bg-gray-50">
+                      No Image
+                    </div>
+                  )}
+                </div>
+
+                {/* Details */}
+                <div className="flex flex-col gap-1 w-full">
+                  <div>
+                    <p className="text-sop-neutral-gray-300 sop-body-xs-medium md:sop-body-md-medium line-clamp-2">
+                      {item?.title}
+                    </p>
                   </div>
-                )}
-              </div>
-
-              {/* Details */}
-              <div className="flex flex-col gap-1 w-full">
-                <div>
-                  <p className="text-sop-neutral-gray-300 sop-body-xs-medium md:sop-body-md-medium line-clamp-2">
-                    {item?.title}
-                  </p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="sop-body-xs-medium text-sop-neutral-gray-400 md:sop-body-md-regular">
-                    ตัวเลือกสินค้า : {item?.variant?.title || "-"}
-                  </p>
-                  <p
-                    className="sop-body-xs-medium md:text-sop-base-black text-sop-neutral-gray-400 md:sop-body-md-medium"
-                    suppressHydrationWarning
-                  >
-                    {convertToLocale({
-                      amount: item?.unit_price || 0,
-                      currency_code: order.currency_code,
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <p className="sop-body-xs-medium text-sop-neutral-gray-300 md:sop-body-md-regular">
-                    x{item?.quantity}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p className="sop-body-xs-medium text-sop-neutral-gray-400 md:sop-body-md-regular">
+                      ตัวเลือกสินค้า : {item?.variant?.title || "-"}
+                    </p>
+                    <p
+                      className="sop-body-xs-medium md:text-sop-base-black text-sop-neutral-gray-400 md:sop-body-md-medium"
+                      suppressHydrationWarning
+                    >
+                      {convertToLocale({
+                        amount: item?.unit_price || 0,
+                        currency_code: order.currency_code,
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="sop-body-xs-medium text-sop-neutral-gray-300 md:sop-body-md-regular">
+                      x{item?.quantity}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Footer: Total & Actions */}
@@ -174,7 +187,6 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
                 ชำระเงิน
               </Button>
 
-              {/* Change Payment Button */}
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -221,20 +233,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             </>
           )}
 
-          {/* VIEW DETAILS - Only show as button if space or if few actions.
-              Logic: 
-              - to-pay: Pay + Change + Dropdown(Cancel, View)
-              - to-receive: Received + View
-              - completed: Review + View + Dropdown(Return, ...)
-          */}
-          {/* VIEW DETAILS - Only show as button if space or if few actions.
-              Logic: 
-              - to-pay: Pay + Change + Dropdown(Cancel, View)
-              - to-receive: Received + View
-              - completed: Review + View + Dropdown(Return, ...)
-              - preparing: View
-              - cancelled: View
-          */}
+          {/* VIEW DETAILS */}
           {(displayStatus === "to-receive" ||
             displayStatus === "completed" ||
             displayStatus === "preparing" ||
@@ -250,7 +249,6 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
               variant="secondary"
               className="hidden md:flex"
               onClick={() => {
-                // TODO - Implement return flow
                 console.log("Return order clicked")
               }}
             >
@@ -267,12 +265,10 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             </Button>
           )}
 
-          {/* Mobile Action Menu - For items not shown as buttons */}
+          {/* Mobile Action Menu */}
           <div className="md:hidden">
-            {/* Show dropdown if there are extra actions */}
             {(displayStatus === "to-pay" || displayStatus === "completed") && (
               <ActionMenu className="relative">
-                {/* For To-Pay: View Details is here because we show Pay & Change Payment as buttons */}
                 {displayStatus === "to-pay" && (
                   <LocalizedClientLink
                     href={`/user/orders/${order.id}`}
@@ -380,7 +376,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
       <ReviewModal
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
-        items={items}
+        items={order.items}
         onSubmit={async (reviewsData) => {
           const success = await submitReviews(reviewsData, order.id)
           if (success) {

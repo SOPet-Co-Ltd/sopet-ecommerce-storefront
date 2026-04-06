@@ -6,13 +6,11 @@ import { CartSummary } from "../CartSummary/CartSummary"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
-import { DiscountIcon, TicketSaleIcon } from "@/icons"
+import { DiscountIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 import { DiscountModal } from "@/components/molecules/DiscountModal/DiscountModal"
-
-type ProductWithSeller = HttpTypes.StoreProduct & {
-  seller?: { name?: string; store_name?: string }
-}
+import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
+import type { Seller } from "@/types/seller"
 
 type CartTemplateProps = {
   cart: HttpTypes.StoreCart | Cart
@@ -149,25 +147,32 @@ export const CartTemplate = ({
     return ordered
   }, [cart?.items, lineOrder])
 
-  // Group items by seller
+  // Group items by seller key to avoid merging unrelated sellers that only
+  // share the same display name or a UI fallback label.
   const itemsBySeller = sortedItems.reduce(
-    (acc: Record<string, HttpTypes.StoreCartLineItem[]>, item) => {
-      // Safely probe various possible locations for the vendor name based on Medusa extensions
-      const prod = item.product as any
-      const sellerName =
-        prod?.seller?.name ||
-        prod?.store?.name ||
-        prod?.collection?.title ||
-        prod?.vendor ||
-        (item.variant as any)?.product?.seller?.name ||
-        "SOPet"
-      if (!acc[sellerName]) {
-        acc[sellerName] = []
+    (
+      acc: Record<
+        string,
+        {
+          seller: Seller
+          items: HttpTypes.StoreCartLineItem[]
+        }
+      >,
+      item
+    ) => {
+      const { key, seller } = getCartItemSellerGroup(item)
+
+      if (!acc[key]) {
+        acc[key] = {
+          seller,
+          items: [],
+        }
       }
-      acc[sellerName].push(item)
+
+      acc[key].items.push(item)
       return acc
     },
-    {} as Record<string, HttpTypes.StoreCartLineItem[]>
+    {}
   )
 
   const allItemIds = sortedItems.map((i) => i.id)
@@ -188,8 +193,8 @@ export const CartTemplate = ({
     }
   }
 
-  const handleSelectSeller = (sellerName: string, checked: boolean) => {
-    const sellerItems = itemsBySeller[sellerName]?.map((i) => i.id) || []
+  const handleSelectSeller = (sellerKey: string, checked: boolean) => {
+    const sellerItems = itemsBySeller[sellerKey]?.items.map((i) => i.id) || []
     if (checked) {
       setSelectedItems((prev) => [...new Set([...prev, ...sellerItems])])
     } else {
@@ -201,7 +206,7 @@ export const CartTemplate = ({
     if (cart?.items?.length && selectedItems.length === 0) {
       setSelectedItems(cart.items.map((i) => i.id))
     }
-  }, [cart?.items?.length])
+  }, [cart?.items, selectedItems.length])
 
   // Ensure selectedItems only contains IDs that still exist in the cart
   useEffect(() => {
@@ -247,13 +252,14 @@ export const CartTemplate = ({
 
         <div className="flex gap-6">
           <div className=" flex flex-col gap-4 w-full">
-            {Object.entries(itemsBySeller).map(([sellerName, items]) => {
+            {Object.entries(itemsBySeller).map(([sellerKey, group]) => {
+              const { seller, items } = group
               const isSellerSelected = items.every((i) =>
                 selectedItems.includes(i.id)
               )
               return (
                 <div
-                  key={sellerName}
+                  key={sellerKey}
                   className="bg-white overflow-hidden shadow-sm"
                 >
                   <div className="px-4 md:px-6 py-4 bg-white border-b border-gray-100 flex items-center gap-3">
@@ -261,11 +267,11 @@ export const CartTemplate = ({
                       checked={isSellerSelected}
                       size="lg"
                       onChange={(e) =>
-                        handleSelectSeller(sellerName, e.target.checked)
+                        handleSelectSeller(sellerKey, e.target.checked)
                       }
                     />
                     <span className="text-body-lg font-bold text-gray-900">
-                      {sellerName}
+                      {seller.name}
                     </span>
                   </div>
                   <div className="px-4 md:px-6">
@@ -295,7 +301,7 @@ export const CartTemplate = ({
                     {/* Store coupons button */}
                     <button
                       className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline"
-                      onClick={() => setDiscountModalVendor(sellerName)}
+                      onClick={() => setDiscountModalVendor(seller.name)}
                     >
                       ดูส่วนลดอื่นๆ
                     </button>

@@ -16,10 +16,8 @@ import { UserDropdown } from "../UserDropdown/UserDropdown"
 import { UserDropdownMobile } from "../UserDropdown/UserDropdownMobile"
 
 export const Navbar = ({
-  categories,
   user,
 }: {
-  categories: HttpTypes.StoreProductCategory[]
   user: HttpTypes.StoreCustomer | null
 }) => {
   return (

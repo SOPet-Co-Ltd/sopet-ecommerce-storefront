@@ -11,6 +11,8 @@ import { Suspense } from "react"
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+const USE_ALGOLIA_CATALOG =
+  process.env.NODE_ENV !== "development" && ALGOLIA_ID && ALGOLIA_SEARCH_KEY
 
 export async function generateMetadata({
   params,
@@ -75,8 +77,12 @@ const SingleCollectionsPage = async ({
       <h1 className="heading-xl uppercase">{collection.title}</h1>
 
       <Suspense fallback={<ProductListingSkeleton />}>
-        {bot || !ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-          <ProductListing collection_id={collection.id} showSidebar />
+        {bot || !USE_ALGOLIA_CATALOG ? (
+          <ProductListing
+            collection_id={collection.id}
+            showSidebar
+            locale={locale}
+          />
         ) : (
           <AlgoliaProductsListing
             collection_id={collection.id}

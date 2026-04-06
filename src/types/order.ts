@@ -56,6 +56,9 @@ export type OrderLineItem = {
   quantity: number
   subtotal: number
   variant?: OrderVariant | null | undefined
+  fulfilled_quantity?: number
+  shipped_quantity?: number
+  delivered_quantity?: number
 }
 
 export type OrderShippingAddress = {
@@ -118,6 +121,10 @@ export type OrderFulfillmentLabel = {
 
 export type OrderFulfillment = {
   labels?: OrderFulfillmentLabel[] | undefined
+  items?: { line_item_id: string; quantity: number }[] | undefined
+  shipped_at?: string | null | undefined
+  delivered_at?: string | null | undefined
+  canceled_at?: string | null | undefined
 }
 
 type OrderBase = {

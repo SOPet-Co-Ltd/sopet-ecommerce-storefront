@@ -26,16 +26,25 @@ import {
 } from "@/lib/stripe/get-stripe"
 import { Cart } from "@/types/cart"
 import { Text } from "@medusajs/ui"
+import type { CheckoutPageInitialData } from "@/lib/data/checkout-page"
 
 type CheckoutFlowClientProps = {
   cart: Cart
+  initialData: CheckoutPageInitialData
 }
 
-export default function CheckoutFlowClient({ cart }: CheckoutFlowClientProps) {
+export default function CheckoutFlowClient({
+  cart,
+  initialData,
+}: CheckoutFlowClientProps) {
   const regionId = cart.region_id ?? cart.region?.id ?? null
 
   return (
-    <CheckoutPageDataProvider cartId={cart.id} regionId={regionId}>
+    <CheckoutPageDataProvider
+      cartId={cart.id}
+      regionId={regionId}
+      initialData={initialData}
+    >
       <CheckoutFlowInner cart={cart} />
     </CheckoutPageDataProvider>
   )

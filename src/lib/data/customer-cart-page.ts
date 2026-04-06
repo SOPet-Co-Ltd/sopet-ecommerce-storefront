@@ -1,17 +1,33 @@
 "use server"
 
-import { redirect } from "next/navigation"
 import type { Cart } from "@/types/cart"
 import type { CustomerCartItemFromApi } from "./customer-cart"
-import {
-  getOrCreateCustomerCart,
-  listCustomerCartItemsInCart,
-} from "./customer-cart"
+import { listCustomerCartItemsInCart } from "./customer-cart"
 import type { HttpTypes } from "@medusajs/types"
 import { listProducts, type ProductWithSeller } from "./products"
+import { getRegion } from "./regions"
+import {
+  getCartItemSeller,
+  getCartItemVariantOptionsFromMetadata,
+} from "@/lib/helpers/cart-seller"
 
 /** Cart line item with optional subtotal (from API totals). */
 type LineItemWithTotals = HttpTypes.StoreCartLineItem & { subtotal?: unknown }
+
+const firstString = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue
+    }
+
+    const trimmed = value.trim()
+    if (trimmed) {
+      return trimmed
+    }
+  }
+
+  return undefined
+}
 
 /** Coerce line item total to number (handles BigNumberValue or number). */
 function toNumber(value: unknown): number {
@@ -51,13 +67,6 @@ function computeTotals(
 export async function getCartForCustomerCartPage(
   locale: string
 ): Promise<Cart | null> {
-  // Ensure a customer cart exists if the user is authenticated.
-  try {
-    await getOrCreateCustomerCart()
-  } catch {
-    // Not authenticated – no customer cart.
-  }
-
   let customerItems: CustomerCartItemFromApi[] = []
   try {
     customerItems = await listCustomerCartItemsInCart()
@@ -69,22 +78,41 @@ export async function getCartForCustomerCartPage(
     return null
   }
 
-  // Load products for the items in the customer cart so we can build
-  // a cart-like structure for the cart page without using /store/carts.
-  const productIds = Array.from(
-    new Set(customerItems.map((i) => i.product_id).filter(Boolean))
-  )
+  const shouldHydrateProducts = customerItems.some((item) => {
+    const metadata =
+      (item.metadata as Record<string, unknown> | null | undefined) ?? null
+
+    return (
+      item.unit_price_snapshot == null ||
+      typeof item.max_quantity !== "number" ||
+      !firstString(item.product_title, metadata?.product_title) ||
+      !firstString(item.product_handle, metadata?.product_handle) ||
+      !firstString(item.variant_title, metadata?.variant_title) ||
+      !firstString(item.thumbnail, metadata?.thumbnail) ||
+      !item.seller
+    )
+  })
+
+  const productIds = shouldHydrateProducts
+    ? Array.from(
+        new Set(customerItems.map((i) => i.product_id).filter(Boolean))
+      )
+    : []
 
   let products: ProductWithSeller[] = []
 
-  if (productIds.length) {
+  if (productIds.length > 0) {
     try {
       const { response } = await listProducts({
         countryCode: locale,
         queryParams: {
           id: productIds,
           limit: productIds.length,
+          fields:
+            "id,title,handle,thumbnail,*images,*seller,*variants,*variants.calculated_price,+variants.inventory_quantity,*variants.options,*variants.options.option",
         },
+        skipPublishedToAlgoliaFilter: true,
+        includeStats: false,
       })
       products = response.products
     } catch {
@@ -100,6 +128,7 @@ export async function getCartForCustomerCartPage(
     const product = productsById.get(item.product_id)
     const variant =
       product?.variants?.find((v) => v.id === item.variant_id) ?? undefined
+    const metadata = (item.metadata as Record<string, unknown> | null | undefined) ?? null
 
     const quantity = item.quantity ?? 1
 
@@ -120,12 +149,80 @@ export async function getCartForCustomerCartPage(
       product?.thumbnail ??
       (product?.images && product.images.length > 0
         ? (product.images[0]?.url ?? null)
-        : null)
+        : null) ??
+      item.thumbnail ??
+      firstString(metadata?.thumbnail) ??
+      null
+
+    const product_title =
+      product?.title ??
+      item.product_title ??
+      firstString(metadata?.product_title) ??
+      ""
+
+    const product_handle =
+      product?.handle ??
+      item.product_handle ??
+      firstString(metadata?.product_handle) ??
+      ""
+
+    const variant_title =
+      variant?.title ??
+      item.variant_title ??
+      firstString(metadata?.variant_title) ??
+      undefined
+    const variantOptions =
+      (variant?.options?.length ? variant.options : undefined) ??
+      getCartItemVariantOptionsFromMetadata(metadata)
+
+    const seller = getCartItemSeller(
+      {
+        id: item.id,
+        product_id: item.product_id,
+        variant_id: item.variant_id,
+        metadata,
+        product: product as
+          | (HttpTypes.StoreProduct & {
+              seller?: {
+                id?: string | null
+                name?: string | null
+                handle?: string | null
+                photo?: string | null
+              } | null
+            })
+          | undefined,
+      },
+      item.seller
+    )
+
+    const productSnapshot =
+      product || product_title || product_handle || thumbnail || seller
+        ? ({
+            ...(product ?? {}),
+            id: item.product_id,
+            title: product_title,
+            handle: product_handle,
+            thumbnail: thumbnail ?? undefined,
+            seller: seller ?? product?.seller ?? undefined,
+          } as unknown as HttpTypes.StoreProduct)
+        : undefined
+
+    const variantSnapshot =
+      variant || variant_title || variantOptions?.length
+        ? ({
+            ...(variant ?? {}),
+            id: item.variant_id,
+            title: variant_title,
+            options: variantOptions,
+          } as unknown as HttpTypes.StoreProductVariant)
+        : undefined
 
     const variantInventory =
-      variant && "inventory_quantity" in variant
-        ? (variant as { inventory_quantity?: number }).inventory_quantity
-        : undefined
+      typeof item.max_quantity === "number" && item.max_quantity >= 0
+        ? item.max_quantity
+        : variant && "inventory_quantity" in variant
+          ? (variant as { inventory_quantity?: number }).inventory_quantity
+          : undefined
     const max_quantity =
       typeof variantInventory === "number" && variantInventory >= 0
         ? variantInventory
@@ -139,12 +236,12 @@ export async function getCartForCustomerCartPage(
       unit_price,
       total: lineTotal,
       subtotal: lineTotal,
-      product_title: product?.title ?? "",
-      product_handle: product?.handle ?? "",
+      product_title,
+      product_handle,
       thumbnail: thumbnail ?? undefined,
-      variant_title: variant?.title ?? undefined,
-      product: product as unknown as HttpTypes.StoreProduct,
-      variant: variant as unknown as HttpTypes.StoreProductVariant,
+      variant_title,
+      product: productSnapshot,
+      variant: variantSnapshot,
       metadata: item.metadata ?? null,
       max_quantity,
     } as unknown as LineItemWithTotals
@@ -154,11 +251,14 @@ export async function getCartForCustomerCartPage(
 
   const totals = computeTotals(lineItems)
 
+  const region = await getRegion(locale)
   const currency_code =
+    region?.currency_code ??
     products
       .flatMap((p) => p.variants || [])
       .map((v) => (v as { currency_code?: string }).currency_code)
-      .find((c): c is string => typeof c === "string" && c.length > 0) ?? "THB"
+      .find((c): c is string => typeof c === "string" && c.length > 0) ??
+    "THB"
 
   const cart = {
     id: "customer-cart",

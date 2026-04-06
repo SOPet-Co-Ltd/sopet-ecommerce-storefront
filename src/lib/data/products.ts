@@ -16,6 +16,8 @@ export type ProductWithSeller = HttpTypes.StoreProduct & {
   sold_count?: number | null
 }
 
+const bypassPublishedToAlgoliaInDev = process.env.NODE_ENV === "development"
+
 type ProductStats = {
   review_count?: number
   totalReviews?: number
@@ -38,6 +40,8 @@ type ListProductsParams = {
   forceCache?: boolean
   /** When true, return all fetched products (e.g. re-hydrating items the user already purchased). */
   skipPublishedToAlgoliaFilter?: boolean
+  /** When false, skip extra per-product stats fetches to keep cart/checkout flows fast. */
+  includeStats?: boolean
 }
 
 type ListProductsResponse = {
@@ -53,6 +57,8 @@ type ListProductsResponse = {
 const DEFAULT_FIELDS = [
   "*variants.calculated_price",
   "+variants.inventory_quantity",
+  "*variants.options",
+  "*variants.options.option",
   "*seller",
   "*variants",
   "*seller.products",
@@ -72,6 +78,18 @@ const DEFAULT_FIELDS = [
   "+metadata",
 ] as const
 
+const DEFAULT_FIELDS_WITHOUT_STATS = [
+  "*variants.calculated_price",
+  "+variants.inventory_quantity",
+  "*variants.options",
+  "*variants.options.option",
+  "*seller",
+  "*variants",
+  "*attribute_values",
+  "*attribute_values.attribute",
+  "+metadata",
+] as const
+
 const REQUIRED_FIELDS = [
   "+review_count",
   "+average_rating",
@@ -81,9 +99,14 @@ const REQUIRED_FIELDS = [
 /**
  * Builds the fields query parameter, merging custom fields with required fields
  */
-const buildFieldsQuery = (customFields?: string | string[]): string => {
+const buildFieldsQuery = (
+  customFields?: string | string[],
+  includeStats: boolean = true
+): string => {
   if (!customFields) {
-    return DEFAULT_FIELDS.join(",")
+    return includeStats
+      ? DEFAULT_FIELDS.join(",")
+      : DEFAULT_FIELDS_WITHOUT_STATS.join(",")
   }
 
   const queryFields =
@@ -91,7 +114,9 @@ const buildFieldsQuery = (customFields?: string | string[]): string => {
       ? customFields.split(",").map((f) => f.trim())
       : customFields
 
-  const mergedFields = [...new Set([...queryFields, ...REQUIRED_FIELDS])]
+  const mergedFields = includeStats
+    ? [...new Set([...queryFields, ...REQUIRED_FIELDS])]
+    : [...new Set(queryFields)]
   return mergedFields.join(",")
 }
 
@@ -173,12 +198,25 @@ const processProductWithStats = async (
 const processProducts = async (
   products: ProductWithSeller[],
   headers: Record<string, string>,
-  useCached: boolean
+  useCached: boolean,
+  includeStats: boolean
 ): Promise<ProductWithSeller[]> => {
   // Filter out suspended sellers first
   const activeProducts = products.filter(
     (product) => product.seller?.store_status !== "SUSPENDED"
   )
+
+  if (!includeStats) {
+    return activeProducts.map((product) => ({
+      ...product,
+      seller: product.seller
+        ? {
+            ...product.seller,
+            reviews: product.seller.reviews?.filter((item) => !!item) ?? [],
+          }
+        : undefined,
+    }))
+  }
 
   // Process all products in parallel
   return Promise.all(
@@ -206,7 +244,7 @@ const buildProductsQuery = (
     limit,
     offset,
     region_id: region?.id,
-    fields: buildFieldsQuery(queryParams?.fields),
+    fields: buildFieldsQuery(queryParams?.fields, params.includeStats !== false),
     ...(queryParams
       ? Object.fromEntries(
           Object.entries(queryParams).filter(([key]) => key !== "fields")
@@ -225,6 +263,7 @@ export const listProducts = async (
     regionId,
     forceCache = false,
     skipPublishedToAlgoliaFilter = false,
+    includeStats = true,
   } = params
 
   if (!countryCode && !regionId) {
@@ -274,10 +313,14 @@ export const listProducts = async (
     const productsWithStats = await processProducts(
       productsRaw,
       headers,
-      useCached
+      useCached,
+      includeStats
     )
 
-    const publishedProducts = skipPublishedToAlgoliaFilter
+    const shouldSkipPublishedToAlgoliaFilter =
+      skipPublishedToAlgoliaFilter || bypassPublishedToAlgoliaInDev
+
+    const publishedProducts = shouldSkipPublishedToAlgoliaFilter
       ? productsWithStats
       : productsWithStats.filter(
           (p) => p.metadata?.published_to_algolia === true

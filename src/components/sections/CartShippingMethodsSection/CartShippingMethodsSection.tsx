@@ -49,7 +49,9 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
     string[]
   >([])
   // Track per-seller shipping option selections
-  const [sellerSelections, setSellerSelections] = useState<Record<string, string>>({})
+  const [sellerSelections, setSellerSelections] = useState<
+    Record<string, string>
+  >({})
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -115,32 +117,38 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
       }
     })
 
-    const missingSellerIds = Array.from(allSellerIds).filter(id => !sellerIdsInCart.has(id))
-    
+    const missingSellerIds = Array.from(allSellerIds).filter(
+      (id) => !sellerIdsInCart.has(id)
+    )
+
     if (missingSellerIds.length > 0) {
       // Pick defaults for missing sellers
       const newSelections = { ...initial }
       let changed = false
       for (const sellerId of missingSellerIds) {
-        const defaultMethod = _shippingMethods.find(m => m.seller_id === sellerId)
+        const defaultMethod = _shippingMethods.find(
+          (m) => m.seller_id === sellerId
+        )
         if (defaultMethod) {
           newSelections[sellerId] = defaultMethod.id
           changed = true
         }
       }
-      
+
       if (changed) {
         setSellerSelections(newSelections)
         // Auto-persist to backend
         const allOptionIds = Object.values(newSelections).filter(Boolean)
         setMultiShippingMethods({
           cartId: cart.id,
-          optionIds: allOptionIds
-        }).then(() => {
-          router.refresh()
-        }).catch(err => {
-          console.error("Failed to auto-select shipping methods", err)
+          optionIds: allOptionIds,
         })
+          .then(() => {
+            router.refresh()
+          })
+          .catch((err) => {
+            console.error("Failed to auto-select shipping methods", err)
+          })
         return
       }
     }
@@ -172,7 +180,10 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
     router.push(pathname + "?step=payment", { scroll: false })
   }
 
-  const handleSetShippingMethod = async (sellerId: string, optionId: string | null) => {
+  const handleSetShippingMethod = async (
+    sellerId: string,
+    optionId: string | null
+  ) => {
     if (!optionId) {
       return
     }
@@ -402,7 +413,8 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
               onClick={handleSubmit}
               disabled={
                 !cart.shipping_methods ||
-                cart.shipping_methods.length < Object.keys(groupedBySellerId || {}).length
+                cart.shipping_methods.length <
+                  Object.keys(groupedBySellerId || {}).length
               }
               loading={isLoadingPrices}
             >

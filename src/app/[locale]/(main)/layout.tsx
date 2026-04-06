@@ -1,6 +1,6 @@
 import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import { Footer, Header } from "@/components/organisms"
-import { verifyCustomer } from "@/lib/data/customer"
+import { getSessionCustomer } from "@/lib/data/customer"
 import { checkRegion } from "@/lib/helpers/check-region"
 import { Session } from "@talkjs/react"
 import { redirect } from "next/navigation"
@@ -15,7 +15,7 @@ export default async function RootLayout({
   const APP_ID = process.env.NEXT_PUBLIC_TALKJS_APP_ID
   const { locale } = await params
 
-  const user = await verifyCustomer()
+  const user = await getSessionCustomer()
   const regionCheck = await checkRegion(locale)
 
   if (!regionCheck) {
@@ -26,7 +26,7 @@ export default async function RootLayout({
     return (
       <div className="flex min-h-dvh flex-col">
         <ClearCartOnNonCheckout />
-        <Header />
+        <Header user={user} />
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
       </div>
@@ -36,7 +36,7 @@ export default async function RootLayout({
     <Session appId={APP_ID} userId={user.id}>
       <div className="flex min-h-dvh flex-col">
         <ClearCartOnNonCheckout />
-        <Header />
+        <Header user={user} />
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
       </div>

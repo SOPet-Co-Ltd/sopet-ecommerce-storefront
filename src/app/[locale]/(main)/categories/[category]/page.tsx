@@ -81,6 +81,8 @@ export async function generateMetadata({
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+const USE_ALGOLIA_CATALOG =
+  process.env.NODE_ENV !== "development" && ALGOLIA_ID && ALGOLIA_SEARCH_KEY
 
 async function Category({
   params,
@@ -167,8 +169,8 @@ async function Category({
       <h1 className="heading-xl uppercase">{category.name}</h1>
 
       <Suspense fallback={<ProductListingSkeleton />}>
-        {bot || !ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-          <ProductListing category_id={category.id} showSidebar />
+        {bot || !USE_ALGOLIA_CATALOG ? (
+          <ProductListing category_id={category.id} showSidebar locale={locale} />
         ) : (
           <AlgoliaProductsListing
             category_id={category.id}

@@ -6,6 +6,7 @@ import { useEffect, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
 import type { OrderListItem } from "@/types/order"
+import { sliceOrder, SlicedOrder } from "@/lib/helpers/order-slicer"
 
 type OrderTab =
   | "all"
@@ -77,11 +78,13 @@ const OrderListSection = ({
     router.replace(query ? `${pathname}?${query}` : pathname)
   }
 
-  const filteredOrders = useMemo(() => {
-    if (activeTab === "all") return orders
+  const slicedOrders = useMemo(() => {
+    return orders.flatMap((order) => sliceOrder(order as any))
+  }, [orders])
 
-    return orders.filter((order) => {
-      const displayStatus = getOrderDisplayStatus(order)
+  const filteredOrders = useMemo(() => {
+    const list = activeTab === "all" ? slicedOrders : slicedOrders.filter((order) => {
+      const displayStatus = order.slice_display_status
 
       switch (activeTab) {
         case "to-pay":
@@ -98,7 +101,9 @@ const OrderListSection = ({
           return true
       }
     })
-  }, [orders, activeTab])
+
+    return list
+  }, [slicedOrders, activeTab])
 
   return (
     <div className="w-full flex flex-col gap-6">
@@ -122,12 +127,12 @@ const OrderListSection = ({
       <div className="flex flex-col gap-4">
         {filteredOrders.length > 0 ? (
           filteredOrders.map((order) => {
-            const hasAnyReviewed = reviewedByOrderId?.[order.id] ?? false
+            const hasAnyReviewed = reviewedByOrderId?.[order.original_order_id] ?? false
 
             return (
               <OrderCard
-                key={order.id}
-                order={order}
+                key={`${order.original_order_id}-${order.seller_id}`}
+                order={order as any}
                 hasAnyReviewed={hasAnyReviewed}
               />
             )

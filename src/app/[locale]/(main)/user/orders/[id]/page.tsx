@@ -3,7 +3,7 @@ import OrderDetailsTemplate from "@/components/templates/OrderDetailsTemplate/Or
 import { notFound } from "next/navigation"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
 import {
-  checkCustomerHasReviewed,
+  getCustomerReviews,
   getCurrentCustomerId,
 } from "@/lib/data/reviews"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
@@ -33,7 +33,10 @@ export default async function OrderDetailsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const order = await retrieveOrder(id).catch(() => null)
+  const [order, customerId] = await Promise.all([
+    retrieveOrder(id).catch(() => null),
+    getCurrentCustomerId(),
+  ])
 
   if (!order) {
     return notFound()
@@ -41,7 +44,6 @@ export default async function OrderDetailsPage({
 
   // Determine if the authenticated customer has reviewed at least one product
   // in this order (only relevant for completed orders).
-  const customerId = await getCurrentCustomerId()
   let hasAnyReviewed = false
 
   if (customerId && getOrderDisplayStatus(order) === "completed") {
@@ -54,13 +56,19 @@ export default async function OrderDetailsPage({
     )
 
     if (productIds.length > 0) {
-      const checks = await Promise.all(
-        productIds.map((productId) =>
-          checkCustomerHasReviewed(productId, customerId, order.id)
-        )
+      const customerReviews = await getCustomerReviews(customerId)
+      const reviewedPairs = new Set(
+        customerReviews
+          .filter(
+            (review): review is typeof review & { order_id: string } =>
+              typeof review.order_id === "string" && review.order_id.length > 0
+          )
+          .map((review) => `${review.order_id}:${review.product_id}`)
       )
 
-      hasAnyReviewed = checks.some((value) => value === true)
+      hasAnyReviewed = productIds.some((productId) =>
+        reviewedPairs.has(`${order.id}:${productId}`)
+      )
     }
   }
 
