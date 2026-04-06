@@ -11,7 +11,8 @@
     "build-storybook": "storybook build",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,css}\"",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "echo:medusa-version": "echo $MEDUSA_VERSION"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.1",
