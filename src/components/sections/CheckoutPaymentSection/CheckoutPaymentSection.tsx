@@ -6,10 +6,10 @@ import { Heading, Text, clx } from "@medusajs/ui"
 import { Button, PaymentProviderIcon } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { isStripe } from "@/lib/constants"
+import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
 import { useCheckoutElementsSecret } from "./CheckoutElementsSecretContext"
 import { CreditCardCheckoutForm } from "@/components/molecules/CreditCardForm/CreditCardCheckoutForm"
-import { toast } from "@/lib/helpers/toast"
 import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
 
 type CheckoutPaymentSectionProps = {
@@ -30,6 +30,8 @@ export const CheckoutPaymentSection = ({
   const {
     customer,
     savedStripePaymentMethods,
+    upsertSavedStripePaymentMethod,
+    isSavedStripePaymentMethodsLoading,
     isLoading: checkoutDataLoading,
     refetchSavedStripePaymentMethods,
   } = useCheckoutPageData()
@@ -104,6 +106,7 @@ export const CheckoutPaymentSection = ({
         savedStripePaymentMethods[0]
       if (defaultPm) {
         setSelectedPaymentMethodId(defaultPm.id)
+        setUseNewCard(false)
       }
     }
   }, [
@@ -113,6 +116,7 @@ export const CheckoutPaymentSection = ({
     savedStripePaymentMethods,
     setSavedPaymentMethods,
     setSelectedPaymentMethodId,
+    setUseNewCard,
   ])
 
   useEffect(() => {
@@ -144,35 +148,22 @@ export const CheckoutPaymentSection = ({
     if (nonStripeSession) {
       setMethod("qrcode")
     }
-  }, [paymentSessionsSignature, cart?.id, setMethod])
+  }, [
+    cart?.payment_collection?.payment_sessions?.length,
+    cart?.id,
+    nonStripeSession,
+    paymentSessionsSignature,
+    promptpaySession,
+    setMethod,
+    stripeSession,
+  ])
 
-  const showNewCardForm = useNewCard || savedPaymentMethods.length === 0
-
-  const meta = customer?.metadata as Record<string, unknown> | undefined
-  const rawStripeCustomerId = meta?.stripe_customer_id
-  const stripeCustomerIdFromMeta =
-    typeof rawStripeCustomerId === "string" ? rawStripeCustomerId : ""
-
-  const missingStripeToastShownRef = useRef(false)
-  const toastCustomerIdRef = useRef<string | null>(null)
-  useEffect(() => {
-    if (!customerId) {
-      return
-    }
-    if (toastCustomerIdRef.current !== customerId) {
-      toastCustomerIdRef.current = customerId
-      missingStripeToastShownRef.current = false
-    }
-    if (!stripeCustomerIdFromMeta.trim()) {
-      if (!missingStripeToastShownRef.current) {
-        missingStripeToastShownRef.current = true
-        toast.error({
-          title: "ไม่สามารถเพิ่มบัตรได้",
-          description: "กรุณารีเฟรชหรือเข้าสู่ระบบใหม่",
-        })
-      }
-    }
-  }, [customerId, stripeCustomerIdFromMeta])
+  const waitingForSavedCards =
+    method === "card" &&
+    Boolean(customerId) &&
+    isSavedStripePaymentMethodsLoading
+  const showNewCardForm =
+    !waitingForSavedCards && (useNewCard || savedPaymentMethods.length === 0)
 
   useEffect(() => {
     setCardComplete(method === "card" && Boolean(selectedPaymentMethodId))
@@ -194,11 +185,35 @@ export const CheckoutPaymentSection = ({
     [cart, setMethod, setUseNewCard]
   )
 
-  const handleNewCardSuccess = useCallback(() => {
-    refetchSavedStripePaymentMethods().finally(() => {
+  const handleNewCardSuccess = useCallback(
+    async (paymentMethod: CustomerPaymentMethod) => {
+      upsertSavedStripePaymentMethod(paymentMethod)
+      setSavedPaymentMethods((prev) => {
+        const next = [
+          paymentMethod,
+          ...prev.filter((pm) => pm.id !== paymentMethod.id),
+        ]
+        if (paymentMethod.is_default) {
+          return next.map((pm) =>
+            pm.id === paymentMethod.id
+              ? paymentMethod
+              : { ...pm, is_default: false }
+          )
+        }
+        return next
+      })
+      setSelectedPaymentMethodId(paymentMethod.id)
       setUseNewCard(false)
-    })
-  }, [refetchSavedStripePaymentMethods, setUseNewCard])
+      void refetchSavedStripePaymentMethods()
+    },
+    [
+      refetchSavedStripePaymentMethods,
+      setSavedPaymentMethods,
+      setSelectedPaymentMethodId,
+      setUseNewCard,
+      upsertSavedStripePaymentMethod,
+    ]
+  )
 
   const cardElementsWaitingMessage = (() => {
     if (marketplacePaymentInitError) {
@@ -224,7 +239,7 @@ export const CheckoutPaymentSection = ({
 
       {checkoutDataLoading ? (
         <Text className="text-sm text-gray-500">
-          กำลังโหลดวิธีชำระเงินและบัตรที่บันทึกไว้…
+          กำลังโหลดวิธีชำระเงิน…
         </Text>
       ) : (
         <div className="flex flex-col gap-4">
@@ -279,6 +294,10 @@ export const CheckoutPaymentSection = ({
                     )}
                   >
                     {cardElementsWaitingMessage}
+                  </Text>
+                ) : waitingForSavedCards ? (
+                  <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
+                    กำลังโหลดบัตรที่บันทึกไว้…
                   </Text>
                 ) : !showNewCardForm ? (
                   <>

@@ -15,31 +15,33 @@ export type CheckoutPageInitialData = {
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   customer: HttpTypes.StoreCustomer | null
   savedStripePaymentMethods: CustomerPaymentMethod[]
+  savedStripePaymentMethodsLoaded: boolean
   error: string | null
 }
 
 export async function getCheckoutPageInitialData(
   cartId: string,
-  regionId: string | null | undefined
+  regionId: string | null | undefined,
+  options?: {
+    customerPromise?: Promise<HttpTypes.StoreCustomer | null>
+  }
 ): Promise<CheckoutPageInitialData> {
   const settled = await Promise.allSettled([
     listCartShippingMethods(cartId, false),
     regionId ? listCartPaymentMethods(regionId) : Promise.resolve(null),
-    getCheckoutCustomer(),
+    options?.customerPromise ?? getCheckoutCustomer(),
     getCustomerPaymentMethods(),
   ])
 
-  const [shippingRes, providersRes, customerRes, pmRes] = settled
+  const [shippingRes, providersRes, customerRes, paymentMethodsRes] = settled
 
   const shippingMethods =
     shippingRes.status === "fulfilled" ? (shippingRes.value ?? []) : []
   const paymentMethods =
     providersRes.status === "fulfilled" ? providersRes.value : null
   const customer = customerRes.status === "fulfilled" ? customerRes.value : null
-  const savedStripePaymentMethods =
-    pmRes.status === "fulfilled" && pmRes.value.success
-      ? pmRes.value.paymentMethods
-      : []
+  const savedCardsResult =
+    paymentMethodsRes.status === "fulfilled" ? paymentMethodsRes.value : null
 
   let error: string | null = null
   if (shippingRes.status === "rejected") {
@@ -55,7 +57,11 @@ export async function getCheckoutPageInitialData(
     shippingMethods,
     paymentMethods,
     customer,
-    savedStripePaymentMethods,
+    savedStripePaymentMethods:
+      customer && savedCardsResult?.success
+        ? savedCardsResult.paymentMethods
+        : [],
+    savedStripePaymentMethodsLoaded: !customer || Boolean(savedCardsResult?.success),
     error,
   }
 }

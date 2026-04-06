@@ -31,7 +31,14 @@ import {
   addCustomerPaymentMethod,
 } from "@/lib/data/customer"
 import { toast } from "@/lib/helpers/toast"
-import { useContext, useEffect, useMemo, useRef, useState } from "react"
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import {
   CardElement,
   CardNumberElement,
@@ -319,6 +326,22 @@ export const CheckoutSummarySection = ({
       selectedAddress ||
       null) as HttpTypes.StoreCartAddress | null
   const fallbackEmail = cart?.email || customer?.email || selectedEmail || ""
+  const cartSnapshot = {
+    customerId: cart.customer_id ?? customer?.id ?? null,
+    email: cart.email ?? null,
+    customerPhone:
+      ((cart as { customer?: { phone?: string | null } }).customer?.phone ??
+        customer?.phone ??
+        null) || null,
+    customerEmail:
+      ((cart as { customer?: { email?: string | null } }).customer?.email ??
+        customer?.email ??
+        null) || null,
+    promotionCodes:
+      (cart.promotions ?? [])
+        .map((promotion) => promotion.code)
+        .filter((code): code is string => typeof code === "string" && code.length > 0) ?? [],
+  }
 
   const addressReadyForButton = (() => {
     if (!cart) return false
@@ -625,6 +648,7 @@ export const CheckoutSummarySection = ({
                 toastError={toast.error}
                 getMarketplaceSnapshot={getMarketplaceSnapshot}
                 stripeProviderId={stripeProviderId}
+                cartSnapshot={cartSnapshot}
               />
             </>
           ) : (
@@ -659,6 +683,7 @@ export const CheckoutSummarySection = ({
               ensureClientSecret={ensurePromptpayClientSecret}
               onBeforePayment={runBeforePaymentSteps}
               toastError={toast.error}
+              cartSnapshot={cartSnapshot}
             />
           ) : (
             <Button size="lg" variant="primary" fill disabled>
@@ -674,6 +699,7 @@ export const CheckoutSummarySection = ({
             syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
             onBeforePayment={runBeforePaymentSteps}
             toastError={toast.error}
+            cartSnapshot={cartSnapshot}
           />
         )}
         {cardError && (
@@ -763,6 +789,7 @@ const StripeSummaryPayButton = ({
   useNewCard,
   selectedPaymentMethodId,
   toastError,
+  cartSnapshot,
   getMarketplaceSnapshot,
   stripeProviderId,
 }: {
@@ -782,6 +809,13 @@ const StripeSummaryPayButton = ({
   useNewCard?: boolean
   selectedPaymentMethodId?: string | null
   toastError?: (opts: { title: string; description?: string }) => void
+  cartSnapshot?: {
+    customerId?: string | null
+    email?: string | null
+    customerPhone?: string | null
+    customerEmail?: string | null
+    promotionCodes?: string[] | null
+  }
   getMarketplaceSnapshot: () => {
     mp: MpCheckoutV1 | null
     byId: Record<string, HttpTypes.StorePaymentCollection>
@@ -793,7 +827,10 @@ const StripeSummaryPayButton = ({
   const router = useRouter()
 
   const completeOrderAndRedirect = async () => {
-    const res = await completeMarketplaceOrder(undefined, { redirect: false })
+    const res = await completeMarketplaceOrder(undefined, {
+      redirect: false,
+      cartSnapshot,
+    })
     const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (orderId) {
@@ -999,6 +1036,7 @@ const ManualSummaryPayButton = ({
   syncShippingMethodBeforePayment,
   onBeforePayment,
   toastError,
+  cartSnapshot,
 }: {
   disabled: boolean
   submitting: boolean
@@ -1007,6 +1045,13 @@ const ManualSummaryPayButton = ({
   syncShippingMethodBeforePayment: () => Promise<void>
   onBeforePayment?: () => Promise<string | null>
   toastError?: (opts: { title: string; description?: string }) => void
+  cartSnapshot?: {
+    customerId?: string | null
+    email?: string | null
+    customerPhone?: string | null
+    customerEmail?: string | null
+    promotionCodes?: string[] | null
+  }
 }) => {
   const router = useRouter()
 
@@ -1023,7 +1068,10 @@ const ManualSummaryPayButton = ({
         }
       }
       await syncShippingMethodBeforePayment()
-      const res = await completeMarketplaceOrder(undefined, { redirect: false })
+      const res = await completeMarketplaceOrder(undefined, {
+        redirect: false,
+        cartSnapshot,
+      })
       const orderId = getOrderIdFromPlaceOrderResponse(res)
       if (orderId) {
         router.push(`/order/${orderId}/confirmed`)
@@ -1070,6 +1118,7 @@ const QrSummaryPayButton = ({
   ensureClientSecret,
   onBeforePayment,
   toastError,
+  cartSnapshot,
 }: {
   cartId: string
   locale: string
@@ -1093,6 +1142,13 @@ const QrSummaryPayButton = ({
   }>
   onBeforePayment?: () => Promise<string | null>
   toastError?: (opts: { title: string; description?: string }) => void
+  cartSnapshot?: {
+    customerId?: string | null
+    email?: string | null
+    customerPhone?: string | null
+    customerEmail?: string | null
+    promotionCodes?: string[] | null
+  }
 }) => {
   const stripe = useStripe()
   const router = useRouter()
@@ -1131,8 +1187,11 @@ const QrSummaryPayButton = ({
     sessionCreatedAtRef.current = initialSessionCreatedAt
   }, [initialSessionCreatedAt])
 
-  const completePlaceOrderCaptureAndNavigate = async () => {
-    const res = await completeMarketplaceOrder(cartId, { redirect: false })
+  const completePlaceOrderCaptureAndNavigate = useCallback(async () => {
+    const res = await completeMarketplaceOrder(cartId, {
+      redirect: false,
+      cartSnapshot,
+    })
     const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (!orderId) {
@@ -1164,7 +1223,7 @@ const QrSummaryPayButton = ({
       description: lastErr ?? undefined,
     })
     throw new Error(lastErr || "Capture failed")
-  }
+  }, [cartId, cartSnapshot, router])
 
   const confirmPromptPayForSecret = async (resolvedSecret: string) => {
     if (!stripe) {
@@ -1255,6 +1314,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (!orderRes.ok || !orderIdEarly) {
@@ -1296,6 +1356,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (!orderRes.ok || !orderIdEarly) {
@@ -1338,6 +1399,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (orderRes.ok && orderIdEarly) {
@@ -1403,6 +1465,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (!orderRes.ok || !orderIdEarly) {
@@ -1444,6 +1507,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (!orderRes.ok || !orderIdEarly) {
@@ -1486,6 +1550,7 @@ const QrSummaryPayButton = ({
         try {
           const orderRes = await completeMarketplaceOrder(cartId, {
             redirect: false,
+            cartSnapshot,
           })
           const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
           if (orderRes.ok && orderIdEarly) {
@@ -1565,7 +1630,7 @@ const QrSummaryPayButton = ({
     return () => {
       window.clearInterval(timer)
     }
-  }, [activeClientSecret, isPolling, stripe])
+  }, [activeClientSecret, completePlaceOrderCaptureAndNavigate, isPolling, setError, stripe])
 
   useEffect(() => {
     if (!qrImageUrl || qrExpiresAtMs == null) return
