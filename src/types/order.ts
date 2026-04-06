@@ -60,7 +60,6 @@ export type OrderLineItem = {
   shipped_quantity?: number
   delivered_quantity?: number
 }
-}
 
 export type OrderShippingAddress = {
   first_name?: string | null | undefined

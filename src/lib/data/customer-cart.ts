@@ -56,6 +56,7 @@ export type CustomerCartItemFromApi = {
     handle?: string | null
     photo?: string | null
   } | null
+  max_quantity?: number | null
 }
 
 export async function getOrCreateCustomerCart(): Promise<CustomerCart> {

@@ -127,7 +127,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="sop-body-sm-regular text-sop-neutral-gray-200 md:sop-body-md-regular">
-                    ค่าจัดส่ง (ปันส่วน)
+                    ค่าจัดส่ง
                   </span>
                   <span className="md:sop-body-md-medium sop-body-sm-medium text-sop-neutral-gray-200">
                     {convertToLocale({
@@ -139,7 +139,7 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
                 {slice.slice_discount > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="sop-body-sm-regular text-sop-neutral-gray-200 md:sop-body-md-regular">
-                      ส่วนลด (ปันส่วน)
+                      ส่วนลด
                     </span>
                     <span className="md:sop-body-md-medium sop-body-sm-medium text-sop-additional-red-500">
                       -
@@ -194,7 +194,8 @@ const OrderDetailsItemsCard = ({ order }: OrderDetailsItemsCardProps) => {
                     providerId = payments[0]?.provider_id
                   }
                 }
-                if (providerId === "pp_promptpay_stripe-connect") return "QR code"
+                if (providerId === "pp_promptpay_stripe-connect")
+                  return "QR code"
                 if (providerId === "pp_card_stripe-connect") return "Card"
                 return providerId || "-"
               })()}

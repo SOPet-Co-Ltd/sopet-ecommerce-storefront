@@ -2,7 +2,7 @@ import OrderListSection from "@/components/sections/OrderListSection/OrderListSe
 import { listOrders } from "@/lib/data/orders"
 import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
 import {
-  checkCustomerHasReviewed,
+  getCustomerReviews,
   getCurrentCustomerId,
 } from "@/lib/data/reviews"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
@@ -26,52 +26,44 @@ export async function generateMetadata({
 }
 
 export default async function UserPage() {
-  const orders = await listOrders(100, 0)
-
-  const customerId = await getCurrentCustomerId()
+  const [orders, customerId] = await Promise.all([
+    listOrders(100, 0),
+    getCurrentCustomerId(),
+  ])
 
   let reviewedByOrderId: Record<string, boolean> = {}
 
   if (customerId) {
-    const perOrderResults = await Promise.all(
-      orders.map(async (order) => {
-        const displayStatus = getOrderDisplayStatus(order)
-
-        if (displayStatus !== "completed") {
-          return { orderId: order.id, hasAnyReviewed: false }
-        }
-
-        const productIds = Array.from(
-          new Set(
-            (order.items || [])
-              .map((item) => item.product?.id)
-              .filter((id): id is string => Boolean(id))
-          )
+    const customerReviews = await getCustomerReviews(customerId)
+    const reviewedPairs = new Set(
+      customerReviews
+        .filter(
+          (review): review is typeof review & { order_id: string } =>
+            typeof review.order_id === "string" && review.order_id.length > 0
         )
-
-        if (productIds.length === 0) {
-          return { orderId: order.id, hasAnyReviewed: false }
-        }
-
-        const checks = await Promise.all(
-          productIds.map((productId) =>
-            checkCustomerHasReviewed(productId, customerId, order.id)
-          )
-        )
-
-        const hasAnyReviewed = checks.some((value) => value === true)
-
-        return { orderId: order.id, hasAnyReviewed }
-      })
+        .map((review) => `${review.order_id}:${review.product_id}`)
     )
 
-    reviewedByOrderId = perOrderResults.reduce<Record<string, boolean>>(
-      (acc, { orderId, hasAnyReviewed }) => {
-        acc[orderId] = hasAnyReviewed
+    reviewedByOrderId = orders.reduce<Record<string, boolean>>((acc, order) => {
+      if (getOrderDisplayStatus(order) !== "completed") {
+        acc[order.id] = false
         return acc
-      },
-      {}
-    )
+      }
+
+      const productIds = Array.from(
+        new Set(
+          (order.items || [])
+            .map((item) => item.product?.id)
+            .filter((id): id is string => Boolean(id))
+        )
+      )
+
+      acc[order.id] = productIds.some((productId) =>
+        reviewedPairs.has(`${order.id}:${productId}`)
+      )
+
+      return acc
+    }, {})
   }
 
   return (

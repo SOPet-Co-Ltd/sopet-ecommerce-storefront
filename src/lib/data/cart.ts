@@ -57,8 +57,13 @@ export async function ensureCheckoutCartQuantitiesCapped(
   try {
     const result = await listProducts({
       regionId: cart.region_id,
-      queryParams: { id: productIds, limit: productIds.length },
+      queryParams: {
+        id: productIds,
+        limit: productIds.length,
+        fields: "id,*variants,+variants.inventory_quantity",
+      },
       forceCache: false,
+      includeStats: false,
     })
     products = (result?.response?.products ?? []) as typeof products
   } catch {

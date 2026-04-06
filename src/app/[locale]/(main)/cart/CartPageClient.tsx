@@ -99,8 +99,14 @@ export const CartPageClient = ({
 
     listProducts({
       countryCode: locale,
-      queryParams: { id: productIds, limit: productIds.length },
+      queryParams: {
+        id: productIds,
+        limit: productIds.length,
+        fields:
+          "id,title,handle,thumbnail,*images,*variants,+variants.inventory_quantity,*variants.options,*variants.options.option",
+      },
       skipPublishedToAlgoliaFilter: true,
+      includeStats: false,
     })
       .then(({ response }) => {
         const productsById = new Map(

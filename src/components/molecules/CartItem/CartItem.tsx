@@ -129,8 +129,14 @@ export const CartItem = ({
       setLoadingProduct(true)
       listProducts({
         countryCode: locale,
-        queryParams: { handle: [item.product_handle], limit: 1 },
+        queryParams: {
+          handle: [item.product_handle],
+          limit: 1,
+          fields:
+            "id,title,handle,thumbnail,*images,*seller,*variants,*variants.calculated_price,+variants.inventory_quantity,*variants.options,*variants.options.option",
+        },
         forceCache: false,
+        includeStats: false,
       })
         .then(({ response }) => {
           setProduct(response.products[0] || null)
