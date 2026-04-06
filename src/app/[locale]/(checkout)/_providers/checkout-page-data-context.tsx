@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react"
@@ -18,6 +19,7 @@ import {
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import type { StoreCardShippingMethod } from "@/types/cart"
+import type { CheckoutPageInitialData } from "@/lib/data/checkout-page"
 
 export type CheckoutPageDataContextValue = {
   customer: HttpTypes.StoreCustomer | null
@@ -40,6 +42,7 @@ const CheckoutPageDataContext =
 type CheckoutPageDataProviderProps = {
   cartId: string
   regionId: string | null | undefined
+  initialData?: CheckoutPageInitialData | null
   children: ReactNode
 }
 
@@ -110,21 +113,26 @@ async function fetchCheckoutBundle(
 export function CheckoutPageDataProvider({
   cartId,
   regionId,
+  initialData,
   children,
 }: CheckoutPageDataProviderProps) {
-  const [customer, setCustomer] = useState<HttpTypes.StoreCustomer | null>(null)
+  const hasInitialData = Boolean(initialData)
+  const [customer, setCustomer] = useState<HttpTypes.StoreCustomer | null>(
+    initialData?.customer ?? null
+  )
   const [shippingMethods, setShippingMethods] = useState<
     StoreCardShippingMethod[]
-  >([])
+  >(initialData?.shippingMethods ?? [])
   const [paymentMethods, setPaymentMethods] = useState<
     HttpTypes.StorePaymentProvider[] | null
-  >(null)
+  >(initialData?.paymentMethods ?? null)
   const [savedStripePaymentMethods, setSavedStripePaymentMethods] = useState<
     CustomerPaymentMethod[]
-  >([])
-  const [isLoading, setIsLoading] = useState(true)
+  >(initialData?.savedStripePaymentMethods ?? [])
+  const [isLoading, setIsLoading] = useState(!hasInitialData)
   const [isRefreshing, setIsRefreshing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialData?.error ?? null)
+  const bootstrappedRef = useRef(hasInitialData)
 
   const load = useCallback(
     async (mode: "initial" | "refetch") => {
@@ -155,8 +163,24 @@ export function CheckoutPageDataProvider({
   )
 
   useEffect(() => {
+    if (bootstrappedRef.current) {
+      bootstrappedRef.current = false
+      return
+    }
     void load("initial")
   }, [load])
+
+  useEffect(() => {
+    if (!initialData) return
+
+    setShippingMethods(initialData.shippingMethods)
+    setPaymentMethods(initialData.paymentMethods)
+    setCustomer(initialData.customer)
+    setSavedStripePaymentMethods(initialData.savedStripePaymentMethods)
+    setError(initialData.error)
+    setIsLoading(false)
+    setIsRefreshing(false)
+  }, [initialData, cartId, regionId])
 
   const refetch = useCallback(async () => {
     await load("refetch")

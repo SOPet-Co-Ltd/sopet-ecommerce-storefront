@@ -1,10 +1,8 @@
 "use server"
 
 import { REVALIDATE_PRODUCT_LIST } from "@/lib/cache/constants"
+import { MEDUSA_BACKEND_URL } from "@/lib/config"
 import { getAuthHeaders } from "./cookies"
-
-const MEDUSA_BACKEND_URL =
-  process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
 
 export type CouponApiData = {
   id: string
@@ -38,6 +36,14 @@ const hasAuthorization = (
   authHeaders: AuthHeaders
 ): authHeaders is { authorization: string } => "authorization" in authHeaders
 
+let couponFeatureAvailable: boolean | null = null
+
+const isCouponFeatureUnavailable = () => couponFeatureAvailable === false
+
+const markCouponFeatureUnavailable = () => {
+  couponFeatureAvailable = false
+}
+
 /**
  * Fetch coupons from the backend API.
  * @param category Optional category filter: "new_customer" | "shipping" | "special"
@@ -47,6 +53,10 @@ export async function fetchCoupons(
   limit: number = 20,
   offset: number = 0
 ): Promise<CouponApiData[]> {
+  if (isCouponFeatureUnavailable()) {
+    return []
+  }
+
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/coupons`)
     url.searchParams.set("take", limit.toString())
@@ -79,11 +89,17 @@ export async function fetchCoupons(
 
     const res = await fetch(url.toString(), fetchOptions)
 
+    if (res.status === 404) {
+      markCouponFeatureUnavailable()
+      return []
+    }
+
     if (!res.ok) {
       console.error(`Failed to fetch coupons: ${res.status}`)
       return []
     }
 
+    couponFeatureAvailable = true
     const data = (await res.json()) as CouponListResponse
     return data.coupons || []
   } catch (error) {
@@ -98,6 +114,10 @@ export async function fetchCoupons(
 export async function collectCoupon(
   promotionId: string
 ): Promise<CouponMutationResponse> {
+  if (isCouponFeatureUnavailable()) {
+    return { success: false, message: "Coupon feature unavailable" }
+  }
+
   try {
     const url = new URL(
       `${MEDUSA_BACKEND_URL}/store/coupons/${promotionId}/collect`
@@ -117,6 +137,12 @@ export async function collectCoupon(
       },
     })
 
+    if (res.status === 404) {
+      markCouponFeatureUnavailable()
+      return { success: false, message: "Coupon feature unavailable" }
+    }
+
+    couponFeatureAvailable = true
     const data = (await res.json()) as CouponMutationResponse
     return data
   } catch (error) {
@@ -129,6 +155,10 @@ export async function collectCoupon(
  * Fetch collected coupons for the logged-in customer's wallet.
  */
 export async function fetchMyCoupons(): Promise<CouponApiData[]> {
+  if (isCouponFeatureUnavailable()) {
+    return []
+  }
+
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/me/coupons`)
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
@@ -147,11 +177,17 @@ export async function fetchMyCoupons(): Promise<CouponApiData[]> {
       cache: "no-store",
     })
 
+    if (res.status === 404) {
+      markCouponFeatureUnavailable()
+      return []
+    }
+
     if (!res.ok) {
       console.error(`Failed to fetch my coupons: ${res.status}`)
       return []
     }
 
+    couponFeatureAvailable = true
     const data = (await res.json()) as CouponListResponse
     return data.coupons || []
   } catch (error) {
@@ -166,6 +202,10 @@ export async function fetchMyCoupons(): Promise<CouponApiData[]> {
 export async function markCouponAsUsed(
   code: string
 ): Promise<CouponMutationResponse> {
+  if (isCouponFeatureUnavailable()) {
+    return { success: false, message: "Coupon feature unavailable" }
+  }
+
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/coupons/use-by-code`)
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
@@ -185,6 +225,12 @@ export async function markCouponAsUsed(
       body: JSON.stringify({ code }),
     })
 
+    if (res.status === 404) {
+      markCouponFeatureUnavailable()
+      return { success: false, message: "Coupon feature unavailable" }
+    }
+
+    couponFeatureAvailable = true
     const data = (await res.json()) as CouponMutationResponse
     return data
   } catch (error) {

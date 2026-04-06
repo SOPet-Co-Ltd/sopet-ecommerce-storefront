@@ -43,6 +43,32 @@ export async function ensureStripeCustomer() {
 }
 
 /**
+ * Lightweight auth check for layout/header usage.
+ * Returns basic customer identity without expanding orders/addresses.
+ */
+export async function getSessionCustomer(): Promise<HttpTypes.StoreCustomer | null> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return null
+  }
+
+  try {
+    const result = await sdk.client.fetch<{
+      customer: HttpTypes.StoreCustomer
+    }>(`/store/auth/me`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    })
+
+    return result.customer
+  } catch {
+    return null
+  }
+}
+
+/**
  * Verify that the current user is logged in using the custom /store/auth/me route.
  * Returns the customer on 200, or null if unauthorized / not logged in.
  */

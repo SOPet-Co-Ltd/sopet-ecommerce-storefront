@@ -4,6 +4,7 @@ import { CheckoutCartCapRunner } from "@/components/sections/CheckoutPaymentSect
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
 import { retrieveCart } from "@/lib/data/cart"
+import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -37,13 +38,15 @@ export default async function CheckoutPage({
     redirect(`/${locale}/cart?checkout=unavailable`)
   }
 
+  const regionId = cart.region_id ?? cart.region?.id ?? null
+  const initialData = await getCheckoutPageInitialData(cart.id, regionId)
   const lineFingerprint = checkoutLineFingerprint(cart)
 
   return (
     <CheckoutElementsSecretProvider>
       <MarketplaceCheckoutProvider>
         <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-          <CheckoutFlowClient cart={cart} />
+          <CheckoutFlowClient cart={cart} initialData={initialData} />
           <CheckoutCartCapRunner
             cartId={cart.id}
             lineFingerprint={lineFingerprint}
