@@ -46,6 +46,16 @@ export type CustomerCartItemFromApi = {
   status: string
   source: string | null
   metadata: Record<string, unknown> | null
+  product_title?: string | null
+  product_handle?: string | null
+  thumbnail?: string | null
+  variant_title?: string | null
+  seller?: {
+    id?: string | null
+    name?: string | null
+    handle?: string | null
+    photo?: string | null
+  } | null
 }
 
 export async function getOrCreateCustomerCart(): Promise<CustomerCart> {

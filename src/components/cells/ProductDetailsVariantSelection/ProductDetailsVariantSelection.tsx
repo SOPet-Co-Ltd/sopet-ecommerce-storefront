@@ -31,6 +31,7 @@ import {
 import { ProductDetailQuantitySelection } from "@/components/cells"
 import { AdditionalAttributeProps } from "@/types/product"
 import { CustomerCartItem } from "@/types/customer-cart"
+import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -423,12 +424,6 @@ export const ProductDetailsVariantSelection = ({
 
     try {
       if (!user) {
-        const thumbnail =
-          product.thumbnail ??
-          (product.images && product.images.length > 0
-            ? (product.images[0]?.url ?? null)
-            : null)
-
         addItemToAnonymousCart(
           {
             productId: product.id,
@@ -436,13 +431,7 @@ export const ProductDetailsVariantSelection = ({
             quantity,
             unitPriceSnapshot: total,
             source: "storefront_cart",
-            metadata: {
-              product_title: product.title ?? "",
-              product_handle: product.handle ?? "",
-              thumbnail,
-              variant_title:
-                product.variants?.find((v) => v.id === variantId)?.title ?? "",
-            },
+            metadata: buildStorefrontCartItemMetadata(product, variantId),
           },
           { maxQuantity: variantStock > 0 ? variantStock : undefined }
         )
@@ -455,6 +444,7 @@ export const ProductDetailsVariantSelection = ({
             quantity,
             unitPriceSnapshot: total,
             source: "storefront_cart",
+            metadata: buildStorefrontCartItemMetadata(product, variantId),
           },
         ])
       }

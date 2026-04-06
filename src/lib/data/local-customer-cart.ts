@@ -3,6 +3,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { AnonymousCartItemInput } from "@/types/customer-cart"
 import { mergeAnonymousCustomerCartFromClient } from "@/lib/actions/merge-anonymous-customer-cart"
+import {
+  getCartItemSeller,
+  getCartItemVariantOptionsFromMetadata,
+} from "@/lib/helpers/cart-seller"
 
 const normalizeNullable = <T>(value: T | null | undefined): T | null =>
   value == null ? null : value
@@ -259,8 +263,34 @@ export const buildAnonymousCartFromLocal = (): HttpTypes.StoreCart | null => {
     const productHandle = (meta.product_handle as string) ?? ""
     const thumbnail = (meta.thumbnail as string) ?? undefined
     const variantTitle = (meta.variant_title as string) ?? undefined
+    const variantOptions = getCartItemVariantOptionsFromMetadata(meta)
 
     const id = buildLineItemIdFromAnonymousItem(item, index)
+    const seller = getCartItemSeller({
+      id,
+      product_id: item.productId,
+      variant_id: item.variantId,
+      metadata: item.metadata ?? null,
+    })
+
+    const product =
+      productTitle || productHandle || thumbnail || seller
+        ? ({
+            id: item.productId,
+            title: productTitle,
+            handle: productHandle,
+            thumbnail,
+            seller: seller ?? undefined,
+          } as unknown as HttpTypes.StoreProduct)
+        : undefined
+
+    const variant = variantTitle || variantOptions?.length
+      ? ({
+          id: item.variantId,
+          title: variantTitle,
+          options: variantOptions,
+        } as unknown as HttpTypes.StoreProductVariant)
+      : undefined
 
     return {
       id,
@@ -274,8 +304,8 @@ export const buildAnonymousCartFromLocal = (): HttpTypes.StoreCart | null => {
       product_handle: productHandle,
       thumbnail,
       variant_title: variantTitle,
-      product: undefined,
-      variant: undefined,
+      product,
+      variant,
       metadata: item.metadata ?? null,
     } as unknown as HttpTypes.StoreCartLineItem
   })

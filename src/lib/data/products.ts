@@ -16,6 +16,8 @@ export type ProductWithSeller = HttpTypes.StoreProduct & {
   sold_count?: number | null
 }
 
+const bypassPublishedToAlgoliaInDev = process.env.NODE_ENV === "development"
+
 type ProductStats = {
   review_count?: number
   totalReviews?: number
@@ -53,6 +55,8 @@ type ListProductsResponse = {
 const DEFAULT_FIELDS = [
   "*variants.calculated_price",
   "+variants.inventory_quantity",
+  "*variants.options",
+  "*variants.options.option",
   "*seller",
   "*variants",
   "*seller.products",
@@ -277,7 +281,10 @@ export const listProducts = async (
       useCached
     )
 
-    const publishedProducts = skipPublishedToAlgoliaFilter
+    const shouldSkipPublishedToAlgoliaFilter =
+      skipPublishedToAlgoliaFilter || bypassPublishedToAlgoliaInDev
+
+    const publishedProducts = shouldSkipPublishedToAlgoliaFilter
       ? productsWithStats
       : productsWithStats.filter(
           (p) => p.metadata?.published_to_algolia === true

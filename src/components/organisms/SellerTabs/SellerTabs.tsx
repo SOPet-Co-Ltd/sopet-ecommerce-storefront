@@ -7,6 +7,8 @@ import { getRegion } from "@/lib/data/regions"
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY
+const USE_ALGOLIA_CATALOG =
+  process.env.NODE_ENV !== "development" && ALGOLIA_ID && ALGOLIA_SEARCH_KEY
 
 export const SellerTabs = ({
   tab,
@@ -34,8 +36,12 @@ export const SellerTabs = ({
       <TabsList list={tabsList} activeTab={tab} />
       <TabsContent value="products" activeTab={tab}>
         <Suspense fallback={<ProductListingSkeleton />}>
-          {!ALGOLIA_ID || !ALGOLIA_SEARCH_KEY ? (
-            <ProductListing showSidebar seller_id={seller_id} />
+          {!USE_ALGOLIA_CATALOG ? (
+            <ProductListing
+              showSidebar
+              seller_id={seller_id}
+              locale={locale}
+            />
           ) : (
             <AlgoliaProductsListing
               locale={locale}

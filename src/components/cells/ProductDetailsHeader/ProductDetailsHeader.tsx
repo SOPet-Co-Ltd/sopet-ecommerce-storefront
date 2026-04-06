@@ -14,6 +14,7 @@ import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
 import { useCartContext } from "@/components/providers"
+import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -122,10 +123,10 @@ export const ProductDetailsHeader = ({
             quantity: 1,
             unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
             source: "storefront_cart",
+            metadata: buildStorefrontCartItemMetadata(product, variantId),
           },
         ])
       } else {
-        const thumbnail = product.thumbnail ?? product.images?.[0]?.url ?? null
         addItemToAnonymousCart(
           {
             productId: product.id,
@@ -133,13 +134,7 @@ export const ProductDetailsHeader = ({
             quantity: 1,
             unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
             source: "storefront_cart",
-            metadata: {
-              product_title: product.title ?? "",
-              product_handle: product.handle ?? "",
-              thumbnail,
-              variant_title:
-                product.variants?.find((v) => v.id === variantId)?.title ?? "",
-            },
+            metadata: buildStorefrontCartItemMetadata(product, variantId),
           },
           { maxQuantity: variantStock > 0 ? variantStock : undefined }
         )

@@ -32,6 +32,8 @@ export const CartPageClient = ({
   )
   const enrichedAnonymousRef = useRef(false)
   const customerQuantityCheckDoneRef = useRef(false)
+  const cartId = cart?.id
+  const cartItems = cart?.items
 
   useEffect(() => {
     if (initialCart) {
@@ -47,14 +49,14 @@ export const CartPageClient = ({
   useEffect(() => {
     if (
       !initialCart ||
-      cart?.id === "anonymous-local-cart" ||
-      !cart?.items?.length
+      cartId === "anonymous-local-cart" ||
+      !cartItems?.length
     ) {
       return
     }
     if (customerQuantityCheckDoneRef.current) return
 
-    const needsCap = cart.items.filter(
+    const needsCap = cartItems.filter(
       (i) =>
         typeof (i as { max_quantity?: number }).max_quantity === "number" &&
         Number((i as { max_quantity?: number }).max_quantity) >= 0 &&
@@ -77,18 +79,18 @@ export const CartPageClient = ({
       .then(() => getCustomerCartForClient(locale))
       .then((next) => setCart(next))
       .catch(() => {})
-  }, [initialCart, cart?.id, cart?.items, locale])
+  }, [initialCart, cartId, cartItems, locale])
 
   // Enrich anonymous cart with variant inventory so CartItem can show max and disable +
   useEffect(() => {
-    if (!cart || cart.id !== "anonymous-local-cart" || !cart.items?.length) {
+    if (!cart || cartId !== "anonymous-local-cart" || !cartItems?.length) {
       return
     }
     if (enrichedAnonymousRef.current) return
 
     const productIds = Array.from(
       new Set(
-        cart.items
+        cartItems
           .map((i) => i.product_id)
           .filter((id): id is string => typeof id === "string" && id.length > 0)
       )
@@ -98,8 +100,12 @@ export const CartPageClient = ({
     listProducts({
       countryCode: locale,
       queryParams: { id: productIds, limit: productIds.length },
+      skipPublishedToAlgoliaFilter: true,
     })
       .then(({ response }) => {
+        const productsById = new Map(
+          (response.products ?? []).map((product) => [product.id, product])
+        )
         const variantToMax = new Map<string, number>()
         for (const p of response.products ?? []) {
           for (const v of p.variants ?? []) {
@@ -112,27 +118,42 @@ export const CartPageClient = ({
         }
         const currentItems = cart.items ?? []
         const items = currentItems.map((item) => {
+          const product = item.product_id
+            ? productsById.get(item.product_id)
+            : undefined
+          const variant =
+            product?.variants?.find((v) => v.id === item.variant_id) ??
+            item.variant
           const max = item.variant_id
             ? variantToMax.get(item.variant_id)
             : undefined
           return {
             ...item,
+            product: product ?? item.product,
+            variant,
+            variant_title: variant?.title ?? item.variant_title,
+            thumbnail:
+              product?.thumbnail ??
+              product?.images?.[0]?.url ??
+              item.thumbnail,
             max_quantity: typeof max === "number" ? max : undefined,
           }
         })
         enrichedAnonymousRef.current = true
-        setCart({ ...cart, items })
+        setCart((currentCart) =>
+          currentCart ? { ...currentCart, items } : currentCart
+        )
       })
       .catch(() => {})
-  }, [cart?.id, cart?.items, locale])
+  }, [cart, cartId, cartItems, locale])
 
   // On enter: cap anonymous cart item quantities at inventory (after enrichment)
   useEffect(() => {
-    if (!cart || cart.id !== "anonymous-local-cart" || !cart.items?.length) {
+    if (!cart || cartId !== "anonymous-local-cart" || !cartItems?.length) {
       return
     }
 
-    const needsCap = cart.items.filter(
+    const needsCap = cartItems.filter(
       (i) =>
         typeof (i as { max_quantity?: number }).max_quantity === "number" &&
         (i as { max_quantity?: number }).max_quantity! >= 0 &&
@@ -149,9 +170,9 @@ export const CartPageClient = ({
     const next = buildAnonymousCartFromLocal()
     enrichedAnonymousRef.current = false
     setCart(next)
-  }, [cart?.id, cart?.items])
+  }, [cart, cartId, cartItems])
 
-  const isAnonymousCart = !initialCart || cart?.id === "anonymous-local-cart"
+  const isAnonymousCart = !initialCart || cartId === "anonymous-local-cart"
 
   const refreshCustomerCart = async () => {
     if (!initialCart) {
@@ -174,16 +195,28 @@ export const CartPageClient = ({
       setCart(null)
       return
     }
+    const previousItemsById = new Map((cart?.items ?? []).map((i) => [i.id, i]))
     const maxById = new Map(
       (cart?.items ?? []).map((i) => [
         i.id,
         (i as { max_quantity?: number }).max_quantity,
       ])
     )
-    const itemsWithMax = (next.items ?? []).map((i) => ({
-      ...i,
-      max_quantity: maxById.get(i.id),
-    }))
+    const itemsWithMax = (next.items ?? []).map((i) => {
+      const previousItem = previousItemsById.get(i.id)
+
+      return {
+        ...(previousItem ?? {}),
+        ...i,
+        product: i.product ?? previousItem?.product,
+        variant: i.variant ?? previousItem?.variant,
+        variant_title: i.variant_title ?? previousItem?.variant_title,
+        thumbnail: i.thumbnail ?? previousItem?.thumbnail,
+        max_quantity:
+          maxById.get(i.id) ??
+          (previousItem as { max_quantity?: number } | undefined)?.max_quantity,
+      }
+    })
     setCart({ ...next, items: itemsWithMax })
   }
 
@@ -204,6 +237,7 @@ export const CartPageClient = ({
       quantity,
       unitPriceSnapshot,
     })
+    enrichedAnonymousRef.current = false
     setCart(next)
   }
 
