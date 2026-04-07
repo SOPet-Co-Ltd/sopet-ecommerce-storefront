@@ -12,20 +12,38 @@ type DropDownItemProps = {
   icon: ReactNode
   label: string
   onClick?: () => void | Promise<void>
+  as?: "button" | "div"
 }
 
-const DropDownItem = ({ icon, label, onClick }: DropDownItemProps) => {
+const DropDownItem = ({
+  icon,
+  label,
+  onClick,
+  as = "div",
+}: DropDownItemProps) => {
+  const className =
+    "flex w-full cursor-pointer items-center gap-sop-12px px-sop-16px py-2.5"
+
+  if (as === "button") {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={() => {
+          void onClick?.()
+        }}
+      >
+        {icon}
+        <p className="sop-body-sm-regular">{label}</p>
+      </button>
+    )
+  }
+
   return (
-    <button
-      type="button"
-      className="flex w-full cursor-pointer items-center gap-sop-12px px-sop-16px py-2.5"
-      onClick={() => {
-        void onClick?.()
-      }}
-    >
+    <div className={className}>
       {icon}
       <p className="sop-body-sm-regular">{label}</p>
-    </button>
+    </div>
   )
 }
 
@@ -97,6 +115,7 @@ export const UserDropdown = ({
         <DropDownItem
           icon={<SignOutIcon size={14} color="#454547" />}
           label="ออกจากระบบ"
+          as="button"
           onClick={async () => {
             await signout()
             setOpen(false)
