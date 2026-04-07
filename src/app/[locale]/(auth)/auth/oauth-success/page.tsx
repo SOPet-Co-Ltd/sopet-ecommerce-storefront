@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation"
 import { OAuthSuccessView } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
-import { ensureStripeCustomer, verifyCustomer } from "@/lib/data/customer"
+import {
+  ensureStripeCustomer,
+  finalizeOAuthSession,
+  verifyCustomer,
+} from "@/lib/data/customer"
 import type { OAuthSuccessProvider } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -52,6 +56,23 @@ export default async function OAuthSuccessPage({
 }: OAuthSuccessPageProps) {
   const { locale } = await params
   const resolvedSearchParams = await searchParams
+  const handoffRaw = resolvedSearchParams.oauth_handoff
+  const handoffToken =
+    typeof handoffRaw === "string"
+      ? handoffRaw
+      : Array.isArray(handoffRaw)
+        ? handoffRaw[0]
+        : undefined
+
+  // New OAuth flow: backend callback sends short-lived handoff token.
+  // Gracefully falls back to existing cookie session check when token is absent.
+  if (handoffToken) {
+    const exchangeError = await finalizeOAuthSession(handoffToken)
+    if (exchangeError) {
+      return redirect(`/${locale}/login`)
+    }
+  }
+
   const user = await verifyCustomer()
 
   if (!user) {

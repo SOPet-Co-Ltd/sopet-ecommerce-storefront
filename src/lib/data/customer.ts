@@ -568,6 +568,44 @@ export async function verifyOtpAndLogin(formData: FormData) {
 }
 
 /**
+ * Finalize OAuth login by exchanging a short-lived backend handoff token
+ * for the regular customer JWT, then storing it in the storefront cookie.
+ */
+export async function finalizeOAuthSession(
+  handoffToken: string
+): Promise<string | null> {
+  const trimmed = handoffToken.trim()
+  if (!trimmed) {
+    return "Invalid OAuth handoff token"
+  }
+
+  try {
+    const res = await sdk.client.fetch<{
+      success: boolean
+      error?: string
+      token?: string
+    }>("/store/auth/oauth/session", {
+      method: "POST",
+      body: {
+        handoff_token: trimmed,
+      },
+      cache: "no-store",
+    })
+
+    if (!res.success || !res.token) {
+      return res.error || "OAuth session exchange failed"
+    }
+
+    await setAuthToken(res.token)
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return null
+  } catch (error: any) {
+    return error.toString()
+  }
+}
+
+/**
  * Clear Medusa cart cookie. Safe to call when the login page loads so we don't
  * carry a stale cart. Must be run as a Server Action (e.g. from a client useEffect).
  */
