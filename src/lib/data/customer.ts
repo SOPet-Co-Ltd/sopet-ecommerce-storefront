@@ -576,7 +576,10 @@ export async function clearMedusaCartForLoginPage() {
 }
 
 export async function signout() {
-  await sdk.auth.logout()
+  await sdk.client.fetch<{ success?: boolean }>("/store/auth/signout", {
+    method: "POST",
+    cache: "no-store",
+  })
 
   await removeAuthToken()
 
