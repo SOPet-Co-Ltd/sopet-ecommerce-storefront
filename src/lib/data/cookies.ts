@@ -52,6 +52,7 @@ export const setAuthToken = async (token: string) => {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    path: "/",
   })
 }
 
@@ -59,6 +60,7 @@ export const removeAuthToken = async () => {
   const cookies = await nextCookies()
   cookies.set("_medusa_jwt", "", {
     maxAge: -1,
+    path: "/",
   })
 }
 
