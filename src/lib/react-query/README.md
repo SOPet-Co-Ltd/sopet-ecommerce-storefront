@@ -7,6 +7,7 @@ This folder contains shared utilities for `@tanstack/react-query` setup and conv
 - `query-client.ts`: QueryClient factory and default options.
 - `query-keys.ts`: centralized query key builders.
 - `query-options.ts`: helper to build typed query options.
+- `fetcher.ts`: Medusa fetcher factories for queries and mutations.
 - `index.ts`: public exports.
 
 ## 1) Query client setup
@@ -107,7 +108,40 @@ const useProduct = (locale: string, handle: string) => {
 }
 ```
 
-## 5) Invalidate cache after mutation
+## 5) Use custom Medusa fetcher (recommended)
+
+Use `createMedusaQueryFn` and `createMedusaMutationFn` to reuse SDK fetch logic and
+standardized error objects.
+
+```ts
+import { useQuery } from "@tanstack/react-query"
+import {
+  buildQueryOptions,
+  createMedusaQueryFn,
+  queryKeys,
+} from "@/lib/react-query"
+
+type ProductsResponse = { products: Array<{ id: string; title: string }> }
+
+export const useProductsByCategory = (locale: string, categoryId: string) => {
+  return useQuery(
+    buildQueryOptions({
+      queryKey: ["products", "by-category", locale, categoryId] as const,
+      queryFn: createMedusaQueryFn<ProductsResponse>({
+        path: "/store/products",
+        query: {
+          country_code: locale,
+          category_id: categoryId,
+          limit: 12,
+        },
+      }),
+      enabled: Boolean(locale && categoryId),
+    })
+  )
+}
+```
+
+## 6) Invalidate cache after mutation
 
 After create/update/delete mutations, invalidate related keys.
 
