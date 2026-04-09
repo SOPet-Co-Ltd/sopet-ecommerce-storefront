@@ -2,11 +2,7 @@
 
 import { NavigationProgress } from "@/components/atoms/NavigationProgress/NavigationProgress"
 import { RouteLoadingProvider } from "@/components/atoms/RouteLoadingFallback/RouteLoadingProvider"
-import {
-  CartProvider,
-  ProductCacheProvider,
-  ReactQueryProvider,
-} from "@/components/providers"
+import { CartProvider, ReactQueryProvider } from "@/components/providers"
 import { Cart } from "@/types/cart"
 import type React from "react"
 
@@ -20,12 +16,10 @@ export function Providers({ children, cart }: ProvidersProps) {
   return (
     <ReactQueryProvider>
       <CartProvider cart={cart}>
-        <ProductCacheProvider>
-          <RouteLoadingProvider>
-            <NavigationProgress />
-            {children}
-          </RouteLoadingProvider>
-        </ProductCacheProvider>
+        <RouteLoadingProvider>
+          <NavigationProgress />
+          {children}
+        </RouteLoadingProvider>
       </CartProvider>
     </ReactQueryProvider>
   )

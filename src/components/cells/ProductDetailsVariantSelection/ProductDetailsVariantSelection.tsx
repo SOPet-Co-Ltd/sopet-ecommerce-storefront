@@ -5,7 +5,7 @@ import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import React from "react"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
@@ -32,6 +32,7 @@ import { ProductDetailQuantitySelection } from "@/components/cells"
 import { AdditionalAttributeProps } from "@/types/product"
 import { CustomerCartItem } from "@/types/customer-cart"
 import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
+import { select, usePdpUIStore } from "@/lib/zustand"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -351,11 +352,30 @@ export const ProductDetailsVariantSelection = ({
     window.history.replaceState(null, "", newUrl)
   }
 
-  const [productQuantity, setProductQuantity] = useState(1)
-  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-
   const [isAdding, setIsAdding] = useState(false)
   const [isBuyingNow, setIsBuyingNow] = useState(false)
+  const selectedVariant = usePdpUIStore(
+    select((state) => state.selectedVariant)
+  )
+  const productQuantity = usePdpUIStore(
+    select((state) => state.productQuantity)
+  )
+  const isShareModalOpen = usePdpUIStore(
+    select((state) => state.isShareModalOpen)
+  )
+  const setSelectedVariant = usePdpUIStore(
+    select((state) => state.setSelectedVariant)
+  )
+  const setProductQuantity = usePdpUIStore(
+    select((state) => state.setProductQuantity)
+  )
+  const resetQuantity = usePdpUIStore(select((state) => state.resetQuantity))
+  const setShareModalOpen = usePdpUIStore(
+    select((state) => state.setShareModalOpen)
+  )
+  const initializeProductState = usePdpUIStore(
+    select((state) => state.initializeProductState)
+  )
   const { allSearchParams } = useGetAllSearchParams()
 
   const { cheapestVariant, cheapestPrice } = getProductPrice({
@@ -366,23 +386,23 @@ export const ProductDetailsVariantSelection = ({
   const hasAnyPrice = cheapestPrice !== null && cheapestVariant !== null
 
   // Build default selected variant from the cheapest variant and current URL params
-  const defaultSelectedVariant = hasAnyPrice
-    ? {
-        ...optionsAsKeymap(cheapestVariant.options ?? null),
-        ...allSearchParams,
-      }
-    : allSearchParams
-
-  // Keep selected variant purely in client state so changing variants
-  // doesn't trigger a Next.js navigation (and therefore no refetch).
-  const [selectedVariant, setSelectedVariant] = useState(defaultSelectedVariant)
+  const allSearchParamsKey = JSON.stringify(allSearchParams)
+  const defaultSelectedVariant = useMemo(
+    () =>
+      hasAnyPrice
+        ? {
+            ...optionsAsKeymap(cheapestVariant.options ?? null),
+            ...allSearchParams,
+          }
+        : allSearchParams,
+    [allSearchParamsKey, cheapestVariant?.id, hasAnyPrice]
+  )
 
   // When URL search params change due to navigation (e.g. deep link),
   // sync them into local state.
   useEffect(() => {
-    setSelectedVariant(defaultSelectedVariant)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cheapestVariant?.id, JSON.stringify(allSearchParams)])
+    initializeProductState(defaultSelectedVariant)
+  }, [defaultSelectedVariant, initializeProductState, product.id])
 
   // get selected variant id
   const variantId =
@@ -396,8 +416,8 @@ export const ProductDetailsVariantSelection = ({
 
   // Reset quantity when selected variant changes
   useEffect(() => {
-    setProductQuantity(1)
-  }, [variantId])
+    resetQuantity()
+  }, [resetQuantity, variantId])
 
   // get variant price
   const { variantPrice } = getProductPrice({
@@ -504,16 +524,14 @@ export const ProductDetailsVariantSelection = ({
         <ProductVariants
           product={product}
           selectedVariant={selectedVariant}
-          onVariantChange={(optionId, value) =>
-            setSelectedVariant((prev) => {
-              const next = {
-                ...prev,
-                [optionId]: value,
-              }
-              syncVariantToUrl(next)
-              return next
-            })
-          }
+          onVariantChange={(optionId, value) => {
+            const next = {
+              ...selectedVariant,
+              [optionId]: value,
+            }
+            setSelectedVariant(next)
+            syncVariantToUrl(next)
+          }}
         />
       )}
 
@@ -554,7 +572,7 @@ export const ProductDetailsVariantSelection = ({
         </Button>
 
         <button
-          onClick={() => setIsShareModalOpen(true)}
+          onClick={() => setShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           className="cursor-pointer"
         >
@@ -582,7 +600,7 @@ export const ProductDetailsVariantSelection = ({
       {/* Share Modal */}
       <ShareModal
         isOpen={isShareModalOpen}
-        onClose={() => setIsShareModalOpen(false)}
+        onClose={() => setShareModalOpen(false)}
         product={product}
         locale={locale}
       />

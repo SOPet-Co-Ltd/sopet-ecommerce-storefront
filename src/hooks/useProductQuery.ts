@@ -1,12 +1,9 @@
 "use client"
 
-import useSWR from "swr"
+import { useQuery } from "@tanstack/react-query"
 import { HttpTypes } from "@medusajs/types"
 import { sdk } from "@/lib/config"
-import {
-  makeProductCacheKey,
-  useProductCache,
-} from "@/components/providers/ProductCacheProvider"
+import { queryKeys } from "@/lib/react-query"
 import { SellerProps } from "@/types/seller"
 
 type ProductWithSeller = HttpTypes.StoreProduct & {
@@ -45,28 +42,18 @@ export const useProductQuery = ({
   locale,
   initialData,
 }: UseProductQueryArgs) => {
-  const { getProduct, setProduct } = useProductCache()
-  const cacheKey = makeProductCacheKey(locale, handle)
-
-  const cached = getProduct(cacheKey) ?? undefined
-
-  const swrKey = handle && locale ? ["product", locale, handle] : null
-
-  const { data, error, isLoading } = useSWR<ProductWithSeller | null>(
-    swrKey,
-    () => fetchProduct({ handle, locale }),
-    {
-      fallbackData: cached ?? initialData ?? null,
-      revalidateOnFocus: false,
-    }
-  )
-
-  if (data && !cached) {
-    setProduct(cacheKey, data)
-  }
+  const hasQueryParams = Boolean(handle && locale)
+  const queryKey = queryKeys.products.byHandle(locale, handle)
+  const { data, error, isLoading } = useQuery({
+    queryKey,
+    queryFn: () => fetchProduct({ handle, locale }),
+    enabled: hasQueryParams,
+    initialData,
+    refetchOnWindowFocus: false,
+  })
 
   return {
-    product: data,
+    product: data ?? null,
     isLoading,
     isError: !!error,
     error,

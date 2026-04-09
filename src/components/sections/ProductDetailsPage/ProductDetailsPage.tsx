@@ -1,8 +1,14 @@
 import { ProductDetails, ProductGallery } from "@/components/organisms"
 import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
 import { getProductReviewStats } from "@/lib/data/reviews"
+import { queryKeys } from "@/lib/react-query"
 import { Breadcrumbs } from "@/components/atoms"
 import { ProductDetailsSeller } from "@/components/cells"
+import {
+  HydrationBoundary,
+  QueryClient,
+  dehydrate,
+} from "@tanstack/react-query"
 import {
   ProductDetailDescription,
   HomeProductSection,
@@ -11,7 +17,6 @@ import {
 } from ".."
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
-import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
 import { ProductViewTracker } from "@/components/atoms/ProductViewTracker/ProductViewTracker"
 import { ProductDetailReviewSkeleton } from "./ProductDetailReviewSkeleton"
 import { SellerProductsSectionSkeleton } from "./SellerProductsSectionSkeleton"
@@ -32,6 +37,9 @@ export const ProductDetailsPage = async ({
   }
 
   const reviewStats = await getProductReviewStats(prod.id)
+  const queryClient = new QueryClient()
+  queryClient.setQueryData(queryKeys.products.byHandle(locale, handle), prod)
+  const dehydratedState = dehydrate(queryClient)
 
   const breadcrumbs = !prod.collection
     ? [
@@ -53,9 +61,8 @@ export const ProductDetailsPage = async ({
     )?.value ?? null
 
   return (
-    <>
+    <HydrationBoundary state={dehydratedState}>
       <ProductViewTracker productId={prod.id} />
-      <ProductDetailsCacheHydrator product={prod} locale={locale} />
       {/* Section - Breadcrumb */}
       <div className="py-4 lg:block hidden">
         <Breadcrumbs items={breadcrumbs} />
@@ -88,6 +95,6 @@ export const ProductDetailsPage = async ({
           excludeProductId={prod.id}
         />
       </Suspense>
-    </>
+    </HydrationBoundary>
   )
 }
