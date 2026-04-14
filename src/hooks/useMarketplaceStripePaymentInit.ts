@@ -188,25 +188,25 @@ export function useMarketplaceStripePaymentInit({
         if (opts.abortCommit?.()) {
           return null
         }
+        const pmTypes: ("card" | "promptpay")[] = dualPmSingleStripePrepare
+          ? ["card", "promptpay"]
+          : [opts.methodType]
         const mp = await prepareMarketplacePayments(c.id)
         if (opts.abortCommit?.()) {
           return null
         }
-        const next: Record<string, HttpTypes.StorePaymentCollection> = {}
-        const pmTypes: ("card" | "promptpay")[] = dualPmSingleStripePrepare
-          ? ["card", "promptpay"]
-          : [opts.methodType]
-        for (const slice of mp.slices) {
-          if (opts.abortCommit?.()) {
-            return null
-          }
-          const pc = await createMarketplacePaymentSession(c.id, {
-            payment_collection_id: slice.payment_collection_id,
-            provider_id: resolvedProviderId,
-            data: { payment_method_types: pmTypes },
-          })
-          next[slice.payment_collection_id] = pc
-        }
+        const next = Object.fromEntries(
+          await Promise.all(
+            mp.slices.map(async (slice) => {
+              const collection = await createMarketplacePaymentSession(c.id, {
+                payment_collection_id: slice.payment_collection_id,
+                provider_id: resolvedProviderId,
+                data: { payment_method_types: pmTypes },
+              })
+              return [slice.payment_collection_id, collection] as const
+            })
+          )
+        )
         if (opts.abortCommit?.()) {
           return null
         }

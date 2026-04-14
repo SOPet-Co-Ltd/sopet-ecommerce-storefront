@@ -5,6 +5,7 @@ import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/Che
 
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
+import { getCheckoutCustomer } from "@/lib/data/customer"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -32,6 +33,7 @@ export default async function CheckoutPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  const customerPromise = getCheckoutCustomer()
   const cart = await retrieveCart()
 
   if (!cart) {
@@ -39,7 +41,9 @@ export default async function CheckoutPage({
   }
 
   const regionId = cart.region_id ?? cart.region?.id ?? null
-  const initialData = await getCheckoutPageInitialData(cart.id, regionId)
+  const initialData = await getCheckoutPageInitialData(cart.id, regionId, {
+    customerPromise,
+  })
   const lineFingerprint = checkoutLineFingerprint(cart)
 
   return (

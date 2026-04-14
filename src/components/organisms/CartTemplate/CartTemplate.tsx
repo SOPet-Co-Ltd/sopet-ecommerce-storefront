@@ -4,7 +4,7 @@ import { Checkbox } from "@/components/atoms"
 import { CartItem } from "@/components/molecules"
 import { CartSummary } from "../CartSummary/CartSummary"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
 import { DiscountIcon } from "@/icons"
 import { Cart } from "@/types/cart"
@@ -39,6 +39,7 @@ export const CartTemplate = ({
   const [discountModalVendor, setDiscountModalVendor] = useState<string | null>(
     null
   )
+  const hasInitializedSelectionRef = useRef(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -76,6 +77,7 @@ export const CartTemplate = ({
     if (!newIds.length) {
       setLineOrder([])
       setSelectedItems([])
+      hasInitializedSelectionRef.current = false
       return
     }
 
@@ -203,10 +205,18 @@ export const CartTemplate = ({
   }
 
   useEffect(() => {
-    if (cart?.items?.length && selectedItems.length === 0) {
-      setSelectedItems(cart.items.map((i) => i.id))
+    if (!sortedItems.length) {
+      hasInitializedSelectionRef.current = false
+      return
     }
-  }, [cart?.items, selectedItems.length])
+
+    if (hasInitializedSelectionRef.current) {
+      return
+    }
+
+    hasInitializedSelectionRef.current = true
+    setSelectedItems(sortedItems.map((item) => item.id))
+  }, [sortedItems])
 
   // Ensure selectedItems only contains IDs that still exist in the cart
   useEffect(() => {

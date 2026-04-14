@@ -51,7 +51,11 @@ type CheckoutPaymentContextValue = {
   ) => void
   /** Saved Stripe payment methods for the customer (fetched when method is card). */
   savedPaymentMethods: CustomerPaymentMethod[]
-  setSavedPaymentMethods: (methods: CustomerPaymentMethod[]) => void
+  setSavedPaymentMethods: (
+    methods:
+      | CustomerPaymentMethod[]
+      | ((prev: CustomerPaymentMethod[]) => CustomerPaymentMethod[])
+  ) => void
   /** Selected saved payment method id (when not using new card). */
   selectedPaymentMethodId: string | null
   setSelectedPaymentMethodId: (id: string | null) => void

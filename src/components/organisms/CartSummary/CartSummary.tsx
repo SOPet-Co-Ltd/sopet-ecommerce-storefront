@@ -32,16 +32,17 @@ export const CartSummary = ({
   selectedItemIds = [],
   isAnonymousCart = false,
 }: CartSummaryProps) => {
-  const {
-    total,
-    subtotal,
-    discount_total,
-    shipping_total,
-    tax_total,
-    currency_code,
-  } = cart || {}
+  const { total, subtotal, discount_total, currency_code } = cart || {}
 
   const [isLoading, setIsLoading] = useState(false)
+  const hasCustomSelectedAmount = typeof customTotal === "number"
+  const displaySelectedAmount = hasCustomSelectedAmount
+    ? Math.max(customTotal, 0)
+    : totalCount > 0 && selectedCount === totalCount
+      ? (total ?? 0)
+      : (subtotal ?? 0)
+  const showCartDiscountBreakdown =
+    (discount_total ?? 0) > 0 && selectedCount === totalCount
 
   const handleCheckout = async () => {
     if (selectedCount === 0) return
@@ -78,18 +79,21 @@ export const CartSummary = ({
             </span>
             <span className="sop-body-md-regular text-sop-base-black">
               {convertToLocale({
-                amount: subtotal ?? 0,
+                amount: displaySelectedAmount,
                 currency_code,
               })}
             </span>
           </div>
 
-          {discount_total > 0 && (
+          {showCartDiscountBreakdown && (
             <>
               <div className="flex items-center gap-4 min-w-[50%] md:min-w-[300px] justify-between text-gray-900">
                 <span>ส่วนลดร้านค้า</span>
                 <span className="font-medium text-sop-base-black">
-                  {convertToLocale({ amount: discount_total, currency_code })}
+                  {convertToLocale({
+                    amount: discount_total ?? 0,
+                    currency_code,
+                  })}
                 </span>
               </div>
               <div className="w-full md:w-[300px] h-px bg-gray-100 my-1"></div>
@@ -100,21 +104,12 @@ export const CartSummary = ({
             <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-neutral-gray-300">
               รวมทั้งสิ้น
             </span>
-            {discount_total > 0 && selectedCount === totalCount ? (
-              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-white bg-sop-secondary-500 px-3 rounded-lg">
-                {convertToLocale({
-                  amount: total ?? 0,
-                  currency_code,
-                })}
-              </span>
-            ) : (
-              <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-white bg-sop-secondary-500 px-3 rounded-lg">
-                {convertToLocale({
-                  amount: total ?? 0,
-                  currency_code,
-                })}
-              </span>
-            )}
+            <span className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-white bg-sop-secondary-500 px-3 rounded-lg">
+              {convertToLocale({
+                amount: displaySelectedAmount,
+                currency_code,
+              })}
+            </span>
           </div>
         </div>
 

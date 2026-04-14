@@ -737,7 +737,8 @@ export async function createMarketplacePaymentSession(
     payment_collection_id: string
     provider_id: string
     data?: Record<string, unknown>
-  }
+  },
+  options?: { skipCacheRevalidate?: boolean }
 ): Promise<HttpTypes.StorePaymentCollection> {
   const headers = {
     ...(await getAuthHeaders()),
@@ -769,10 +770,44 @@ export async function createMarketplacePaymentSession(
     throw new Error("Invalid marketplace payment session response")
   }
 
+  if (!options?.skipCacheRevalidate) {
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
+
+  return pc
+}
+
+export async function bootstrapMarketplacePaymentSessions(
+  cartId: string,
+  input: {
+    provider_id: string
+    data?: Record<string, unknown>
+  }
+): Promise<{
+  marketplaceCheckout: MpCheckoutV1
+  collectionsById: Record<string, HttpTypes.StorePaymentCollection>
+}> {
+  const marketplaceCheckout = await prepareMarketplacePayments(cartId)
+
+  const entries = await Promise.all(
+    marketplaceCheckout.slices.map(async (slice) => {
+      const collection = await createMarketplacePaymentSession(cartId, {
+        payment_collection_id: slice.payment_collection_id,
+        provider_id: input.provider_id,
+        ...(input.data ? { data: input.data } : {}),
+      }, { skipCacheRevalidate: true })
+      return [slice.payment_collection_id, collection] as const
+    })
+  )
+
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
 
-  return pc
+  return {
+    marketplaceCheckout,
+    collectionsById: Object.fromEntries(entries),
+  }
 }
 
 /**
@@ -785,7 +820,16 @@ export async function clearCheckoutCartCookie() {
 
 export async function completeMarketplaceOrder(
   cartId?: string,
-  options?: { redirect?: boolean }
+  options?: {
+    redirect?: boolean
+    cartSnapshot?: {
+      customerId?: string | null
+      email?: string | null
+      customerPhone?: string | null
+      customerEmail?: string | null
+      promotionCodes?: string[] | null
+    }
+  }
 ) {
   const id = cartId || (await getCartId())
 
@@ -797,7 +841,33 @@ export async function completeMarketplaceOrder(
     ...(await getAuthHeaders()),
   }
 
-  let cartBeforeComplete = await retrieveCart(id)
+  const cartSnapshot = options?.cartSnapshot
+  let cartBeforeComplete:
+    | {
+        customer_id?: string | null
+        email?: string | null
+        customer?: { phone?: string | null; email?: string | null } | null
+        promotions?: { code?: string }[]
+      }
+    | Cart
+    | null =
+    cartSnapshot
+      ? {
+          customer_id: cartSnapshot.customerId ?? null,
+          email: cartSnapshot.email ?? null,
+          customer: {
+            phone: cartSnapshot.customerPhone ?? null,
+            email: cartSnapshot.customerEmail ?? null,
+          },
+          promotions:
+            cartSnapshot.promotionCodes?.map((code) => ({ code })) ?? undefined,
+        }
+      : null
+
+  if (!cartBeforeComplete?.customer_id) {
+    cartBeforeComplete = await retrieveCart(id)
+  }
+
   if (!cartBeforeComplete?.customer_id) {
     throw new Error(
       "Cart is not linked to a customer. Please sign in again before placing the order."
@@ -805,15 +875,21 @@ export async function completeMarketplaceOrder(
   }
 
   if (!cartBeforeComplete?.email) {
-    const customerPhone = (
-      cartBeforeComplete as { customer?: { phone?: string } }
-    )?.customer?.phone
+    const customerPhone =
+      cartSnapshot?.customerPhone ||
+      (cartBeforeComplete as { customer?: { phone?: string } })?.customer?.phone
+    const customerEmail =
+      cartSnapshot?.customerEmail ||
+      (cartBeforeComplete as { customer?: { email?: string } })?.customer?.email
     const fallbackEmail = customerPhone
       ? `${customerPhone}@sopet.co.th`
-      : "no-reply@sopet.co.th"
+      : customerEmail || "no-reply@sopet.co.th"
 
     await updateCart({ email: fallbackEmail })
-    cartBeforeComplete = await retrieveCart(id)
+    cartBeforeComplete = {
+      ...cartBeforeComplete,
+      email: fallbackEmail,
+    }
   }
 
   const res = await fetchQuery(
@@ -828,11 +904,11 @@ export async function completeMarketplaceOrder(
   revalidateTag(cartCacheTag)
 
   const orderId = getOrderIdFromPlaceOrderResponse(res)
-  const appliedPromoCodes = (
-    cartBeforeComplete as { promotions?: { code?: string }[] }
-  )?.promotions
-    ?.map((p) => p.code)
-    .filter(Boolean) as string[] | undefined
+  const appliedPromoCodes =
+    cartSnapshot?.promotionCodes?.filter(Boolean) ||
+    ((cartBeforeComplete as { promotions?: { code?: string }[] })?.promotions
+      ?.map((p) => p.code)
+      .filter(Boolean) as string[] | undefined)
   if (res?.ok && appliedPromoCodes?.length) {
     const { markCouponAsUsed } = await import("@/lib/data/coupons")
     Promise.all(appliedPromoCodes.map((code) => markCouponAsUsed(code))).catch(

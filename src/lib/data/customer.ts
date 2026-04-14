@@ -23,11 +23,11 @@ export async function ensureStripeCustomer() {
 
   if (!headers || Object.keys(headers).length === 0) {
     // Not logged in; nothing to do.
-    return
+    return null
   }
 
   try {
-    await sdk.client.fetch<{ stripe_customer_id: string }>(
+    const res = await sdk.client.fetch<{ stripe_customer_id: string }>(
       "/store/customers/me/stripe-customer",
       {
         method: "POST",
@@ -37,8 +37,10 @@ export async function ensureStripeCustomer() {
 
     const customerCacheTag = await getCacheTag("customers")
     revalidateTag(customerCacheTag)
+    return res.stripe_customer_id ?? null
   } catch {
     // Swallow errors to avoid breaking login if Stripe is temporarily unavailable.
+    return null
   }
 }
 
@@ -568,44 +570,6 @@ export async function verifyOtpAndLogin(formData: FormData) {
 }
 
 /**
- * Finalize OAuth login by exchanging a short-lived backend handoff token
- * for the regular customer JWT, then storing it in the storefront cookie.
- */
-export async function finalizeOAuthSession(
-  handoffToken: string
-): Promise<string | null> {
-  const trimmed = handoffToken.trim()
-  if (!trimmed) {
-    return "Invalid OAuth handoff token"
-  }
-
-  try {
-    const res = await sdk.client.fetch<{
-      success: boolean
-      error?: string
-      token?: string
-    }>("/store/auth/oauth/session", {
-      method: "POST",
-      body: {
-        handoff_token: trimmed,
-      },
-      cache: "no-store",
-    })
-
-    if (!res.success || !res.token) {
-      return res.error || "OAuth session exchange failed"
-    }
-
-    await setAuthToken(res.token)
-    const customerCacheTag = await getCacheTag("customers")
-    revalidateTag(customerCacheTag)
-    return null
-  } catch (error: any) {
-    return error.toString()
-  }
-}
-
-/**
  * Clear Medusa cart cookie. Safe to call when the login page loads so we don't
  * carry a stale cart. Must be run as a Server Action (e.g. from a client useEffect).
  */
@@ -614,10 +578,7 @@ export async function clearMedusaCartForLoginPage() {
 }
 
 export async function signout() {
-  await sdk.client.fetch<{ success?: boolean }>("/store/auth/signout", {
-    method: "POST",
-    cache: "no-store",
-  })
+  await sdk.auth.logout()
 
   await removeAuthToken()
 
@@ -923,6 +884,51 @@ export type CustomerPaymentMethod = {
   is_default: boolean
 }
 
+function extractCustomerPaymentMethodError(err: any): {
+  error: string
+  type?: string
+  code?: string
+} {
+  let errorMessage = err?.message ?? String(err)
+  let errorType: string | undefined
+  let errorCode: string | undefined
+
+  if (err?.body) {
+    if (typeof err.body === "object") {
+      if (err.body.message) {
+        errorMessage = err.body.message
+      }
+      if (err.body.type) {
+        errorType = err.body.type
+      }
+      if (err.body.code) {
+        errorCode = err.body.code
+      }
+    } else if (typeof err.body === "string") {
+      try {
+        const parsed = JSON.parse(err.body)
+        if (parsed.message) {
+          errorMessage = parsed.message
+        }
+        if (parsed.type) {
+          errorType = parsed.type
+        }
+        if (parsed.code) {
+          errorCode = parsed.code
+        }
+      } catch {
+        // Not JSON, use as is
+      }
+    }
+  }
+
+  return {
+    error: errorMessage,
+    type: errorType,
+    code: errorCode,
+  }
+}
+
 export async function getCustomerPaymentMethods(): Promise<
   | { success: true; paymentMethods: CustomerPaymentMethod[] }
   | { success: false; error: string }
@@ -965,8 +971,10 @@ export async function addCustomerPaymentMethod(options: {
     return { success: false, error: "paymentMethodId is required" }
   }
 
-  try {
-    const res = await sdk.client.fetch<{
+  await ensureStripeCustomer()
+
+  const postPaymentMethod = async () =>
+    sdk.client.fetch<{
       payment_method: CustomerPaymentMethod
     }>("/store/customers/me/payment-methods", {
       method: "POST",
@@ -977,54 +985,46 @@ export async function addCustomerPaymentMethod(options: {
       },
     })
 
-    // Revalidate customer cache for any UI depending on customer data
-    const customerCacheTag = await getCacheTag("customers")
-    revalidateTag(customerCacheTag)
-
-    return { success: true, paymentMethod: res.payment_method }
-  } catch (err: any) {
-    // Extract error message, type, and code from API response
-    let errorMessage = err?.message ?? String(err)
-    let errorType: string | undefined
-    let errorCode: string | undefined
-
-    // Check if error response contains structured error fields (from backend error format)
-    if (err?.body) {
-      if (typeof err.body === "object") {
-        if (err.body.message) {
-          errorMessage = err.body.message
-        }
-        if (err.body.type) {
-          errorType = err.body.type
-        }
-        if (err.body.code) {
-          errorCode = err.body.code
-        }
-      } else if (typeof err.body === "string") {
-        try {
-          const parsed = JSON.parse(err.body)
-          if (parsed.message) {
-            errorMessage = parsed.message
-          }
-          if (parsed.type) {
-            errorType = parsed.type
-          }
-          if (parsed.code) {
-            errorCode = parsed.code
-          }
-        } catch {
-          // Not JSON, use as is
-        }
+  const attemptSave = async (): Promise<
+    | { success: true; paymentMethod: CustomerPaymentMethod }
+    | { success: false; error: string; type?: string; code?: string }
+  > => {
+    try {
+      const res = await postPaymentMethod()
+      const customerCacheTag = await getCacheTag("customers")
+      revalidateTag(customerCacheTag)
+      return { success: true, paymentMethod: res.payment_method }
+    } catch (err: any) {
+      return {
+        success: false,
+        ...extractCustomerPaymentMethodError(err),
       }
     }
+  }
 
+  const firstAttempt = await attemptSave()
+  if (firstAttempt.success) {
+    return firstAttempt
+  }
+
+  if (
+    firstAttempt.code !== "missing_stripe_customer" &&
+    firstAttempt.code !== "stripe_customer_not_found"
+  ) {
+    return firstAttempt
+  }
+
+  const ensuredStripeCustomerId = await ensureStripeCustomer()
+  if (!ensuredStripeCustomerId) {
     return {
       success: false,
-      error: errorMessage,
-      type: errorType,
-      code: errorCode,
+      error: "ไม่สามารถเชื่อมบัญชีบัตรของลูกค้าได้",
+      type: "invalid_data",
+      code: "missing_stripe_customer",
     }
   }
+
+  return attemptSave()
 }
 
 export async function updateCustomerPaymentMethod(

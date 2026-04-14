@@ -11,13 +11,16 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js"
 import { Button, Checkbox, InputSOPet } from "@/components/atoms"
-import { addCustomerPaymentMethod } from "@/lib/data/customer"
+import {
+  addCustomerPaymentMethod,
+  type CustomerPaymentMethod,
+} from "@/lib/data/customer"
 
 const stripeKey = process.env.NEXT_PUBLIC_STRIPE_KEY
 const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 type InnerFormProps = {
-  onSuccess?: () => void
+  onSuccess?: (paymentMethod: CustomerPaymentMethod) => void | Promise<void>
 }
 
 const stripeElementStyle: StripeCardElementOptions = {
@@ -102,7 +105,7 @@ const CreditCardInnerForm = ({ onSuccess }: InnerFormProps) => {
         return
       }
 
-      onSuccess?.()
+      await onSuccess?.(result.paymentMethod)
     } catch (err: any) {
       setError(err?.message ?? String(err))
     } finally {
@@ -189,7 +192,7 @@ const CreditCardInnerForm = ({ onSuccess }: InnerFormProps) => {
 }
 
 type CreditCardFormProps = {
-  onSuccess?: () => void
+  onSuccess?: (paymentMethod: CustomerPaymentMethod) => void | Promise<void>
 }
 
 export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {

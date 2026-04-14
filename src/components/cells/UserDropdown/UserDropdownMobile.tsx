@@ -21,7 +21,6 @@ type DropDownItemProps = {
   onClick?: () => void | Promise<void>
   separator?: boolean
   colored?: boolean
-  as?: "button" | "div"
 }
 
 const ListItem = ({
@@ -30,33 +29,20 @@ const ListItem = ({
   onClick,
   separator,
   colored,
-  as = "div",
-}: DropDownItemProps) =>
-  as === "button" ? (
-    <button
-      type="button"
-      className={cn(
-        "flex items-center gap-3 px-4 py-2.5 w-full",
-        colored ? "bg-sop-primary-200" : "bg-transparent",
-        separator && "border-b border-sop-neutral-gray-500"
-      )}
-      onClick={() => void onClick?.()}
-    >
-      {icon}
-      <p className="sop-body-sm-regular">{label}</p>
-    </button>
-  ) : (
-    <div
-      className={cn(
-        "flex items-center gap-3 px-4 py-2.5 w-full",
-        colored ? "bg-sop-primary-200" : "bg-transparent",
-        separator && "border-b border-sop-neutral-gray-500"
-      )}
-    >
-      {icon}
-      <p className="sop-body-sm-regular">{label}</p>
-    </div>
-  )
+}: DropDownItemProps) => (
+  <button
+    type="button"
+    className={cn(
+      "flex items-center gap-3 px-4 py-2.5 w-full",
+      colored ? "bg-sop-primary-200" : "bg-transparent",
+      separator && "border-b border-sop-neutral-gray-500"
+    )}
+    onClick={() => void onClick?.()}
+  >
+    {icon}
+    <p className="sop-body-sm-regular">{label}</p>
+  </button>
+)
 
 const getNavigationItems = () => {
   const separatorItems = ["favorites", "help", "delete"]
@@ -141,27 +127,17 @@ export const UserDropdownMobile = ({
           <div className="flex flex-col">
             {!user ? (
               <>
-                <LocalizedClientLink
-                  href="/vet-ai"
-                  onClick={() => setOpen(false)}
-                >
-                  <ListItem
-                    icon={<VetAIIcon size={14} color="#454547" />}
-                    label={"Vet AI"}
-                    colored
-                    separator
-                  />
-                </LocalizedClientLink>
-                <LocalizedClientLink
-                  href="/login"
-                  onClick={() => setOpen(false)}
-                >
-                  <ListItem
-                    icon={<SignInIcon size={14} color="#454547" />}
-                    label={"เข้าสู่ระบบ"}
-                    colored
-                  />
-                </LocalizedClientLink>
+                <ListItem
+                  icon={<VetAIIcon size={14} color="#454547" />}
+                  label={"Vet AI"}
+                  colored
+                  separator
+                />
+                <ListItem
+                  icon={<SignInIcon size={14} color="#454547" />}
+                  label={"เข้าสู่ระบบ"}
+                  colored
+                />
               </>
             ) : (
               <>
@@ -198,7 +174,6 @@ export const UserDropdownMobile = ({
                   icon={<SignOutIcon size={14} color="#454547" />}
                   label="ออกจากระบบ"
                   separator
-                  as="button"
                   onClick={async () => {
                     await signout()
                     setOpen(false)
