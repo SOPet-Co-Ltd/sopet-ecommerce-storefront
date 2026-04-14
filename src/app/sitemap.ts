@@ -101,12 +101,13 @@ async function productEntriesForLocale(
         cache: "no-store",
       })
 
+      const bypassPublishedToAlgoliaInDev = process.env.NODE_ENV === "development"
       const rows = products ?? []
       for (const p of rows) {
         if (
           !p.handle ||
           p.seller?.store_status === "SUSPENDED" ||
-          p.metadata?.published_to_algolia !== true
+          (!bypassPublishedToAlgoliaInDev && p.metadata?.published_to_algolia !== true)
         ) {
           continue
         }

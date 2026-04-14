@@ -48,6 +48,7 @@ const findAnonymousItemIndexByLineItemId = (
 }
 
 const LOCAL_STORAGE_KEY = "sopet_customer_cart_anonymous_v1"
+export const ANONYMOUS_CART_SYNC_EVENT = "sopet:anonymous-cart-sync"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -88,6 +89,7 @@ export const setAnonymousCart = (cart: LocalAnonymousCart): void => {
   }
 
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload))
+  window.dispatchEvent(new Event(ANONYMOUS_CART_SYNC_EVENT))
 }
 
 /**

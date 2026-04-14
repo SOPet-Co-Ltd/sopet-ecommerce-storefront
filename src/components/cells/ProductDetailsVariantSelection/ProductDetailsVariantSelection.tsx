@@ -4,6 +4,7 @@ import { Button } from "@/components/atoms"
 import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
+import { CartSource, useAddToCartMutation } from "@/hooks/useCartQuery"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { useEffect, useState } from "react"
 import React from "react"
@@ -11,8 +12,6 @@ import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
-import { addItemToAnonymousCart } from "@/lib/data/local-customer-cart"
-import { addItemsToCustomerCart } from "@/lib/data/customer-cart"
 import { prepareGuestCheckout } from "@/lib/data/cart"
 import {
   FacebookShareButton,
@@ -30,7 +29,6 @@ import {
 } from "@/icons"
 import { ProductDetailQuantitySelection } from "@/components/cells"
 import { AdditionalAttributeProps } from "@/types/product"
-import { CustomerCartItem } from "@/types/customer-cart"
 import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
 
 const optionsAsKeymap = (
@@ -320,6 +318,7 @@ export const ProductDetailsVariantSelection = ({
   wishlist?: Wishlist[]
   dateOfExpired: string | null
 }) => {
+  const cartSource: CartSource = user ? "customer" : "anonymous"
   // Sync the selected variant into the URL query string without triggering
   // a Next.js navigation, so sharing the URL preserves the selected variant
   const syncVariantToUrl = (nextSelectedVariant: Record<string, string>) => {
@@ -353,9 +352,8 @@ export const ProductDetailsVariantSelection = ({
 
   const [productQuantity, setProductQuantity] = useState(1)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
-
-  const [isAdding, setIsAdding] = useState(false)
   const [isBuyingNow, setIsBuyingNow] = useState(false)
+  const addToCartMutation = useAddToCartMutation(locale, cartSource)
   const { allSearchParams } = useGetAllSearchParams()
 
   const { cheapestVariant, cheapestPrice } = getProductPrice({
@@ -416,38 +414,36 @@ export const ProductDetailsVariantSelection = ({
   const handleAddToCart = async () => {
     if (!variantId || !hasAnyPrice) return null
 
-    setIsAdding(true)
-
     const quantity = productQuantity
-
-    const total = +(variantPrice?.calculated_price_number || 0)
+    const totalUnit = +(variantPrice?.calculated_price_number || 0)
+    const subtotalUnit = +(
+      variantPrice?.calculated_price_without_tax_number || totalUnit
+    )
+    const variant = product.variants?.find(({ id }) => id === variantId)
 
     try {
-      if (!user) {
-        addItemToAnonymousCart(
-          {
-            productId: product.id,
-            variantId,
-            quantity,
-            unitPriceSnapshot: total,
-            source: "storefront_cart",
-            metadata: buildStorefrontCartItemMetadata(product, variantId),
-          },
-          { maxQuantity: variantStock > 0 ? variantStock : undefined }
-        )
-        // No Medusa cart until checkout; only local anonymous cart here
-      } else {
-        await addItemsToCustomerCart([
-          {
-            productId: product.id,
-            variantId,
-            quantity,
-            unitPriceSnapshot: total,
-            source: "storefront_cart",
-            metadata: buildStorefrontCartItemMetadata(product, variantId),
-          },
-        ])
-      }
+      await addToCartMutation.mutateAsync({
+        productId: product.id,
+        variantId,
+        quantity,
+        unitPriceSnapshot: totalUnit,
+        source: "storefront_cart",
+        metadata: buildStorefrontCartItemMetadata(product, variantId),
+        currencyCode: variantPrice?.currency_code || "THB",
+        maxQuantity: variantStock > 0 ? variantStock : undefined,
+        optimisticItem: {
+          thumbnail: product.thumbnail || "",
+          product_title: product.title,
+          quantity,
+          subtotal: subtotalUnit * quantity,
+          total: totalUnit * quantity,
+          tax_total: (totalUnit - subtotalUnit) * quantity,
+          variant_id: variantId,
+          product_id: product.id,
+          variant,
+          product,
+        },
+      })
 
       toast.success({
         title: "เพิ่มลงตะกร้าแล้ว",
@@ -458,8 +454,6 @@ export const ProductDetailsVariantSelection = ({
         title: "Error adding to cart",
         description: "Some variant does not have the required inventory",
       })
-    } finally {
-      setIsAdding(false)
     }
   }
 
@@ -529,7 +523,7 @@ export const ProductDetailsVariantSelection = ({
         <Button
           onClick={handleAddToCart}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-          loading={isAdding}
+          loading={addToCartMutation.isPending}
           fill
           size="lg"
           variant="secondary"

@@ -4,16 +4,12 @@ import { Button } from "@/components/atoms"
 import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
+import { CartSource, useAddToCartMutation, useCartQuery } from "@/hooks/useCartQuery"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { useState } from "react"
-import { addItemToAnonymousCart } from "@/lib/data/local-customer-cart"
-import { addItemsToCustomerCart } from "@/lib/data/customer-cart"
-import { Chat } from "@/components/organisms/Chat/Chat"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
-import { useCartContext } from "@/components/providers"
 import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
 
 const optionsAsKeymap = (
@@ -43,8 +39,12 @@ export const ProductDetailsHeader = ({
   user: HttpTypes.StoreCustomer | null
   wishlist?: Wishlist[]
 }) => {
-  const { onAddToCart, cart } = useCartContext()
-  const [isAdding, setIsAdding] = useState(false)
+  const cartSource: CartSource = user ? "customer" : "anonymous"
+  const { data: cart } = useCartQuery({
+    locale,
+    source: cartSource,
+  })
+  const addToCartMutation = useAddToCartMutation(locale, cartSource)
   const { allSearchParams } = useGetAllSearchParams()
 
   const { cheapestVariant, cheapestPrice } = getProductPrice({
@@ -93,59 +93,38 @@ export const ProductDetailsHeader = ({
   const handleAddToCart = async () => {
     if (!variantId || !hasAnyPrice) return null
 
-    setIsAdding(true)
-
     const subtotal = +(variantPrice?.calculated_price_without_tax_number || 0)
     const total = +(variantPrice?.calculated_price_number || 0)
-
-    const storeCartLineItem = {
-      thumbnail: product.thumbnail || "",
-      product_title: product.title,
-      quantity: 1,
-      subtotal,
-      total,
-      tax_total: total - subtotal,
-      variant_id: variantId,
-      product_id: product.id,
-      variant: product.variants?.find(({ id }) => id === variantId),
-    }
+    const variant = product.variants?.find(({ id }) => id === variantId)
 
     try {
-      if (!isVariantStockMaxLimitReached) {
-        onAddToCart(storeCartLineItem, variantPrice?.currency_code || "eur")
-      }
-      // No Medusa cart until checkout; use customer cart or local anonymous cart only
-      if (user) {
-        await addItemsToCustomerCart([
-          {
-            productId: product.id,
-            variantId,
-            quantity: 1,
-            unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
-            source: "storefront_cart",
-            metadata: buildStorefrontCartItemMetadata(product, variantId),
-          },
-        ])
-      } else {
-        addItemToAnonymousCart(
-          {
-            productId: product.id,
-            variantId,
-            quantity: 1,
-            unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
-            source: "storefront_cart",
-            metadata: buildStorefrontCartItemMetadata(product, variantId),
-          },
-          { maxQuantity: variantStock > 0 ? variantStock : undefined }
-        )
-      }
+      await addToCartMutation.mutateAsync({
+        productId: product.id,
+        variantId,
+        quantity: 1,
+        unitPriceSnapshot: variantPrice?.calculated_price_number ?? 0,
+        source: "storefront_cart",
+        metadata: buildStorefrontCartItemMetadata(product, variantId),
+        currencyCode: variantPrice?.currency_code || "THB",
+        maxQuantity: variantStock > 0 ? variantStock : undefined,
+        optimisticItem: {
+          thumbnail: product.thumbnail || "",
+          product_title: product.title,
+          quantity: 1,
+          subtotal,
+          total,
+          tax_total: total - subtotal,
+          variant_id: variantId,
+          product_id: product.id,
+          variant,
+          product,
+        },
+      })
     } catch (error) {
       toast.error({
         title: "Error adding to cart",
         description: "Some variant does not have the required inventory",
       })
-    } finally {
-      setIsAdding(false)
     }
   }
 
@@ -193,7 +172,7 @@ export const ProductDetailsHeader = ({
       <Button
         onClick={handleAddToCart}
         disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
-        loading={isAdding}
+        loading={addToCartMutation.isPending}
         className="w-full uppercase mb-4 py-3 flex justify-center"
         size="default"
       >
