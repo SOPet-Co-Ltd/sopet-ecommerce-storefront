@@ -3,9 +3,10 @@ import { MarketplaceCheckoutProvider } from "@/components/sections/CheckoutPayme
 import { CheckoutCartCapRunner } from "@/components/sections/CheckoutPaymentSection/CheckoutCartCapRunner"
 import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
 
-import { retrieveCart } from "@/lib/data/cart"
+import { retrieveCart, setMultiShippingMethods } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
 import { getCheckoutCustomer } from "@/lib/data/customer"
+import { buildCartDefaultShippingSelection } from "@/lib/helpers/cart-shipping-selection"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -34,7 +35,7 @@ export default async function CheckoutPage({
 }) {
   const { locale } = await params
   const customerPromise = getCheckoutCustomer()
-  const cart = await retrieveCart()
+  let cart = await retrieveCart()
 
   if (!cart) {
     redirect(`/${locale}/cart?checkout=unavailable`)
@@ -44,6 +45,25 @@ export default async function CheckoutPage({
   const initialData = await getCheckoutPageInitialData(cart.id, regionId, {
     customerPromise,
   })
+  const shippingAutoSelection = buildCartDefaultShippingSelection(
+    cart,
+    initialData.shippingMethods
+  )
+
+  if (shippingAutoSelection.needsPersist && shippingAutoSelection.optionIds.length) {
+    await setMultiShippingMethods({
+      cartId: cart.id,
+      optionIds: shippingAutoSelection.optionIds,
+    }, {
+      skipCacheRevalidate: true,
+    })
+
+    const updatedCart = await retrieveCart(cart.id)
+    if (updatedCart) {
+      cart = updatedCart
+    }
+  }
+
   const lineFingerprint = checkoutLineFingerprint(cart)
 
   return (

@@ -13,12 +13,12 @@ import {
   allMarketplaceSlicesAuthorized,
   findStripeSessionForSlice,
   getMarketplaceClientSecretsInOrder,
-  isPromptpayProviderId,
-  isStripeProviderId,
+  isCheckoutSelectableStripeSession,
 } from "@/lib/helpers/marketplace-checkout-ui"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { writeOrderPromptPayContinuity } from "@/lib/helpers/order-promptpay-continuity"
 import { writePromptPayCheckoutLock } from "@/lib/helpers/promptpay-checkout-lock"
+import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
 import { captureOrderPayment } from "@/lib/data/orders"
 import { usePaymentCountdown } from "@/hooks/usePaymentCountdown"
 import {
@@ -90,6 +90,15 @@ export const CheckoutSummarySection = ({
     runMarketplaceInitIfNeeded,
     retryInit,
   } = useMarketplaceStripePaymentInit({ cart, method, paymentMethods })
+  const cartPaymentStateFingerprint = useMemo(
+    () => checkoutPaymentFingerprint(cart),
+    [cart]
+  )
+
+  useEffect(() => {
+    setLocalSessions({})
+    setError(null)
+  }, [cartPaymentStateFingerprint])
 
   if (!cart) return null
 
@@ -188,12 +197,18 @@ export const CheckoutSummarySection = ({
 
   const getSessionForProvider = (providerId?: string) => {
     if (!providerId) return undefined
-    return (
-      localSessions[providerId] ||
-      cart.payment_collection?.payment_sessions?.find(
-        (session) => session.provider_id === providerId
-      )
-    )
+    const localSession = localSessions[providerId]
+    if (isCheckoutSelectableStripeSession(localSession)) {
+      return localSession
+    }
+
+    return cart.payment_collection
+      ? findStripeSessionForSlice(
+          cart.payment_collection,
+          providerId.toLowerCase().includes("promptpay") ? "promptpay" : "card",
+          providerId
+        )
+      : undefined
   }
 
   const firstSliceCollection = mpCheckout?.slices[0]
@@ -217,23 +232,12 @@ export const CheckoutSummarySection = ({
         )
       : undefined
 
-  const fallbackStripeSession = cart.payment_collection?.payment_sessions?.find(
-    (session) => {
-      if (!isStripeProviderId(session.provider_id)) return false
-      const data = session.data as { payment_method_types?: string[] }
-      return data?.payment_method_types?.includes?.("card")
-    }
-  )
-  const fallbackPromptpaySession =
-    cart.payment_collection?.payment_sessions?.find((session) => {
-      if (
-        !isStripeProviderId(session.provider_id) &&
-        !isPromptpayProviderId(session.provider_id)
-      )
-        return false
-      const data = session.data as { payment_method_types?: string[] }
-      return data?.payment_method_types?.includes?.("promptpay")
-    })
+  const fallbackStripeSession = cart.payment_collection
+    ? findStripeSessionForSlice(cart.payment_collection, "card")
+    : undefined
+  const fallbackPromptpaySession = cart.payment_collection
+    ? findStripeSessionForSlice(cart.payment_collection, "promptpay")
+    : undefined
 
   const stripeSession =
     marketplaceCardSession ||
@@ -296,7 +300,8 @@ export const CheckoutSummarySection = ({
     }
     return {
       clientSecret: secret,
-      createdAt: session.created_at as string | null | undefined,
+      createdAt: (session as { created_at?: string | null } | undefined)
+        ?.created_at,
     }
   }
 
@@ -663,8 +668,9 @@ export const CheckoutSummarySection = ({
               locale={checkoutLocale}
               clientSecret={clientSecret}
               initialSessionCreatedAt={
-                typeof promptpaySession?.created_at === "string"
-                  ? promptpaySession.created_at
+                typeof (promptpaySession as { created_at?: unknown } | undefined)
+                  ?.created_at === "string"
+                  ? (promptpaySession as { created_at?: string }).created_at
                   : null
               }
               billingAddress={fallbackAddress}

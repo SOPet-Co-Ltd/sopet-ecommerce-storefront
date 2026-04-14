@@ -7,6 +7,7 @@ import {
   createMarketplacePaymentSession,
   prepareMarketplacePayments,
 } from "@/lib/data/cart"
+import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
 import { getMarketplaceClientSecretsInOrder } from "@/lib/helpers/marketplace-checkout-ui"
 import { isStripe } from "@/lib/constants"
 import type { Cart } from "@/types/cart"
@@ -45,7 +46,7 @@ export function useMarketplaceStripePaymentInit({
     mpRef,
     sliceMapRef,
     marketplaceInitKeyRef,
-    lastBoundCartIdRef,
+    lastBoundCartFingerprintRef,
     resetMarketplaceSliceState,
   } = useMarketplaceCheckout()
 
@@ -60,6 +61,11 @@ export function useMarketplaceStripePaymentInit({
             .join("|")
         : "",
     [paymentMethods]
+  )
+
+  const cartPaymentStateFingerprint = useMemo(
+    () => checkoutPaymentFingerprint(cart),
+    [cart]
   )
 
   const shippingMethodsFingerprint = useMemo(
@@ -154,8 +160,8 @@ export function useMarketplaceStripePaymentInit({
       }
 
       const cacheKey = dualPmSingleStripePrepare
-        ? `${c.id}:stripe_dual_pm:${opts.methodType}:${resolvedProviderId}:${shippingMethodsFingerprint}:${paymentProvidersFingerprint}`
-        : `${c.id}:${opts.methodType}:${resolvedProviderId}:${shippingMethodsFingerprint}:${paymentProvidersFingerprint}`
+        ? `${cartPaymentStateFingerprint}:stripe_dual_pm:${opts.methodType}:${resolvedProviderId}:${shippingMethodsFingerprint}:${paymentProvidersFingerprint}`
+        : `${cartPaymentStateFingerprint}:${opts.methodType}:${resolvedProviderId}:${shippingMethodsFingerprint}:${paymentProvidersFingerprint}`
 
       const sliceMapComplete =
         Boolean(mpRef.current) &&
@@ -244,6 +250,7 @@ export function useMarketplaceStripePaymentInit({
     [
       cart,
       dualPmSingleStripePrepare,
+      cartPaymentStateFingerprint,
       stripeProviderId,
       promptpayProviderId,
       shippingMethodsFingerprint,
@@ -259,22 +266,25 @@ export function useMarketplaceStripePaymentInit({
   )
 
   useEffect(() => {
-    const id = cart?.id
-    if (!id) {
-      lastBoundCartIdRef.current = null
+    if (!cartPaymentStateFingerprint) {
+      lastBoundCartFingerprintRef.current = null
       resetMarketplaceSliceState()
+      setClientSecret(undefined)
+      setMarketplacePaymentInitError(null)
       return
     }
-    if (lastBoundCartIdRef.current === id) {
+    if (lastBoundCartFingerprintRef.current === cartPaymentStateFingerprint) {
       return
     }
-    lastBoundCartIdRef.current = id
+    lastBoundCartFingerprintRef.current = cartPaymentStateFingerprint
     resetMarketplaceSliceState()
+    setClientSecret(undefined)
     setMarketplacePaymentInitError(null)
   }, [
-    cart?.id,
-    lastBoundCartIdRef,
+    cartPaymentStateFingerprint,
+    lastBoundCartFingerprintRef,
     resetMarketplaceSliceState,
+    setClientSecret,
     setMarketplacePaymentInitError,
   ])
 
@@ -325,6 +335,7 @@ export function useMarketplaceStripePaymentInit({
     }
   }, [
     cart?.id,
+    cartPaymentStateFingerprint,
     cart?.shipping_methods?.length,
     method,
     paymentProvidersFingerprint,

@@ -621,6 +621,9 @@ export async function setMultiShippingMethods({
 }: {
   cartId: string
   optionIds: string[]
+},
+options?: {
+  skipCacheRevalidate?: boolean
 }) {
   const headers = {
     ...(await getAuthHeaders()),
@@ -635,8 +638,10 @@ export async function setMultiShippingMethods({
     }
   )
 
-  const cartCacheTag = await getCacheTag("carts")
-  revalidateTag(cartCacheTag)
+  if (!options?.skipCacheRevalidate) {
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
 
   return res
 }
@@ -943,11 +948,20 @@ export async function applyPromotions(codes: string[]) {
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag)
 
-    // Re-fetch cart with promotions to verify the code was actually applied
-    const updatedCart = await retrieveCart(cartId)
-    const applied = (updatedCart as any)?.promotions?.some((promotion: any) =>
-      codes.includes(promotion.code)
-    )
+    const updatedCart = await fetchQuery(`/store/carts/${cartId}`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+      query: {
+        fields: "+promotions",
+      },
+    })
+
+    const applied = (
+      (updatedCart.data as { cart?: { promotions?: { code?: string }[] } })
+        ?.cart?.promotions ?? []
+    ).some((promotion) => promotion.code && codes.includes(promotion.code))
+
     return !!applied
   } catch (err) {
     console.error("[applyPromotions] Error applying promotion:", err)

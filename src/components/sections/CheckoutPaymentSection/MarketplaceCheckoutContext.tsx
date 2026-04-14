@@ -24,8 +24,8 @@ type MarketplaceCheckoutContextValue = {
     Record<string, HttpTypes.StorePaymentCollection>
   >
   marketplaceInitKeyRef: React.MutableRefObject<string>
-  /** Last cart id we reset marketplace state for; survives CheckoutSummary remounts (e.g. StripeWrapper key). */
-  lastBoundCartIdRef: React.MutableRefObject<string | null>
+  /** Last cart payment fingerprint we reset marketplace state for; survives checkout remounts. */
+  lastBoundCartFingerprintRef: React.MutableRefObject<string | null>
   resetMarketplaceSliceState: () => void
 }
 
@@ -47,7 +47,7 @@ export function MarketplaceCheckoutProvider({
     {}
   )
   const marketplaceInitKeyRef = useRef<string>("")
-  const lastBoundCartIdRef = useRef<string | null>(null)
+  const lastBoundCartFingerprintRef = useRef<string | null>(null)
 
   const resetMarketplaceSliceState = useCallback(() => {
     mpRef.current = null
@@ -66,7 +66,7 @@ export function MarketplaceCheckoutProvider({
       mpRef,
       sliceMapRef,
       marketplaceInitKeyRef,
-      lastBoundCartIdRef,
+      lastBoundCartFingerprintRef,
       resetMarketplaceSliceState,
     }),
     [mpCheckout, sliceCollectionsById, resetMarketplaceSliceState]

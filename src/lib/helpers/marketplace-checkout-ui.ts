@@ -21,6 +21,38 @@ function sessionMatchesMethodType(
   return types.includes(methodType)
 }
 
+function sessionCreatedAtMs(session: HttpTypes.StorePaymentSession): number {
+  const createdAt = (session as { created_at?: string | null }).created_at
+  const parsed = createdAt ? new Date(createdAt).getTime() : 0
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+export function isCheckoutSelectablePaymentSessionStatus(
+  status: string | undefined
+): boolean {
+  const normalized = (status ?? "").toLowerCase()
+  return (
+    normalized === "pending" ||
+    normalized === "requires_more" ||
+    normalized === "authorized"
+  )
+}
+
+export function isCheckoutSelectableStripeSession(
+  session: HttpTypes.StorePaymentSession | undefined
+): session is HttpTypes.StorePaymentSession {
+  if (!session) {
+    return false
+  }
+
+  const clientSecret = session.data?.client_secret
+  return (
+    typeof clientSecret === "string" &&
+    clientSecret.length > 0 &&
+    isCheckoutSelectablePaymentSessionStatus(String(session.status))
+  )
+}
+
 export function findStripeSessionForSlice(
   collection: HttpTypes.StorePaymentCollection | undefined,
   methodType: "card" | "promptpay",
@@ -31,6 +63,11 @@ export function findStripeSessionForSlice(
   const stripeish = (s: HttpTypes.StorePaymentSession) =>
     isStripeProviderId(s.provider_id) || isPromptpayProviderId(s.provider_id)
 
+  const sortNewestFirst = (sessions: HttpTypes.StorePaymentSession[]) =>
+    [...sessions].sort(
+      (a, b) => sessionCreatedAtMs(b) - sessionCreatedAtMs(a)
+    )
+
   const strict = collection.payment_sessions.filter(
     (s) => (!providerId || s.provider_id === providerId) && stripeish(s)
   )
@@ -38,8 +75,22 @@ export function findStripeSessionForSlice(
     ? strict
     : collection.payment_sessions.filter(stripeish)
 
-  const match = pool.find((s) => sessionMatchesMethodType(s, methodType))
-  return match || pool[0]
+  const selectablePool = sortNewestFirst(
+    pool.filter(isCheckoutSelectableStripeSession)
+  )
+  const selectableMatch = selectablePool.find((s) =>
+    sessionMatchesMethodType(s, methodType)
+  )
+  if (selectableMatch) {
+    return selectableMatch
+  }
+  if (selectablePool[0]) {
+    return selectablePool[0]
+  }
+
+  const sortedPool = sortNewestFirst(pool)
+  const match = sortedPool.find((s) => sessionMatchesMethodType(s, methodType))
+  return match || sortedPool[0]
 }
 
 export function sliceCollectionAuthorized(
