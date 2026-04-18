@@ -23,7 +23,7 @@ const OrdersPageClient = ({ initialData }: OrdersPageClientProps) => {
         <h1 className="sop-headline-md-medium">คำสั่งซื้อสินค้า</h1>
       </div>
 
-      <OrderListSection orders={orders} reviewedByOrderId={reviewedByOrderId} />
+      <OrderListSection orders={orders} reviewedByOrderId={reviewedByOrderId} isLoading={ordersQuery.isLoading || ordersQuery.isFetching} />
     </div>
   )
 }

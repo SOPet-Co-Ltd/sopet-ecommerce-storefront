@@ -251,7 +251,7 @@ export const orderShippingMethodSchema = z
     id: z.string().nullish(),
     shipping_option_id: z.string().nullish(),
     amount: numberField.nullish(),
-    raw_amount: numberField.nullish(),
+    raw_amount: z.any().nullish(),
     metadata: z.record(z.string(), z.unknown()).nullish(),
     adjustments: z.array(orderAdjustmentSchema).nullish().optional(),
     seller_id: z.string().nullish(),

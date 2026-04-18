@@ -104,6 +104,17 @@ function getSelectedShippingBySeller(
   return selected
 }
 
+function shippingOptionIdsEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  const leftSorted = [...left].sort()
+  const rightSorted = [...right].sort()
+
+  return leftSorted.every((value, index) => value === rightSorted[index])
+}
+
 export function buildCartDefaultShippingSelection(
   cart: Cart,
   shippingOptions: StoreCardShippingMethod[] | null | undefined
@@ -144,8 +155,20 @@ export function buildCartDefaultShippingSelection(
     needsPersist = true
   }
 
+  const currentOptionIds = (cart.shipping_methods ?? [])
+    .map((method) => method.shipping_option_id)
+    .filter(
+      (optionId): optionId is string =>
+        typeof optionId === "string" && optionId.length > 0
+    )
+  const nextOptionIds = Array.from(selectedBySeller.values())
+
+  if (shippingOptionIdsEqual(currentOptionIds, nextOptionIds)) {
+    needsPersist = false
+  }
+
   return {
-    optionIds: Array.from(selectedBySeller.values()),
+    optionIds: nextOptionIds,
     needsPersist,
   }
 }

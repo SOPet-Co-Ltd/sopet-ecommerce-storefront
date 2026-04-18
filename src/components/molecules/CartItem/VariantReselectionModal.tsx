@@ -25,6 +25,9 @@ const optionsAsKeymap = (
   )
 }
 
+const normalizeOptionValue = (value: string | null | undefined) =>
+  typeof value === "string" ? value.trim().toLowerCase() : ""
+
 type VariantReselectionModalProps = {
   isOpen: boolean
   onClose: () => void
@@ -80,12 +83,14 @@ export const VariantReselectionModal = ({
     )
       return
 
-    const variant = product.variants.find(({ options }: { options: any }) =>
-      options?.every((option: any) =>
-        selectedVariant[option.option?.title.toLowerCase() || ""]?.includes(
-          option.value
+    const variant = product.variants.find((candidate) =>
+      candidate.options?.every((option) => {
+        const optionKey = option.option?.title?.toLowerCase() || ""
+        return (
+          normalizeOptionValue(selectedVariant[optionKey]) ===
+          normalizeOptionValue(option.value)
         )
-      )
+      })
     )
 
     if (variant && variant.id !== selectedVariantId) {
