@@ -5,6 +5,7 @@ import { ClearCheckoutCartHold } from "@/components/sections/OrderConfirmedSecti
 import { OrderConfirmedSection } from "@/components/sections/OrderConfirmedSection/OrderConfirmedSection"
 import { Container, Heading, Text } from "@medusajs/ui"
 import { CheckCircleSolid } from "@medusajs/icons"
+import Link from "next/link"
 
 type OrderConfirmedClientProps = {
   orderId: string
@@ -55,14 +56,14 @@ const OrderNotFound = () => {
         ไม่พบข้อมูลคำสั่งซื้อ
       </Heading>
       <Text className="text-gray-500 max-w-md">
-        อาจเกิดจากลิงก์หมดอายุ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองตรวจสอบที่หน้า "การสั่งซื้อของฉัน" ในบัญชีของคุณ
+        อาจเกิดจากลิงก์หมดอายุ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล กรุณาลองตรวจสอบที่หน้า &quot;การสั่งซื้อของฉัน&quot; ในบัญชีของคุณ
       </Text>
-      <a 
+      <Link 
         href="/user/orders"
         className="mt-8 px-6 py-3 bg-sopet-violet text-white rounded-full font-medium hover:bg-sopet-violet-dark transition-colors duration-200"
       >
         ไปยังหน้าการสั่งซื้อ
-      </a>
+      </Link>
     </div>
   )
 }
