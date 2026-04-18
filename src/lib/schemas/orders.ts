@@ -117,21 +117,22 @@ export const orderAdjustmentSchema = z
 
 export const orderLineItemSchema = z
   .object({
-    id: stringFieldOrEmpty,
+    id: stringFieldOrEmpty.catch(""),
     title: z
       .string()
       .nullish()
-      .transform((value) => value ?? ""),
-    subtitle: nullableString,
-    thumbnail: nullableString,
-    unit_price: numberField.default(0),
-    quantity: numberField.default(0),
-    subtotal: numberField.default(0),
-    adjustments: z.array(orderAdjustmentSchema).nullish().optional(),
-    fulfilled_quantity: numberField.nullish(),
-    shipped_quantity: numberField.nullish(),
-    delivered_quantity: numberField.nullish(),
-    variant: orderVariantSchema.nullish(),
+      .transform((value) => value ?? "")
+      .catch(""),
+    subtitle: nullableString.catch(null),
+    thumbnail: nullableString.catch(null),
+    unit_price: numberField.catch(0).default(0),
+    quantity: numberField.catch(0).default(0),
+    subtotal: numberField.catch(0).default(0),
+    adjustments: z.array(orderAdjustmentSchema).nullish().optional().catch([]),
+    fulfilled_quantity: numberField.nullish().catch(null),
+    shipped_quantity: numberField.nullish().catch(null),
+    delivered_quantity: numberField.nullish().catch(null),
+    variant: orderVariantSchema.nullish().catch(null),
   })
   .passthrough()
 
@@ -260,46 +261,50 @@ export const orderShippingMethodSchema = z
 
 export const orderSchema = z
   .object({
-    id: stringFieldOrEmpty,
-    display_id: numberField,
-    created_at: isoDateField,
-    updated_at: isoDateField,
-    currency_code: stringFieldOrEmpty,
-    status: z.string().nullish().transform(normalizeOrderStatus),
-    payment_status: z.string().nullish().transform(normalizePaymentStatus),
+    id: stringFieldOrEmpty.catch(""),
+    display_id: numberField.catch(0),
+    created_at: isoDateField.catch(new Date(0).toISOString()),
+    updated_at: isoDateField.catch(new Date(0).toISOString()),
+    currency_code: stringFieldOrEmpty.catch("thb"),
+    status: z.string().nullish().transform(normalizeOrderStatus).catch("pending"),
+    payment_status: z.string().nullish().transform(normalizePaymentStatus).catch("not_paid"),
     fulfillment_status: z
       .string()
       .nullish()
-      .transform(normalizeFulfillmentStatus),
-    metadata: orderStatusMetadataSchema.nullish(),
-    shipping_total: numberField.default(0),
-    discount_total: numberField.default(0),
-    subtotal: numberField.default(0),
-    total: numberField.default(0),
-    items: z.array(orderLineItemSchema).nullish().transform((value) => value ?? []),
+      .transform(normalizeFulfillmentStatus)
+      .catch("not_fulfilled"),
+    metadata: orderStatusMetadataSchema.nullish().catch({}),
+    shipping_total: numberField.catch(0).default(0),
+    discount_total: numberField.catch(0).default(0),
+    subtotal: numberField.catch(0).default(0),
+    total: numberField.catch(0).default(0),
+    items: z.array(orderLineItemSchema).nullish().transform((value) => value ?? []).catch([]),
     shipping_methods: z
       .array(orderShippingMethodSchema)
       .nullish()
-      .optional(),
-    seller: orderSellerSchema.nullish().optional(),
-    reviews: z.array(z.unknown()).nullish().optional(),
+      .optional()
+      .catch([]),
+    seller: orderSellerSchema.nullish().optional().catch(null),
+    reviews: z.array(z.unknown()).nullish().optional().catch([]),
     store: z
       .object({
         name: nullableString,
       })
       .passthrough()
       .nullish()
-      .optional(),
-    shipping_address: orderShippingAddressSchema.nullish().optional(),
+      .optional()
+      .catch({ name: null }),
+    shipping_address: orderShippingAddressSchema.nullish().optional().catch(null),
     payment_collections: z
       .array(orderPaymentCollectionSchema)
       .nullish()
-      .optional(),
-    payments: z.array(orderPaymentSchema).nullish().optional(),
-    fulfillments: z.array(orderFulfillmentSchema).nullish().optional(),
-    order_set: orderSetSchema.nullish().optional(),
-    payment_provider_id: nullableString,
-    email: nullableString,
+      .optional()
+      .catch([]),
+    payments: z.array(orderPaymentSchema).nullish().optional().catch([]),
+    fulfillments: z.array(orderFulfillmentSchema).nullish().optional().catch([]),
+    order_set: orderSetSchema.nullish().optional().catch(null),
+    payment_provider_id: nullableString.catch(null),
+    email: nullableString.catch(null),
   })
   .passthrough()
 
