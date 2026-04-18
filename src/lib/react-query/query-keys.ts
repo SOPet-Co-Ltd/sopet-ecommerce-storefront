@@ -6,6 +6,7 @@ export const queryKeys = {
   },
   checkout: {
     all: () => ["checkout"] as const,
+    cart: (cartId: string) => ["checkout", "cart", cartId] as const,
     pageData: (cartId: string, regionId: string | null | undefined) =>
       ["checkout", "page-data", cartId, regionId ?? ""] as const,
     savedPaymentMethods: (customerId: string | null | undefined) =>
