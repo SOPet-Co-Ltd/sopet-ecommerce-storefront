@@ -19,6 +19,7 @@ interface CartSummaryProps {
   customTotal?: number
   selectedItemIds?: string[]
   isAnonymousCart?: boolean
+  promotionCodes?: string[]
 }
 
 export const CartSummary = ({
@@ -31,6 +32,7 @@ export const CartSummary = ({
   customTotal,
   selectedItemIds = [],
   isAnonymousCart = false,
+  promotionCodes = [],
 }: CartSummaryProps) => {
   const { total, subtotal, discount_total, currency_code } = cart || {}
 
@@ -57,10 +59,11 @@ export const CartSummary = ({
           quantity: i.quantity ?? 1,
         }))
         moveAnonymousCartItemsToCheckoutHoldByIds(selectedItemIds)
-        await prepareGuestCheckout(selectedItems, locale)
+        await prepareGuestCheckout(selectedItems, locale, promotionCodes)
       } else {
         await checkoutCustomerCartSelection(selectedItemIds, {
           countryCode: locale,
+          promotionCodes,
         })
       }
     } catch (e) {

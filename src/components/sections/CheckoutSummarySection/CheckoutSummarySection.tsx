@@ -82,7 +82,16 @@ export const CheckoutSummarySection = ({
   const selectedPaymentMethodId = useCheckoutPayment(
     (state) => state.selectedPaymentMethodId
   )
-  const [submitting, setSubmitting] = useState(false)
+  const submitting = useCheckoutPayment((state) => state.isPaymentSubmitting)
+  const startPaymentSubmission = useCheckoutPayment(
+    (state) => state.startPaymentSubmission
+  )
+  const setPaymentSubmissionMessage = useCheckoutPayment(
+    (state) => state.setPaymentSubmissionMessage
+  )
+  const finishPaymentSubmission = useCheckoutPayment(
+    (state) => state.finishPaymentSubmission
+  )
   const [error, setError] = useState<string | null>(null)
   const [localSessions, setLocalSessions] = useState<Record<string, any>>({})
   const stripeReady = useContext(StripeContext)
@@ -797,7 +806,9 @@ export const CheckoutSummarySection = ({
                   disabledBase || !cardComplete || marketplaceInitializing
                 }
                 submitting={submitting}
-                setSubmitting={setSubmitting}
+                startSubmitting={startPaymentSubmission}
+                setSubmittingMessage={setPaymentSubmissionMessage}
+                finishSubmitting={finishPaymentSubmission}
                 setError={setError}
                 onBeforePayment={runBeforePaymentSteps}
                 useNewCard={useNewCard}
@@ -836,7 +847,9 @@ export const CheckoutSummarySection = ({
                 marketplaceInitializing
               }
               submitting={submitting}
-              setSubmitting={setSubmitting}
+              startSubmitting={startPaymentSubmission}
+              setSubmittingMessage={setPaymentSubmissionMessage}
+              finishSubmitting={finishPaymentSubmission}
               setError={setError}
               syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
               ensureClientSecret={ensurePromptpayClientSecret}
@@ -853,7 +866,9 @@ export const CheckoutSummarySection = ({
           <ManualSummaryPayButton
             disabled={disabledBase || marketplaceInitializing}
             submitting={submitting}
-            setSubmitting={setSubmitting}
+            startSubmitting={startPaymentSubmission}
+            setSubmittingMessage={setPaymentSubmissionMessage}
+            finishSubmitting={finishPaymentSubmission}
             setError={setError}
             syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
             onBeforePayment={runBeforePaymentSteps}
@@ -941,7 +956,9 @@ const StripeSummaryPayButton = ({
   syncShippingMethodBeforePayment,
   disabled,
   submitting,
-  setSubmitting,
+  startSubmitting,
+  setSubmittingMessage,
+  finishSubmitting,
   setError,
   onBeforePayment,
   useNewCard,
@@ -960,7 +977,9 @@ const StripeSummaryPayButton = ({
   syncShippingMethodBeforePayment: () => Promise<void>
   disabled: boolean
   submitting: boolean
-  setSubmitting: (value: boolean) => void
+  startSubmitting: (message?: string | null) => void
+  setSubmittingMessage: (message: string | null) => void
+  finishSubmitting: () => void
   setError: (error: string | null) => void
   onBeforePayment?: () => Promise<string | null>
   useNewCard?: boolean
@@ -988,6 +1007,7 @@ const StripeSummaryPayButton = ({
     paymentSessionIds?: string[],
     paymentIntentIds?: string[]
   ) => {
+    setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
     const res = await completeMarketplaceOrder(undefined, {
       redirect: false,
       requirePaid: true,
@@ -1000,6 +1020,7 @@ const StripeSummaryPayButton = ({
     const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (orderId) {
+      setSubmittingMessage("กำลังพาไปหน้าสำเร็จ…")
       await clearCheckoutCartCookie()
       router.push(`/order/${orderId}/confirmed`)
       return
@@ -1013,7 +1034,7 @@ const StripeSummaryPayButton = ({
   }
 
   const handlePayment = async () => {
-    setSubmitting(true)
+    startSubmitting("กำลังตรวจสอบข้อมูลคำสั่งซื้อ…")
     setError(null)
 
     try {
@@ -1021,10 +1042,12 @@ const StripeSummaryPayButton = ({
         const validationError = await onBeforePayment()
         if (validationError) {
           toastError?.({ title: validationError })
+          finishSubmitting()
           return
         }
       }
 
+      setSubmittingMessage("กำลังเตรียมการชำระเงิน…")
       await syncShippingMethodBeforePayment()
 
       if (!stripe || !elements) {
@@ -1059,6 +1082,7 @@ const StripeSummaryPayButton = ({
         : (selectedPaymentMethodId ?? null)
 
       if (useNewCard) {
+        setSubmittingMessage("กำลังบันทึกบัตรสำหรับชำระเงิน…")
         const cardElement =
           elements.getElement(CardNumberElement) ||
           elements.getElement(CardElement)
@@ -1167,6 +1191,7 @@ const StripeSummaryPayButton = ({
         elements.getElement(CardElement)
 
       const confirmAllSlices = async (forceRefresh: boolean) => {
+        setSubmittingMessage("กำลังยืนยันการชำระเงิน…")
         const { payableSliceCount, paymentSessionIds, secrets } =
           await prepareCardPaymentAttempt({ forceRefresh })
 
@@ -1244,8 +1269,7 @@ const StripeSummaryPayButton = ({
       }
     } catch (e: unknown) {
       setError((e as Error)?.message || "Payment failed")
-    } finally {
-      setSubmitting(false)
+      finishSubmitting()
     }
   }
 
@@ -1266,7 +1290,9 @@ const StripeSummaryPayButton = ({
 const ManualSummaryPayButton = ({
   disabled,
   submitting,
-  setSubmitting,
+  startSubmitting,
+  setSubmittingMessage,
+  finishSubmitting,
   setError,
   syncShippingMethodBeforePayment,
   onBeforePayment,
@@ -1275,7 +1301,9 @@ const ManualSummaryPayButton = ({
 }: {
   disabled: boolean
   submitting: boolean
-  setSubmitting: (value: boolean) => void
+  startSubmitting: (message?: string | null) => void
+  setSubmittingMessage: (message: string | null) => void
+  finishSubmitting: () => void
   setError: (error: string | null) => void
   syncShippingMethodBeforePayment: () => Promise<void>
   onBeforePayment?: () => Promise<string | null>
@@ -1291,7 +1319,7 @@ const ManualSummaryPayButton = ({
   const router = useRouter()
 
   const handlePayment = async () => {
-    setSubmitting(true)
+    startSubmitting("กำลังตรวจสอบข้อมูลคำสั่งซื้อ…")
     setError(null)
 
     try {
@@ -1299,9 +1327,11 @@ const ManualSummaryPayButton = ({
         const validationError = await onBeforePayment()
         if (validationError) {
           toastError?.({ title: validationError })
+          finishSubmitting()
           return
         }
       }
+      setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
       await syncShippingMethodBeforePayment()
       const res = await completeMarketplaceOrder(undefined, {
         redirect: false,
@@ -1309,6 +1339,7 @@ const ManualSummaryPayButton = ({
       })
       const orderId = getOrderIdFromPlaceOrderResponse(res)
       if (orderId) {
+        setSubmittingMessage("กำลังพาไปหน้าสำเร็จ…")
         router.push(`/order/${orderId}/confirmed`)
         return
       }
@@ -1317,8 +1348,7 @@ const ManualSummaryPayButton = ({
       }
     } catch (e: unknown) {
       setError((e as Error)?.message || "Payment failed")
-    } finally {
-      setSubmitting(false)
+      finishSubmitting()
     }
   }
 
@@ -1347,7 +1377,9 @@ const QrSummaryPayButton = ({
   currencyCode,
   disabled,
   submitting,
-  setSubmitting,
+  startSubmitting,
+  setSubmittingMessage,
+  finishSubmitting,
   setError,
   syncShippingMethodBeforePayment,
   ensureClientSecret,
@@ -1368,7 +1400,9 @@ const QrSummaryPayButton = ({
   currencyCode: string
   disabled: boolean
   submitting: boolean
-  setSubmitting: (value: boolean) => void
+  startSubmitting: (message?: string | null) => void
+  setSubmittingMessage: (message: string | null) => void
+  finishSubmitting: () => void
   setError: (error: string | null) => void
   syncShippingMethodBeforePayment: () => Promise<void>
   ensureClientSecret: () => Promise<{
@@ -1517,7 +1551,7 @@ const QrSummaryPayButton = ({
   }
 
   const handleGenerateQr = async () => {
-    setSubmitting(true)
+    startSubmitting("กำลังเตรียม QR สำหรับชำระเงิน…")
     setError(null)
     setAwaitingBankConfirm(false)
 
@@ -1526,14 +1560,18 @@ const QrSummaryPayButton = ({
         const validationError = await onBeforePayment()
         if (validationError) {
           toastError?.({ title: validationError })
+          finishSubmitting()
           return
         }
       }
+      setSubmittingMessage("กำลังบันทึกข้อมูลการจัดส่ง…")
       await syncShippingMethodBeforePayment()
 
+      setSubmittingMessage("กำลังสร้างรายการชำระเงิน…")
       const { clientSecret: resolvedSecret, createdAt } =
         await resolveSecretAndMeta()
 
+      setSubmittingMessage("กำลังยืนยันการชำระเงิน…")
       const { error: stripeError, paymentIntent } =
         await confirmPromptPayForSecret(resolvedSecret)
 
@@ -1575,6 +1613,7 @@ const QrSummaryPayButton = ({
             qrImageUrl: null,
             sessionCreatedAt: createdAt ?? null,
           })
+          setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
           router.push(`/${locale}/checkout/promptpay`)
           return
         } catch (placeErr) {
@@ -1582,6 +1621,7 @@ const QrSummaryPayButton = ({
             title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
             description: (placeErr as Error)?.message,
           })
+          finishSubmitting()
           window.open(bankRedirectUrl, "_blank", "noopener,noreferrer")
           return
         }
@@ -1616,6 +1656,7 @@ const QrSummaryPayButton = ({
             qrImageUrl: qrUrl,
             sessionCreatedAt: createdAt ?? null,
           })
+          setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
           router.push(`/${locale}/checkout/promptpay`)
           return
         } catch (placeErr) {
@@ -1623,12 +1664,14 @@ const QrSummaryPayButton = ({
             title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
             description: (placeErr as Error)?.message,
           })
+          finishSubmitting()
           applyQrSuccess(qrUrl, createdAt)
         }
       } else if (status === "succeeded" || status === "requires_capture") {
         orderPlacedRef.current = true
         setIsPolling(false)
         setAwaitingBankConfirm(false)
+        setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
         await completePlaceOrderCaptureAndNavigate()
       } else if (status === "processing") {
         try {
@@ -1654,6 +1697,7 @@ const QrSummaryPayButton = ({
               qrImageUrl: null,
               sessionCreatedAt: createdAt ?? null,
             })
+            setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
             router.push(`/${locale}/checkout/promptpay`)
             return
           }
@@ -1663,14 +1707,14 @@ const QrSummaryPayButton = ({
         orderPlacedRef.current = false
         setAwaitingBankConfirm(true)
         setIsPolling(true)
+        finishSubmitting()
       } else {
         throw new Error("ไม่พบ QR Code สำหรับการชำระเงิน")
       }
     } catch (e: unknown) {
       setAwaitingBankConfirm(false)
       setError((e as Error)?.message || "QR payment failed")
-    } finally {
-      setSubmitting(false)
+      finishSubmitting()
     }
   }
 

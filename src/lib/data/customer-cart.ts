@@ -306,9 +306,15 @@ export async function changeCustomerCartItemVariant(input: {
 }
 
 export async function transferCustomerCartItemsToMedusa(
-  input: TransferToMedusaInput
+  input: TransferToMedusaInput & { promotionCodes?: string[] }
 ): Promise<string> {
-  const { customerCartItemIds, regionId, salesChannelId, currencyCode } = input
+  const {
+    customerCartItemIds,
+    regionId,
+    salesChannelId,
+    currencyCode,
+    promotionCodes = [],
+  } = input
 
   if (!customerCartItemIds.length) {
     throw new Error("customerCartItemIds is required")
@@ -340,11 +346,23 @@ export async function transferCustomerCartItemsToMedusa(
     throw new Error("Invalid transfer-to-medusa response")
   }
 
+  if (promotionCodes.length > 0) {
+    await sdk.store.cart.update(
+      payload.medusa_cart_id,
+      { promo_codes: promotionCodes },
+      {},
+      await getAuthHeaders()
+    )
+  }
+
   return payload.medusa_cart_id
 }
 
 export async function checkoutFromCustomerCart(
-  input: TransferToMedusaInput & { countryCode?: string }
+  input: TransferToMedusaInput & {
+    countryCode?: string
+    promotionCodes?: string[]
+  }
 ): Promise<never> {
   const medusaCartId = await transferCustomerCartItemsToMedusa(input)
 
@@ -359,13 +377,14 @@ export async function checkoutFromCustomerCart(
 
 export async function checkoutCustomerCartSelection(
   selectedLineItemIds: string[],
-  options?: { countryCode?: string }
+  options?: { countryCode?: string; promotionCodes?: string[] }
 ): Promise<never> {
   if (!selectedLineItemIds.length) {
     throw new Error("No items selected for checkout")
   }
 
   const countryCode = options?.countryCode
+  const promotionCodes = options?.promotionCodes ?? []
 
   const fallbackRedirectPath = countryCode
     ? `/${countryCode}/checkout`
@@ -433,5 +452,6 @@ export async function checkoutCustomerCartSelection(
     salesChannelId: cart?.sales_channel_id ?? undefined,
     currencyCode: cart?.currency_code ?? undefined,
     countryCode,
+    promotionCodes,
   })
 }

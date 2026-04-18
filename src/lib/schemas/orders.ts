@@ -32,6 +32,13 @@ export const orderVariantSchema = z
   })
   .passthrough()
 
+export const orderAdjustmentSchema = z
+  .object({
+    amount: numberField.nullish(),
+    code: nullableString,
+  })
+  .passthrough()
+
 export const orderLineItemSchema = z
   .object({
     id: z.string(),
@@ -44,6 +51,7 @@ export const orderLineItemSchema = z
     unit_price: numberField.default(0),
     quantity: numberField.default(0),
     subtotal: numberField.default(0),
+    adjustments: z.array(orderAdjustmentSchema).nullish().optional(),
     fulfilled_quantity: numberField.nullish(),
     shipped_quantity: numberField.nullish(),
     delivered_quantity: numberField.nullish(),
@@ -162,6 +170,18 @@ export const orderFulfillmentSchema = z
   })
   .passthrough()
 
+export const orderShippingMethodSchema = z
+  .object({
+    id: z.string().nullish(),
+    shipping_option_id: z.string().nullish(),
+    amount: numberField.nullish(),
+    raw_amount: numberField.nullish(),
+    metadata: z.record(z.string(), z.unknown()).nullish(),
+    adjustments: z.array(orderAdjustmentSchema).nullish().optional(),
+    seller_id: z.string().nullish(),
+  })
+  .passthrough()
+
 export const orderSchema = z
   .object({
     id: z.string(),
@@ -178,6 +198,7 @@ export const orderSchema = z
     subtotal: numberField.default(0),
     total: numberField.default(0),
     items: z.array(orderLineItemSchema).default([]),
+    shipping_methods: z.array(orderShippingMethodSchema).optional(),
     seller: orderSellerSchema.nullish().optional(),
     reviews: z.array(z.unknown()).optional(),
     store: z

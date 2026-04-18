@@ -37,6 +37,11 @@ export type OrderVariant = {
   sku?: string | null | undefined
 }
 
+export type OrderAdjustment = {
+  amount?: number | null | undefined
+  code?: string | null | undefined
+}
+
 export type OrderLineItem = {
   id: string
   product: {
@@ -56,6 +61,7 @@ export type OrderLineItem = {
   quantity: number
   subtotal: number
   variant?: OrderVariant | null | undefined
+  adjustments?: OrderAdjustment[] | null | undefined
   fulfilled_quantity?: number
   shipped_quantity?: number
   delivered_quantity?: number
@@ -145,6 +151,16 @@ export type OrderFulfillment = {
   canceled_at?: string | null | undefined
 }
 
+export type OrderShippingMethod = {
+  id?: string | null | undefined
+  shipping_option_id?: string | null | undefined
+  amount?: number | null | undefined
+  raw_amount?: number | null | undefined
+  metadata?: Record<string, unknown> | null | undefined
+  adjustments?: OrderAdjustment[] | null | undefined
+  seller_id?: string | null | undefined
+}
+
 type OrderBase = {
   id: string
   display_id: number
@@ -161,6 +177,7 @@ type OrderBase = {
   total: number
   items: OrderLineItem[]
   fulfillments?: OrderFulfillment[] | undefined
+  shipping_methods?: OrderShippingMethod[] | undefined
 }
 
 export type OrderListItem = OrderBase & {

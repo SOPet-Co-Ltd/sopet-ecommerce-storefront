@@ -42,6 +42,9 @@ export const CartTemplate = ({
   const discountModalVendor = useCartPageUiStore(
     (state) => state.discountModalVendor
   )
+  const stagedPromotionCodes = useCartPageUiStore(
+    (state) => state.stagedPromotionCodes
+  )
   const resetCartPageUi = useCartPageUiStore((state) => state.reset)
   const setSelectedItemIds = useCartPageUiStore(
     (state) => state.setSelectedItemIds
@@ -356,6 +359,7 @@ export const CartTemplate = ({
                 customTotal={selectedTotal}
                 selectedItemIds={selectedItems}
                 isAnonymousCart={cart?.id === "anonymous-local-cart"}
+                promotionCodes={stagedPromotionCodes}
               />
             </div>
           </div>
