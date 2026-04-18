@@ -280,11 +280,12 @@ export const CheckoutSummarySection = ({
   const firstPayableSlice = mpCheckout?.slices.find((slice) =>
     sliceNeedsPayment(slice, sliceCollectionsById)
   )
-  const firstSliceCollection = (firstPayableSlice ?? mpCheckout?.slices[0])
-    ? sliceCollectionsById[
-        (firstPayableSlice ?? mpCheckout?.slices[0])!.payment_collection_id
-      ]
-    : undefined
+  const firstSliceCollection =
+    (firstPayableSlice ?? mpCheckout?.slices[0])
+      ? sliceCollectionsById[
+          (firstPayableSlice ?? mpCheckout?.slices[0])!.payment_collection_id
+        ]
+      : undefined
 
   const marketplaceCardSession =
     mpCheckout && stripeProviderId
@@ -420,7 +421,9 @@ export const CheckoutSummarySection = ({
       throw new Error("ไม่ครบจำนวนการชำระเงินต่อร้าน กรุณาลองใหม่")
     }
     if (paymentSessionIds.length !== payableSliceCount) {
-      throw new Error("ไม่พบ payment session ที่ตรงกับบัตรที่เลือก กรุณาลองใหม่")
+      throw new Error(
+        "ไม่พบ payment session ที่ตรงกับบัตรที่เลือก กรุณาลองใหม่"
+      )
     }
 
     return {
@@ -454,15 +457,19 @@ export const CheckoutSummarySection = ({
     customerPhone:
       ((cart as { customer?: { phone?: string | null } }).customer?.phone ??
         customer?.phone ??
-        null) || null,
+        null) ||
+      null,
     customerEmail:
       ((cart as { customer?: { email?: string | null } }).customer?.email ??
         customer?.email ??
-        null) || null,
+        null) ||
+      null,
     promotionCodes:
       (cart.promotions ?? [])
         .map((promotion) => promotion.code)
-        .filter((code): code is string => typeof code === "string" && code.length > 0) ?? [],
+        .filter(
+          (code): code is string => typeof code === "string" && code.length > 0
+        ) ?? [],
   }
 
   const addressReadyForButton = (() => {
@@ -813,8 +820,9 @@ export const CheckoutSummarySection = ({
               locale={checkoutLocale}
               clientSecret={clientSecret}
               initialSessionCreatedAt={
-                typeof (promptpaySession as { created_at?: unknown } | undefined)
-                  ?.created_at === "string"
+                typeof (
+                  promptpaySession as { created_at?: unknown } | undefined
+                )?.created_at === "string"
                   ? (promptpaySession as { created_at?: string }).created_at
                   : null
               }
@@ -965,9 +973,7 @@ const StripeSummaryPayButton = ({
     customerEmail?: string | null
     promotionCodes?: string[] | null
   }
-  prepareCardPaymentAttempt: (options?: {
-    forceRefresh?: boolean
-  }) => Promise<{
+  prepareCardPaymentAttempt: (options?: { forceRefresh?: boolean }) => Promise<{
     payableSliceCount: number
     paymentSessionIds: string[]
     secrets: string[]
@@ -1104,8 +1110,7 @@ const StripeSummaryPayButton = ({
           | undefined,
         paymentIntent: PaymentIntent | null | undefined
       ) => {
-        const message =
-          stripeError?.message || "ไม่สามารถยืนยันการชำระเงินได้"
+        const message = stripeError?.message || "ไม่สามารถยืนยันการชำระเงินได้"
         const error = new Error(message) as Error & { retryable?: boolean }
         const normalizedCode = stripeError?.code?.trim().toLowerCase()
         const normalizedType = stripeError?.type?.trim().toLowerCase()
@@ -1860,7 +1865,13 @@ const QrSummaryPayButton = ({
     return () => {
       window.clearInterval(timer)
     }
-  }, [activeClientSecret, completePlaceOrderCaptureAndNavigate, isPolling, setError, stripe])
+  }, [
+    activeClientSecret,
+    completePlaceOrderCaptureAndNavigate,
+    isPolling,
+    setError,
+    stripe,
+  ])
 
   useEffect(() => {
     if (!qrImageUrl || qrExpiresAtMs == null) return

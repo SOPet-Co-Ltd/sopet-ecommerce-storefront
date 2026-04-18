@@ -32,9 +32,7 @@ function logCheckoutPerf(phase: string, ms: number) {
   }
 }
 
-async function cleanupCustomerCartItemsFromCheckoutMetadata(
-  cart: unknown
-) {
+async function cleanupCustomerCartItemsFromCheckoutMetadata(cart: unknown) {
   const metadata =
     cart && typeof cart === "object" && "metadata" in cart
       ? ((cart as { metadata?: Record<string, unknown> | null }).metadata ??
@@ -43,7 +41,8 @@ async function cleanupCustomerCartItemsFromCheckoutMetadata(
 
   const itemIds = Array.isArray(metadata?.customer_cart_item_ids)
     ? metadata.customer_cart_item_ids.filter(
-        (value): value is string => typeof value === "string" && value.length > 0
+        (value): value is string =>
+          typeof value === "string" && value.length > 0
       )
     : []
 
@@ -649,16 +648,18 @@ export async function setShippingMethod({
   return res
 }
 
-export async function setMultiShippingMethods({
-  cartId,
-  optionIds,
-}: {
-  cartId: string
-  optionIds: string[]
-},
-options?: {
-  skipCacheRevalidate?: boolean
-}) {
+export async function setMultiShippingMethods(
+  {
+    cartId,
+    optionIds,
+  }: {
+    cartId: string
+    optionIds: string[]
+  },
+  options?: {
+    skipCacheRevalidate?: boolean
+  }
+) {
   const headers = {
     ...(await getAuthHeaders()),
   }
@@ -831,11 +832,15 @@ export async function bootstrapMarketplacePaymentSessions(
 
   const entries = await Promise.all(
     marketplaceCheckout.slices.map(async (slice) => {
-      const collection = await createMarketplacePaymentSession(cartId, {
-        payment_collection_id: slice.payment_collection_id,
-        provider_id: input.provider_id,
-        ...(input.data ? { data: input.data } : {}),
-      }, { skipCacheRevalidate: true })
+      const collection = await createMarketplacePaymentSession(
+        cartId,
+        {
+          payment_collection_id: slice.payment_collection_id,
+          provider_id: input.provider_id,
+          ...(input.data ? { data: input.data } : {}),
+        },
+        { skipCacheRevalidate: true }
+      )
       return [slice.payment_collection_id, collection] as const
     })
   )
@@ -894,19 +899,18 @@ export async function completeMarketplaceOrder(
         promotions?: { code?: string }[]
       }
     | Cart
-    | null =
-    cartSnapshot
-      ? {
-          customer_id: cartSnapshot.customerId ?? null,
-          email: cartSnapshot.email ?? null,
-          customer: {
-            phone: cartSnapshot.customerPhone ?? null,
-            email: cartSnapshot.customerEmail ?? null,
-          },
-          promotions:
-            cartSnapshot.promotionCodes?.map((code) => ({ code })) ?? undefined,
-        }
-      : null
+    | null = cartSnapshot
+    ? {
+        customer_id: cartSnapshot.customerId ?? null,
+        email: cartSnapshot.email ?? null,
+        customer: {
+          phone: cartSnapshot.customerPhone ?? null,
+          email: cartSnapshot.customerEmail ?? null,
+        },
+        promotions:
+          cartSnapshot.promotionCodes?.map((code) => ({ code })) ?? undefined,
+      }
+    : null
 
   if (!cartBeforeComplete?.customer_id) {
     cartBeforeComplete = await retrieveCart(id)
@@ -938,8 +942,11 @@ export async function completeMarketplaceOrder(
 
   if (
     !Array.isArray(
-      (cartBeforeComplete as { metadata?: { customer_cart_item_ids?: unknown } })
-        ?.metadata?.customer_cart_item_ids
+      (
+        cartBeforeComplete as {
+          metadata?: { customer_cart_item_ids?: unknown }
+        }
+      )?.metadata?.customer_cart_item_ids
     )
   ) {
     const hydratedCart = await retrieveCart(id)
@@ -959,7 +966,9 @@ export async function completeMarketplaceOrder(
         options?.paymentIntentIds?.length
           ? {
               ...(options?.requirePaid ? { require_paid: true } : {}),
-              ...(options?.providerId ? { provider_id: options.providerId } : {}),
+              ...(options?.providerId
+                ? { provider_id: options.providerId }
+                : {}),
               ...(options?.paymentMethodType
                 ? { payment_method_type: options.paymentMethodType }
                 : {}),

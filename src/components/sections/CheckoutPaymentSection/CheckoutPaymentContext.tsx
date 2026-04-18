@@ -1,11 +1,6 @@
 "use client"
 
-import {
-  createContext,
-  useContext,
-  useRef,
-  type ReactNode,
-} from "react"
+import { createContext, useContext, useRef, type ReactNode } from "react"
 import { useStore } from "zustand"
 
 import {
@@ -23,11 +18,7 @@ type CheckoutPaymentContextValue = CheckoutPaymentStore
 const CheckoutPaymentStoreContext =
   createContext<CheckoutPaymentStoreApi | null>(null)
 
-export function CheckoutPaymentProvider({
-  children,
-}: {
-  children: ReactNode
-}) {
+export function CheckoutPaymentProvider({ children }: { children: ReactNode }) {
   const storeRef = useRef<CheckoutPaymentStoreApi | null>(null)
 
   if (!storeRef.current) {

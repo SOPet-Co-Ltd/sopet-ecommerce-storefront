@@ -48,13 +48,19 @@ export default async function CheckoutPage({
     initialData.shippingMethods
   )
 
-  if (shippingAutoSelection.needsPersist && shippingAutoSelection.optionIds.length) {
-    await setMultiShippingMethods({
-      cartId: cart.id,
-      optionIds: shippingAutoSelection.optionIds,
-    }, {
-      skipCacheRevalidate: true,
-    })
+  if (
+    shippingAutoSelection.needsPersist &&
+    shippingAutoSelection.optionIds.length
+  ) {
+    await setMultiShippingMethods(
+      {
+        cartId: cart.id,
+        optionIds: shippingAutoSelection.optionIds,
+      },
+      {
+        skipCacheRevalidate: true,
+      }
+    )
 
     const updatedCart = await retrieveCart(cart.id)
     if (updatedCart) {

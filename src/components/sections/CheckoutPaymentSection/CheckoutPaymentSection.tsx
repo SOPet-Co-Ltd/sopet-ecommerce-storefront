@@ -229,9 +229,7 @@ export const CheckoutPaymentSection = ({
       </div>
 
       {checkoutDataLoading ? (
-        <Text className="text-sm text-gray-500">
-          กำลังโหลดวิธีชำระเงิน…
-        </Text>
+        <Text className="text-sm text-gray-500">กำลังโหลดวิธีชำระเงิน…</Text>
       ) : (
         <div className="flex flex-col gap-4">
           <div
@@ -289,6 +287,10 @@ export const CheckoutPaymentSection = ({
                 )}
 
                 {waitingForSavedCards ? (
+                  <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
+                    กำลังโหลดบัตรที่บันทึกไว้…
+                  </Text>
+                ) : waitingForSavedCards ? (
                   <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
                     กำลังโหลดบัตรที่บันทึกไว้…
                   </Text>
