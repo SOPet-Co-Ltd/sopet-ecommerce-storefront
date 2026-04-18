@@ -21,8 +21,84 @@ const fulfillmentStatusValues = [
   "canceled",
 ] as const
 
-const nullableString = z.string().nullish()
+const nullableString = z.string().nullish().catch(null)
 const numberField = z.coerce.number()
+const isoDateField = z
+  .union([z.string(), z.date()])
+  .transform((value) =>
+    value instanceof Date ? value.toISOString() : value
+  )
+  .catch(new Date(0).toISOString())
+const stringField = z.preprocess((value) => {
+  if (value === null || value === undefined) {
+    return undefined
+  }
+
+  return String(value)
+}, z.string())
+const stringFieldOrEmpty = z.preprocess((value) => {
+  if (value === null || value === undefined) {
+    return ""
+  }
+
+  return String(value)
+}, z.string())
+
+function normalizeOrderStatus(
+  value: string | null | undefined
+): (typeof orderStatusValues)[number] {
+  if (value === "completed") {
+    return "completed"
+  }
+
+  if (value === "canceled") {
+    return "canceled"
+  }
+
+  return "pending"
+}
+
+function normalizePaymentStatus(
+  value: string | null | undefined
+): (typeof paymentStatusValues)[number] {
+  switch (value) {
+    case "awaiting":
+    case "authorized":
+    case "captured":
+    case "partially_refunded":
+    case "refunded":
+    case "canceled":
+    case "not_paid":
+      return value
+    case "pending":
+      return "awaiting"
+    case "completed":
+    case "partially_captured":
+      return "captured"
+    case "partially_authorized":
+      return "authorized"
+    default:
+      return "not_paid"
+  }
+}
+
+function normalizeFulfillmentStatus(
+  value: string | null | undefined
+): (typeof fulfillmentStatusValues)[number] {
+  switch (value) {
+    case "not_fulfilled":
+    case "partially_fulfilled":
+    case "fulfilled":
+    case "partially_shipped":
+    case "shipped":
+    case "partially_delivered":
+    case "delivered":
+    case "canceled":
+      return value
+    default:
+      return "not_fulfilled"
+  }
+}
 
 export const orderVariantSchema = z
   .object({
@@ -41,7 +117,7 @@ export const orderAdjustmentSchema = z
 
 export const orderLineItemSchema = z
   .object({
-    id: z.string(),
+    id: stringFieldOrEmpty,
     title: z
       .string()
       .nullish()
@@ -74,8 +150,8 @@ export const orderShippingAddressSchema = z
 
 export const orderSellerSchema = z
   .object({
-    id: z.string(),
-    name: z.string(),
+    id: stringFieldOrEmpty,
+    name: stringFieldOrEmpty,
     address_line: nullableString,
     city: nullableString,
     state: nullableString,
@@ -104,18 +180,18 @@ export const orderPaymentSessionDataSchema = z
 
 export const orderPaymentSessionSchema = z
   .object({
-    id: z.string(),
-    provider_id: z.string(),
-    status: z.string(),
+    id: stringFieldOrEmpty,
+    provider_id: stringFieldOrEmpty,
+    status: stringFieldOrEmpty,
     created_at: nullableString,
-    payment_collection_id: z.string().nullish(),
+    payment_collection_id: stringField.nullish().catch(null),
     data: orderPaymentSessionDataSchema.nullish(),
   })
   .passthrough()
 
 export const orderPaymentCollectionSchema = z
   .object({
-    id: z.string(),
+    id: stringFieldOrEmpty,
     payment_sessions: z.array(orderPaymentSessionSchema).optional(),
     payments: z.array(orderPaymentSchema).optional(),
   })
@@ -184,14 +260,17 @@ export const orderShippingMethodSchema = z
 
 export const orderSchema = z
   .object({
-    id: z.string(),
+    id: stringFieldOrEmpty,
     display_id: numberField,
-    created_at: z.string(),
-    updated_at: z.string(),
-    currency_code: z.string(),
-    status: z.enum(orderStatusValues),
-    payment_status: z.enum(paymentStatusValues),
-    fulfillment_status: z.enum(fulfillmentStatusValues),
+    created_at: isoDateField,
+    updated_at: isoDateField,
+    currency_code: stringFieldOrEmpty,
+    status: z.string().nullish().transform(normalizeOrderStatus),
+    payment_status: z.string().nullish().transform(normalizePaymentStatus),
+    fulfillment_status: z
+      .string()
+      .nullish()
+      .transform(normalizeFulfillmentStatus),
     metadata: orderStatusMetadataSchema.nullish(),
     shipping_total: numberField.default(0),
     discount_total: numberField.default(0),
