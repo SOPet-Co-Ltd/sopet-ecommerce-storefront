@@ -17,8 +17,11 @@ export type CouponApiData = {
   image_color: string | null
   status: string
   vendorName: string | null
+  created_at?: string | null
   is_collected?: boolean
   is_used?: boolean
+  is_eligible?: boolean
+  ineligibility_reason?: string | null
 }
 
 type CouponListResponse = {
@@ -154,13 +157,22 @@ export async function collectCoupon(
 /**
  * Fetch collected coupons for the logged-in customer's wallet.
  */
-export async function fetchMyCoupons(): Promise<CouponApiData[]> {
+export async function fetchMyCoupons(options?: {
+  cartId?: string
+  vendorName?: string
+}): Promise<CouponApiData[]> {
   if (isCouponFeatureUnavailable()) {
     return []
   }
 
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/me/coupons`)
+    if (options?.cartId) {
+      url.searchParams.set("cart_id", options.cartId)
+    }
+    if (options?.vendorName) {
+      url.searchParams.set("vendor_name", options.vendorName)
+    }
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
 
     const authHeaders = await getAuthHeaders()

@@ -6,7 +6,7 @@ import { HttpTypes } from "@medusajs/types"
 import { Cart } from "@/types/cart"
 import { checkoutCustomerCartSelection } from "@/lib/data/customer-cart"
 import { prepareGuestCheckout } from "@/lib/data/cart"
-import { removeAnonymousCartItemsByIds } from "@/lib/data/local-customer-cart"
+import { moveAnonymousCartItemsToCheckoutHoldByIds } from "@/lib/data/local-customer-cart"
 import { useState } from "react"
 
 interface CartSummaryProps {
@@ -56,7 +56,7 @@ export const CartSummary = ({
           variantId: i.variant_id as string,
           quantity: i.quantity ?? 1,
         }))
-        removeAnonymousCartItemsByIds(selectedItemIds)
+        moveAnonymousCartItemsToCheckoutHoldByIds(selectedItemIds)
         await prepareGuestCheckout(selectedItems, locale)
       } else {
         await checkoutCustomerCartSelection(selectedItemIds, {

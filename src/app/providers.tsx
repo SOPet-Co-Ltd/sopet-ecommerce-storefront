@@ -2,25 +2,20 @@
 
 import { NavigationProgress } from "@/components/atoms/NavigationProgress/NavigationProgress"
 import { RouteLoadingProvider } from "@/components/atoms/RouteLoadingFallback/RouteLoadingProvider"
-import { CartProvider, ProductCacheProvider } from "@/components/providers"
-import { Cart } from "@/types/cart"
+import { ProductCacheProvider, ReactQueryProvider } from "@/components/providers"
 import type React from "react"
 
 import { PropsWithChildren } from "react"
 
-interface ProvidersProps extends PropsWithChildren {
-  cart: Cart | null
-}
-
-export function Providers({ children, cart }: ProvidersProps) {
+export function Providers({ children }: PropsWithChildren) {
   return (
-    <CartProvider cart={cart}>
+    <ReactQueryProvider>
       <ProductCacheProvider>
         <RouteLoadingProvider>
           <NavigationProgress />
           {children}
         </RouteLoadingProvider>
       </ProductCacheProvider>
-    </CartProvider>
+    </ReactQueryProvider>
   )
 }

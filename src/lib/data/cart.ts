@@ -32,6 +32,39 @@ function logCheckoutPerf(phase: string, ms: number) {
   }
 }
 
+async function cleanupCustomerCartItemsFromCheckoutMetadata(cart: unknown) {
+  const metadata =
+    cart && typeof cart === "object" && "metadata" in cart
+      ? ((cart as { metadata?: Record<string, unknown> | null }).metadata ??
+        null)
+      : null
+
+  const itemIds = Array.isArray(metadata?.customer_cart_item_ids)
+    ? metadata.customer_cart_item_ids.filter(
+        (value): value is string =>
+          typeof value === "string" && value.length > 0
+      )
+    : []
+
+  if (!itemIds.length) {
+    return
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  await Promise.all(
+    itemIds.map((itemId) =>
+      fetchQuery(`/store/customer-cart/items/${itemId}`, {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }).catch(() => null)
+    )
+  )
+}
+
 /**
  * On checkout enter: cap each line item quantity at variant inventory.
  * Fetches product/variant inventory and updates any item that exceeds max.
@@ -615,13 +648,18 @@ export async function setShippingMethod({
   return res
 }
 
-export async function setMultiShippingMethods({
-  cartId,
-  optionIds,
-}: {
-  cartId: string
-  optionIds: string[]
-}) {
+export async function setMultiShippingMethods(
+  {
+    cartId,
+    optionIds,
+  }: {
+    cartId: string
+    optionIds: string[]
+  },
+  options?: {
+    skipCacheRevalidate?: boolean
+  }
+) {
   const headers = {
     ...(await getAuthHeaders()),
   }
@@ -635,8 +673,10 @@ export async function setMultiShippingMethods({
     }
   )
 
-  const cartCacheTag = await getCacheTag("carts")
-  revalidateTag(cartCacheTag)
+  if (!options?.skipCacheRevalidate) {
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
 
   return res
 }
@@ -792,11 +832,15 @@ export async function bootstrapMarketplacePaymentSessions(
 
   const entries = await Promise.all(
     marketplaceCheckout.slices.map(async (slice) => {
-      const collection = await createMarketplacePaymentSession(cartId, {
-        payment_collection_id: slice.payment_collection_id,
-        provider_id: input.provider_id,
-        ...(input.data ? { data: input.data } : {}),
-      }, { skipCacheRevalidate: true })
+      const collection = await createMarketplacePaymentSession(
+        cartId,
+        {
+          payment_collection_id: slice.payment_collection_id,
+          provider_id: input.provider_id,
+          ...(input.data ? { data: input.data } : {}),
+        },
+        { skipCacheRevalidate: true }
+      )
       return [slice.payment_collection_id, collection] as const
     })
   )
@@ -822,6 +866,11 @@ export async function completeMarketplaceOrder(
   cartId?: string,
   options?: {
     redirect?: boolean
+    requirePaid?: boolean
+    providerId?: string
+    paymentMethodType?: "card" | "promptpay"
+    paymentSessionIds?: string[]
+    paymentIntentIds?: string[]
     cartSnapshot?: {
       customerId?: string | null
       email?: string | null
@@ -850,19 +899,18 @@ export async function completeMarketplaceOrder(
         promotions?: { code?: string }[]
       }
     | Cart
-    | null =
-    cartSnapshot
-      ? {
-          customer_id: cartSnapshot.customerId ?? null,
-          email: cartSnapshot.email ?? null,
-          customer: {
-            phone: cartSnapshot.customerPhone ?? null,
-            email: cartSnapshot.customerEmail ?? null,
-          },
-          promotions:
-            cartSnapshot.promotionCodes?.map((code) => ({ code })) ?? undefined,
-        }
-      : null
+    | null = cartSnapshot
+    ? {
+        customer_id: cartSnapshot.customerId ?? null,
+        email: cartSnapshot.email ?? null,
+        customer: {
+          phone: cartSnapshot.customerPhone ?? null,
+          email: cartSnapshot.customerEmail ?? null,
+        },
+        promotions:
+          cartSnapshot.promotionCodes?.map((code) => ({ code })) ?? undefined,
+      }
+    : null
 
   if (!cartBeforeComplete?.customer_id) {
     cartBeforeComplete = await retrieveCart(id)
@@ -892,9 +940,46 @@ export async function completeMarketplaceOrder(
     }
   }
 
+  if (
+    !Array.isArray(
+      (
+        cartBeforeComplete as {
+          metadata?: { customer_cart_item_ids?: unknown }
+        }
+      )?.metadata?.customer_cart_item_ids
+    )
+  ) {
+    const hydratedCart = await retrieveCart(id)
+    if (hydratedCart) {
+      cartBeforeComplete = hydratedCart
+    }
+  }
+
   const res = await fetchQuery(
     `/store/carts/${id}/marketplace-payments/complete`,
     {
+      body:
+        options?.requirePaid ||
+        options?.providerId ||
+        options?.paymentMethodType ||
+        options?.paymentSessionIds?.length ||
+        options?.paymentIntentIds?.length
+          ? {
+              ...(options?.requirePaid ? { require_paid: true } : {}),
+              ...(options?.providerId
+                ? { provider_id: options.providerId }
+                : {}),
+              ...(options?.paymentMethodType
+                ? { payment_method_type: options.paymentMethodType }
+                : {}),
+              ...(options?.paymentSessionIds?.length
+                ? { payment_session_ids: options.paymentSessionIds }
+                : {}),
+              ...(options?.paymentIntentIds?.length
+                ? { payment_intent_ids: options.paymentIntentIds }
+                : {}),
+            }
+          : undefined,
       method: "POST",
       headers,
     }
@@ -916,6 +1001,7 @@ export async function completeMarketplaceOrder(
     )
   }
   if (res?.ok) {
+    await cleanupCustomerCartItemsFromCheckoutMetadata(cartBeforeComplete)
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
   }
@@ -943,11 +1029,20 @@ export async function applyPromotions(codes: string[]) {
     const cartCacheTag = await getCacheTag("carts")
     revalidateTag(cartCacheTag)
 
-    // Re-fetch cart with promotions to verify the code was actually applied
-    const updatedCart = await retrieveCart(cartId)
-    const applied = (updatedCart as any)?.promotions?.some((promotion: any) =>
-      codes.includes(promotion.code)
-    )
+    const updatedCart = await fetchQuery(`/store/carts/${cartId}`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+      query: {
+        fields: "+promotions",
+      },
+    })
+
+    const applied = (
+      (updatedCart.data as { cart?: { promotions?: { code?: string }[] } })
+        ?.cart?.promotions ?? []
+    ).some((promotion) => promotion.code && codes.includes(promotion.code))
+
     return !!applied
   } catch (err) {
     console.error("[applyPromotions] Error applying promotion:", err)
@@ -1146,6 +1241,7 @@ export async function placeOrder(
     }
   }
   if (res?.ok) {
+    await cleanupCustomerCartItemsFromCheckoutMetadata(cartBeforeComplete)
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
   }

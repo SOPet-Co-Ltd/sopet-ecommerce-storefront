@@ -8,22 +8,8 @@ import {
   getCartItemVariantOptionsFromMetadata,
 } from "@/lib/helpers/cart-seller"
 
-const normalizeNullable = <T>(value: T | null | undefined): T | null =>
-  value == null ? null : value
-
-const serializeMetadata = (metadata: Record<string, unknown> | null) =>
-  metadata ? JSON.stringify(metadata) : null
-
 const buildAnonymousItemKey = (item: AnonymousCartItemInput): string => {
-  return [
-    item.productId,
-    item.variantId,
-    String(normalizeNullable(item.unitPriceSnapshot)),
-    normalizeNullable(item.source) ?? "",
-    serializeMetadata(
-      (item.metadata as Record<string, unknown> | null | undefined) ?? null
-    ) ?? "",
-  ].join("|")
+  return [item.productId, item.variantId].join("|")
 }
 
 const buildLineItemIdFromAnonymousItem = (
@@ -34,6 +20,10 @@ const buildLineItemIdFromAnonymousItem = (
 }
 
 export interface LocalAnonymousCart {
+  items: AnonymousCartItemInput[]
+}
+
+export interface LocalAnonymousCheckoutHold {
   items: AnonymousCartItemInput[]
 }
 
@@ -48,6 +38,8 @@ const findAnonymousItemIndexByLineItemId = (
 }
 
 const LOCAL_STORAGE_KEY = "sopet_customer_cart_anonymous_v1"
+const CHECKOUT_HOLD_STORAGE_KEY = "sopet_customer_cart_anonymous_checkout_hold_v1"
+export const ANONYMOUS_CART_SYNC_EVENT = "sopet:anonymous-cart-sync"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null
@@ -88,6 +80,80 @@ export const setAnonymousCart = (cart: LocalAnonymousCart): void => {
   }
 
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload))
+  window.dispatchEvent(new Event(ANONYMOUS_CART_SYNC_EVENT))
+}
+
+export const getAnonymousCheckoutHold = (): LocalAnonymousCheckoutHold => {
+  if (typeof window === "undefined") {
+    return { items: [] }
+  }
+
+  const raw = window.localStorage.getItem(CHECKOUT_HOLD_STORAGE_KEY)
+  if (!raw) {
+    return { items: [] }
+  }
+
+  try {
+    const parsed = JSON.parse(raw) as unknown
+    if (!isRecord(parsed)) {
+      return { items: [] }
+    }
+
+    const items = Array.isArray(parsed.items)
+      ? (parsed.items as AnonymousCartItemInput[])
+      : []
+
+    return { items }
+  } catch {
+    return { items: [] }
+  }
+}
+
+export const setAnonymousCheckoutHold = (
+  hold: LocalAnonymousCheckoutHold
+): void => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.localStorage.setItem(
+    CHECKOUT_HOLD_STORAGE_KEY,
+    JSON.stringify({
+      items: Array.isArray(hold.items) ? hold.items : [],
+    } satisfies LocalAnonymousCheckoutHold)
+  )
+}
+
+export const clearAnonymousCheckoutHold = (): void => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.localStorage.removeItem(CHECKOUT_HOLD_STORAGE_KEY)
+}
+
+const mergeAnonymousItemLists = (
+  left: AnonymousCartItemInput[],
+  right: AnonymousCartItemInput[]
+): AnonymousCartItemInput[] => {
+  const byKey = new Map<string, AnonymousCartItemInput>()
+
+  for (const item of [...left, ...right]) {
+    const key = buildAnonymousItemKey(item)
+    const existing = byKey.get(key)
+
+    if (existing) {
+      byKey.set(key, {
+        ...existing,
+        quantity: (existing.quantity ?? 0) + (item.quantity ?? 0),
+      })
+      continue
+    }
+
+    byKey.set(key, { ...item })
+  }
+
+  return Array.from(byKey.values())
 }
 
 /**
@@ -105,6 +171,77 @@ export const removeAnonymousCartItemsByIds = (lineItemIds: string[]): void => {
   })
   setAnonymousCart({ items })
 }
+
+export const moveAnonymousCartItemsToCheckoutHoldByIds = (
+  lineItemIds: string[]
+): void => {
+  if (typeof window === "undefined" || !lineItemIds.length) {
+    return
+  }
+
+  const current = getAnonymousCart()
+  const idSet = new Set(lineItemIds)
+  const movedItems: AnonymousCartItemInput[] = []
+  const remainingItems = current.items.filter((item, index) => {
+    const lineItemId = buildLineItemIdFromAnonymousItem(item, index)
+    if (!idSet.has(lineItemId)) {
+      return true
+    }
+
+    movedItems.push(item)
+    return false
+  })
+
+  if (!movedItems.length) {
+    return
+  }
+
+  const currentHold = getAnonymousCheckoutHold()
+  setAnonymousCheckoutHold({
+    items: mergeAnonymousItemLists(currentHold.items, movedItems),
+  })
+  setAnonymousCart({ items: remainingItems })
+}
+
+export const restoreAnonymousCheckoutHoldToAnonymousCart = (): boolean => {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  const hold = getAnonymousCheckoutHold()
+  if (!hold.items.length) {
+    return false
+  }
+
+  const current = getAnonymousCart()
+  setAnonymousCart({
+    items: mergeAnonymousItemLists(current.items, hold.items),
+  })
+  clearAnonymousCheckoutHold()
+
+  return true
+}
+
+export const mergeAnonymousCheckoutHoldIntoCustomerCart =
+  async (): Promise<boolean> => {
+    if (typeof window === "undefined") {
+      return false
+    }
+
+    const hold = getAnonymousCheckoutHold()
+    if (!hold.items.length) {
+      return false
+    }
+
+    const result = await mergeAnonymousCustomerCartFromClient(hold.items)
+
+    if (result?.merged) {
+      clearAnonymousCheckoutHold()
+      return true
+    }
+
+    return false
+  }
 
 const MERGE_RETRY_DELAY_MS = 600
 
@@ -240,10 +377,9 @@ export const mergeAnonymousCarts = (
   left: LocalAnonymousCart,
   right: LocalAnonymousCart
 ): LocalAnonymousCart => {
-  const items = [...left.items, ...right.items]
-
-  const merged: LocalAnonymousCart = { items }
-  return merged
+  return {
+    items: mergeAnonymousItemLists(left.items, right.items),
+  }
 }
 
 export const buildAnonymousCartFromLocal = (): HttpTypes.StoreCart | null => {

@@ -5,8 +5,7 @@ import { Modal } from "@/components/molecules/Modal/Modal"
 import { Heading, Text } from "@medusajs/ui"
 import { useState } from "react"
 import { toast } from "@/lib/helpers/toast"
-import { cancelOrder } from "@/lib/data/orders"
-import { useRouter } from "next/navigation"
+import { useCancelOrderMutation } from "@/hooks/useOrderManagementQuery"
 
 type OrderCancelModalProps = {
   isOpen: boolean
@@ -34,7 +33,7 @@ export const OrderCancelModal = ({
   onSuccess,
 }: OrderCancelModalProps) => {
   const [submitting, setSubmitting] = useState(false)
-  const router = useRouter()
+  const cancelOrderMutation = useCancelOrderMutation()
 
   if (!isOpen) {
     return null
@@ -43,7 +42,7 @@ export const OrderCancelModal = ({
   const handleConfirm = async () => {
     setSubmitting(true)
     try {
-      const res = await cancelOrder(orderId)
+      const res = await cancelOrderMutation.mutateAsync({ orderId })
       if (res?.success) {
         toast.success({
           title: "ยกเลิกคำสั่งซื้อเรียบร้อยแล้ว",
@@ -51,7 +50,6 @@ export const OrderCancelModal = ({
         })
         onSuccess?.()
         onClose()
-        router.refresh()
       } else {
         throw new Error(res?.error || "ไม่สามารถยกเลิกคำสั่งซื้อได้")
       }

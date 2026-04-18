@@ -922,3 +922,15 @@ input[type="range"].slider-thumb:focus::-moz-range-thumb {
   );
   animation: sop-nav-progress-slide 0.95s ease-in-out infinite;
 }
+
+@keyframes cart-bump {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

@@ -2,6 +2,7 @@ import { Cart } from "@/types/cart"
 import { getCartForCustomerCartPage } from "@/lib/data/customer-cart-page"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
+import { getSessionCustomer } from "@/lib/data/customer"
 import { CartPageClient } from "./CartPageClient"
 
 export const dynamic = "force-dynamic"
@@ -28,8 +29,14 @@ export default async function CartPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  const customer = await getSessionCustomer()
+  const cart = customer ? await getCartForCustomerCartPage(locale) : null
 
-  const cart = await getCartForCustomerCartPage(locale)
-
-  return <CartPageClient initialCart={cart as Cart | null} locale={locale} />
+  return (
+    <CartPageClient
+      initialCart={cart as Cart | null}
+      locale={locale}
+      cartSource={customer ? "customer" : "anonymous"}
+    />
+  )
 }

@@ -7,7 +7,6 @@ import { CreditCard, QrCode, Check } from "lucide-react"
 import { useState, useEffect } from "react"
 import {
   getOrderCustomerPaymentMethods,
-  updateOrderPaymentSession,
 } from "@/lib/data/orders"
 import { toast } from "@/lib/helpers/toast"
 import type { CustomerPaymentMethod } from "@/types/order"
@@ -17,6 +16,7 @@ import {
   mapProviderIdToChangePaymentUiMethod,
   type OrderPaymentChangeBootstrap,
 } from "@/lib/helpers/order-checkout-payment"
+import { useUpdateOrderPaymentSessionMutation } from "@/hooks/useOrderManagementQuery"
 
 interface ChangePaymentModalProps {
   isOpen: boolean
@@ -63,6 +63,7 @@ export const ChangePaymentModal = ({
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const updateOrderPaymentSessionMutation = useUpdateOrderPaymentSessionMutation()
 
   useEffect(() => {
     if (!isOpen) {
@@ -112,11 +113,11 @@ export const ChangePaymentModal = ({
       // 1. Initialize/Update Payment Session via Server Action
       const finalAmount = orderTotal ? Math.round(orderTotal) : undefined
 
-      const result = await updateOrderPaymentSession(
+      const result = await updateOrderPaymentSessionMutation.mutateAsync({
         orderId,
         providerId,
-        finalAmount
-      )
+        amountToPay: finalAmount,
+      })
 
       if (!result.success) {
         throw new Error(result.error || "Failed to update payment method")

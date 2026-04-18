@@ -3,7 +3,6 @@ import { Mitr } from "next/font/google"
 import "./globals.css"
 import { Toaster as MedusaToaster } from "@medusajs/ui"
 import { Toaster as SonnerToaster } from "sonner"
-import { retrieveCart } from "@/lib/data/cart"
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_NAME,
@@ -86,8 +85,6 @@ export default async function RootLayout({
     )
   }
 
-  const cart = await retrieveCart()
-
   const htmlLang = locale || "th"
 
   return (
@@ -95,7 +92,7 @@ export default async function RootLayout({
       <body
         className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
-        <Providers cart={cart}>{children}</Providers>
+        <Providers>{children}</Providers>
         <MedusaToaster position="top-right" />
         <SonnerToaster position="top-right" richColors />
       </body>
