@@ -7,13 +7,13 @@ import {
   ShieldCheckIcon,
   SOPetLogo,
   UserManagementBellIcon,
-  UserManagementShoppingBagIcon,
   UserManagementUserIcon,
 } from "@/icons"
 import { Button } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { UserDropdown } from "../UserDropdown/UserDropdown"
 import { UserDropdownMobile } from "../UserDropdown/UserDropdownMobile"
+import { NavbarCartButton } from "./NavbarCartButton"
 
 export const Navbar = ({
   user,
@@ -74,11 +74,7 @@ export const Navbar = ({
               <UserManagementBellIcon size={18} color="#454547" />
             </p>
           </LocalizedClientLink>
-          <LocalizedClientLink href="/cart">
-            <p>
-              <UserManagementShoppingBagIcon size={18} color="#454547" />
-            </p>
-          </LocalizedClientLink>
+          <NavbarCartButton hasUser={Boolean(user)} />
 
           <div className="hidden md:block">
             {user ? (

@@ -4,13 +4,14 @@ import { Checkbox } from "@/components/atoms"
 import { CartItem } from "@/components/molecules"
 import { CartSummary } from "../CartSummary/CartSummary"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { HttpTypes } from "@medusajs/types"
 import { DiscountIcon } from "@/icons"
 import { Cart } from "@/types/cart"
 import { DiscountModal } from "@/components/molecules/DiscountModal/DiscountModal"
 import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import type { Seller } from "@/types/seller"
+import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 
 type CartTemplateProps = {
   cart: HttpTypes.StoreCart | Cart
@@ -35,11 +36,34 @@ export const CartTemplate = ({
   onItemDelete,
   onItemVariantChange,
 }: CartTemplateProps) => {
-  const [selectedItems, setSelectedItems] = useState<string[]>([])
-  const [discountModalVendor, setDiscountModalVendor] = useState<string | null>(
-    null
-  )
+  const hasInitializedSelectionRef = useRef(false)
   const router = useRouter()
+  const selectedItems = useCartPageUiStore((state) => state.selectedItemIds)
+  const discountModalVendor = useCartPageUiStore(
+    (state) => state.discountModalVendor
+  )
+  const resetCartPageUi = useCartPageUiStore((state) => state.reset)
+  const setSelectedItemIds = useCartPageUiStore(
+    (state) => state.setSelectedItemIds
+  )
+  const toggleItemSelection = useCartPageUiStore(
+    (state) => state.toggleItemSelection
+  )
+  const toggleManySelection = useCartPageUiStore(
+    (state) => state.toggleManySelection
+  )
+  const openDiscountModal = useCartPageUiStore(
+    (state) => state.openDiscountModal
+  )
+  const closeDiscountModal = useCartPageUiStore(
+    (state) => state.closeDiscountModal
+  )
+
+  useEffect(() => {
+    return () => {
+      resetCartPageUi()
+    }
+  }, [resetCartPageUi])
 
   useEffect(() => {
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -75,7 +99,8 @@ export const CartTemplate = ({
 
     if (!newIds.length) {
       setLineOrder([])
-      setSelectedItems([])
+      resetCartPageUi()
+      hasInitializedSelectionRef.current = false
       return
     }
 
@@ -104,13 +129,11 @@ export const CartTemplate = ({
         )
 
         // Migrate selection from old ID to new ID
-        setSelectedItems((prevSelected) => {
-          if (!prevSelected.includes(removedId)) return prevSelected
-          const nextSelected = prevSelected.map((id) =>
-            id === removedId ? addedId : id
+        if (selectedItems.includes(removedId)) {
+          setSelectedItemIds(
+            selectedItems.map((id) => (id === removedId ? addedId : id))
           )
-          return Array.from(new Set(nextSelected))
-        })
+        }
 
         return nextOrder
       }
@@ -118,7 +141,7 @@ export const CartTemplate = ({
       // For other changes (e.g. new items added/removed), fall back to current backend order
       return newIds
     })
-  }, [cart?.items])
+  }, [cart?.items, resetCartPageUi, selectedItems, setSelectedItemIds])
 
   const sortedItems = useMemo(() => {
     const items = cart?.items || []
@@ -179,42 +202,47 @@ export const CartTemplate = ({
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedItems(allItemIds)
+      setSelectedItemIds(allItemIds)
     } else {
-      setSelectedItems([])
+      setSelectedItemIds([])
     }
   }
 
   const handleSelectItem = (id: string, checked: boolean) => {
-    if (checked) {
-      setSelectedItems((prev) => [...prev, id])
-    } else {
-      setSelectedItems((prev) => prev.filter((i) => i !== id))
-    }
+    toggleItemSelection(id, checked)
   }
 
   const handleSelectSeller = (sellerKey: string, checked: boolean) => {
     const sellerItems = itemsBySeller[sellerKey]?.items.map((i) => i.id) || []
-    if (checked) {
-      setSelectedItems((prev) => [...new Set([...prev, ...sellerItems])])
-    } else {
-      setSelectedItems((prev) => prev.filter((id) => !sellerItems.includes(id)))
-    }
+    toggleManySelection(sellerItems, checked)
   }
 
   useEffect(() => {
-    if (cart?.items?.length && selectedItems.length === 0) {
-      setSelectedItems(cart.items.map((i) => i.id))
+    if (!sortedItems.length) {
+      hasInitializedSelectionRef.current = false
+      resetCartPageUi()
+      return
     }
-  }, [cart?.items, selectedItems.length])
+
+    if (hasInitializedSelectionRef.current) {
+      return
+    }
+
+    hasInitializedSelectionRef.current = true
+    setSelectedItemIds(sortedItems.map((item) => item.id))
+  }, [resetCartPageUi, setSelectedItemIds, sortedItems])
 
   // Ensure selectedItems only contains IDs that still exist in the cart
   useEffect(() => {
     if (!sortedItems.length) return
 
     const currentIds = new Set(sortedItems.map((i) => i.id))
-    setSelectedItems((prev) => prev.filter((id) => currentIds.has(id)))
-  }, [sortedItems])
+    const nextSelectedItems = selectedItems.filter((id) => currentIds.has(id))
+
+    if (nextSelectedItems.length !== selectedItems.length) {
+      setSelectedItemIds(nextSelectedItems)
+    }
+  }, [selectedItems, setSelectedItemIds, sortedItems])
 
   // Calculate selected total
   const selectedTotal =
@@ -301,7 +329,7 @@ export const CartTemplate = ({
                     {/* Store coupons button */}
                     <button
                       className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline"
-                      onClick={() => setDiscountModalVendor(seller.name)}
+                      onClick={() => openDiscountModal(seller.name)}
                     >
                       ดูส่วนลดอื่นๆ
                     </button>
@@ -336,7 +364,7 @@ export const CartTemplate = ({
 
       <DiscountModal
         isOpen={!!discountModalVendor}
-        close={() => setDiscountModalVendor(null)}
+        close={closeDiscountModal}
         cart={cart as any}
         vendorName={discountModalVendor || undefined}
         showAppliedPromotions={true}

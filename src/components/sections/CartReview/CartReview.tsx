@@ -4,7 +4,7 @@ import CheckoutItemPreview from "@/components/molecules/CheckoutItemPreview/Chec
 import { Cart } from "@/types/cart"
 import { Heading, Text } from "@medusajs/ui"
 import { ClipboardListIcon } from "@/icons"
-import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
+import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
 
 const Review = ({ cart }: { cart: Cart }) => {
   const { shippingMethods, isLoading } = useCheckoutPageData()

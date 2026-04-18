@@ -4,19 +4,14 @@ import { Button } from "@/components/atoms/Button/Button"
 import OrderCard from "@/components/molecules/OrderCard/OrderCard"
 import { useEffect, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { getOrderDisplayStatus } from "@/lib/helpers/order-status"
 import type { OrderListItem } from "@/types/order"
-import { sliceOrder, SlicedOrder } from "@/lib/helpers/order-slicer"
+import { sliceOrder } from "@/lib/helpers/order-slicer"
+import {
+  OrderManagementTab,
+  useOrderManagementUiStore,
+} from "@/lib/zustand/order-management-ui-store"
 
-type OrderTab =
-  | "all"
-  | "to-pay"
-  | "to-ship"
-  | "to-receive"
-  | "completed"
-  | "cancelled"
-
-const TAB_IDS: OrderTab[] = [
+const TAB_IDS: OrderManagementTab[] = [
   "all",
   "to-pay",
   "to-ship",
@@ -25,7 +20,7 @@ const TAB_IDS: OrderTab[] = [
   "cancelled",
 ]
 
-const TABS: Array<{ id: OrderTab; label: string }> = [
+const TABS: Array<{ id: OrderManagementTab; label: string }> = [
   { id: "all", label: "ทั้งหมด" },
   { id: "to-pay", label: "ที่ต้องชำระ" },
   { id: "to-ship", label: "เตรียมการจัดส่ง" },
@@ -36,8 +31,10 @@ const TABS: Array<{ id: OrderTab; label: string }> = [
 
 const TAB_QUERY_KEY = "tab"
 
-function tabFromQuery(value: string | null): OrderTab {
-  if (value && TAB_IDS.includes(value as OrderTab)) return value as OrderTab
+function tabFromQuery(value: string | null): OrderManagementTab {
+  if (value && TAB_IDS.includes(value as OrderManagementTab)) {
+    return value as OrderManagementTab
+  }
   return "all"
 }
 
@@ -55,8 +52,10 @@ const OrderListSection = ({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const activeTab = useOrderManagementUiStore((state) => state.activeTab)
+  const setActiveTab = useOrderManagementUiStore((state) => state.setActiveTab)
 
-  const activeTab = tabFromQuery(searchParams.get(TAB_QUERY_KEY))
+  const activeTabFromQuery = tabFromQuery(searchParams.get(TAB_QUERY_KEY))
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -67,7 +66,14 @@ const OrderListSection = ({
     }
   }, [pathname, router])
 
-  const setTab = (id: OrderTab) => {
+  useEffect(() => {
+    if (activeTab !== activeTabFromQuery) {
+      setActiveTab(activeTabFromQuery)
+    }
+  }, [activeTab, activeTabFromQuery, setActiveTab])
+
+  const setTab = (id: OrderManagementTab) => {
+    setActiveTab(id)
     const params = new URLSearchParams(searchParams.toString())
     if (id === "all") {
       params.delete(TAB_QUERY_KEY)

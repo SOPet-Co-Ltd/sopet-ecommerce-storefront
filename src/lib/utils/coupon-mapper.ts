@@ -24,10 +24,13 @@ export function mapCouponToCardData(coupon: CouponApiData): CouponData {
     category: coupon.category,
     conditions: coupon.conditions,
     vendorName: coupon.vendorName || undefined,
+    minPurchase: coupon.min_purchase,
     leftTextTop: labels.top,
     leftTextBottom: labels.bottom,
     imageColor: coupon.image_color || undefined,
     is_collected: coupon.is_collected || false,
     is_used: coupon.is_used || false,
+    isEligible: coupon.is_eligible,
+    ineligibilityReason: coupon.ineligibility_reason || undefined,
   }
 }

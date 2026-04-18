@@ -44,6 +44,9 @@ export const orderLineItemSchema = z
     unit_price: numberField.default(0),
     quantity: numberField.default(0),
     subtotal: numberField.default(0),
+    fulfilled_quantity: numberField.nullish(),
+    shipped_quantity: numberField.nullish(),
+    delivered_quantity: numberField.nullish(),
     variant: orderVariantSchema.nullish(),
   })
   .passthrough()
@@ -79,6 +82,9 @@ export const orderSellerSchema = z
 export const orderPaymentSchema = z
   .object({
     provider_id: nullableString,
+    authorized_at: nullableString,
+    captured_at: nullableString,
+    canceled_at: nullableString,
   })
   .passthrough()
 
@@ -129,6 +135,30 @@ export const orderFulfillmentLabelSchema = z
 export const orderFulfillmentSchema = z
   .object({
     labels: z.array(orderFulfillmentLabelSchema).nullish().optional(),
+    items: z
+      .array(
+        z
+          .object({
+            line_item_id: z.string().nullish(),
+            item_id: z.string().nullish(),
+            id: z.string().nullish(),
+            quantity: numberField.nullish(),
+            item: z
+              .object({
+                line_item_id: z.string().nullish(),
+                item_id: z.string().nullish(),
+                id: z.string().nullish(),
+              })
+              .passthrough()
+              .nullish(),
+          })
+          .passthrough()
+      )
+      .nullish()
+      .optional(),
+    shipped_at: nullableString,
+    delivered_at: nullableString,
+    canceled_at: nullableString,
   })
   .passthrough()
 
@@ -137,6 +167,7 @@ export const orderSchema = z
     id: z.string(),
     display_id: numberField,
     created_at: z.string(),
+    updated_at: z.string(),
     currency_code: z.string(),
     status: z.enum(orderStatusValues),
     payment_status: z.enum(paymentStatusValues),

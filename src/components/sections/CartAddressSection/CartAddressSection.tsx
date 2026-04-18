@@ -14,7 +14,7 @@ import {
   useCheckoutPayment,
   type DraftShippingAddress,
 } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
-import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
+import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
 
 function draftToCartAddress(
   draft: DraftShippingAddress
@@ -72,14 +72,18 @@ export const CartAddressSection = ({
   /** When true, show draft form even though user has saved addresses (e.g. "Add new" from dialog). */
   const [addingNewAddress, setAddingNewAddress] = useState(false)
 
-  const {
-    setSelectedAddress,
-    setSelectedEmail,
-    shippingAddressIsDraft,
-    setShippingAddressIsDraft,
-    draftAddress,
-    setDraftAddress,
-  } = useCheckoutPayment()
+  const setSelectedAddress = useCheckoutPayment(
+    (state) => state.setSelectedAddress
+  )
+  const setSelectedEmail = useCheckoutPayment((state) => state.setSelectedEmail)
+  const shippingAddressIsDraft = useCheckoutPayment(
+    (state) => state.shippingAddressIsDraft
+  )
+  const setShippingAddressIsDraft = useCheckoutPayment(
+    (state) => state.setShippingAddressIsDraft
+  )
+  const draftAddress = useCheckoutPayment((state) => state.draftAddress)
+  const setDraftAddress = useCheckoutPayment((state) => state.setDraftAddress)
 
   const savedAddresses = useMemo(() => {
     return customer?.addresses || []

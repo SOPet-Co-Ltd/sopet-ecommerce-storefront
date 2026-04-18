@@ -168,7 +168,7 @@ export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
       method: "GET",
       query: {
         fields:
-          "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.variant.product,*items.variant.product.seller,*seller,*order_set,*fulfillments,*fulfillments.labels",
+          "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.variant.product,*items.variant.product.seller,*seller,*order_set,*fulfillments,*fulfillments.items,*fulfillments.labels",
       },
       headers,
       cache: "no-store",
@@ -282,7 +282,7 @@ export const listOrders = async (
       method: "GET",
       query: {
         fields:
-          "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.variant.product,*items.variant.product.seller,*seller,*order_set",
+          "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.variant.product,*items.variant.product.seller,*seller,*order_set,*fulfillments,*fulfillments.items,*fulfillments.labels",
         limit,
         offset,
         ...(filters ?? {}),

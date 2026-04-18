@@ -88,6 +88,9 @@ export type OrderSeller = {
 
 export type OrderPayment = {
   provider_id?: string | null | undefined
+  authorized_at?: string | null | undefined
+  captured_at?: string | null | undefined
+  canceled_at?: string | null | undefined
 }
 
 export type OrderPaymentSessionData = Record<string, unknown> & {
@@ -119,9 +122,24 @@ export type OrderFulfillmentLabel = {
   tracking_url?: string | null | undefined
 }
 
+export type OrderFulfillmentItem = {
+  line_item_id?: string | null | undefined
+  item_id?: string | null | undefined
+  id?: string | null | undefined
+  quantity?: number | null | undefined
+  item?:
+    | {
+        line_item_id?: string | null | undefined
+        item_id?: string | null | undefined
+        id?: string | null | undefined
+      }
+    | null
+    | undefined
+}
+
 export type OrderFulfillment = {
   labels?: OrderFulfillmentLabel[] | undefined
-  items?: { line_item_id: string; quantity: number }[] | undefined
+  items?: OrderFulfillmentItem[] | undefined
   shipped_at?: string | null | undefined
   delivered_at?: string | null | undefined
   canceled_at?: string | null | undefined
@@ -131,6 +149,7 @@ type OrderBase = {
   id: string
   display_id: number
   created_at: string
+  updated_at: string
   currency_code: string
   status: OrderStatus
   payment_status: PaymentStatus

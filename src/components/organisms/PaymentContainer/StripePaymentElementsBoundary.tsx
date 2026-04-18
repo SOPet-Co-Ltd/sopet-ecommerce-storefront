@@ -22,7 +22,9 @@ export function StripePaymentElementsBoundary({
   cart: Cart
   children: ReactNode
 }) {
-  const { clientSecret: contextSecret } = useCheckoutElementsSecret()
+  const contextSecret = useCheckoutElementsSecret(
+    (state) => state.clientSecret
+  )
 
   const sessionFromCart = cart.payment_collection?.payment_sessions?.find(
     (s: HttpTypes.StorePaymentSession) =>
