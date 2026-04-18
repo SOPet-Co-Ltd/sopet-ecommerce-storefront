@@ -8,7 +8,6 @@ import { OrderPaymentModal } from "@/components/organisms/OrderPaymentModal/Orde
 import { OrderCancelModal } from "@/components/molecules/OrderCancelModal/OrderCancelModal"
 import { ChangePaymentModal } from "@/components/organisms/ChangePaymentModal/ChangePaymentModal"
 import { convertToLocale } from "@/lib/helpers/money"
-import { completeOrder, captureOrderPayment } from "@/lib/data/orders"
 import { toast } from "@/lib/helpers/toast"
 import { useReviewSubmission } from "@/hooks/useReviewSubmission"
 import {
@@ -20,10 +19,10 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 
 import {
-  getOrderDisplayStatus,
   getOrderStatusLabel,
   getOrderStatusColor,
 } from "@/lib/helpers/order-status"
+import { getOrderManagementDisplayStatus } from "@/lib/helpers/order-management-status"
 import {
   resolveOrderCheckoutProviderId,
   setStoredOrderPaymentProviderId,
@@ -32,6 +31,11 @@ import { clearOrderPromptPayContinuity } from "@/lib/helpers/order-promptpay-con
 import type { OrderDetails } from "@/types/order"
 import { SmartImage } from "@/components/atoms"
 import { PendingPromptPayCountdownBar } from "@/components/molecules/PendingPromptPayCountdownBar/PendingPromptPayCountdownBar"
+import {
+  useCaptureOrderPaymentMutation,
+  useCompleteOrderMutation,
+} from "@/hooks/useOrderManagementQuery"
+import { useOrderManagementUiStore } from "@/lib/zustand/order-management-ui-store"
 
 type OrderCardProps = {
   order: OrderDetails
@@ -39,22 +43,42 @@ type OrderCardProps = {
 }
 
 const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
-  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
-  const [isChangePaymentModalOpen, setIsChangePaymentModalOpen] =
-    useState(false)
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
-  const [forceMethodSelection, setForceMethodSelection] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
-  const [paymentSecretsBootstrap, setPaymentSecretsBootstrap] = useState<
-    string[] | null
-  >(null)
-
   const router = useRouter()
+  const activeModal = useOrderManagementUiStore((state) => state.activeModal)
+  const openModal = useOrderManagementUiStore((state) => state.openModal)
+  const closeModal = useOrderManagementUiStore((state) => state.closeModal)
+  const selectedCardId = useOrderManagementUiStore(
+    (state) => state.paymentFlowByOrderId[order.id]?.selectedCardId ?? null
+  )
+  const paymentSecretsBootstrap = useOrderManagementUiStore(
+    (state) =>
+      state.paymentFlowByOrderId[order.id]?.paymentSecretsBootstrap ?? null
+  )
+  const setSelectedCardId = useOrderManagementUiStore(
+    (state) => state.setSelectedCardId
+  )
+  const setPaymentSecretsBootstrap = useOrderManagementUiStore(
+    (state) => state.setPaymentSecretsBootstrap
+  )
+  const clearPaymentFlow = useOrderManagementUiStore(
+    (state) => state.clearPaymentFlow
+  )
+  const completeOrderMutation = useCompleteOrderMutation()
+  const captureOrderPaymentMutation = useCaptureOrderPaymentMutation()
+  const isPaymentModalOpen =
+    activeModal?.kind === "payment" && activeModal.orderId === order.id
+  const isCancelModalOpen =
+    activeModal?.kind === "cancel" && activeModal.orderId === order.id
+  const isChangePaymentModalOpen =
+    activeModal?.kind === "change-payment" && activeModal.orderId === order.id
+  const isReviewModalOpen =
+    activeModal?.kind === "review" && activeModal.orderId === order.id
 
   const displayStatus = useMemo(() => {
-    return (order as any).slice_display_status || getOrderDisplayStatus(order)
+    return (
+      (order as any).slice_display_status || getOrderManagementDisplayStatus(order)
+    )
   }, [order])
 
   const statusLabel = useMemo(
@@ -72,7 +96,11 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
     return Number(order.total) || 0
   }, [order.total])
 
-  const sellerName = (order as any).seller_name || order.store?.name || order.seller?.name || "ร้านค้าไม่ระบุ"
+  const sellerName =
+    (order as any).seller_name ||
+    order.store?.name ||
+    order.seller?.name ||
+    "ร้านค้าไม่ระบุ"
 
   return (
     <>
@@ -183,14 +211,14 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
           {/* TO PAY STATUS */}
           {displayStatus === "to-pay" && (
             <>
-              <Button onClick={() => setIsPaymentModalOpen(true)}>
+              <Button onClick={() => openModal("payment", order.id)}>
                 ชำระเงิน
               </Button>
 
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setIsChangePaymentModalOpen(true)
+                  openModal("change-payment", order.id)
                 }}
               >
                 เปลี่ยนช่องทางการชำระเงิน
@@ -206,9 +234,11 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
                 onClick={async () => {
                   setIsLoading(true)
                   try {
-                    const result = await completeOrder(order.id)
+                    const result = await completeOrderMutation.mutateAsync({
+                      orderId: order.id,
+                    })
                     if (result.success) {
-                      window.location.reload()
+                      closeModal()
                     } else {
                       alert("Failed to complete order: " + result.error)
                     }
@@ -227,7 +257,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
           {/* COMPLETED STATUS */}
           {displayStatus === "completed" && !hasAnyReviewed && (
             <>
-              <Button onClick={() => setIsReviewModalOpen(true)}>
+              <Button onClick={() => openModal("review", order.id)}>
                 รีวิวสินค้า
               </Button>
             </>
@@ -259,7 +289,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
           {displayStatus === "to-pay" && (
             <Button
               variant="secondary"
-              onClick={() => setIsCancelModalOpen(true)}
+              onClick={() => openModal("cancel", order.id)}
             >
               ยกเลิกคำสั่งซื้อ
             </Button>
@@ -294,14 +324,13 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
       <OrderPaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => {
-          setIsPaymentModalOpen(false)
-          setForceMethodSelection(false)
-          setPaymentSecretsBootstrap(null)
+          setPaymentSecretsBootstrap(order.id, null)
+          closeModal()
         }}
         order={order}
-        forceMethodSelection={forceMethodSelection}
+        forceMethodSelection={false}
         initialClientSecretsFromChange={paymentSecretsBootstrap}
-        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(null)}
+        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(order.id, null)}
         selectedCardId={
           selectedCardId ||
           (typeof window !== "undefined"
@@ -309,7 +338,9 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             : null)
         }
         onPaymentSuccess={async () => {
-          const result = await captureOrderPayment(order.id)
+          const result = await captureOrderPaymentMutation.mutateAsync({
+            orderId: order.id,
+          })
           if (!result.success) {
             toast.error({
               title: "ยืนยันการชำระเงินไม่สำเร็จ",
@@ -322,13 +353,14 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
           if (typeof window !== "undefined") {
             sessionStorage.removeItem(`order_${order.id}_cardId`)
           }
+          clearPaymentFlow(order.id)
           router.push(`/order/${order.id}/confirmed`)
         }}
       />
 
       <ChangePaymentModal
         isOpen={isChangePaymentModalOpen}
-        onClose={() => setIsChangePaymentModalOpen(false)}
+        onClose={closeModal}
         orderId={order.id}
         paymentCollectionIds={order.payment_collections
           ?.map((c) => c.id)
@@ -341,46 +373,46 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             setStoredOrderPaymentProviderId(order.id, providerId)
           }
           if (bootstrap?.clientSecrets?.length) {
-            setPaymentSecretsBootstrap(bootstrap.clientSecrets)
+            setPaymentSecretsBootstrap(order.id, bootstrap.clientSecrets)
           } else {
-            setPaymentSecretsBootstrap(null)
+            setPaymentSecretsBootstrap(order.id, null)
           }
           if (cardId) {
-            setSelectedCardId(cardId)
+            setSelectedCardId(order.id, cardId)
             if (typeof window !== "undefined") {
               sessionStorage.setItem(`order_${order.id}_cardId`, cardId)
             }
           } else {
-            setSelectedCardId(null)
+            setSelectedCardId(order.id, null)
             if (typeof window !== "undefined") {
               sessionStorage.removeItem(`order_${order.id}_cardId`)
             }
           }
-          setIsChangePaymentModalOpen(false)
-          router.refresh()
+          closeModal()
         }}
       />
 
       <OrderCancelModal
         isOpen={isCancelModalOpen}
-        onClose={() => setIsCancelModalOpen(false)}
+        onClose={closeModal}
         orderId={order.id}
         onSuccess={() => {
           setStoredOrderPaymentProviderId(order.id, null)
           if (typeof window !== "undefined") {
             sessionStorage.removeItem(`order_${order.id}_cardId`)
           }
+          clearPaymentFlow(order.id)
         }}
       />
 
       <ReviewModal
         isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
+        onClose={closeModal}
         items={order.items}
         onSubmit={async (reviewsData) => {
           const success = await submitReviews(reviewsData, order.id)
           if (success) {
-            setIsReviewModalOpen(false)
+            closeModal()
           }
         }}
       />

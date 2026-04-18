@@ -2,6 +2,7 @@ import {
   OrderDetails,
   OrderDisplayStatus,
   FulfillmentStatus,
+  OrderFulfillmentItem,
   OrderLineItem,
   OrderFulfillment,
 } from "@/types/order"
@@ -19,18 +20,85 @@ export type SlicedOrder = OrderDetails & {
   slice_display_status: OrderDisplayStatus
 }
 
+function getFulfillmentItemIds(item: OrderFulfillmentItem): string[] {
+  const directIds = [item.line_item_id, item.item_id, item.id]
+  const nestedIds = [item.item?.line_item_id, item.item?.item_id, item.item?.id]
+
+  return [...directIds, ...nestedIds].filter(
+    (value): value is string => typeof value === "string" && value.length > 0
+  )
+}
+
+function fulfillmentContainsAnyItem(
+  fulfillment: OrderFulfillment,
+  itemIds: Set<string>
+): boolean {
+  return (fulfillment.items ?? []).some((fulfillmentItem) =>
+    getFulfillmentItemIds(fulfillmentItem).some((id) => itemIds.has(id))
+  )
+}
+
+export function getSliceFulfillments(
+  order: OrderDetails,
+  items: OrderLineItem[]
+): OrderFulfillment[] {
+  const fulfillments = order.fulfillments ?? []
+
+  if (!fulfillments.length) {
+    return []
+  }
+
+  const itemIds = new Set(items.map((item) => item.id))
+  const matched = fulfillments.filter((fulfillment) =>
+    fulfillmentContainsAnyItem(fulfillment, itemIds)
+  )
+
+  if (matched.length > 0) {
+    return matched
+  }
+
+  const isSingleSellerOrder =
+    new Set(
+      (order.items ?? []).map((item) => {
+        const seller =
+          (item as any).variant?.product?.seller || (item as any).product?.seller
+
+        return seller?.id || "platform"
+      })
+    ).size === 1
+
+  return isSingleSellerOrder ? fulfillments : []
+}
+
+export function getSliceTrackingLabels(
+  order: OrderDetails,
+  items: OrderLineItem[]
+) {
+  const seen = new Set<string>()
+
+  return getSliceFulfillments(order, items)
+    .flatMap((fulfillment) => fulfillment.labels ?? [])
+    .filter((label) => {
+      const key = `${label.tracking_number ?? ""}|${label.tracking_url ?? ""}`
+
+      if (seen.has(key)) {
+        return false
+      }
+
+      seen.add(key)
+      return true
+    })
+}
+
 function calculateSliceFulfillmentStatus(
   items: OrderLineItem[],
-  fulfillments: OrderFulfillment[] = []
+  fulfillments: OrderFulfillment[] = [],
+  fallbackFulfillmentStatus: FulfillmentStatus,
+  allowOrderLevelFallback: boolean
 ): FulfillmentStatus {
   if (items.length === 0) return "not_fulfilled"
 
-  const itemIds = new Set(items.map((i) => i.id))
-
-  // Find all fulfillments that contain items from this slice
-  const sliceFulfillments = fulfillments.filter((f) =>
-    f.items?.some((fi) => itemIds.has(fi.line_item_id))
-  )
+  const sliceFulfillments = fulfillments.filter((fulfillment) => !fulfillment.canceled_at)
 
   // Status determination based on fulfillments
   if (sliceFulfillments.length > 0) {
@@ -64,6 +132,17 @@ function calculateSliceFulfillmentStatus(
   )
   if (allShippedQuant) return "shipped"
 
+  const someShippedQuant = items.some((item) => (item.shipped_quantity || 0) > 0)
+  if (someShippedQuant) return "partially_shipped"
+
+  if (
+    allowOrderLevelFallback &&
+    fallbackFulfillmentStatus &&
+    fallbackFulfillmentStatus !== "not_fulfilled"
+  ) {
+    return fallbackFulfillmentStatus
+  }
+
   return "not_fulfilled"
 }
 
@@ -94,7 +173,10 @@ export function sliceOrder(order: OrderDetails): SlicedOrder[] {
     groups[sellerId].items.push(item)
   })
 
-  return Object.entries(groups).map(([sellerId, group]) => {
+  const groupedEntries = Object.entries(groups)
+  const allowOrderLevelFallback = groupedEntries.length === 1
+
+  return groupedEntries.map(([sellerId, group]) => {
     const sliceSubtotal = group.items.reduce(
       (acc, item) => acc + item.unit_price * item.quantity,
       0
@@ -105,9 +187,13 @@ export function sliceOrder(order: OrderDetails): SlicedOrder[] {
     const sliceTotal = sliceSubtotal + sliceShipping - sliceDiscount
 
     // Determine fulfillment status for THIS specific slice
+    const sliceFulfillments = getSliceFulfillments(order, group.items)
+
     const sliceFulfillmentStatus = calculateSliceFulfillmentStatus(
       group.items,
-      order.fulfillments
+      sliceFulfillments,
+      order.fulfillment_status,
+      allowOrderLevelFallback
     )
 
     const sliceDisplayStatus = getOrderDisplayStatus({

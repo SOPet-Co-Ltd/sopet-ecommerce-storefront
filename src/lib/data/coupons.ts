@@ -17,6 +17,7 @@ export type CouponApiData = {
   image_color: string | null
   status: string
   vendorName: string | null
+  created_at?: string | null
   is_collected?: boolean
   is_used?: boolean
   is_eligible?: boolean

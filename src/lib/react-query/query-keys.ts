@@ -11,4 +11,14 @@ export const queryKeys = {
     savedPaymentMethods: (customerId: string | null | undefined) =>
       ["checkout", "saved-payment-methods", customerId ?? ""] as const,
   },
+  orders: {
+    all: () => ["orders"] as const,
+    list: (limit: number, offset: number) =>
+      ["orders", "list", limit, offset] as const,
+    detail: (orderId: string) => ["orders", "detail", orderId] as const,
+  },
+  notifications: {
+    all: () => ["notifications"] as const,
+    page: () => ["notifications", "page"] as const,
+  },
 } as const
