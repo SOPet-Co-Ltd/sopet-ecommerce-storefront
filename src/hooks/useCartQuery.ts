@@ -135,6 +135,81 @@ function getCartTotals(items: HttpTypes.StoreCartLineItem[]) {
   )
 }
 
+function applyOptimisticChangeCartItemVariant(
+  cart: CartLike,
+  input: ChangeCartItemVariantInput
+): CartLike {
+  const currentItems = [...(cart?.items ?? [])]
+  const targetIndex = currentItems.findIndex((item) => item.id === input.itemId)
+
+  if (targetIndex < 0) {
+    return cart
+  }
+
+  const currentItem = currentItems[targetIndex]
+  const resolvedUnitPrice =
+    typeof input.unitPriceSnapshot === "number"
+      ? input.unitPriceSnapshot
+      : getNumeric(currentItem.unit_price)
+
+  const nextQuantity = input.quantity
+  const nextLineTotal = resolvedUnitPrice * nextQuantity
+
+  const existingSameIndex = currentItems.findIndex((item, index) => {
+    if (index === targetIndex) {
+      return false
+    }
+
+    return (
+      item.product_id === currentItem.product_id &&
+      item.variant_id === input.variantId
+    )
+  })
+
+  if (existingSameIndex >= 0) {
+    const existingSame = currentItems[existingSameIndex]
+    const mergedQuantity = (existingSame.quantity ?? 0) + nextQuantity
+    const mergedTotal = resolvedUnitPrice * mergedQuantity
+
+    currentItems[existingSameIndex] = {
+      ...existingSame,
+      quantity: mergedQuantity,
+      unit_price: resolvedUnitPrice,
+      subtotal: mergedTotal,
+      total: mergedTotal,
+    } as HttpTypes.StoreCartLineItem
+
+    currentItems.splice(targetIndex, 1)
+  } else {
+    currentItems[targetIndex] = {
+      ...currentItem,
+      variant_id: input.variantId,
+      quantity: nextQuantity,
+      unit_price: resolvedUnitPrice,
+      subtotal: nextLineTotal,
+      total: nextLineTotal,
+      variant: currentItem.variant
+        ? {
+            ...currentItem.variant,
+            id: input.variantId,
+          }
+        : currentItem.variant,
+    } as HttpTypes.StoreCartLineItem
+  }
+
+  const totals = getCartTotals(currentItems)
+
+  return {
+    ...(cart ?? {}),
+    items: currentItems,
+    subtotal: totals.subtotal,
+    item_subtotal: totals.subtotal,
+    total: totals.total,
+    tax_total: totals.tax_total,
+    discount_total: getNumeric(cart?.discount_total),
+  } as Cart
+}
+
 function applyOptimisticAddToCart(
   cart: CartLike,
   input: AddToCartMutationInput,
@@ -416,6 +491,7 @@ export function useChangeCartItemVariantMutation(
         body: JSON.stringify({
           quantity,
           variantId,
+          unitPriceSnapshot,
         }),
       })
 
@@ -425,6 +501,26 @@ export function useChangeCartItemVariantMutation(
       }
 
       return parseJson(response)
+    },
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previousCart = queryClient.getQueryData<CartLike>(queryKey)
+
+      queryClient.setQueryData<CartLike>(queryKey, (current) =>
+        applyOptimisticChangeCartItemVariant(
+          current ?? previousCart ?? null,
+          input
+        )
+      )
+
+      return {
+        previousCart,
+      }
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previousCart !== undefined) {
+        queryClient.setQueryData(queryKey, context.previousCart)
+      }
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey })

@@ -117,6 +117,10 @@ export const ShippingOptionDialog = ({
   }, [isOpen, shippingMethods, cart.id])
 
   const handleConfirm = async () => {
+    if (!selectedMethodId) {
+      return
+    }
+
     setLoading(true)
     await onSelectMethod(selectedMethodId)
     setLoading(false)
@@ -209,6 +213,7 @@ export const ShippingOptionDialog = ({
           <Button
             onClick={handleConfirm}
             loading={loading}
+            disabled={loading || !selectedMethodId || shippingMethods.length === 0}
             className="flex-1 rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white"
           >
             ยืนยัน

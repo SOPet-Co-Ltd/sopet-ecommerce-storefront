@@ -44,16 +44,19 @@ export type OrderAdjustment = {
 
 export type OrderLineItem = {
   id: string
-  product: {
-    id: string
-    title: string
-    handle: string
-    thumbnail: string
-    unit_price: number
-    quantity: number
-    subtotal: number
-    variant: OrderVariant | null | undefined
-  }
+  product?:
+    | {
+        id: string
+        title: string
+        handle: string
+        thumbnail: string
+        unit_price: number
+        quantity: number
+        subtotal: number
+        variant: OrderVariant | null | undefined
+      }
+    | null
+    | undefined
   title: string
   subtitle?: string | null | undefined
   thumbnail?: string | null | undefined
@@ -115,8 +118,8 @@ export type OrderPaymentSession = {
 
 export type OrderPaymentCollection = {
   id: string
-  payment_sessions?: OrderPaymentSession[] | undefined
-  payments?: OrderPayment[] | undefined
+  payment_sessions?: OrderPaymentSession[] | null | undefined
+  payments?: OrderPayment[] | null | undefined
 }
 
 export type OrderSetReference = {

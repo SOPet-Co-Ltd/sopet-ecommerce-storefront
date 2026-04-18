@@ -172,9 +172,10 @@ export async function updateCustomerCartItem(input: {
   id: string
   quantity?: number
   variantId?: string
+  unitPriceSnapshot?: number | null
   metadata?: Record<string, unknown> | null
 }) {
-  const { id, quantity, variantId, metadata } = input
+  const { id, quantity, variantId, unitPriceSnapshot, metadata } = input
 
   if (!id) {
     throw new Error("Customer cart item id is required")
@@ -193,6 +194,10 @@ export async function updateCustomerCartItem(input: {
 
   if (typeof variantId === "string") {
     body.variant_id = variantId
+  }
+
+  if (typeof unitPriceSnapshot === "number") {
+    body.unit_price_snapshot = unitPriceSnapshot
   }
 
   if (metadata !== undefined) {
@@ -235,8 +240,9 @@ export async function changeCustomerCartItemVariant(input: {
   itemId: string
   variantId: string
   quantity: number
+  unitPriceSnapshot?: number | null
 }) {
-  const { itemId, variantId, quantity } = input
+  const { itemId, variantId, quantity, unitPriceSnapshot } = input
 
   if (!itemId || !variantId) {
     throw new Error("itemId and variantId are required")
@@ -255,23 +261,8 @@ export async function changeCustomerCartItemVariant(input: {
     return
   }
 
-  const normalizeNullable = <T>(value: T | null | undefined): T | null =>
-    value == null ? null : value
-
-  const serializeMetadata = (metadata: Record<string, unknown> | null) =>
-    metadata ? JSON.stringify(metadata) : null
-
   const buildKey = (item: CustomerCartItemFromApi) => {
-    const metadata =
-      (item.metadata as Record<string, unknown> | null | undefined) ?? null
-
-    return [
-      item.product_id,
-      item.variant_id,
-      String(normalizeNullable(item.unit_price_snapshot)),
-      normalizeNullable(item.source) ?? "",
-      serializeMetadata(metadata) ?? "",
-    ].join("|")
+    return [item.product_id, item.variant_id].join("|")
   }
 
   const targetKey = buildKey({
@@ -292,6 +283,7 @@ export async function changeCustomerCartItemVariant(input: {
     await updateCustomerCartItem({
       id: existingSame.id,
       quantity: nextQuantity,
+      unitPriceSnapshot,
     })
 
     await deleteCustomerCartItem(itemId)
@@ -302,6 +294,7 @@ export async function changeCustomerCartItemVariant(input: {
     id: itemId,
     quantity,
     variantId,
+    unitPriceSnapshot,
   })
 }
 
