@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useCallback } from "react"
 import {
   CouponCard,
   CouponConditionsModal,
@@ -8,33 +8,42 @@ import {
   CouponAuthErrorModal,
 } from "@/components/molecules"
 import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
-import { collectCoupon } from "@/lib/data/coupons"
+import type {
+  CouponsPageBundleData,
+  CouponsPageCategoryKey,
+} from "@/lib/data/coupons-page"
+import { useCollectCouponMutation, useCouponsPageQuery } from "@/hooks/useCouponsQuery"
+import { toast } from "@/lib/helpers/toast"
+import { useCouponsPageUiStore } from "@/lib/zustand/coupons-page-ui-store"
 import Image from "next/image"
 
 const CouponSection = ({
+  category,
   title,
   headerBgClass,
   headerText,
   coupons,
+  visibleRows,
   onConditionsClick,
   onApply,
+  onLoadMore,
+  applyingCouponId,
 }: {
+  category: CouponsPageCategoryKey
   title?: string
   headerBgClass: string
   headerText: string
   coupons: CouponData[]
+  visibleRows: number
   onConditionsClick: (coupon: CouponData) => void
   onApply: (coupon: CouponData) => void
+  onLoadMore: (category: CouponsPageCategoryKey) => void
+  applyingCouponId: string | null
 }) => {
-  const [visibleRows, setVisibleRows] = useState(2)
   const itemsPerRowDesktop = 4
 
   const visibleCoupons = coupons.slice(0, visibleRows * itemsPerRowDesktop)
   const hasMore = coupons.length > visibleCoupons.length
-
-  const handleLoadMore = () => {
-    setVisibleRows((prev) => prev + 1)
-  }
 
   return (
     <section className="flex flex-col items-center w-full max-w-[1299px] mx-auto">
@@ -56,6 +65,7 @@ const CouponSection = ({
             onConditionsClick={onConditionsClick}
             onApply={() => onApply(coupon)}
             isApplied={coupon.is_collected}
+            isLoading={applyingCouponId === coupon.id}
           />
         ))}
       </div>
@@ -63,7 +73,7 @@ const CouponSection = ({
         <div className="flex w-full justify-center mt-6 sm:mt-10 mb-4">
           <button
             type="button"
-            onClick={handleLoadMore}
+            onClick={() => onLoadMore(category)}
             className="border border-sop-secondary-500 text-sop-secondary-500 hover:bg-sop-secondary-50 transition-colors 
                      rounded-[36px] py-2 px-8 font-medium text-sm sm:text-base shadow-sm"
           >
@@ -75,55 +85,79 @@ const CouponSection = ({
   )
 }
 
-export type CouponsPageClientProps = {
-  initialNewCustomer: CouponData[]
-  initialShipping: CouponData[]
-  initialSpecial: CouponData[]
-}
+export type CouponsPageClientProps = { initialData: CouponsPageBundleData }
 
 export function CouponsPageClient({
-  initialNewCustomer,
-  initialShipping,
-  initialSpecial,
+  initialData,
 }: CouponsPageClientProps) {
-  const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
-  const [showCollected, setShowCollected] = useState(false)
-  const [showAuthError, setShowAuthError] = useState(false)
+  const selectedCoupon = useCouponsPageUiStore((state) => state.selectedCoupon)
+  const showCollected = useCouponsPageUiStore((state) => state.showCollected)
+  const showAuthError = useCouponsPageUiStore((state) => state.showAuthError)
+  const applyingCouponId = useCouponsPageUiStore(
+    (state) => state.applyingCouponId
+  )
+  const visibleRowsByCategory = useCouponsPageUiStore(
+    (state) => state.visibleRowsByCategory
+  )
+  const openCouponConditions = useCouponsPageUiStore(
+    (state) => state.openCouponConditions
+  )
+  const closeCouponConditions = useCouponsPageUiStore(
+    (state) => state.closeCouponConditions
+  )
+  const openCollectedModal = useCouponsPageUiStore(
+    (state) => state.openCollectedModal
+  )
+  const closeCollectedModal = useCouponsPageUiStore(
+    (state) => state.closeCollectedModal
+  )
+  const openAuthErrorModal = useCouponsPageUiStore(
+    (state) => state.openAuthErrorModal
+  )
+  const closeAuthErrorModal = useCouponsPageUiStore(
+    (state) => state.closeAuthErrorModal
+  )
+  const setApplyingCouponId = useCouponsPageUiStore(
+    (state) => state.setApplyingCouponId
+  )
+  const incrementVisibleRows = useCouponsPageUiStore(
+    (state) => state.incrementVisibleRows
+  )
 
-  const [newCustomerCoupons, setNewCustomerCoupons] =
-    useState(initialNewCustomer)
-  const [shippingCoupons, setShippingCoupons] = useState(initialShipping)
-  const [specialCoupons, setSpecialCoupons] = useState(initialSpecial)
+  const couponsQuery = useCouponsPageQuery(initialData)
+  const collectCouponMutation = useCollectCouponMutation()
+  const bundle = couponsQuery.data ?? initialData
 
-  const handleApply = useCallback(async (coupon: CouponData) => {
-    try {
-      const res = await collectCoupon(coupon.id)
-      if (res.success) {
-        setShowCollected(true)
+  const handleApply = useCallback(
+    async (coupon: CouponData) => {
+      setApplyingCouponId(coupon.id)
 
-        const updateCoupons = (coupons: CouponData[]) =>
-          coupons.map((c) =>
-            c.id === coupon.id ? { ...c, is_collected: true } : c
-          )
+      try {
+        await collectCouponMutation.mutateAsync(coupon.id)
+        openCollectedModal()
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "ไม่สามารถเก็บคูปองได้"
 
-        if (coupon.category === "new_customer") {
-          setNewCustomerCoupons(updateCoupons)
-        } else if (coupon.category === "shipping") {
-          setShippingCoupons(updateCoupons)
+        if (message === "Unauthorized") {
+          openAuthErrorModal()
         } else {
-          setSpecialCoupons(updateCoupons)
+          toast.error({
+            title: "ไม่สามารถเก็บคูปองได้",
+            description: message || "เกิดข้อผิดพลาดในการเก็บคูปอง",
+          })
         }
-      } else {
-        if (res.message === "Unauthorized") {
-          setShowAuthError(true)
-        } else {
-          alert(res.message || "ไม่สามารถเก็บคูปองได้")
-        }
+      } finally {
+        setApplyingCouponId(null)
       }
-    } catch {
-      alert("เกิดข้อผิดพลาดในการเก็บคูปอง")
-    }
-  }, [])
+    },
+    [
+      collectCouponMutation,
+      openAuthErrorModal,
+      openCollectedModal,
+      setApplyingCouponId,
+    ]
+  )
 
   return (
     <div className="w-full bg-sop-primary-100 min-h-screen pb-20">
@@ -139,34 +173,46 @@ export function CouponsPageClient({
       </section>
 
       <div className="container mx-auto lg:px-0 -mt-sop-20px sm:mt-8 relative z-20 flex flex-col gap-8 sm:gap-12">
-        {newCustomerCoupons.length > 0 && (
+        {bundle.newCustomer.length > 0 && (
           <CouponSection
+            category="new_customer"
             title="คูปองส่วนลดพิเศษ"
             headerBgClass="bg-sop-primary-500"
             headerText="ลูกค้าใหม่"
-            coupons={newCustomerCoupons}
-            onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
+            coupons={bundle.newCustomer}
+            visibleRows={visibleRowsByCategory.new_customer}
+            onConditionsClick={openCouponConditions}
             onApply={handleApply}
+            onLoadMore={incrementVisibleRows}
+            applyingCouponId={applyingCouponId}
           />
         )}
 
-        {shippingCoupons.length > 0 && (
+        {bundle.shipping.length > 0 && (
           <CouponSection
+            category="shipping"
             headerBgClass="bg-sop-additionalblue-500"
             headerText="ส่วนลดค่าจัดส่ง"
-            coupons={shippingCoupons}
-            onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
+            coupons={bundle.shipping}
+            visibleRows={visibleRowsByCategory.shipping}
+            onConditionsClick={openCouponConditions}
             onApply={handleApply}
+            onLoadMore={incrementVisibleRows}
+            applyingCouponId={applyingCouponId}
           />
         )}
 
-        {specialCoupons.length > 0 && (
+        {bundle.special.length > 0 && (
           <CouponSection
+            category="special"
             headerBgClass="bg-sop-secondary-500"
             headerText="ส่วนลดพิเศษอื่นๆ"
-            coupons={specialCoupons}
-            onConditionsClick={(coupon) => setSelectedCoupon(coupon)}
+            coupons={bundle.special}
+            visibleRows={visibleRowsByCategory.special}
+            onConditionsClick={openCouponConditions}
             onApply={handleApply}
+            onLoadMore={incrementVisibleRows}
+            applyingCouponId={applyingCouponId}
           />
         )}
       </div>
@@ -174,17 +220,17 @@ export function CouponsPageClient({
       <CouponConditionsModal
         coupon={selectedCoupon}
         isOpen={!!selectedCoupon}
-        onClose={() => setSelectedCoupon(null)}
+        onClose={closeCouponConditions}
       />
 
       <CouponCollectedModal
         isOpen={showCollected}
-        onClose={() => setShowCollected(false)}
+        onClose={closeCollectedModal}
       />
 
       <CouponAuthErrorModal
         isOpen={showAuthError}
-        onClose={() => setShowAuthError(false)}
+        onClose={closeAuthErrorModal}
       />
     </div>
   )

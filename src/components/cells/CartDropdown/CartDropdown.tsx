@@ -6,16 +6,12 @@ import { CartSource, useCartQuery } from "@/hooks/useCartQuery"
 import { usePrevious } from "@/hooks/usePrevious"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { CartIcon } from "@/icons"
+import { getCartItemCount } from "@/lib/helpers/cart-item-count"
 import { convertToLocale } from "@/lib/helpers/money"
 import { filterValidCartItems } from "@/lib/helpers/filter-valid-cart-items"
 import { useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
-import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
-
-const getItemCount = (cart: Cart | HttpTypes.StoreCart | null | undefined) => {
-  return cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0
-}
 
 export const CartDropdown = ({
   user,
@@ -31,8 +27,8 @@ export const CartDropdown = ({
   })
   const [open, setOpen] = useState(false)
 
-  const previousItemCount = usePrevious(getItemCount(cart))
-  const cartItemsCount = (cart && getItemCount(cart)) || 0
+  const previousItemCount = usePrevious(getCartItemCount(cart))
+  const cartItemsCount = getCartItemCount(cart)
 
   // Filter out items with invalid data (missing prices/variants)
   const validItems = filterValidCartItems(cart?.items)

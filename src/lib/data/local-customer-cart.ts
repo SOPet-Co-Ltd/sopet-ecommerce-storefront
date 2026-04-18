@@ -8,22 +8,8 @@ import {
   getCartItemVariantOptionsFromMetadata,
 } from "@/lib/helpers/cart-seller"
 
-const normalizeNullable = <T>(value: T | null | undefined): T | null =>
-  value == null ? null : value
-
-const serializeMetadata = (metadata: Record<string, unknown> | null) =>
-  metadata ? JSON.stringify(metadata) : null
-
 const buildAnonymousItemKey = (item: AnonymousCartItemInput): string => {
-  return [
-    item.productId,
-    item.variantId,
-    String(normalizeNullable(item.unitPriceSnapshot)),
-    normalizeNullable(item.source) ?? "",
-    serializeMetadata(
-      (item.metadata as Record<string, unknown> | null | undefined) ?? null
-    ) ?? "",
-  ].join("|")
+  return [item.productId, item.variantId].join("|")
 }
 
 const buildLineItemIdFromAnonymousItem = (

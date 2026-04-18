@@ -21,4 +21,8 @@ export const queryKeys = {
     all: () => ["notifications"] as const,
     page: () => ["notifications", "page"] as const,
   },
+  coupons: {
+    all: () => ["coupons"] as const,
+    page: () => ["coupons", "page"] as const,
+  },
 } as const

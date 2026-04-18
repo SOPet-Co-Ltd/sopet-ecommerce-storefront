@@ -120,6 +120,11 @@ export const ProductDetailsHeader = ({
           product,
         },
       })
+
+      toast.success({
+        title: "เพิ่มลงตะกร้าแล้ว",
+        description: `${product.title ?? "สินค้า"} · จำนวน 1 ชิ้น`,
+      })
     } catch (error) {
       toast.error({
         title: "Error adding to cart",
