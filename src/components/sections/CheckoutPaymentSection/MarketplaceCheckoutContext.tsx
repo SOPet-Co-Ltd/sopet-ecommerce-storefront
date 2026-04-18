@@ -16,6 +16,10 @@ import {
 
 type MarketplaceCheckoutContextValue = MarketplaceCheckoutStore
 
+const identitySelector = (
+  state: MarketplaceCheckoutContextValue
+): MarketplaceCheckoutContextValue => state
+
 const MarketplaceCheckoutStoreContext =
   createContext<MarketplaceCheckoutStoreApi | null>(null)
 
@@ -52,9 +56,10 @@ export function useMarketplaceCheckout<T>(
     )
   }
 
-  if (selector) {
-    return useStore(store, selector)
-  }
-
-  return useStore(store)
+  return useStore(
+    store,
+    (selector ?? identitySelector) as (
+      state: MarketplaceCheckoutContextValue
+    ) => MarketplaceCheckoutContextValue | T
+  )
 }

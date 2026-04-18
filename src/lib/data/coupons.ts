@@ -47,6 +47,9 @@ const markCouponFeatureUnavailable = () => {
   couponFeatureAvailable = false
 }
 
+const isMedusaCartId = (value?: string): value is string =>
+  typeof value === "string" && value.startsWith("cart_")
+
 /**
  * Fetch coupons from the backend API.
  * @param category Optional category filter: "new_customer" | "shipping" | "special"
@@ -54,7 +57,10 @@ const markCouponFeatureUnavailable = () => {
 export async function fetchCoupons(
   category?: string,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  options?: {
+    vendorName?: string
+  }
 ): Promise<CouponApiData[]> {
   if (isCouponFeatureUnavailable()) {
     return []
@@ -66,6 +72,9 @@ export async function fetchCoupons(
     url.searchParams.set("skip", offset.toString())
     if (category) {
       url.searchParams.set("category", category)
+    }
+    if (options?.vendorName) {
+      url.searchParams.set("vendor_name", options.vendorName)
     }
 
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
@@ -167,8 +176,9 @@ export async function fetchMyCoupons(options?: {
 
   try {
     const url = new URL(`${MEDUSA_BACKEND_URL}/store/me/coupons`)
-    if (options?.cartId) {
-      url.searchParams.set("cart_id", options.cartId)
+    const cartId = options?.cartId
+    if (isMedusaCartId(cartId)) {
+      url.searchParams.set("cart_id", cartId)
     }
     if (options?.vendorName) {
       url.searchParams.set("vendor_name", options.vendorName)

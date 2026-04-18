@@ -15,6 +15,10 @@ export type { CheckoutPaymentMethod, DraftShippingAddress }
 
 type CheckoutPaymentContextValue = CheckoutPaymentStore
 
+const identitySelector = (
+  state: CheckoutPaymentContextValue
+): CheckoutPaymentContextValue => state
+
 const CheckoutPaymentStoreContext =
   createContext<CheckoutPaymentStoreApi | null>(null)
 
@@ -47,9 +51,10 @@ export function useCheckoutPayment<T>(
     )
   }
 
-  if (selector) {
-    return useStore(store, selector)
-  }
-
-  return useStore(store)
+  return useStore(
+    store,
+    (selector ?? identitySelector) as (
+      state: CheckoutPaymentContextValue
+    ) => CheckoutPaymentContextValue | T
+  )
 }
