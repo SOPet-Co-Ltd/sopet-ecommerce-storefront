@@ -10,7 +10,7 @@ import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
 import { useCheckoutElementsSecret } from "./CheckoutElementsSecretContext"
 import { CreditCardCheckoutForm } from "@/components/molecules/CreditCardForm/CreditCardCheckoutForm"
-import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
+import { useCheckoutPageData } from "./CheckoutPageDataContext"
 
 type CheckoutPaymentSectionProps = {
   cart: Cart | null
@@ -25,8 +25,12 @@ type PaymentSessionSnapshot = {
 export const CheckoutPaymentSection = ({
   cart,
 }: CheckoutPaymentSectionProps) => {
-  const { clientSecret: elementsClientSecret, marketplacePaymentInitError } =
-    useCheckoutElementsSecret()
+  const elementsClientSecret = useCheckoutElementsSecret(
+    (state) => state.clientSecret
+  )
+  const marketplacePaymentInitError = useCheckoutElementsSecret(
+    (state) => state.marketplacePaymentInitError
+  )
   const {
     customer,
     savedStripePaymentMethods,
@@ -35,17 +39,17 @@ export const CheckoutPaymentSection = ({
     isLoading: checkoutDataLoading,
     refetchSavedStripePaymentMethods,
   } = useCheckoutPageData()
-  const {
-    method,
-    setMethod,
-    setCardComplete,
-    savedPaymentMethods,
-    setSavedPaymentMethods,
-    selectedPaymentMethodId,
-    setSelectedPaymentMethodId,
-    useNewCard,
-    setUseNewCard,
-  } = useCheckoutPayment()
+  const method = useCheckoutPayment((state) => state.method)
+  const setMethod = useCheckoutPayment((state) => state.setMethod)
+  const setCardComplete = useCheckoutPayment((state) => state.setCardComplete)
+  const selectedPaymentMethodId = useCheckoutPayment(
+    (state) => state.selectedPaymentMethodId
+  )
+  const setSelectedPaymentMethodId = useCheckoutPayment(
+    (state) => state.setSelectedPaymentMethodId
+  )
+  const useNewCard = useCheckoutPayment((state) => state.useNewCard)
+  const setUseNewCard = useCheckoutPayment((state) => state.setUseNewCard)
   const selectedPmIdRef = useRef<string | null>(null)
   selectedPmIdRef.current = selectedPaymentMethodId
 
@@ -94,7 +98,6 @@ export const CheckoutPaymentSection = ({
     if (method !== "card" || !customerId || checkoutDataLoading) {
       return
     }
-    setSavedPaymentMethods(savedStripePaymentMethods)
     const currentId = selectedPmIdRef.current
     const stillValid =
       savedStripePaymentMethods.length > 0 &&
@@ -114,7 +117,6 @@ export const CheckoutPaymentSection = ({
     customerId,
     method,
     savedStripePaymentMethods,
-    setSavedPaymentMethods,
     setSelectedPaymentMethodId,
     setUseNewCard,
   ])
@@ -162,6 +164,7 @@ export const CheckoutPaymentSection = ({
     method === "card" &&
     Boolean(customerId) &&
     isSavedStripePaymentMethodsLoading
+  const savedPaymentMethods = savedStripePaymentMethods
   const showNewCardForm =
     !waitingForSavedCards && (useNewCard || savedPaymentMethods.length === 0)
 
@@ -188,41 +191,29 @@ export const CheckoutPaymentSection = ({
   const handleNewCardSuccess = useCallback(
     async (paymentMethod: CustomerPaymentMethod) => {
       upsertSavedStripePaymentMethod(paymentMethod)
-      setSavedPaymentMethods((prev) => {
-        const next = [
-          paymentMethod,
-          ...prev.filter((pm) => pm.id !== paymentMethod.id),
-        ]
-        if (paymentMethod.is_default) {
-          return next.map((pm) =>
-            pm.id === paymentMethod.id
-              ? paymentMethod
-              : { ...pm, is_default: false }
-          )
-        }
-        return next
-      })
       setSelectedPaymentMethodId(paymentMethod.id)
       setUseNewCard(false)
       void refetchSavedStripePaymentMethods()
     },
     [
       refetchSavedStripePaymentMethods,
-      setSavedPaymentMethods,
       setSelectedPaymentMethodId,
       setUseNewCard,
       upsertSavedStripePaymentMethod,
     ]
   )
 
-  const cardElementsWaitingMessage = (() => {
+  const cardPaymentNotice = (() => {
     if (marketplacePaymentInitError) {
       return marketplacePaymentInitError
     }
     if (!cart?.shipping_methods?.length) {
       return "กำลังเตรียมระบบชำระเงิน… กรุณาเลือกวิธีจัดส่งให้ครบก่อน"
     }
-    return "กำลังเตรียมระบบชำระเงิน…"
+    if (!elementsClientSecret) {
+      return "ระบบจะเตรียมการชำระเงินเมื่อกดปุ่มชำระเงิน"
+    }
+    return null
   })()
 
   return (
@@ -284,7 +275,7 @@ export const CheckoutPaymentSection = ({
 
             {method === "card" && (
               <div className="pl-8 flex flex-col gap-4">
-                {!elementsClientSecret ? (
+                {cardPaymentNotice && (
                   <Text
                     className={clx(
                       "sop-body-sm-regular",
@@ -293,9 +284,11 @@ export const CheckoutPaymentSection = ({
                         : "text-sop-neutral-gray-300"
                     )}
                   >
-                    {cardElementsWaitingMessage}
+                    {cardPaymentNotice}
                   </Text>
-                ) : waitingForSavedCards ? (
+                )}
+
+                {waitingForSavedCards ? (
                   <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
                     กำลังโหลดบัตรที่บันทึกไว้…
                   </Text>

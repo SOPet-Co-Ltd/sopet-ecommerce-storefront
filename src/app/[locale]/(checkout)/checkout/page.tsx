@@ -1,7 +1,5 @@
-import { CheckoutElementsSecretProvider } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
-import { MarketplaceCheckoutProvider } from "@/components/sections/CheckoutPaymentSection/MarketplaceCheckoutContext"
 import { CheckoutCartCapRunner } from "@/components/sections/CheckoutPaymentSection/CheckoutCartCapRunner"
-import CheckoutFlowClient from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClient"
+import CheckoutFlowClientBoundary from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClientBoundary"
 
 import { retrieveCart, setMultiShippingMethods } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -67,16 +65,12 @@ export default async function CheckoutPage({
   const lineFingerprint = checkoutLineFingerprint(cart)
 
   return (
-    <CheckoutElementsSecretProvider>
-      <MarketplaceCheckoutProvider>
-        <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-          <CheckoutFlowClient cart={cart} initialData={initialData} />
-          <CheckoutCartCapRunner
-            cartId={cart.id}
-            lineFingerprint={lineFingerprint}
-          />
-        </main>
-      </MarketplaceCheckoutProvider>
-    </CheckoutElementsSecretProvider>
+    <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+      <CheckoutFlowClientBoundary cart={cart} initialData={initialData} />
+      <CheckoutCartCapRunner
+        cartId={cart.id}
+        lineFingerprint={lineFingerprint}
+      />
+    </main>
   )
 }

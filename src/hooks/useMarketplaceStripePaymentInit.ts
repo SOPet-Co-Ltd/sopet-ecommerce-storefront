@@ -38,17 +38,27 @@ export function useMarketplaceStripePaymentInit({
   method,
   paymentMethods,
 }: UseMarketplaceStripePaymentInitArgs) {
-  const { setClientSecret, setMarketplacePaymentInitError } =
-    useCheckoutElementsSecret()
-  const {
-    setMpCheckout,
-    setSliceCollectionsById,
-    mpRef,
-    sliceMapRef,
-    marketplaceInitKeyRef,
-    lastBoundCartFingerprintRef,
-    resetMarketplaceSliceState,
-  } = useMarketplaceCheckout()
+  const setClientSecret = useCheckoutElementsSecret(
+    (state) => state.setClientSecret
+  )
+  const setMarketplacePaymentInitError = useCheckoutElementsSecret(
+    (state) => state.setMarketplacePaymentInitError
+  )
+  const setMpCheckout = useMarketplaceCheckout((state) => state.setMpCheckout)
+  const setSliceCollectionsById = useMarketplaceCheckout(
+    (state) => state.setSliceCollectionsById
+  )
+  const mpRef = useMarketplaceCheckout((state) => state.mpRef)
+  const sliceMapRef = useMarketplaceCheckout((state) => state.sliceMapRef)
+  const marketplaceInitKeyRef = useMarketplaceCheckout(
+    (state) => state.marketplaceInitKeyRef
+  )
+  const lastBoundCartFingerprintRef = useMarketplaceCheckout(
+    (state) => state.lastBoundCartFingerprintRef
+  )
+  const resetMarketplaceSliceState = useMarketplaceCheckout(
+    (state) => state.resetMarketplaceSliceState
+  )
 
   const [marketplaceInitializing, setMarketplaceInitializing] = useState(false)
 
@@ -121,7 +131,6 @@ export function useMarketplaceStripePaymentInit({
   }, [paymentMethods])
 
   const marketplaceInitChainRef = useRef(Promise.resolve())
-  const marketplaceAutoInitGenRef = useRef(0)
 
   const scheduleMarketplaceStripeInit = useCallback(
     <T>(task: () => Promise<T>) => {
@@ -140,6 +149,7 @@ export function useMarketplaceStripePaymentInit({
       methodType: "card" | "promptpay"
       withLoading?: boolean
       abortCommit?: () => boolean
+      forceRefresh?: boolean
     }): Promise<{
       mp: MpCheckoutV1
       byId: Record<string, HttpTypes.StorePaymentCollection>
@@ -169,7 +179,11 @@ export function useMarketplaceStripePaymentInit({
         Object.keys(sliceMapRef.current).length >=
           (mpRef.current?.slices.length ?? 0)
 
-      if (marketplaceInitKeyRef.current === cacheKey && sliceMapComplete) {
+      if (
+        !opts.forceRefresh &&
+        marketplaceInitKeyRef.current === cacheKey &&
+        sliceMapComplete
+      ) {
         const secrets = getMarketplaceClientSecretsInOrder(
           mpRef.current!,
           sliceMapRef.current,
@@ -288,68 +302,10 @@ export function useMarketplaceStripePaymentInit({
     setMarketplacePaymentInitError,
   ])
 
-  /**
-   * Only pre-warm Stripe for card (Elements + saved PM). PromptPay sessions and the
-   * payment countdown must start when the customer clicks "ชำระเงิน", not when they
-   * select QR in the payment section (`runMarketplaceInitIfNeeded` on submit).
-   */
-  useEffect(() => {
-    if (!cart?.id || !cart.shipping_methods?.length) return
-    if (method !== "card") return
-
-    const methodType = "card"
-    const needsProvider = dualPmSingleStripePrepare
-      ? Boolean(stripeProviderId && promptpayProviderId)
-      : methodType === "card"
-        ? stripeProviderId
-        : promptpayProviderId
-    if (!needsProvider) return
-
-    marketplaceAutoInitGenRef.current += 1
-    const gen = marketplaceAutoInitGenRef.current
-    let cancelled = false
-    const abortCommit = () =>
-      cancelled || gen !== marketplaceAutoInitGenRef.current
-
-    /** Debounce: each `prepare` replaces all slice payment collections server-side → extra Stripe PIs if this fires too often. */
-    const debounceMs = 320
-    const timer = window.setTimeout(() => {
-      if (cancelled || gen !== marketplaceAutoInitGenRef.current) return
-      scheduleMarketplaceStripeInit(async () => {
-        if (cancelled) return
-        try {
-          await performMarketplaceStripeInit({
-            methodType,
-            withLoading: false,
-            abortCommit,
-          })
-        } catch {
-          // setMarketplacePaymentInitError handled inside performMarketplaceStripeInit
-        }
-      })
-    }, debounceMs)
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(timer)
-    }
-  }, [
-    cart?.id,
-    cartPaymentStateFingerprint,
-    cart?.shipping_methods?.length,
-    method,
-    paymentProvidersFingerprint,
-    shippingMethodsFingerprint,
-    dualPmSingleStripePrepare,
-    stripeProviderId,
-    promptpayProviderId,
-    performMarketplaceStripeInit,
-    scheduleMarketplaceStripeInit,
-  ])
-
   const runMarketplaceInitIfNeeded = useCallback(
     async (
-      methodType: "card" | "promptpay"
+      methodType: "card" | "promptpay",
+      options?: { forceRefresh?: boolean }
     ): Promise<{
       mp: MpCheckoutV1
       byId: Record<string, HttpTypes.StorePaymentCollection>
@@ -368,7 +324,11 @@ export function useMarketplaceStripePaymentInit({
       }
 
       const out = await scheduleMarketplaceStripeInit(() =>
-        performMarketplaceStripeInit({ methodType, withLoading: true })
+        performMarketplaceStripeInit({
+          methodType,
+          withLoading: true,
+          forceRefresh: options?.forceRefresh,
+        })
       )
       if (!out) {
         throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
@@ -396,7 +356,11 @@ export function useMarketplaceStripePaymentInit({
     if (!needsProvider) return
     try {
       await scheduleMarketplaceStripeInit(() =>
-        performMarketplaceStripeInit({ methodType, withLoading: true })
+        performMarketplaceStripeInit({
+          methodType,
+          withLoading: true,
+          forceRefresh: true,
+        })
       )
     } catch {
       // error state set in performMarketplaceStripeInit
@@ -408,6 +372,45 @@ export function useMarketplaceStripePaymentInit({
     dualPmSingleStripePrepare,
     stripeProviderId,
     promptpayProviderId,
+    scheduleMarketplaceStripeInit,
+    performMarketplaceStripeInit,
+  ])
+
+  useEffect(() => {
+    if (method !== "card") {
+      return
+    }
+
+    if (!cart?.id || !cart.shipping_methods?.length || !stripeProviderId) {
+      return
+    }
+
+    let cancelled = false
+    const timeoutId = window.setTimeout(() => {
+      void scheduleMarketplaceStripeInit(() =>
+        performMarketplaceStripeInit({
+          methodType: "card",
+          withLoading: false,
+          abortCommit: () => cancelled,
+          forceRefresh: false,
+        })
+      ).catch(() => {
+        // background prewarm failure is surfaced via store error if relevant
+      })
+    }, 150)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timeoutId)
+    }
+  }, [
+    cart?.id,
+    cart?.shipping_methods?.length,
+    method,
+    stripeProviderId,
+    cartPaymentStateFingerprint,
+    shippingMethodsFingerprint,
+    paymentProvidersFingerprint,
     scheduleMarketplaceStripeInit,
     performMarketplaceStripeInit,
   ])

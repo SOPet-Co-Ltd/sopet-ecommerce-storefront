@@ -10,6 +10,55 @@ export function isPromptpayProviderId(providerId?: string) {
   return providerId?.toLowerCase().includes("promptpay")
 }
 
+function toNumericAmount(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  if (value && typeof value === "object") {
+    const numericValue = (value as { numeric_?: unknown }).numeric_
+    if (typeof numericValue === "number" && Number.isFinite(numericValue)) {
+      return numericValue
+    }
+    if (typeof numericValue === "string") {
+      const parsed = Number(numericValue)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+
+    const amountValue = (value as { amount?: unknown }).amount
+    if (typeof amountValue === "number" && Number.isFinite(amountValue)) {
+      return amountValue
+    }
+    if (typeof amountValue === "string") {
+      const parsed = Number(amountValue)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+  }
+
+  return 0
+}
+
+function sliceRawTotalRequiresPayment(slice: { raw_total?: unknown } | undefined) {
+  return toNumericAmount(slice?.raw_total) > 0
+}
+
+export function collectionRequiresPayment(
+  collection: HttpTypes.StorePaymentCollection | undefined
+): boolean {
+  if (!collection) {
+    return false
+  }
+
+  const rawAmount = (collection as { raw_amount?: unknown }).raw_amount
+  const amount = toNumericAmount(rawAmount ?? collection.amount ?? 0)
+  return amount > 0
+}
+
 function sessionMatchesMethodType(
   session: HttpTypes.StorePaymentSession,
   methodType: "card" | "promptpay"
@@ -97,6 +146,7 @@ export function sliceCollectionAuthorized(
   collection: HttpTypes.StorePaymentCollection | undefined
 ): boolean {
   if (!collection) return false
+  if (!collectionRequiresPayment(collection)) return true
   if (collection.status === "authorized") return true
   return (
     collection.payment_sessions?.some((s) => {
@@ -115,18 +165,51 @@ export function allMarketplaceSlicesAuthorized(
   )
 }
 
+export function countPayableMarketplaceSlices(
+  mp: MpCheckoutV1,
+  byCollectionId: Record<string, HttpTypes.StorePaymentCollection | undefined>
+): number {
+  return mp.slices.reduce((count, slice) => {
+    const collection = byCollectionId[slice.payment_collection_id]
+    return count + (collectionRequiresPayment(collection) || sliceRawTotalRequiresPayment(slice) ? 1 : 0)
+  }, 0)
+}
+
 export function getMarketplaceClientSecretsInOrder(
   mp: MpCheckoutV1,
   byCollectionId: Record<string, HttpTypes.StorePaymentCollection | undefined>,
   methodType: "card" | "promptpay",
   providerId?: string
 ): string[] {
-  const secrets: string[] = []
+  return getMarketplaceSessionsInOrder(
+    mp,
+    byCollectionId,
+    methodType,
+    providerId
+  )
+    .map((session) => session.data?.client_secret as string | undefined)
+    .filter(
+      (secret): secret is string =>
+        typeof secret === "string" && secret.length > 0
+    )
+}
+
+export function getMarketplaceSessionsInOrder(
+  mp: MpCheckoutV1,
+  byCollectionId: Record<string, HttpTypes.StorePaymentCollection | undefined>,
+  methodType: "card" | "promptpay",
+  providerId?: string
+): HttpTypes.StorePaymentSession[] {
+  const sessions: HttpTypes.StorePaymentSession[] = []
   for (const slice of mp.slices) {
     const pc = byCollectionId[slice.payment_collection_id]
+    if (!collectionRequiresPayment(pc) && !sliceRawTotalRequiresPayment(slice)) {
+      continue
+    }
     const session = findStripeSessionForSlice(pc, methodType, providerId)
-    const secret = session?.data?.client_secret as string | undefined
-    if (secret) secrets.push(secret)
+    if (session) {
+      sessions.push(session)
+    }
   }
-  return secrets
+  return sessions
 }

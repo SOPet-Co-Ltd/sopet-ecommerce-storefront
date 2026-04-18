@@ -9,7 +9,9 @@ import { useCallback, useEffect, useState, useTransition } from "react"
 import {
   CheckoutPageDataProvider,
   useCheckoutPageData,
-} from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
+} from "./CheckoutPageDataContext"
+import { CheckoutElementsSecretProvider } from "./CheckoutElementsSecretContext"
+import { MarketplaceCheckoutProvider } from "./MarketplaceCheckoutContext"
 import { CheckoutPaymentProvider } from "./CheckoutPaymentContext"
 import { CheckoutPaymentSection } from "./CheckoutPaymentSection"
 import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
@@ -20,10 +22,7 @@ import { GuestOTPDialog } from "@/components/organisms/GuestOTPDialog/GuestOTPDi
 import { StripePaymentElementsBoundary } from "@/components/organisms/PaymentContainer/StripePaymentElementsBoundary"
 import { RouteLoadingSpinnerBlock } from "@/components/atoms/RouteLoadingFallback/RouteLoadingSpinnerBlock"
 import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
-import {
-  getStripePromise,
-  getStripePublishableKey,
-} from "@/lib/stripe/get-stripe"
+import { getStripePromise } from "@/lib/stripe/get-stripe"
 import { Cart } from "@/types/cart"
 import { Text } from "@medusajs/ui"
 import type { CheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -40,13 +39,17 @@ export default function CheckoutFlowClient({
   const regionId = cart.region_id ?? cart.region?.id ?? null
 
   return (
-    <CheckoutPageDataProvider
-      cartId={cart.id}
-      regionId={regionId}
-      initialData={initialData}
-    >
-      <CheckoutFlowInner cart={cart} />
-    </CheckoutPageDataProvider>
+    <CheckoutElementsSecretProvider>
+      <MarketplaceCheckoutProvider>
+        <CheckoutPageDataProvider
+          cartId={cart.id}
+          regionId={regionId}
+          initialData={initialData}
+        >
+          <CheckoutFlowInner cart={cart} />
+        </CheckoutPageDataProvider>
+      </MarketplaceCheckoutProvider>
+    </CheckoutElementsSecretProvider>
   )
 }
 
@@ -61,8 +64,6 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
   const [, startRefreshTransition] = useTransition()
 
   const stripePromise = getStripePromise()
-  const stripeKey = getStripePublishableKey()
-  const [stripeBootReady, setStripeBootReady] = useState(!stripePromise)
   const [stripeLoadError, setStripeLoadError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -93,9 +94,6 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
           )
         }
       })
-      .finally(() => {
-        if (!cancelled) setStripeBootReady(true)
-      })
     return () => {
       cancelled = true
     }
@@ -106,9 +104,6 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
   const dataBootstrapPending = isLoading || (isOTPVerified && isRefreshing)
 
   const showCheckoutShell = authGateOk && !dataBootstrapPending
-  const stripePaymentBlocking = Boolean(
-    stripeKey && stripePromise && !stripeBootReady
-  )
 
   const handleGuestVerified = useCallback(
     async (phone: string) => {
@@ -163,7 +158,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {showCheckoutShell && stripeBootReady && stripeLoadError && (
+      {showCheckoutShell && stripeLoadError && (
         <div
           className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-4"
           role="alert"
@@ -180,24 +175,10 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
 
           <CheckoutDiscountSection cart={cart} />
 
-          {stripePaymentBlocking ? (
-            <div
-              className="flex flex-col items-center justify-center gap-3 rounded-lg border border-sop-neutral-gray-light bg-sop-base-white px-6 py-12"
-              role="status"
-              aria-live="polite"
-              aria-busy="true"
-            >
-              <RouteLoadingSpinnerBlock variant="compact" />
-              <Text className="text-xs text-gray-500 text-center">
-                กำลังโหลดระบบชำระเงิน…
-              </Text>
-            </div>
-          ) : (
-            <StripePaymentElementsBoundary cart={cart}>
-              <CheckoutPaymentSection cart={cart} />
-              <CheckoutSummarySection cart={cart} />
-            </StripePaymentElementsBoundary>
-          )}
+          <StripePaymentElementsBoundary cart={cart}>
+            <CheckoutPaymentSection cart={cart} />
+            <CheckoutSummarySection cart={cart} />
+          </StripePaymentElementsBoundary>
         </>
       )}
     </CheckoutPaymentProvider>

@@ -32,6 +32,40 @@ function logCheckoutPerf(phase: string, ms: number) {
   }
 }
 
+async function cleanupCustomerCartItemsFromCheckoutMetadata(
+  cart: unknown
+) {
+  const metadata =
+    cart && typeof cart === "object" && "metadata" in cart
+      ? ((cart as { metadata?: Record<string, unknown> | null }).metadata ??
+        null)
+      : null
+
+  const itemIds = Array.isArray(metadata?.customer_cart_item_ids)
+    ? metadata.customer_cart_item_ids.filter(
+        (value): value is string => typeof value === "string" && value.length > 0
+      )
+    : []
+
+  if (!itemIds.length) {
+    return
+  }
+
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  await Promise.all(
+    itemIds.map((itemId) =>
+      fetchQuery(`/store/customer-cart/items/${itemId}`, {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }).catch(() => null)
+    )
+  )
+}
+
 /**
  * On checkout enter: cap each line item quantity at variant inventory.
  * Fetches product/variant inventory and updates any item that exceeds max.
@@ -827,6 +861,11 @@ export async function completeMarketplaceOrder(
   cartId?: string,
   options?: {
     redirect?: boolean
+    requirePaid?: boolean
+    providerId?: string
+    paymentMethodType?: "card" | "promptpay"
+    paymentSessionIds?: string[]
+    paymentIntentIds?: string[]
     cartSnapshot?: {
       customerId?: string | null
       email?: string | null
@@ -897,9 +936,41 @@ export async function completeMarketplaceOrder(
     }
   }
 
+  if (
+    !Array.isArray(
+      (cartBeforeComplete as { metadata?: { customer_cart_item_ids?: unknown } })
+        ?.metadata?.customer_cart_item_ids
+    )
+  ) {
+    const hydratedCart = await retrieveCart(id)
+    if (hydratedCart) {
+      cartBeforeComplete = hydratedCart
+    }
+  }
+
   const res = await fetchQuery(
     `/store/carts/${id}/marketplace-payments/complete`,
     {
+      body:
+        options?.requirePaid ||
+        options?.providerId ||
+        options?.paymentMethodType ||
+        options?.paymentSessionIds?.length ||
+        options?.paymentIntentIds?.length
+          ? {
+              ...(options?.requirePaid ? { require_paid: true } : {}),
+              ...(options?.providerId ? { provider_id: options.providerId } : {}),
+              ...(options?.paymentMethodType
+                ? { payment_method_type: options.paymentMethodType }
+                : {}),
+              ...(options?.paymentSessionIds?.length
+                ? { payment_session_ids: options.paymentSessionIds }
+                : {}),
+              ...(options?.paymentIntentIds?.length
+                ? { payment_intent_ids: options.paymentIntentIds }
+                : {}),
+            }
+          : undefined,
       method: "POST",
       headers,
     }
@@ -921,6 +992,7 @@ export async function completeMarketplaceOrder(
     )
   }
   if (res?.ok) {
+    await cleanupCustomerCartItemsFromCheckoutMetadata(cartBeforeComplete)
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
   }
@@ -1160,6 +1232,7 @@ export async function placeOrder(
     }
   }
   if (res?.ok) {
+    await cleanupCustomerCartItemsFromCheckoutMetadata(cartBeforeComplete)
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
   }

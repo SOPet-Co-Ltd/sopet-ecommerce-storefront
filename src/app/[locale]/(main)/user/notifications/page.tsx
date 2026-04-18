@@ -91,7 +91,10 @@ function getOrderNotificationCopy(order: NotificationOrder): {
 } {
   const orderStatus = String(order.status || "")
   const fulfillmentStatus = String(order.fulfillment_status || "")
-  const paymentStatus = String(order.payment_status || "")
+  const paymentStatus =
+    order.metadata?.is_paid === true
+      ? "captured"
+      : String(order.payment_status || "")
   const displayId = order.display_id
 
   if (orderStatus === "canceled") {

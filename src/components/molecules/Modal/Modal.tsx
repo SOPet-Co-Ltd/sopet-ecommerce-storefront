@@ -54,9 +54,9 @@ export const Modal = ({
       <div
         className={cn(
           "relative z-10 flex min-h-0 w-full max-h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[20px] bg-sop-base-white",
-          `max-w-[${width}px]`,
           className
         )}
+        style={{ maxWidth: width }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 gap-sop-20px pt-sop-20px">

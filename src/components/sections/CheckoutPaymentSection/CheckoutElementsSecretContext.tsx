@@ -2,67 +2,59 @@
 
 import {
   createContext,
-  useCallback,
   useContext,
-  useMemo,
-  useState,
+  useRef,
   type ReactNode,
 } from "react"
+import { useStore } from "zustand"
 
-type CheckoutElementsSecretContextValue = {
-  /** Client secret for the active Stripe Elements instance (first slice / primary PI). */
-  clientSecret: string | undefined
-  setClientSecret: (secret: string | undefined) => void
-  /** Bump to force remount Elements when switching primary PI. */
-  elementsKey: number
-  bumpElementsKey: () => void
-  /** Last marketplace prepare/session failure (shared for payment section copy). */
-  marketplacePaymentInitError: string | null
-  setMarketplacePaymentInitError: (message: string | null) => void
-}
+import {
+  createCheckoutElementsSecretStore,
+  type CheckoutElementsSecretStore,
+  type CheckoutElementsSecretStoreApi,
+} from "@/lib/zustand/checkout-elements-secret-store"
 
-const CheckoutElementsSecretContext =
-  createContext<CheckoutElementsSecretContextValue | null>(null)
+type CheckoutElementsSecretContextValue = CheckoutElementsSecretStore
+
+const CheckoutElementsSecretStoreContext =
+  createContext<CheckoutElementsSecretStoreApi | null>(null)
 
 export function CheckoutElementsSecretProvider({
   children,
 }: {
   children: ReactNode
 }) {
-  const [clientSecret, setClientSecret] = useState<string | undefined>()
-  const [elementsKey, setElementsKey] = useState(0)
-  const [marketplacePaymentInitError, setMarketplacePaymentInitError] =
-    useState<string | null>(null)
+  const storeRef = useRef<CheckoutElementsSecretStoreApi | null>(null)
 
-  const bumpElementsKey = useCallback(() => {
-    setElementsKey((k) => k + 1)
-  }, [])
-
-  const value = useMemo(
-    () => ({
-      clientSecret,
-      setClientSecret,
-      elementsKey,
-      bumpElementsKey,
-      marketplacePaymentInitError,
-      setMarketplacePaymentInitError,
-    }),
-    [clientSecret, elementsKey, bumpElementsKey, marketplacePaymentInitError]
-  )
+  if (!storeRef.current) {
+    storeRef.current = createCheckoutElementsSecretStore()
+  }
 
   return (
-    <CheckoutElementsSecretContext.Provider value={value}>
+    <CheckoutElementsSecretStoreContext.Provider value={storeRef.current}>
       {children}
-    </CheckoutElementsSecretContext.Provider>
+    </CheckoutElementsSecretStoreContext.Provider>
   )
 }
 
-export function useCheckoutElementsSecret() {
-  const ctx = useContext(CheckoutElementsSecretContext)
-  if (!ctx) {
+export function useCheckoutElementsSecret(): CheckoutElementsSecretContextValue
+export function useCheckoutElementsSecret<T>(
+  selector: (state: CheckoutElementsSecretContextValue) => T
+): T
+export function useCheckoutElementsSecret<T>(
+  selector?: (state: CheckoutElementsSecretContextValue) => T
+): CheckoutElementsSecretContextValue | T {
+  const store = useContext(CheckoutElementsSecretStoreContext)
+
+  if (!store) {
     throw new Error(
       "useCheckoutElementsSecret must be used within CheckoutElementsSecretProvider"
     )
   }
-  return ctx
+
+  if (selector) {
+    return useStore(store, selector)
+  }
+
+  return useStore(store)
 }

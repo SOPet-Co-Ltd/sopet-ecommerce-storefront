@@ -5,14 +5,18 @@ import { Cart } from "@/types/cart"
 import { HttpTypes } from "@medusajs/types"
 import { convertToLocale } from "@/lib/helpers/money"
 import { Text } from "@medusajs/ui"
-import { completeMarketplaceOrder, setAddresses } from "@/lib/data/cart"
+import {
+  clearCheckoutCartCookie,
+  completeMarketplaceOrder,
+  setAddresses,
+} from "@/lib/data/cart"
 import { useCheckoutElementsSecret } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
 import { useMarketplaceStripePaymentInit } from "@/hooks/useMarketplaceStripePaymentInit"
-import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import {
-  allMarketplaceSlicesAuthorized,
+  collectionRequiresPayment,
+  countPayableMarketplaceSlices,
   findStripeSessionForSlice,
-  getMarketplaceClientSecretsInOrder,
+  getMarketplaceSessionsInOrder,
   isCheckoutSelectableStripeSession,
 } from "@/lib/helpers/marketplace-checkout-ui"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
@@ -48,7 +52,7 @@ import {
 import { StripeContext } from "@/components/organisms/PaymentContainer/StripeWrapper"
 import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
 import { useMarketplaceCheckout } from "@/components/sections/CheckoutPaymentSection/MarketplaceCheckoutContext"
-import { useCheckoutPageData } from "@/app/[locale]/(checkout)/_providers/checkout-page-data-context"
+import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
 import type { PaymentIntent } from "@stripe/stripe-js"
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { useParams, useRouter } from "next/navigation"
@@ -63,26 +67,32 @@ export const CheckoutSummarySection = ({
   const params = useParams()
   const checkoutLocale = (params?.locale as string) || "th"
   const { customer, shippingMethods, paymentMethods } = useCheckoutPageData()
-  const {
-    method,
-    cardholderName,
-    cardComplete,
-    getCardComplete,
-    cardError,
-    selectedAddress,
-    selectedEmail,
-    shippingAddressIsDraft,
-    draftAddress,
-    useNewCard,
-    selectedPaymentMethodId,
-  } = useCheckoutPayment()
+  const method = useCheckoutPayment((state) => state.method)
+  const cardholderName = useCheckoutPayment((state) => state.cardholderName)
+  const cardComplete = useCheckoutPayment((state) => state.cardComplete)
+  const getCardComplete = useCheckoutPayment((state) => state.getCardComplete)
+  const cardError = useCheckoutPayment((state) => state.cardError)
+  const selectedAddress = useCheckoutPayment((state) => state.selectedAddress)
+  const selectedEmail = useCheckoutPayment((state) => state.selectedEmail)
+  const shippingAddressIsDraft = useCheckoutPayment(
+    (state) => state.shippingAddressIsDraft
+  )
+  const draftAddress = useCheckoutPayment((state) => state.draftAddress)
+  const useNewCard = useCheckoutPayment((state) => state.useNewCard)
+  const selectedPaymentMethodId = useCheckoutPayment(
+    (state) => state.selectedPaymentMethodId
+  )
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [localSessions, setLocalSessions] = useState<Record<string, any>>({})
   const stripeReady = useContext(StripeContext)
-  const { marketplacePaymentInitError } = useCheckoutElementsSecret()
-  const { mpCheckout, sliceCollectionsById, mpRef, sliceMapRef } =
-    useMarketplaceCheckout()
+  const marketplacePaymentInitError = useCheckoutElementsSecret(
+    (state) => state.marketplacePaymentInitError
+  )
+  const mpCheckout = useMarketplaceCheckout((state) => state.mpCheckout)
+  const sliceCollectionsById = useMarketplaceCheckout(
+    (state) => state.sliceCollectionsById
+  )
   const {
     stripeProviderId,
     promptpayProviderId,
@@ -124,6 +134,48 @@ export const CheckoutSummarySection = ({
     }
     return 0
   }
+
+  const normalizeComparable = (value: unknown) =>
+    typeof value === "string" ? value.trim().toLowerCase() : ""
+
+  const addressesMatch = (
+    left:
+      | HttpTypes.StoreCustomerAddress
+      | HttpTypes.StoreCartAddress
+      | null
+      | undefined,
+    right:
+      | HttpTypes.StoreCustomerAddress
+      | HttpTypes.StoreCartAddress
+      | null
+      | undefined
+  ) => {
+    if (!left || !right) {
+      return false
+    }
+
+    return (
+      normalizeComparable(left.first_name) ===
+        normalizeComparable(right.first_name) &&
+      normalizeComparable(left.last_name) ===
+        normalizeComparable(right.last_name) &&
+      normalizeComparable(left.address_1) ===
+        normalizeComparable(right.address_1) &&
+      normalizeComparable(left.address_2) ===
+        normalizeComparable(right.address_2) &&
+      normalizeComparable(left.city) === normalizeComparable(right.city) &&
+      normalizeComparable(left.province) ===
+        normalizeComparable(right.province) &&
+      normalizeComparable(left.postal_code) ===
+        normalizeComparable(right.postal_code) &&
+      normalizeComparable(left.country_code || "th") ===
+        normalizeComparable(right.country_code || "th") &&
+      normalizeComparable(left.phone) === normalizeComparable(right.phone)
+    )
+  }
+
+  const emailMatchesCart = (email: string | null | undefined) =>
+    normalizeComparable(email) === normalizeComparable(cart?.email || "")
 
   const itemSubtotal = getNumericAmount(
     cart.item_subtotal ?? cart.subtotal ?? 0
@@ -211,8 +263,27 @@ export const CheckoutSummarySection = ({
       : undefined
   }
 
-  const firstSliceCollection = mpCheckout?.slices[0]
-    ? sliceCollectionsById[mpCheckout.slices[0].payment_collection_id]
+  const sliceNeedsPayment = (
+    slice: { payment_collection_id: string; raw_total?: unknown } | undefined,
+    byId: Record<string, HttpTypes.StorePaymentCollection | undefined>
+  ) => {
+    if (!slice) {
+      return false
+    }
+    if (collectionRequiresPayment(byId[slice.payment_collection_id])) {
+      return true
+    }
+    const rawTotal = Number(slice.raw_total ?? 0)
+    return Number.isFinite(rawTotal) && rawTotal > 0
+  }
+
+  const firstPayableSlice = mpCheckout?.slices.find((slice) =>
+    sliceNeedsPayment(slice, sliceCollectionsById)
+  )
+  const firstSliceCollection = (firstPayableSlice ?? mpCheckout?.slices[0])
+    ? sliceCollectionsById[
+        (firstPayableSlice ?? mpCheckout?.slices[0])!.payment_collection_id
+      ]
     : undefined
 
   const marketplaceCardSession =
@@ -253,7 +324,8 @@ export const CheckoutSummarySection = ({
 
   const ensurePaymentSession = async (
     providerId: string | undefined,
-    methodType: "card" | "promptpay"
+    methodType: "card" | "promptpay",
+    options?: { forceRefresh?: boolean }
   ) => {
     if (!providerId) {
       const fallback = methodType === "card" ? stripeSession : promptpaySession
@@ -263,13 +335,18 @@ export const CheckoutSummarySection = ({
       throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
     }
 
-    const { mp, byId } = await runMarketplaceInitIfNeeded(methodType)
-    const first = mp.slices[0]
-    if (!first) {
+    const { mp, byId } = await runMarketplaceInitIfNeeded(methodType, options)
+    const targetSlice =
+      mp.slices.find((slice) => sliceNeedsPayment(slice, byId)) ?? mp.slices[0]
+    if (!targetSlice) {
       throw new Error("ไม่พบรายการชำระเงิน")
     }
+    const targetCollection = byId[targetSlice.payment_collection_id]
+    if (!sliceNeedsPayment(targetSlice, byId)) {
+      return undefined
+    }
     const session = findStripeSessionForSlice(
-      byId[first.payment_collection_id],
+      targetCollection,
       methodType,
       providerId
     )
@@ -278,15 +355,6 @@ export const CheckoutSummarySection = ({
     }
     setLocalSessions((prev) => ({ ...prev, [providerId]: session }))
     return session
-  }
-
-  const ensureCardClientSecret = async () => {
-    const session = await ensurePaymentSession(stripeProviderId, "card")
-    const secret = session?.data?.client_secret as string | undefined
-    if (!secret) {
-      throw new Error("ยังไม่สามารถสร้างการชำระเงินได้")
-    }
-    return secret
   }
 
   const ensurePromptpayClientSecret = async (): Promise<{
@@ -305,6 +373,63 @@ export const CheckoutSummarySection = ({
     }
   }
 
+  const prepareCardPaymentAttempt = async (options?: {
+    forceRefresh?: boolean
+  }) => {
+    if (!stripeProviderId) {
+      throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
+    }
+
+    const { mp, byId } = await runMarketplaceInitIfNeeded("card", {
+      forceRefresh: options?.forceRefresh,
+    })
+
+    if (!mp?.slices?.length) {
+      throw new Error("ไม่พบข้อมูลการชำระเงิน กรุณาลองใหม่")
+    }
+
+    const payableSliceCount = countPayableMarketplaceSlices(mp, byId)
+    if (payableSliceCount === 0) {
+      return {
+        payableSliceCount,
+        paymentSessionIds: [] as string[],
+        secrets: [] as string[],
+      }
+    }
+
+    const checkoutSessions = getMarketplaceSessionsInOrder(
+      mp,
+      byId,
+      "card",
+      stripeProviderId
+    )
+    const paymentSessionIds = checkoutSessions
+      .map((session) => session.id)
+      .filter(
+        (sessionId): sessionId is string =>
+          typeof sessionId === "string" && sessionId.length > 0
+      )
+    const secrets = checkoutSessions
+      .map((session) => session.data?.client_secret as string | undefined)
+      .filter(
+        (secret): secret is string =>
+          typeof secret === "string" && secret.length > 0
+      )
+
+    if (secrets.length !== payableSliceCount) {
+      throw new Error("ไม่ครบจำนวนการชำระเงินต่อร้าน กรุณาลองใหม่")
+    }
+    if (paymentSessionIds.length !== payableSliceCount) {
+      throw new Error("ไม่พบ payment session ที่ตรงกับบัตรที่เลือก กรุณาลองใหม่")
+    }
+
+    return {
+      payableSliceCount,
+      paymentSessionIds,
+      secrets,
+    }
+  }
+
   const uniqueSellerCount = new Set(
     (cart.items ?? [])
       .map(
@@ -316,14 +441,6 @@ export const CheckoutSummarySection = ({
 
   const multiSellerPromptPayBlocked =
     method === "qrcode" && uniqueSellerCount > 1
-
-  const getMarketplaceSnapshot = () => ({
-    mp: mpRef.current,
-    byId: sliceMapRef.current as Record<
-      string,
-      HttpTypes.StorePaymentCollection
-    >,
-  })
 
   const fallbackAddress: HttpTypes.StoreCartAddress | null =
     (cart.billing_address ||
@@ -470,6 +587,26 @@ export const CheckoutSummarySection = ({
         return createResult.error
       }
 
+      const draftCartAddress = {
+        first_name: draftAddress.first_name,
+        last_name: draftAddress.last_name,
+        address_1: draftAddress.address_1,
+        address_2: draftAddress.address_2 || "",
+        city: draftAddress.city,
+        province: draftAddress.province || "",
+        postal_code: draftAddress.postal_code,
+        country_code: "th",
+        phone: draftAddress.phone,
+      } as HttpTypes.StoreCartAddress
+      const nextEmail = customer?.email || cart?.email || ""
+
+      if (
+        addressesMatch(cart.shipping_address, draftCartAddress) &&
+        emailMatchesCart(nextEmail)
+      ) {
+        return null
+      }
+
       const cartAddressFormData = new FormData()
       cartAddressFormData.set(
         "shipping_address.first_name",
@@ -525,6 +662,15 @@ export const CheckoutSummarySection = ({
 
       if (!address) {
         return "กรุณากรอกที่อยู่ในการจัดส่ง"
+      }
+
+      const nextEmail = customer?.email || cart?.email || selectedEmail || ""
+
+      if (
+        addressesMatch(cart.shipping_address, address) &&
+        emailMatchesCart(nextEmail)
+      ) {
+        return null
       }
 
       const cartAddressFormData = new FormData()
@@ -643,7 +789,6 @@ export const CheckoutSummarySection = ({
                 disabled={
                   disabledBase || !cardComplete || marketplaceInitializing
                 }
-                ensureClientSecret={ensureCardClientSecret}
                 submitting={submitting}
                 setSubmitting={setSubmitting}
                 setError={setError}
@@ -651,7 +796,7 @@ export const CheckoutSummarySection = ({
                 useNewCard={useNewCard}
                 selectedPaymentMethodId={selectedPaymentMethodId}
                 toastError={toast.error}
-                getMarketplaceSnapshot={getMarketplaceSnapshot}
+                prepareCardPaymentAttempt={prepareCardPaymentAttempt}
                 stripeProviderId={stripeProviderId}
                 cartSnapshot={cartSnapshot}
               />
@@ -786,7 +931,6 @@ const StripeSummaryPayButton = ({
   billingAddress,
   email,
   syncShippingMethodBeforePayment,
-  ensureClientSecret,
   disabled,
   submitting,
   setSubmitting,
@@ -796,7 +940,7 @@ const StripeSummaryPayButton = ({
   selectedPaymentMethodId,
   toastError,
   cartSnapshot,
-  getMarketplaceSnapshot,
+  prepareCardPaymentAttempt,
   stripeProviderId,
 }: {
   cardholderName: string
@@ -806,7 +950,6 @@ const StripeSummaryPayButton = ({
     | null
   email?: string
   syncShippingMethodBeforePayment: () => Promise<void>
-  ensureClientSecret: () => Promise<string>
   disabled: boolean
   submitting: boolean
   setSubmitting: (value: boolean) => void
@@ -822,24 +965,36 @@ const StripeSummaryPayButton = ({
     customerEmail?: string | null
     promotionCodes?: string[] | null
   }
-  getMarketplaceSnapshot: () => {
-    mp: MpCheckoutV1 | null
-    byId: Record<string, HttpTypes.StorePaymentCollection>
-  }
+  prepareCardPaymentAttempt: (options?: {
+    forceRefresh?: boolean
+  }) => Promise<{
+    payableSliceCount: number
+    paymentSessionIds: string[]
+    secrets: string[]
+  }>
   stripeProviderId?: string
 }) => {
   const stripe = useStripe()
   const elements = useElements()
   const router = useRouter()
 
-  const completeOrderAndRedirect = async () => {
+  const completeOrderAndRedirect = async (
+    paymentSessionIds?: string[],
+    paymentIntentIds?: string[]
+  ) => {
     const res = await completeMarketplaceOrder(undefined, {
       redirect: false,
+      requirePaid: true,
+      providerId: stripeProviderId,
+      paymentMethodType: "card",
+      paymentSessionIds,
+      paymentIntentIds,
       cartSnapshot,
     })
     const orderId = getOrderIdFromPlaceOrderResponse(res)
 
     if (orderId) {
+      await clearCheckoutCartCookie()
       router.push(`/order/${orderId}/confirmed`)
       return
     }
@@ -847,6 +1002,8 @@ const StripeSummaryPayButton = ({
     if (!res?.ok) {
       throw new Error(res?.error?.message || "Payment failed")
     }
+
+    throw new Error("Payment completed but no order was created")
   }
 
   const handlePayment = async () => {
@@ -866,28 +1023,6 @@ const StripeSummaryPayButton = ({
 
       if (!stripe || !elements) {
         throw new Error("ระบบชำระเงินยังไม่พร้อมใช้งาน")
-      }
-
-      await ensureClientSecret()
-
-      const { mp, byId } = getMarketplaceSnapshot()
-      if (!mp?.slices?.length) {
-        throw new Error("ไม่พบข้อมูลการชำระเงิน กรุณารีเฟรชหน้า")
-      }
-
-      if (allMarketplaceSlicesAuthorized(mp, byId)) {
-        await completeOrderAndRedirect()
-        return
-      }
-
-      const secrets = getMarketplaceClientSecretsInOrder(
-        mp,
-        byId,
-        "card",
-        stripeProviderId
-      )
-      if (secrets.length !== mp.slices.length) {
-        throw new Error("ไม่ครบจำนวนการชำระเงินต่อร้าน กรุณารีเฟรชหน้า")
       }
 
       const billingNameFromCart = [
@@ -957,9 +1092,48 @@ const StripeSummaryPayButton = ({
         paymentMethodIdToUse = paymentMethod.id
       }
 
+      const buildRetryableStripeError = (
+        stripeError:
+          | {
+              code?: string
+              type?: string
+              message?: string
+              payment_intent?: PaymentIntent | null
+            }
+          | null
+          | undefined,
+        paymentIntent: PaymentIntent | null | undefined
+      ) => {
+        const message =
+          stripeError?.message || "ไม่สามารถยืนยันการชำระเงินได้"
+        const error = new Error(message) as Error & { retryable?: boolean }
+        const normalizedCode = stripeError?.code?.trim().toLowerCase()
+        const normalizedType = stripeError?.type?.trim().toLowerCase()
+        const normalizedMessage = message.trim().toLowerCase()
+        const paymentIntentStatus =
+          paymentIntent?.status ?? stripeError?.payment_intent?.status
+
+        error.retryable =
+          normalizedType === "invalid_request_error" ||
+          normalizedCode === "charge_invalid_parameter" ||
+          normalizedCode === "payment_intent_unexpected_state" ||
+          normalizedMessage.includes("destination charges") ||
+          normalizedMessage.includes("no such destination") ||
+          normalizedMessage.includes("unexpected state") ||
+          (paymentIntentStatus === "requires_payment_method" &&
+            normalizedType !== "card_error")
+
+        return error
+      }
+
       const assertSlicePaid = (
         stripeError:
-          | { message?: string; payment_intent?: PaymentIntent | null }
+          | {
+              code?: string
+              type?: string
+              message?: string
+              payment_intent?: PaymentIntent | null
+            }
           | null
           | undefined,
         paymentIntent: PaymentIntent | null | undefined
@@ -972,7 +1146,7 @@ const StripeSummaryPayButton = ({
           ) {
             return
           }
-          throw new Error(stripeError.message || "Payment failed")
+          throw buildRetryableStripeError(stripeError, paymentIntent)
         }
         if (
           (paymentIntent && paymentIntent.status === "requires_capture") ||
@@ -980,39 +1154,89 @@ const StripeSummaryPayButton = ({
         ) {
           return
         }
-        throw new Error("Payment failed")
-      }
-
-      if (paymentMethodIdToUse) {
-        for (const secret of secrets) {
-          const { error: stripeError, paymentIntent } =
-            await stripe.confirmCardPayment(secret, {
-              payment_method: paymentMethodIdToUse,
-            })
-          assertSlicePaid(stripeError, paymentIntent)
-        }
-        await completeOrderAndRedirect()
-        return
+        throw buildRetryableStripeError(undefined, paymentIntent)
       }
 
       const cardElement =
         elements.getElement(CardNumberElement) ||
         elements.getElement(CardElement)
-      if (!cardElement) {
-        throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
+
+      const confirmAllSlices = async (forceRefresh: boolean) => {
+        const { payableSliceCount, paymentSessionIds, secrets } =
+          await prepareCardPaymentAttempt({ forceRefresh })
+
+        if (payableSliceCount === 0) {
+          await completeOrderAndRedirect()
+          return
+        }
+
+        const confirmedPaymentIntentIds: string[] = []
+
+        if (paymentMethodIdToUse) {
+          for (const secret of secrets) {
+            const { error: stripeError, paymentIntent } =
+              await stripe.confirmCardPayment(secret, {
+                payment_method: paymentMethodIdToUse,
+              })
+            try {
+              assertSlicePaid(stripeError, paymentIntent)
+            } catch (error) {
+              ;(error as Error & { confirmedCount?: number }).confirmedCount =
+                confirmedPaymentIntentIds.length
+              throw error
+            }
+            if (paymentIntent?.id) {
+              confirmedPaymentIntentIds.push(paymentIntent.id)
+            }
+          }
+        } else {
+          if (!cardElement) {
+            throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
+          }
+
+          for (const secret of secrets) {
+            const { error: stripeError, paymentIntent } =
+              await stripe.confirmCardPayment(secret, {
+                payment_method: {
+                  card: cardElement,
+                  billing_details: billingDetails,
+                },
+              })
+            try {
+              assertSlicePaid(stripeError, paymentIntent)
+            } catch (error) {
+              ;(error as Error & { confirmedCount?: number }).confirmedCount =
+                confirmedPaymentIntentIds.length
+              throw error
+            }
+            if (paymentIntent?.id) {
+              confirmedPaymentIntentIds.push(paymentIntent.id)
+            }
+          }
+        }
+
+        if (confirmedPaymentIntentIds.length !== payableSliceCount) {
+          throw new Error("Stripe ไม่ยืนยัน payment intent ครบ กรุณาลองใหม่")
+        }
+
+        await completeOrderAndRedirect(
+          paymentSessionIds,
+          confirmedPaymentIntentIds
+        )
       }
 
-      for (const secret of secrets) {
-        const { error: stripeError, paymentIntent } =
-          await stripe.confirmCardPayment(secret, {
-            payment_method: {
-              card: cardElement,
-              billing_details: billingDetails,
-            },
-          })
-        assertSlicePaid(stripeError, paymentIntent)
+      try {
+        await confirmAllSlices(false)
+      } catch (error) {
+        const retryable = (error as { retryable?: boolean })?.retryable
+        const confirmedCount = (error as { confirmedCount?: number })
+          ?.confirmedCount
+
+        if (!retryable || (confirmedCount ?? 0) > 0) {
+          throw error
+        }
+        await confirmAllSlices(true)
       }
-      await completeOrderAndRedirect()
     } catch (e: unknown) {
       setError((e as Error)?.message || "Payment failed")
     } finally {

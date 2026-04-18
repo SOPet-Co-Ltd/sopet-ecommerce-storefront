@@ -1,3 +1,4 @@
+import { ClearCheckoutCartHold } from "@/components/sections/OrderConfirmedSection/ClearCheckoutCartHold"
 import { OrderConfirmedSection } from "@/components/sections/OrderConfirmedSection/OrderConfirmedSection"
 import { retrieveOrder } from "@/lib/data/orders"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
@@ -34,6 +35,7 @@ export default async function OrderConfirmedPage(props: Props) {
 
   return (
     <main className="container">
+      <ClearCheckoutCartHold />
       <OrderConfirmedSection order={order} />
     </main>
   )
