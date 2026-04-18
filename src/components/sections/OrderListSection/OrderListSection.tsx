@@ -41,6 +41,7 @@ function tabFromQuery(value: string | null): OrderManagementTab {
 type OrderListSectionProps = {
   orders: OrderListItem[]
   reviewedByOrderId?: Record<string, boolean>
+  isLoading?: boolean
 }
 
 const ORDERS_INITIAL_TAB_KEY = "orders_initial_tab"
@@ -48,6 +49,7 @@ const ORDERS_INITIAL_TAB_KEY = "orders_initial_tab"
 const OrderListSection = ({
   orders,
   reviewedByOrderId,
+  isLoading = false,
 }: OrderListSectionProps) => {
   const router = useRouter()
   const pathname = usePathname()
@@ -143,6 +145,29 @@ const OrderListSection = ({
               />
             )
           })
+        ) : isLoading ? (
+          <div className="flex flex-col gap-4 w-full">
+            {[1, 2, 3].map((key) => (
+              <div key={key} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col gap-4 animate-pulse">
+                <div className="flex justify-between items-center pb-4 border-b border-gray-100">
+                  <div className="w-1/4 h-5 bg-gray-200 rounded-md" />
+                  <div className="w-20 h-5 bg-gray-100 rounded-full" />
+                </div>
+                <div className="flex gap-4 items-start">
+                  <div className="w-20 h-20 bg-gray-200 rounded-xl flex-shrink-0" />
+                  <div className="flex flex-col gap-2 w-full">
+                    <div className="w-3/4 h-5 bg-gray-200 rounded-md" />
+                    <div className="w-1/2 h-4 bg-gray-100 rounded-md" />
+                    <div className="w-1/4 h-5 bg-gray-200 rounded-md mt-2" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                  <div className="w-1/3 h-4 bg-gray-100 rounded-md" />
+                  <div className="w-24 h-10 bg-gray-200 rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="text-center py-14 bg-sop-base-white">
             <p className="sop-body-lg-regular text-sop-neutral-gray-300">

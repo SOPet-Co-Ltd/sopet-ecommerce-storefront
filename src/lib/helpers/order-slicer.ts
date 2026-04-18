@@ -32,6 +32,14 @@ function getNumericAmount(value: unknown): number {
     return Number.isFinite(parsed) ? parsed : 0
   }
 
+  if (value && typeof value === "object" && "value" in value) {
+    const rawVal = (value as any).value
+    if (typeof rawVal === "string" || typeof rawVal === "number") {
+      const parsed = Number(rawVal)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+  }
+
   return 0
 }
 

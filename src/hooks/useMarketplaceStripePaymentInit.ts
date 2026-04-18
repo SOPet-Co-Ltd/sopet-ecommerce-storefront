@@ -131,6 +131,7 @@ export function useMarketplaceStripePaymentInit({
   }, [paymentMethods])
 
   const marketplaceInitChainRef = useRef(Promise.resolve())
+  const lastScheduledPrewarmKeyRef = useRef<string | null>(null)
 
   const scheduleMarketplaceStripeInit = useCallback(
     <T>(task: () => Promise<T>) => {
@@ -211,18 +212,24 @@ export function useMarketplaceStripePaymentInit({
         const pmTypes: ("card" | "promptpay")[] = dualPmSingleStripePrepare
           ? ["card", "promptpay"]
           : [opts.methodType]
-        const mp = await prepareMarketplacePayments(c.id)
+        const mp = await prepareMarketplacePayments(c.id, {
+          skipCacheRevalidate: true,
+        })
         if (opts.abortCommit?.()) {
           return null
         }
         const next = Object.fromEntries(
           await Promise.all(
             mp.slices.map(async (slice) => {
-              const collection = await createMarketplacePaymentSession(c.id, {
-                payment_collection_id: slice.payment_collection_id,
-                provider_id: resolvedProviderId,
-                data: { payment_method_types: pmTypes },
-              })
+              const collection = await createMarketplacePaymentSession(
+                c.id,
+                {
+                  payment_collection_id: slice.payment_collection_id,
+                  provider_id: resolvedProviderId,
+                  data: { payment_method_types: pmTypes },
+                },
+                { skipCacheRevalidate: true }
+              )
               return [slice.payment_collection_id, collection] as const
             })
           )
@@ -378,12 +385,28 @@ export function useMarketplaceStripePaymentInit({
 
   useEffect(() => {
     if (method !== "card") {
+      lastScheduledPrewarmKeyRef.current = null
       return
     }
 
     if (!cart?.id || !cart.shipping_methods?.length || !stripeProviderId) {
+      lastScheduledPrewarmKeyRef.current = null
       return
     }
+
+    const prewarmKey = [
+      cart.id,
+      stripeProviderId,
+      cartPaymentStateFingerprint,
+      shippingMethodsFingerprint,
+      paymentProvidersFingerprint,
+    ].join("::")
+
+    if (lastScheduledPrewarmKeyRef.current === prewarmKey) {
+      return
+    }
+
+    lastScheduledPrewarmKeyRef.current = prewarmKey
 
     let cancelled = false
     const timeoutId = window.setTimeout(() => {

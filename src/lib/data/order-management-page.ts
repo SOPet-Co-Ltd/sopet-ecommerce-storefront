@@ -17,11 +17,13 @@ export type OrderDetailsPageBundleData = {
 
 export async function getOrdersPageBundleData(
   limit: number = 100,
-  offset: number = 0
+  offset: number = 0,
+  throwOnError: boolean = false
 ): Promise<OrdersPageBundleData> {
   const [orders, customerId] = await Promise.all([
     listOrders(limit, offset).catch((error) => {
       console.error("[order-management-page] Failed to load orders", error)
+      if (throwOnError) throw error
       return [] as OrderListItem[]
     }),
     getCurrentCustomerId().catch((error) => {

@@ -1186,6 +1186,16 @@ const StripeSummaryPayButton = ({
         throw buildRetryableStripeError(undefined, paymentIntent)
       }
 
+      const resolveConfirmedPaymentIntent = (
+        stripeError:
+          | {
+              payment_intent?: PaymentIntent | null
+            }
+          | null
+          | undefined,
+        paymentIntent: PaymentIntent | null | undefined
+      ) => paymentIntent ?? stripeError?.payment_intent ?? null
+
       const cardElement =
         elements.getElement(CardNumberElement) ||
         elements.getElement(CardElement)
@@ -1203,43 +1213,34 @@ const StripeSummaryPayButton = ({
         const confirmedPaymentIntentIds: string[] = []
 
         if (paymentMethodIdToUse) {
-          const results = await Promise.allSettled(
-            secrets.map(async (secret) => {
-              const { error: stripeError, paymentIntent } =
-                await stripe.confirmCardPayment(secret, {
-                  payment_method: paymentMethodIdToUse,
-                })
+          for (const secret of secrets) {
+            const { error: stripeError, paymentIntent } =
+              await stripe.confirmCardPayment(secret, {
+                payment_method: paymentMethodIdToUse,
+              })
 
+            try {
               assertSlicePaid(stripeError, paymentIntent)
-
-              if (!paymentIntent?.id) {
-                throw new Error("Stripe ไม่คืน payment intent หลังยืนยันการชำระเงิน")
-              }
-
-              return paymentIntent.id
-            })
-          )
-
-          let firstError: Error | null = null
-
-          for (const result of results) {
-            if (result.status === "fulfilled") {
-              confirmedPaymentIntentIds.push(result.value)
-              continue
+            } catch (error) {
+              ;(error as Error & { confirmedCount?: number }).confirmedCount =
+                confirmedPaymentIntentIds.length
+              throw error
             }
 
-            if (!firstError) {
-              firstError =
-                result.reason instanceof Error
-                  ? result.reason
-                  : new Error("ไม่สามารถยืนยันการชำระเงินได้")
-            }
-          }
+            const confirmedPaymentIntent = resolveConfirmedPaymentIntent(
+              stripeError,
+              paymentIntent
+            )
 
-          if (firstError) {
-            ;(firstError as Error & { confirmedCount?: number }).confirmedCount =
-              confirmedPaymentIntentIds.length
-            throw firstError
+            if (!confirmedPaymentIntent?.id) {
+              const err = new Error(
+                "Stripe ไม่คืน payment intent หลังยืนยันการชำระเงิน"
+              ) as Error & { confirmedCount?: number }
+              err.confirmedCount = confirmedPaymentIntentIds.length
+              throw err
+            }
+
+            confirmedPaymentIntentIds.push(confirmedPaymentIntent.id)
           }
         } else {
           if (!cardElement) {
@@ -1261,8 +1262,12 @@ const StripeSummaryPayButton = ({
                 confirmedPaymentIntentIds.length
               throw error
             }
-            if (paymentIntent?.id) {
-              confirmedPaymentIntentIds.push(paymentIntent.id)
+            const confirmedPaymentIntent = resolveConfirmedPaymentIntent(
+              stripeError,
+              paymentIntent
+            )
+            if (confirmedPaymentIntent?.id) {
+              confirmedPaymentIntentIds.push(confirmedPaymentIntent.id)
             }
           }
         }

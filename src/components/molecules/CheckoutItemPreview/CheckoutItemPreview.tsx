@@ -12,13 +12,19 @@ import Image from "next/image"
 import { convertToLocale } from "@/lib/helpers/money"
 
 import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo } from "react"
 import { DeliveryTruckIcon, DiscountIcon } from "@/icons"
 import { setMultiShippingMethods } from "@/lib/data/cart"
-import { useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/react-query/query-keys"
 import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
+import { useCheckoutPageUIStore } from "@/lib/zustand/checkout-page-ui-store"
+
+type CheckoutPreviewLineItem = ExtendedLineItem & {
+  original_total?: unknown
+  compare_at_unit_price?: unknown
+}
 
 type CheckoutItemPreviewProps = {
   cart: Cart | null
@@ -54,13 +60,30 @@ const CheckoutItemPreview = ({
     return 0
   }
 
-  // Per-seller shipping selections: { sellerId: shippingOptionId }
-  const [sellerShippingSelections, setSellerShippingSelections] = useState<
-    Record<string, string>
-  >({})
-  // Which seller is currently editing shipping
-  const [editingSellerId, setEditingSellerId] = useState<string | null>(null)
-  const [isShippingOpen, setIsShippingOpen] = useState(false)
+  const {
+    isShippingOpen,
+    editingSellerId,
+    setIsShippingOpen,
+    setEditingSellerId,
+  } = useCheckoutPageUIStore()
+
+  const { mutateAsync: updateShippingMethods, isPending: isUpdatingShipping } = useMutation({
+    mutationFn: async (optionIds: string[]) => {
+      if (!cart) return
+      return await setMultiShippingMethods({
+        cartId: cart.id,
+        optionIds,
+      })
+    },
+    onSuccess: async () => {
+      if (!cart) return
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.checkout.cart(cart.id),
+        }),
+      ])
+    },
+  })
 
   /** Avoid `|| []` in effect deps — use stable `undefined` until cart has methods. */
   const shippingMethodsFromCart = cart?.shipping_methods
@@ -109,77 +132,50 @@ const CheckoutItemPreview = ({
     shippingOptionsBySellerKey,
   ])
 
-  // Initialize per-seller selections from cart.shipping_methods
-  useEffect(() => {
-    if (!cart || !availableShippingMethods?.length) return
-
+  const currentSelections = useMemo(() => {
     const methodsOnCart = shippingMethodsFromCart ?? []
     const initial: Record<string, string> = {}
-    const sellerIdsInCart = new Set<string>()
+
+    if (!availableShippingMethods?.length) return initial
 
     for (const sm of methodsOnCart) {
       const opt = availableShippingMethods.find(
         (o) => o.id === sm.shipping_option_id
       )
-      if (opt?.seller_id && sm.shipping_option_id) {
-        initial[opt.seller_id] = sm.shipping_option_id
-        sellerIdsInCart.add(opt.seller_id)
+      if (!opt?.id || !sm.shipping_option_id) continue
+
+      const matchedSellerKey = findSellerKeyForShippingOption(
+        groupedItems,
+        opt,
+        shippingOptionsBySellerKey
+      )
+
+      if (matchedSellerKey) {
+        initial[matchedSellerKey] = sm.shipping_option_id
       }
     }
 
     // For sellers without a selection yet, try the first available option
-    let needsUpdate = false
-    const newSelections = { ...initial }
+    const selections = { ...initial }
 
     for (const sellerKey of Object.keys(groupedItems)) {
-      if (!initial[sellerKey]) {
+      if (!selections[sellerKey]) {
         const firstOption = shippingOptionsBySellerKey[sellerKey]?.[0]
         if (firstOption?.id) {
-          newSelections[sellerKey] = firstOption.id
-          needsUpdate = true
+          selections[sellerKey] = firstOption.id
         }
       }
     }
 
-    if (needsUpdate) {
-      setSellerShippingSelections(newSelections)
-      // Auto-persist to backend if we added defaults
-      const allOptionIds = Object.values(newSelections).filter(Boolean)
-      let cancelled = false
-      void setMultiShippingMethods({
-        cartId: cart.id,
-        optionIds: allOptionIds,
-      })
-        .then(async () => {
-          if (cancelled) {
-            return
-          }
-
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: queryKeys.checkout.cart(cart.id),
-            }),
-            refetchCheckoutPageData(),
-          ])
-        })
-        .catch((err) => {
-          console.error("Failed to auto-select shipping methods", err)
-        })
-      return () => {
-        cancelled = true
-      }
-    }
-
-    setSellerShippingSelections(initial)
+    return selections
   }, [
     availableShippingMethods,
-    cart,
-    groupedItems,
-    queryClient,
-    refetchCheckoutPageData,
     shippingMethodsFromCart,
+    groupedItems,
     shippingOptionsBySellerKey,
   ])
+
+
 
   // Get shipping options for the currently editing seller (hooks before early return)
   useEffect(() => {
@@ -209,23 +205,13 @@ const CheckoutItemPreview = ({
   const handleSelectShipping = async (methodId: string) => {
     if (!editingSellerId) return
 
-    const updated = { ...sellerShippingSelections, [editingSellerId]: methodId }
-    setSellerShippingSelections(updated)
+    const updated = { ...currentSelections, [editingSellerId]: methodId }
 
     // Send all selections to backend
     const allOptionIds = Object.values(updated).filter(Boolean)
     if (allOptionIds.length > 0) {
       try {
-        await setMultiShippingMethods({
-          cartId: cart.id,
-          optionIds: allOptionIds,
-        })
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: queryKeys.checkout.cart(cart.id),
-          }),
-          refetchCheckoutPageData(),
-        ])
+        await updateShippingMethods(allOptionIds)
       } catch (e: any) {
         console.error("Failed to set shipping methods:", e)
       }
@@ -242,8 +228,25 @@ const CheckoutItemPreview = ({
         const subtotal = items.reduce((acc: number, item) => {
           return acc + item.unit_price * item.quantity
         }, 0)
+        const sellerDiscount = items.reduce((acc: number, item) => {
+          const checkoutItem = item as CheckoutPreviewLineItem
+          const lineTotal = getNumericAmount(
+            checkoutItem.total ?? checkoutItem.unit_price * checkoutItem.quantity
+          )
+          const compareAtUnitPrice = getNumericAmount(
+            checkoutItem.compare_at_unit_price
+          )
+          const originalTotal = getNumericAmount(
+            checkoutItem.original_total ??
+              (compareAtUnitPrice > 0
+                ? compareAtUnitPrice * checkoutItem.quantity
+                : lineTotal)
+          )
 
-        const sellerSelectedOptionId = sellerShippingSelections[key]
+          return acc + Math.max(0, originalTotal - lineTotal)
+        }, 0)
+
+        const sellerSelectedOptionId = currentSelections[key]
         const selectedShippingOption = sellerSelectedOptionId
           ? shippingOptionsById.get(sellerSelectedOptionId)
           : undefined
@@ -356,9 +359,8 @@ const CheckoutItemPreview = ({
             <div className="py-4 border-b border-sop-neutral-gray-light text-sop-additionalblue-400 flex flex-row items-center gap-2  sop-body-lg-regular">
               <DiscountIcon className="w-sop-20px h-sop-20px md:w-sop-28px md:h-sop-28px text-sop-additionalblue-400" />
               <span className="sop-body-sm-regular md:sop-body-lg-regular text-sop-additionalblue-400">
-                {/* TODO - Replace with real cart logic later */}
                 {convertToLocale({
-                  amount: 100,
+                  amount: sellerDiscount,
                   currency_code: cart.currency_code,
                 })}
               </span>
@@ -448,7 +450,7 @@ const CheckoutItemPreview = ({
           shippingMethods={editingSellerShippingOptions}
           cart={cart}
           onSelectMethod={handleSelectShipping}
-          initialSelectedId={sellerShippingSelections[editingSellerId]}
+          initialSelectedId={currentSelections[editingSellerId]}
         />
       )}
     </div>
@@ -486,6 +488,17 @@ function normalizeIdentifier(value: unknown): string | null {
 
   const trimmed = value.trim().toLowerCase()
   return trimmed.length > 0 ? trimmed : null
+}
+
+function shippingOptionIdsEqual(left: string[], right: string[]) {
+  if (left.length !== right.length) {
+    return false
+  }
+
+  const leftSorted = [...left].sort()
+  const rightSorted = [...right].sort()
+
+  return leftSorted.every((value, index) => value === rightSorted[index])
 }
 
 function getShippingOptionsForSellerGroup(
@@ -536,6 +549,18 @@ function getShippingOptionsForSellerGroup(
       (optionSellerHandle !== null && sellerHandles.has(optionSellerHandle))
     )
   })
+}
+
+function findSellerKeyForShippingOption(
+  groupedItems: GroupedItems,
+  option: StoreCardShippingMethod,
+  shippingOptionsBySellerKey: Record<string, StoreCardShippingMethod[]>
+) {
+  return Object.keys(groupedItems).find((sellerKey) =>
+    (shippingOptionsBySellerKey[sellerKey] ?? []).some(
+      (candidate) => candidate.id === option.id
+    )
+  )
 }
 
 export default CheckoutItemPreview

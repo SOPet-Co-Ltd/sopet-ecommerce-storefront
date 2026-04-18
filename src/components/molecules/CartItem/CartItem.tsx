@@ -181,6 +181,7 @@ export const CartItem = ({
           itemId: item.id,
           variantId,
           quantity,
+          unitPriceSnapshot,
         })
       }
 

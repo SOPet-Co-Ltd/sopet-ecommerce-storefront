@@ -753,7 +753,8 @@ export async function initiatePaymentSession(
 }
 
 export async function prepareMarketplacePayments(
-  cartId: string
+  cartId: string,
+  options?: { skipCacheRevalidate?: boolean }
 ): Promise<MpCheckoutV1> {
   const headers = {
     ...(await getAuthHeaders()),
@@ -779,8 +780,10 @@ export async function prepareMarketplacePayments(
     throw new Error("Invalid marketplace checkout response")
   }
 
-  const cartCacheTag = await getCacheTag("carts")
-  revalidateTag(cartCacheTag)
+  if (!options?.skipCacheRevalidate) {
+    const cartCacheTag = await getCacheTag("carts")
+    revalidateTag(cartCacheTag)
+  }
 
   return mp
 }
@@ -842,7 +845,9 @@ export async function bootstrapMarketplacePaymentSessions(
   marketplaceCheckout: MpCheckoutV1
   collectionsById: Record<string, HttpTypes.StorePaymentCollection>
 }> {
-  const marketplaceCheckout = await prepareMarketplacePayments(cartId)
+  const marketplaceCheckout = await prepareMarketplacePayments(cartId, {
+    skipCacheRevalidate: true,
+  })
 
   const entries = await Promise.all(
     marketplaceCheckout.slices.map(async (slice) => {

@@ -243,7 +243,6 @@ export const CartAddressSection = ({
           address={editDialogState.address}
           onSuccess={async () => {
             await refetch()
-            router.refresh()
             setShowAddressDialog(true)
           }}
         />

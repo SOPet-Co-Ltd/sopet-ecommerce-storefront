@@ -25,18 +25,10 @@ export async function generateMetadata({
   })
 }
 
+import { OrderConfirmedClient } from "./OrderConfirmedClient"
+
 export default async function OrderConfirmedPage(props: Props) {
   const params = await props.params
-  const order = await retrieveOrder(params.id).catch(() => null)
 
-  if (!order) {
-    return notFound()
-  }
-
-  return (
-    <main className="container">
-      <ClearCheckoutCartHold />
-      <OrderConfirmedSection order={order} />
-    </main>
-  )
+  return <OrderConfirmedClient orderId={params.id} />
 }

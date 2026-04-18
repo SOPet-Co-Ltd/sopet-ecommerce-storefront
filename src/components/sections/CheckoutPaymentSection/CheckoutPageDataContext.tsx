@@ -128,7 +128,8 @@ export function CheckoutPageDataProvider({
     queryKey: bundleQueryKey,
     queryFn: () => fetchCheckoutBundle(cartId, regionId),
     initialData: initialBundleData,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
@@ -153,7 +154,8 @@ export function CheckoutPageDataProvider({
       customerId && initialData?.savedStripePaymentMethodsLoaded
         ? initialData.savedStripePaymentMethods
         : undefined,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 
   useEffect(() => {
