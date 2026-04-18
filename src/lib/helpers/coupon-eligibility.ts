@@ -13,7 +13,8 @@ const THB_FORMATTER = new Intl.NumberFormat("th-TH", {
   maximumFractionDigits: 0,
 })
 
-const normalizeText = (value?: string | null) => value?.trim().toLowerCase() || ""
+const normalizeText = (value?: string | null) =>
+  value?.trim().toLowerCase().replace(/\s+/g, " ") || ""
 
 const matchesVendorName = (couponVendorName?: string, vendorName?: string) => {
   if (!vendorName) {
@@ -31,10 +32,7 @@ const matchesVendorName = (couponVendorName?: string, vendorName?: string) => {
     return true
   }
 
-  return (
-    normalizedCouponVendor.includes(normalizedVendor) ||
-    normalizedVendor.includes(normalizedCouponVendor)
-  )
+  return normalizedCouponVendor === normalizedVendor
 }
 
 const toNumericAmount = (value: unknown) => {
@@ -104,13 +102,6 @@ export function evaluateCouponEligibility(
     return { isEligible: false, disabledReason: "โค้ดนี้ถูกใช้ไปแล้ว" }
   }
 
-  if (typeof coupon.isEligible === "boolean") {
-    return {
-      isEligible: coupon.isEligible,
-      disabledReason: coupon.ineligibilityReason,
-    }
-  }
-
   if (!matchesVendorName(coupon.vendorName, vendorName)) {
     return {
       isEligible: false,
@@ -138,6 +129,17 @@ export function evaluateCouponEligibility(
       isEligible: false,
       disabledReason: `ขั้นต่ำ ${THB_FORMATTER.format(minPurchase)}`,
     }
+  }
+
+  if (coupon.isEligible === false) {
+    return {
+      isEligible: false,
+      disabledReason: coupon.ineligibilityReason,
+    }
+  }
+
+  if (coupon.isEligible === true) {
+    return { isEligible: true }
   }
 
   return { isEligible: true }

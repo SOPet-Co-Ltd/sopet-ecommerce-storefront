@@ -16,6 +16,10 @@ import {
 
 type CheckoutElementsSecretContextValue = CheckoutElementsSecretStore
 
+const identitySelector = (
+  state: CheckoutElementsSecretContextValue
+): CheckoutElementsSecretContextValue => state
+
 const CheckoutElementsSecretStoreContext =
   createContext<CheckoutElementsSecretStoreApi | null>(null)
 
@@ -52,9 +56,10 @@ export function useCheckoutElementsSecret<T>(
     )
   }
 
-  if (selector) {
-    return useStore(store, selector)
-  }
-
-  return useStore(store)
+  return useStore(
+    store,
+    (selector ?? identitySelector) as (
+      state: CheckoutElementsSecretContextValue
+    ) => CheckoutElementsSecretContextValue | T
+  )
 }

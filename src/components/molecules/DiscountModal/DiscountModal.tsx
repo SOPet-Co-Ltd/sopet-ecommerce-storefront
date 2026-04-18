@@ -16,7 +16,7 @@ import {
 import { CouponCard } from "../CouponCard/CouponCard"
 import type { CouponData } from "../CouponCard/CouponCard"
 import { CouponConditionsModal } from "../CouponConditionsModal/CouponConditionsModal"
-import { fetchMyCoupons } from "@/lib/data/coupons"
+import { collectCoupon, fetchCoupons, fetchMyCoupons } from "@/lib/data/coupons"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import { evaluateCouponEligibility } from "@/lib/helpers/coupon-eligibility"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
@@ -41,7 +41,7 @@ export const DiscountModal = ({
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [myCoupons, setMyCoupons] = useState<CouponData[]>([])
+  const [availableCoupons, setAvailableCoupons] = useState<CouponData[]>([])
   const [isFetchingCoupons, setIsFetchingCoupons] = useState(true)
   const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
   const [manualCode, setManualCode] = useState("")
@@ -82,21 +82,23 @@ export const DiscountModal = ({
   useEffect(() => {
     if (!isOpen) return
 
-    async function loadWalletCoupons() {
+    async function loadCoupons() {
       setIsFetchingCoupons(true)
       try {
-        const data = await fetchMyCoupons({
-          cartId: cart?.id,
-          vendorName,
-        })
-        setMyCoupons(data.map(mapCouponToCardData))
+        const data = vendorName
+          ? await fetchCoupons(undefined, 200, 0, { vendorName })
+          : await fetchMyCoupons({
+              cartId: cart?.id,
+              vendorName,
+            })
+        setAvailableCoupons(data.map(mapCouponToCardData))
       } catch (e) {
-        console.error("Failed to fetch wallet coupons:", e)
+        console.error("Failed to fetch coupons:", e)
       } finally {
         setIsFetchingCoupons(false)
       }
     }
-    loadWalletCoupons()
+    loadCoupons()
   }, [cart?.id, couponContextKey, isOpen, vendorName])
 
   useEffect(() => {
@@ -186,6 +188,44 @@ export const DiscountModal = ({
     }
   }
 
+  const handleCollect = async (coupon: CouponData) => {
+    setIsLoading(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const result = await collectCoupon(coupon.id)
+
+      if (!result.success) {
+        const message =
+          typeof result.message === "string" && result.message.length > 0
+            ? result.message
+            : "ไม่สามารถเก็บคูปองได้"
+
+        if (message === "Unauthorized") {
+          setError("กรุณาเข้าสู่ระบบก่อนเก็บคูปอง")
+        } else {
+          setError(message)
+        }
+        return false
+      }
+
+      setAvailableCoupons((current) =>
+        current.map((item) =>
+          item.id === coupon.id ? { ...item, is_collected: true } : item
+        )
+      )
+      setMessage("เก็บโค้ดส่วนลดแล้ว")
+      return true
+    } catch (error) {
+      console.error("Collect coupon error:", error)
+      setError("ไม่สามารถเก็บคูปองได้")
+      return false
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleRemove = async (codeToRemove: string) => {
     setIsLoading(true)
     setError(null)
@@ -220,7 +260,7 @@ export const DiscountModal = ({
     [activeCodes, appliedPromotions]
   )
   const sortedCoupons = useMemo(() => {
-    const preparedCoupons = myCoupons.map((coupon) => {
+    const preparedCoupons = availableCoupons.map((coupon) => {
       const eligibility = evaluateCouponEligibility(coupon, {
         cart,
         appliedCodes,
@@ -235,11 +275,19 @@ export const DiscountModal = ({
     })
 
     return preparedCoupons.sort((left, right) => {
-      const leftEnabled = left.eligibility.isEligible && !left.failedReason
-      const rightEnabled = right.eligibility.isEligible && !right.failedReason
+      const leftEnabled = left.coupon.is_collected
+        ? left.eligibility.isEligible && !left.failedReason
+        : true
+      const rightEnabled = right.coupon.is_collected
+        ? right.eligibility.isEligible && !right.failedReason
+        : true
 
       if (leftEnabled !== rightEnabled) {
         return leftEnabled ? -1 : 1
+      }
+
+      if (left.coupon.is_collected !== right.coupon.is_collected) {
+        return left.coupon.is_collected ? -1 : 1
       }
 
       if (!!left.coupon.vendorName !== !!right.coupon.vendorName) {
@@ -248,7 +296,7 @@ export const DiscountModal = ({
 
       return left.coupon.code.localeCompare(right.coupon.code, "th")
     })
-  }, [appliedCodes, cart, failedCouponReasons, myCoupons, vendorName])
+  }, [appliedCodes, availableCoupons, cart, failedCouponReasons, vendorName])
 
   if (!isOpen) return null
 
@@ -322,7 +370,7 @@ export const DiscountModal = ({
         {/* Collected Coupon List */}
         <div className="flex flex-col gap-4">
           <Text className="text-sm font-medium text-gray-900">
-            โค้ดส่วนลดของฉัน
+            {vendorName ? `คูปองของร้าน ${vendorName}` : "โค้ดส่วนลดของฉัน"}
           </Text>
           {isFetchingCoupons ? (
             <div className="flex justify-center items-center py-6">
@@ -334,18 +382,32 @@ export const DiscountModal = ({
                 <CouponCard
                   key={coupon.id}
                   coupon={coupon}
-                  onApply={() => handleApply(coupon.code)}
+                  onApply={() =>
+                    coupon.is_collected
+                      ? handleApply(coupon.code)
+                      : handleCollect(coupon)
+                  }
                   onConditionsClick={(c) => setSelectedCoupon(c)}
                   isApplied={appliedCodes.has(coupon.code)}
-                  isDisabled={Boolean(failedReason) || !eligibility.isEligible}
-                  disabledReason={failedReason ?? eligibility.disabledReason}
-                  mode="use"
+                  isDisabled={
+                    coupon.is_collected
+                      ? Boolean(failedReason) || !eligibility.isEligible
+                      : false
+                  }
+                  disabledReason={
+                    coupon.is_collected
+                      ? failedReason ?? eligibility.disabledReason
+                      : undefined
+                  }
+                  mode={coupon.is_collected ? "use" : "collect"}
                 />
               ))}
             </div>
           ) : (
             <Text className="text-sm text-gray-500 text-center py-4">
-              คุณยังไม่มีคูปองส่วนลดในขณะนี้
+              {vendorName
+                ? `ร้าน ${vendorName} ยังไม่มีคูปองส่วนลดในขณะนี้`
+                : "คุณยังไม่มีคูปองส่วนลดในขณะนี้"}
             </Text>
           )}
         </div>

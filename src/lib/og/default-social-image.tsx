@@ -9,6 +9,16 @@ import {
 /** Google-hosted Noto Sans Thai (TTF) — supports site description in Thai */
 const NOTO_SANS_THAI_TTF =
   "https://fonts.gstatic.com/s/notosansthai/v29/iJWnBXeUZi_OHPqn4wq6hQ2_hbJ1xyN9wd43SofNWcd1MKVQt_So_9CdU5RtpzE.ttf"
+const LOCAL_OG_FALLBACK_FONT_PATH = join(
+  process.cwd(),
+  "node_modules",
+  "next",
+  "dist",
+  "compiled",
+  "@vercel",
+  "og",
+  "noto-sans-v27-latin-regular.ttf"
+)
 
 function hostnameFooter(baseUrl: string): string {
   try {
@@ -41,15 +51,27 @@ export async function createDefaultSocialImageResponse(): Promise<ImageResponse>
     logoDataUrl = `${baseUrl}/Logo.svg`
   }
 
-  let fontData: ArrayBuffer | undefined
+  let fontData: ArrayBuffer
   try {
     const res = await fetch(NOTO_SANS_THAI_TTF)
-    if (res.ok) fontData = await res.arrayBuffer()
+    if (res.ok) {
+      fontData = await res.arrayBuffer()
+    } else {
+      const fallbackFontBuffer = await readFile(LOCAL_OG_FALLBACK_FONT_PATH)
+      fontData = fallbackFontBuffer.buffer.slice(
+        fallbackFontBuffer.byteOffset,
+        fallbackFontBuffer.byteOffset + fallbackFontBuffer.byteLength
+      )
+    }
   } catch {
-    /* fallback to system-ui */
+    const fallbackFontBuffer = await readFile(LOCAL_OG_FALLBACK_FONT_PATH)
+    fontData = fallbackFontBuffer.buffer.slice(
+      fallbackFontBuffer.byteOffset,
+      fallbackFontBuffer.byteOffset + fallbackFontBuffer.byteLength
+    )
   }
 
-  const fontFamily = fontData ? "Noto Sans Thai" : "system-ui, sans-serif"
+  const fontFamily = "Noto Sans Thai"
   const footer = hostnameFooter(baseUrl)
 
   return new ImageResponse(
@@ -124,16 +146,14 @@ export async function createDefaultSocialImageResponse(): Promise<ImageResponse>
     {
       width: 1200,
       height: 630,
-      fonts: fontData
-        ? [
-            {
-              name: "Noto Sans Thai",
-              data: fontData,
-              style: "normal",
-              weight: 400,
-            },
-          ]
-        : [],
+      fonts: [
+        {
+          name: "Noto Sans Thai",
+          data: fontData,
+          style: "normal",
+          weight: 400,
+        },
+      ],
     }
   )
 }
