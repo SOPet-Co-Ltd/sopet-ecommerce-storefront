@@ -219,9 +219,18 @@ function mapCampaignsAndCouponsToPromotions(
 
 export async function getNotificationsPageBundleData(): Promise<NotificationsPageBundleData> {
   const [orders, campaigns, coupons] = await Promise.all([
-    listOrders(ORDER_LIMIT, 0),
-    listCampaigns(PROMO_LIMIT, 0),
-    fetchCoupons(undefined, PROMO_LIMIT, 0),
+    listOrders(ORDER_LIMIT, 0).catch((error) => {
+      console.error("[notifications-page] Failed to load orders", error)
+      return []
+    }),
+    listCampaigns(PROMO_LIMIT, 0).catch((error) => {
+      console.error("[notifications-page] Failed to load campaigns", error)
+      return []
+    }),
+    fetchCoupons(undefined, PROMO_LIMIT, 0).catch((error) => {
+      console.error("[notifications-page] Failed to load coupons", error)
+      return []
+    }),
   ])
 
   const notifications = orders

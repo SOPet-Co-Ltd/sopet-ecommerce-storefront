@@ -19,10 +19,22 @@ export async function getOrdersPageBundleData(
   limit: number = 100,
   offset: number = 0
 ): Promise<OrdersPageBundleData> {
-  const [orders, customerId] = await Promise.all([
-    listOrders(limit, offset),
-    getCurrentCustomerId(),
-  ])
+  let orders: OrderListItem[] = []
+  let customerId: string | null = null
+
+  try {
+    ;[orders, customerId] = await Promise.all([
+      listOrders(limit, offset),
+      getCurrentCustomerId(),
+    ])
+  } catch (error) {
+    console.error("[order-management-page] Failed to load orders bundle", error)
+
+    return {
+      orders: [],
+      reviewedByOrderId: {},
+    }
+  }
 
   let reviewedByOrderId: Record<string, boolean> = {}
 
@@ -69,8 +81,17 @@ export async function getOrderDetailsPageBundleData(
   id: string
 ): Promise<OrderDetailsPageBundleData> {
   const [order, customerId] = await Promise.all([
-    retrieveOrder(id).catch(() => null),
-    getCurrentCustomerId(),
+    retrieveOrder(id).catch((error) => {
+      console.error("[order-management-page] Failed to retrieve order", error)
+      return null
+    }),
+    getCurrentCustomerId().catch((error) => {
+      console.error(
+        "[order-management-page] Failed to retrieve current customer",
+        error
+      )
+      return null
+    }),
   ])
 
   if (!order) {
