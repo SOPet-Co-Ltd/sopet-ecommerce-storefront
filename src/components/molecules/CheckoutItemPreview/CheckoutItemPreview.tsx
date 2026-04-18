@@ -15,7 +15,10 @@ import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialo
 import { useEffect, useMemo, useState } from "react"
 import { DeliveryTruckIcon, DiscountIcon } from "@/icons"
 import { setMultiShippingMethods } from "@/lib/data/cart"
-import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
+import { queryKeys } from "@/lib/react-query/query-keys"
+import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
+import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
 
 type CheckoutItemPreviewProps = {
   cart: Cart | null
@@ -26,6 +29,8 @@ const CheckoutItemPreview = ({
   cart,
   availableShippingMethods,
 }: CheckoutItemPreviewProps) => {
+  const queryClient = useQueryClient()
+  const { refetch: refetchCheckoutPageData } = useCheckoutPageData()
   const getNumericAmount = (value: unknown): number => {
     if (typeof value === "number") return value
     if (typeof value === "string") {
@@ -57,11 +62,13 @@ const CheckoutItemPreview = ({
   const [editingSellerId, setEditingSellerId] = useState<string | null>(null)
   const [isShippingOpen, setIsShippingOpen] = useState(false)
 
-  const router = useRouter()
-
   /** Avoid `|| []` in effect deps — use stable `undefined` until cart has methods. */
   const shippingMethodsFromCart = cart?.shipping_methods
   const shippingMethods = shippingMethodsFromCart ?? []
+  const groupedItems = useMemo(
+    () => (cart ? groupItemsBySeller(cart) : {}),
+    [cart]
+  )
   const shippingOptionsById = useMemo(
     () =>
       new Map(
@@ -69,6 +76,38 @@ const CheckoutItemPreview = ({
       ),
     [availableShippingMethods]
   )
+  const shippingOptionsBySellerKey = useMemo(() => {
+    const groups = groupedItems
+
+    return Object.fromEntries(
+      Object.entries(groups).map(([sellerKey, group]) => [
+        sellerKey,
+        getShippingOptionsForSellerGroup(group, availableShippingMethods),
+      ])
+    ) as Record<string, StoreCardShippingMethod[]>
+  }, [availableShippingMethods, groupedItems])
+  const editingSellerShippingOptions = useMemo(() => {
+    if (!editingSellerId) {
+      return []
+    }
+
+    const matched = shippingOptionsBySellerKey[editingSellerId] ?? []
+
+    if (matched.length > 0) {
+      return matched
+    }
+
+    if (Object.keys(groupedItems).length === 1) {
+      return availableShippingMethods ?? []
+    }
+
+    return []
+  }, [
+    availableShippingMethods,
+    editingSellerId,
+    groupedItems,
+    shippingOptionsBySellerKey,
+  ])
 
   // Initialize per-seller selections from cart.shipping_methods
   useEffect(() => {
@@ -89,17 +128,14 @@ const CheckoutItemPreview = ({
     }
 
     // For sellers without a selection yet, try the first available option
-    const groupedItems = groupItemsBySeller(cart)
     let needsUpdate = false
     const newSelections = { ...initial }
 
-    for (const sellerId of Object.keys(groupedItems)) {
-      if (!initial[sellerId]) {
-        const firstOption = availableShippingMethods.find(
-          (o) => o.seller_id === sellerId
-        )
-        if (firstOption) {
-          newSelections[sellerId] = firstOption.id
+    for (const sellerKey of Object.keys(groupedItems)) {
+      if (!initial[sellerKey]) {
+        const firstOption = shippingOptionsBySellerKey[sellerKey]?.[0]
+        if (firstOption?.id) {
+          newSelections[sellerKey] = firstOption.id
           needsUpdate = true
         }
       }
@@ -114,10 +150,17 @@ const CheckoutItemPreview = ({
         cartId: cart.id,
         optionIds: allOptionIds,
       })
-        .then(() => {
-          if (!cancelled) {
-            router.refresh()
+        .then(async () => {
+          if (cancelled) {
+            return
           }
+
+          await Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.checkout.cart(cart.id),
+            }),
+            refetchCheckoutPageData(),
+          ])
         })
         .catch((err) => {
           console.error("Failed to auto-select shipping methods", err)
@@ -128,15 +171,33 @@ const CheckoutItemPreview = ({
     }
 
     setSellerShippingSelections(initial)
-  }, [cart, availableShippingMethods, shippingMethodsFromCart, router])
+  }, [
+    availableShippingMethods,
+    cart,
+    groupedItems,
+    queryClient,
+    refetchCheckoutPageData,
+    shippingMethodsFromCart,
+    shippingOptionsBySellerKey,
+  ])
 
   // Get shipping options for the currently editing seller (hooks before early return)
-  const shippingOptionsForEditingSeller = useMemo(() => {
-    if (!editingSellerId || !availableShippingMethods) return []
-    return availableShippingMethods.filter(
-      (opt) => opt.seller_id === editingSellerId
-    )
-  }, [editingSellerId, availableShippingMethods])
+  useEffect(() => {
+    if (!isShippingOpen || !editingSellerId) {
+      return
+    }
+
+    if (editingSellerShippingOptions.length > 0) {
+      return
+    }
+
+    void refetchCheckoutPageData()
+  }, [
+    editingSellerId,
+    editingSellerShippingOptions.length,
+    isShippingOpen,
+    refetchCheckoutPageData,
+  ])
 
   if (!cart) return null
 
@@ -159,20 +220,24 @@ const CheckoutItemPreview = ({
           cartId: cart.id,
           optionIds: allOptionIds,
         })
-        router.refresh()
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.checkout.cart(cart.id),
+          }),
+          refetchCheckoutPageData(),
+        ])
       } catch (e: any) {
         console.error("Failed to set shipping methods:", e)
       }
     }
   }
 
-  const groupedItems: GroupedItems = groupItemsBySeller(cart)
-
   return (
     <div className="flex flex-col gap-6">
       {Object.keys(groupedItems).map((key) => {
         const seller = groupedItems[key].seller
         const items = groupedItems[key].items
+        const sellerShippingOptions = shippingOptionsBySellerKey[key] ?? []
 
         const subtotal = items.reduce((acc: number, item) => {
           return acc + item.unit_price * item.quantity
@@ -184,13 +249,15 @@ const CheckoutItemPreview = ({
           : undefined
         const selectedCartShippingMethod =
           shippingMethods.find(
-            (method) => method.shipping_option_id === sellerSelectedOptionId
+            (method) =>
+              sellerShippingOptions.some(
+                (option) => option.id === method.shipping_option_id
+              ) && method.shipping_option_id === sellerSelectedOptionId
           ) ||
           shippingMethods.find((method) => {
-            const option = method.shipping_option_id
-              ? shippingOptionsById.get(method.shipping_option_id)
-              : undefined
-            return option?.seller_id === key
+            return sellerShippingOptions.some(
+              (option) => option.id === method.shipping_option_id
+            )
           })
 
         const shippingTotal = getNumericAmount(
@@ -371,14 +438,14 @@ const CheckoutItemPreview = ({
         )
       })}
 
-      {editingSellerId && shippingOptionsForEditingSeller.length > 0 && (
+      {editingSellerId && (
         <ShippingOptionDialog
           isOpen={isShippingOpen}
           onClose={() => {
             setIsShippingOpen(false)
             setEditingSellerId(null)
           }}
-          shippingMethods={shippingOptionsForEditingSeller}
+          shippingMethods={editingSellerShippingOptions}
           cart={cart}
           onSelectMethod={handleSelectShipping}
           initialSelectedId={sellerShippingSelections[editingSellerId]}
@@ -393,35 +460,82 @@ function groupItemsBySeller(cart: Cart): GroupedItems {
 
   cart.items?.forEach((item) => {
     const extendedItem = item as ExtendedLineItem
-    const seller = extendedItem.product?.seller
-    if (seller?.id) {
-      if (!groupedBySeller[seller.id]) {
-        groupedBySeller[seller.id] = {
-          seller: seller,
-          items: [],
-        }
-      }
-      groupedBySeller[seller.id].items.push(extendedItem)
-    } else {
-      if (!groupedBySeller["fleek"]) {
-        groupedBySeller["fleek"] = {
-          seller: {
-            name: "Fleek",
-            id: "fleek",
-            photo: "/Logo.svg",
-            created_at: new Date().toISOString(),
-            handle: "fleek",
-            description: "Fleek Store",
-            tax_id: "0000000000000",
-          },
-          items: [],
-        }
-      }
-      groupedBySeller["fleek"].items.push(extendedItem)
+    const { key, seller } = getCartItemSellerGroup(extendedItem)
+
+    if (!key || !seller) {
+      return
     }
+
+    if (!groupedBySeller[key]) {
+      groupedBySeller[key] = {
+        seller,
+        items: [],
+      }
+    }
+
+    groupedBySeller[key].items.push(extendedItem)
   })
 
   return groupedBySeller
+}
+
+function normalizeIdentifier(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const trimmed = value.trim().toLowerCase()
+  return trimmed.length > 0 ? trimmed : null
+}
+
+function getShippingOptionsForSellerGroup(
+  group: GroupedItems[string],
+  availableShippingMethods?: StoreCardShippingMethod[] | null
+) {
+  const shippingMethods = availableShippingMethods ?? []
+
+  if (shippingMethods.length === 0) {
+    return []
+  }
+
+  const sellerIds = new Set<string>()
+  const sellerNames = new Set<string>()
+  const sellerHandles = new Set<string>()
+
+  const pushIdentifier = (
+    target: Set<string>,
+    value: string | null | undefined
+  ) => {
+    const normalized = normalizeIdentifier(value)
+    if (normalized) {
+      target.add(normalized)
+    }
+  }
+
+  pushIdentifier(sellerIds, group.seller.id)
+  pushIdentifier(sellerNames, group.seller.name)
+  pushIdentifier(sellerHandles, group.seller.handle)
+
+  group.items.forEach((item) => {
+    const itemSeller = getCartItemSellerGroup(item).seller
+    pushIdentifier(sellerIds, itemSeller?.id)
+    pushIdentifier(sellerNames, itemSeller?.name)
+    pushIdentifier(sellerHandles, itemSeller?.handle)
+  })
+
+  return shippingMethods.filter((option) => {
+    const optionSellerId = normalizeIdentifier(option.seller_id)
+    const optionSellerName = normalizeIdentifier(option.seller_name)
+    const optionSellerHandle = normalizeIdentifier(
+      (option as { seller_handle?: string | null }).seller_handle
+    )
+
+    return (
+      (optionSellerId !== null && sellerIds.has(optionSellerId)) ||
+      (optionSellerName !== null && sellerNames.has(optionSellerName)) ||
+      (optionSellerHandle !== null && sellerHandles.has(optionSellerHandle))
+    )
+  })
 }
 
 export default CheckoutItemPreview

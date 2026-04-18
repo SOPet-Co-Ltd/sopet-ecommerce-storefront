@@ -102,7 +102,7 @@ function normalizeFulfillmentStatus(
 
 export const orderVariantSchema = z
   .object({
-    id: z.string().optional(),
+    id: stringField.nullish(),
     title: nullableString,
     sku: nullableString,
   })
@@ -192,14 +192,14 @@ export const orderPaymentSessionSchema = z
 export const orderPaymentCollectionSchema = z
   .object({
     id: stringFieldOrEmpty,
-    payment_sessions: z.array(orderPaymentSessionSchema).optional(),
-    payments: z.array(orderPaymentSchema).optional(),
+    payment_sessions: z.array(orderPaymentSessionSchema).nullish().optional(),
+    payments: z.array(orderPaymentSchema).nullish().optional(),
   })
   .passthrough()
 
 export const orderSetSchema = z
   .object({
-    id: z.string(),
+    id: stringFieldOrEmpty,
   })
   .passthrough()
 
@@ -276,10 +276,13 @@ export const orderSchema = z
     discount_total: numberField.default(0),
     subtotal: numberField.default(0),
     total: numberField.default(0),
-    items: z.array(orderLineItemSchema).default([]),
-    shipping_methods: z.array(orderShippingMethodSchema).optional(),
+    items: z.array(orderLineItemSchema).nullish().transform((value) => value ?? []),
+    shipping_methods: z
+      .array(orderShippingMethodSchema)
+      .nullish()
+      .optional(),
     seller: orderSellerSchema.nullish().optional(),
-    reviews: z.array(z.unknown()).optional(),
+    reviews: z.array(z.unknown()).nullish().optional(),
     store: z
       .object({
         name: nullableString,
@@ -288,8 +291,11 @@ export const orderSchema = z
       .nullish()
       .optional(),
     shipping_address: orderShippingAddressSchema.nullish().optional(),
-    payment_collections: z.array(orderPaymentCollectionSchema).optional(),
-    payments: z.array(orderPaymentSchema).optional(),
+    payment_collections: z
+      .array(orderPaymentCollectionSchema)
+      .nullish()
+      .optional(),
+    payments: z.array(orderPaymentSchema).nullish().optional(),
     fulfillments: z.array(orderFulfillmentSchema).nullish().optional(),
     order_set: orderSetSchema.nullish().optional(),
     payment_provider_id: nullableString,

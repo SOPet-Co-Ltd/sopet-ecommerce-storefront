@@ -38,13 +38,21 @@ export const ReviewModal = ({
   // Initialize review data for each item
   const initialReviewData = useMemo<ReviewFormData[]>(
     () =>
-      items.map((item) => ({
-        productId: item.product.id,
-        itemId: item.id,
-        rating: 0,
-        comment: "",
-        images: [],
-      })),
+      items
+        .filter(
+          (
+            item
+          ): item is OrderLineItem & {
+            product: NonNullable<OrderLineItem["product"]>
+          } => Boolean(item.product?.id)
+        )
+        .map((item) => ({
+          productId: item.product.id,
+          itemId: item.id,
+          rating: 0,
+          comment: "",
+          images: [],
+        })),
     [items]
   )
 

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from "next/server"
 type ChangeVariantBody = {
   variantId?: string
   quantity?: number
+  unitPriceSnapshot?: number | null
 }
 
 type CustomerCartItemApi = {
@@ -18,29 +19,13 @@ type CustomerCartItemApi = {
   metadata: Record<string, unknown> | null
 }
 
-const normalizeNullable = <T>(value: T | null | undefined): T | null =>
-  value == null ? null : value
-
-const serializeMetadata = (metadata: Record<string, unknown> | null) =>
-  metadata ? JSON.stringify(metadata) : null
-
 const buildKey = (
   item: Pick<
     CustomerCartItemApi,
-    | "product_id"
-    | "variant_id"
-    | "unit_price_snapshot"
-    | "source"
-    | "metadata"
+    "product_id" | "variant_id"
   >
 ) => {
-  return [
-    item.product_id,
-    item.variant_id,
-    String(normalizeNullable(item.unit_price_snapshot)),
-    normalizeNullable(item.source) ?? "",
-    serializeMetadata(item.metadata) ?? "",
-  ].join("|")
+  return [item.product_id, item.variant_id].join("|")
 }
 
 export async function PATCH(
@@ -51,6 +36,8 @@ export async function PATCH(
   const body = (await request.json().catch(() => ({}))) as ChangeVariantBody
   const variantId = body.variantId
   const quantity = body.quantity
+  const unitPriceSnapshot =
+    typeof body.unitPriceSnapshot === "number" ? body.unitPriceSnapshot : null
 
   if (!id || !variantId || typeof quantity !== "number") {
     return NextResponse.json(
@@ -106,6 +93,9 @@ export async function PATCH(
         headers,
         body: {
           quantity: (existingSame.quantity ?? 0) + quantity,
+          ...(unitPriceSnapshot !== null
+            ? { unit_price_snapshot: unitPriceSnapshot }
+            : {}),
         },
         cache: "no-store",
       }
@@ -143,6 +133,9 @@ export async function PATCH(
     body: {
       quantity,
       variant_id: variantId,
+      ...(unitPriceSnapshot !== null
+        ? { unit_price_snapshot: unitPriceSnapshot }
+        : {}),
     },
     cache: "no-store",
   })

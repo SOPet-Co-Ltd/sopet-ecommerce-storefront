@@ -620,7 +620,7 @@ export const OrderPaymentModal = ({
         if (!isMounted) return
 
         const existingSession = pickPendingPaymentSessionForCheckout(
-          paymentCollection?.payment_sessions,
+          paymentCollection?.payment_sessions ?? undefined,
           preferredProvider
         )
 
@@ -655,7 +655,7 @@ export const OrderPaymentModal = ({
         const pc = await retrievePaymentCollection(col.id)
         if (!isMounted) return
         const existingSession = pickPendingPaymentSessionForCheckout(
-          pc?.payment_sessions,
+          pc?.payment_sessions ?? undefined,
           preferredProvider
         )
         const secret = existingSession?.data?.client_secret

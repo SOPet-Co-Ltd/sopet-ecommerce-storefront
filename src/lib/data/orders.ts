@@ -8,6 +8,7 @@ import {
   createReturnRequestResponseSchema,
   getReturnsResponseSchema,
   listOrdersResponseSchema,
+  orderSchema,
   orderMutationResponseSchema,
   retrieveCustomerPaymentMethodsResponseSchema,
   retrieveOrderResponseSchema,
@@ -57,6 +58,8 @@ type RetrieveCustomerPaymentMethodsResponse = {
   payment_methods: CustomerPaymentMethod[]
 }
 
+type UnknownRecord = Record<string, unknown>
+
 const parseWithSchema = <T>(
   schema: ZodType<T, ZodTypeDef, unknown>,
   payload: unknown,
@@ -99,6 +102,68 @@ const getMessageFromPayload = (payload: unknown): string | null => {
 
   const message = (payload as { message?: unknown }).message
   return typeof message === "string" ? message : null
+}
+
+const isRecord = (value: unknown): value is UnknownRecord =>
+  typeof value === "object" && value !== null
+
+const parseOrdersListPayload = (payload: unknown): OrderListItem[] => {
+  const parsedList = listOrdersResponseSchema.safeParse(payload)
+
+  if (parsedList.success) {
+    return parsedList.data.orders as unknown as OrderListItem[]
+  }
+
+  console.error(
+    "[orders] Invalid listOrders response, attempting per-order recovery",
+    parsedList.error.flatten()
+  )
+
+  const rawOrders = isRecord(payload) && Array.isArray(payload.orders)
+    ? payload.orders
+    : []
+
+  const recoveredOrders: OrderListItem[] = []
+
+  rawOrders.forEach((rawOrder, index) => {
+    const parsedOrder = orderSchema.safeParse(rawOrder)
+
+    if (parsedOrder.success) {
+      recoveredOrders.push(parsedOrder.data as OrderListItem)
+      return
+    }
+
+    console.error(
+      `[orders] Skipping invalid order at index ${index}`,
+      parsedOrder.error.flatten()
+    )
+  })
+
+  return recoveredOrders
+}
+
+const parseOrderPayload = (payload: unknown): OrderDetails => {
+  const parsed = retrieveOrderResponseSchema.safeParse(payload)
+
+  if (parsed.success) {
+    return parsed.data.order as unknown as OrderDetails
+  }
+
+  console.error(
+    "[orders] Invalid retrieveOrder response, attempting direct order recovery",
+    parsed.error.flatten()
+  )
+
+  const rawOrder = isRecord(payload) ? payload.order : undefined
+  const parsedOrder = orderSchema.safeParse(rawOrder)
+
+  if (parsedOrder.success) {
+    return parsedOrder.data as OrderDetails
+  }
+
+  const message =
+    getMessageFromPayload(payload) ?? "Invalid retrieveOrder response"
+  throw new Error(message)
 }
 
 const revalidateOrdersCache = async () => {
@@ -173,18 +238,7 @@ export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
       headers,
       cache: "no-store",
     })
-    .then((response) =>
-      parseWithSchema(
-        retrieveOrderResponseSchema as unknown as ZodType<
-          RetrieveOrderResponse,
-          ZodTypeDef,
-          unknown
-        >,
-        response,
-        "retrieveOrder"
-      )
-    )
-    .then(({ order }) => order)
+    .then((response) => parseOrderPayload(response))
     .catch((error) => medusaError(error))
 }
 
@@ -291,18 +345,7 @@ export const listOrders = async (
       next,
       cache: "no-cache",
     })
-    .then((response) =>
-      parseWithSchema(
-        listOrdersResponseSchema as unknown as ZodType<
-          ListOrdersResponse,
-          ZodTypeDef,
-          unknown
-        >,
-        response,
-        "listOrders"
-      )
-    )
-    .then(({ orders }) => orders)
+    .then((response) => parseOrdersListPayload(response))
     .catch((error) => medusaError(error))
 }
 

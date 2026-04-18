@@ -19,27 +19,32 @@ export async function getOrdersPageBundleData(
   limit: number = 100,
   offset: number = 0
 ): Promise<OrdersPageBundleData> {
-  let orders: OrderListItem[] = []
-  let customerId: string | null = null
-
-  try {
-    ;[orders, customerId] = await Promise.all([
-      listOrders(limit, offset),
-      getCurrentCustomerId(),
-    ])
-  } catch (error) {
-    console.error("[order-management-page] Failed to load orders bundle", error)
-
-    return {
-      orders: [],
-      reviewedByOrderId: {},
-    }
-  }
+  const [orders, customerId] = await Promise.all([
+    listOrders(limit, offset).catch((error) => {
+      console.error("[order-management-page] Failed to load orders", error)
+      return [] as OrderListItem[]
+    }),
+    getCurrentCustomerId().catch((error) => {
+      console.error(
+        "[order-management-page] Failed to load current customer id",
+        error
+      )
+      return null
+    }),
+  ])
 
   let reviewedByOrderId: Record<string, boolean> = {}
 
   if (customerId) {
-    const customerReviews = await getCustomerReviews(customerId)
+    const customerReviews = await getCustomerReviews(customerId).catch(
+      (error) => {
+        console.error(
+          "[order-management-page] Failed to load customer reviews",
+          error
+        )
+        return []
+      }
+    )
     const reviewedPairs = new Set(
       customerReviews
         .filter(
@@ -113,7 +118,15 @@ export async function getOrderDetailsPageBundleData(
     )
 
     if (productIds.length > 0) {
-      const customerReviews = await getCustomerReviews(customerId)
+      const customerReviews = await getCustomerReviews(customerId).catch(
+        (error) => {
+          console.error(
+            "[order-management-page] Failed to load customer reviews",
+            error
+          )
+          return []
+        }
+      )
       const reviewedPairs = new Set(
         customerReviews
           .filter(
