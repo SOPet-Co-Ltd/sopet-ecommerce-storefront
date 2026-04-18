@@ -31,6 +31,8 @@ type CheckoutPaymentState = {
   draftAddress: DraftShippingAddress
   selectedPaymentMethodId: string | null
   useNewCard: boolean
+  isPaymentSubmitting: boolean
+  paymentSubmissionMessage: string | null
 }
 
 type CheckoutPaymentActions = {
@@ -50,6 +52,9 @@ type CheckoutPaymentActions = {
   ) => void
   setSelectedPaymentMethodId: (id: string | null) => void
   setUseNewCard: (value: boolean) => void
+  startPaymentSubmission: (message?: string | null) => void
+  setPaymentSubmissionMessage: (message: string | null) => void
+  finishPaymentSubmission: () => void
 }
 
 export type CheckoutPaymentStore = CheckoutPaymentState & CheckoutPaymentActions
@@ -77,6 +82,8 @@ const getInitialState = (): CheckoutPaymentState => ({
   draftAddress: getDefaultDraftAddress(),
   selectedPaymentMethodId: null,
   useNewCard: false,
+  isPaymentSubmitting: false,
+  paymentSubmissionMessage: null,
 })
 
 export function createCheckoutPaymentStore() {
@@ -120,6 +127,22 @@ export function createCheckoutPaymentStore() {
     },
     setUseNewCard: (useNewCard) => {
       set({ useNewCard })
+    },
+    startPaymentSubmission: (paymentSubmissionMessage) => {
+      set({
+        isPaymentSubmitting: true,
+        paymentSubmissionMessage:
+          paymentSubmissionMessage ?? "กำลังดำเนินการชำระเงิน…",
+      })
+    },
+    setPaymentSubmissionMessage: (paymentSubmissionMessage) => {
+      set({ paymentSubmissionMessage })
+    },
+    finishPaymentSubmission: () => {
+      set({
+        isPaymentSubmitting: false,
+        paymentSubmissionMessage: null,
+      })
     },
   }))
 }

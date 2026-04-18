@@ -355,7 +355,8 @@ export async function getOrSetCart(countryCode: string) {
  */
 export async function prepareGuestCheckout(
   selectedItems: { variantId: string; quantity: number }[],
-  countryCode: string
+  countryCode: string,
+  promotionCodes: string[] = []
 ): Promise<never> {
   const cart = await getOrSetCart(countryCode)
   if (!cart?.id) {
@@ -406,6 +407,19 @@ export async function prepareGuestCheckout(
         headers
       )
       .catch((e) => console.error("[prepareGuestCheckout] createLineItem", e))
+  }
+
+  if (promotionCodes.length > 0) {
+    await sdk.store.cart
+      .update(
+        cart.id,
+        { promo_codes: promotionCodes },
+        {},
+        headers
+      )
+      .catch((e) =>
+        console.error("[prepareGuestCheckout] apply promotion codes", e)
+      )
   }
 
   revalidateTag(cartCacheTag)

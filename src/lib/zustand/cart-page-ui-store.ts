@@ -3,21 +3,27 @@ import { create } from "zustand"
 type CartPageUiState = {
   selectedItemIds: string[]
   discountModalVendor: string | null
+  stagedPromotionCodes: string[]
   reset: () => void
   setSelectedItemIds: (ids: string[]) => void
   toggleItemSelection: (id: string, checked: boolean) => void
   toggleManySelection: (ids: string[], checked: boolean) => void
   openDiscountModal: (vendorName: string) => void
   closeDiscountModal: () => void
+  stagePromotionCode: (code: string) => void
+  unstagePromotionCode: (code: string) => void
+  clearStagedPromotionCodes: () => void
 }
 
 export const useCartPageUiStore = create<CartPageUiState>((set) => ({
   selectedItemIds: [],
   discountModalVendor: null,
+  stagedPromotionCodes: [],
   reset: () =>
     set({
       selectedItemIds: [],
       discountModalVendor: null,
+      stagedPromotionCodes: [],
     }),
   setSelectedItemIds: (ids) =>
     set({
@@ -46,5 +52,21 @@ export const useCartPageUiStore = create<CartPageUiState>((set) => ({
   closeDiscountModal: () =>
     set({
       discountModalVendor: null,
+    }),
+  stagePromotionCode: (code) =>
+    set((state) => ({
+      stagedPromotionCodes: Array.from(
+        new Set([...state.stagedPromotionCodes, code.trim()])
+      ).filter((candidate) => candidate.length > 0),
+    })),
+  unstagePromotionCode: (code) =>
+    set((state) => ({
+      stagedPromotionCodes: state.stagedPromotionCodes.filter(
+        (candidate) => candidate !== code
+      ),
+    })),
+  clearStagedPromotionCodes: () =>
+    set({
+      stagedPromotionCodes: [],
     }),
 }))

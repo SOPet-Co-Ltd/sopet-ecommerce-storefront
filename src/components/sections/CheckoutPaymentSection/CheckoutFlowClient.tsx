@@ -12,7 +12,10 @@ import {
 } from "./CheckoutPageDataContext"
 import { CheckoutElementsSecretProvider } from "./CheckoutElementsSecretContext"
 import { MarketplaceCheckoutProvider } from "./MarketplaceCheckoutContext"
-import { CheckoutPaymentProvider } from "./CheckoutPaymentContext"
+import {
+  CheckoutPaymentProvider,
+  useCheckoutPayment,
+} from "./CheckoutPaymentContext"
 import { CheckoutPaymentSection } from "./CheckoutPaymentSection"
 import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySection"
 import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
@@ -120,6 +123,8 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
 
   return (
     <CheckoutPaymentProvider>
+      <CheckoutPaymentSubmittingOverlay />
+
       <GuestOTPDialog
         isOpen={showGuestOTPDialog}
         onVerified={handleGuestVerified}
@@ -182,5 +187,35 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </>
       )}
     </CheckoutPaymentProvider>
+  )
+}
+
+function CheckoutPaymentSubmittingOverlay() {
+  const isPaymentSubmitting = useCheckoutPayment(
+    (state) => state.isPaymentSubmitting
+  )
+  const paymentSubmissionMessage = useCheckoutPayment(
+    (state) => state.paymentSubmissionMessage
+  )
+
+  if (!isPaymentSubmitting) {
+    return null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-3 bg-sop-base-white/96 px-6"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <RouteLoadingSpinnerBlock variant="compact" />
+      <Text className="text-center text-sop-neutral-gray-300 sop-body-sm-regular max-w-sm">
+        {paymentSubmissionMessage || "กำลังดำเนินการชำระเงิน…"}
+      </Text>
+      <Text className="text-center text-xs text-sop-neutral-gray-400 max-w-sm">
+        กรุณาอย่าปิดหน้าต่างนี้จนกว่าระบบจะพาไปหน้าสำเร็จ
+      </Text>
+    </div>
   )
 }

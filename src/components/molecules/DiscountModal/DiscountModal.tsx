@@ -21,6 +21,7 @@ import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import { evaluateCouponEligibility } from "@/lib/helpers/coupon-eligibility"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
 import { useRouter } from "next/navigation"
+import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 
 type DiscountModalProps = {
   isOpen: boolean
@@ -38,6 +39,15 @@ export const DiscountModal = ({
   showAppliedPromotions = true,
 }: DiscountModalProps) => {
   const router = useRouter()
+  const stagedPromotionCodes = useCartPageUiStore(
+    (state) => state.stagedPromotionCodes
+  )
+  const stagePromotionCode = useCartPageUiStore(
+    (state) => state.stagePromotionCode
+  )
+  const unstagePromotionCode = useCartPageUiStore(
+    (state) => state.unstagePromotionCode
+  )
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -78,6 +88,8 @@ export const DiscountModal = ({
       ].join("::"),
     [cart, serverAppliedCodesKey, vendorName]
   )
+  const supportsDirectPromotionApply =
+    typeof cart?.id === "string" && cart.id.startsWith("cart_")
 
   useEffect(() => {
     if (!isOpen) return
@@ -113,20 +125,34 @@ export const DiscountModal = ({
     }
 
     syncedServerStateKeyRef.current = syncKey
-    setActiveCodes(serverAppliedCodes)
+    setActiveCodes(
+      Array.from(new Set([...serverAppliedCodes, ...stagedPromotionCodes]))
+    )
     setFailedCouponReasons({})
     setError(null)
     setMessage(null)
     setManualCode("")
-  }, [cart?.id, isOpen, serverAppliedCodes, serverAppliedCodesKey, vendorName])
+  }, [
+    cart?.id,
+    isOpen,
+    serverAppliedCodes,
+    serverAppliedCodesKey,
+    stagedPromotionCodes,
+    vendorName,
+  ])
 
   const handleApply = async (codeToApply: string) => {
     const normalizedCode = codeToApply.trim()
     if (!normalizedCode) return false
+    const matchedCoupon = availableCoupons.find(
+      (coupon) => coupon.code.trim().toLowerCase() === normalizedCode.toLowerCase()
+    )
     setIsLoading(true)
     setError(null)
     setMessage(null)
-    setActiveCodes([])
+    if (supportsDirectPromotionApply) {
+      setActiveCodes([])
+    }
     setFailedCouponReasons((current) => {
       if (!(normalizedCode in current)) {
         return current
@@ -138,6 +164,44 @@ export const DiscountModal = ({
     })
 
     try {
+      if (!supportsDirectPromotionApply) {
+        if (!matchedCoupon) {
+          const failedReason = "คูปองไม่ถูกต้อง หรือเงื่อนไขไม่ครบถ้วน"
+          setError(failedReason)
+          setFailedCouponReasons((current) => ({
+            ...current,
+            [normalizedCode]: failedReason,
+          }))
+          return false
+        }
+
+        const eligibility = evaluateCouponEligibility(matchedCoupon, {
+          cart,
+          appliedCodes,
+          vendorName,
+        })
+
+        if (!eligibility.isEligible) {
+          const failedReason =
+            eligibility.disabledReason ||
+            "คูปองไม่ถูกต้อง หรือเงื่อนไขไม่ครบถ้วน"
+          setError(failedReason)
+          setFailedCouponReasons((current) => ({
+            ...current,
+            [normalizedCode]: failedReason,
+          }))
+          return false
+        }
+
+        stagePromotionCode(matchedCoupon.code)
+        setManualCode("")
+        setActiveCodes((current) =>
+          Array.from(new Set([...current, matchedCoupon.code]))
+        )
+        setMessage("เลือกโค้ดส่วนลดแล้ว ระบบจะนำไปใช้ในขั้นตอนชำระเงิน")
+        return true
+      }
+
       const result = await applyPromotions([normalizedCode])
 
       // applyPromotions returns false only when it explicitly fails
@@ -232,14 +296,21 @@ export const DiscountModal = ({
     setMessage(null)
 
     try {
-      await deletePromotionCode(codeToRemove)
-      setMessage("ลบโค้ดส่วนลดแล้ว")
+      if (supportsDirectPromotionApply) {
+        await deletePromotionCode(codeToRemove)
+        setMessage("ลบโค้ดส่วนลดแล้ว")
+      } else {
+        unstagePromotionCode(codeToRemove)
+        setMessage("ยกเลิกโค้ดส่วนลดแล้ว")
+      }
       setActiveCodes((current) =>
         current.filter((code) => code !== codeToRemove)
       )
-      startTransition(() => {
-        router.refresh()
-      })
+      if (supportsDirectPromotionApply) {
+        startTransition(() => {
+          router.refresh()
+        })
+      }
     } catch (e: unknown) {
       setError("เกิดข้อผิดพลาดในการลบคูปอง")
     } finally {
@@ -390,16 +461,20 @@ export const DiscountModal = ({
                   onConditionsClick={(c) => setSelectedCoupon(c)}
                   isApplied={appliedCodes.has(coupon.code)}
                   isDisabled={
-                    coupon.is_collected
+                    coupon.is_collected || appliedCodes.has(coupon.code)
                       ? Boolean(failedReason) || !eligibility.isEligible
                       : false
                   }
                   disabledReason={
-                    coupon.is_collected
+                    coupon.is_collected || appliedCodes.has(coupon.code)
                       ? failedReason ?? eligibility.disabledReason
                       : undefined
                   }
-                  mode={coupon.is_collected ? "use" : "collect"}
+                  mode={
+                    coupon.is_collected || appliedCodes.has(coupon.code)
+                      ? "use"
+                      : "collect"
+                  }
                 />
               ))}
             </div>

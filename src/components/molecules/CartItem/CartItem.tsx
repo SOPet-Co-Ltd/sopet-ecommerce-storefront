@@ -133,7 +133,7 @@ export const CartItem = ({
           handle: [item.product_handle],
           limit: 1,
           fields:
-            "id,title,handle,thumbnail,*images,*seller,*options,*options.values,*variants,*variants.calculated_price,+variants.inventory_quantity,*variants.options,*variants.options.option",
+            "id,title,handle,thumbnail,+metadata,*images,*seller,*options,*options.values,*variants,*variants.calculated_price,+variants.inventory_quantity,*variants.options,*variants.options.option",
         },
         forceCache: false,
         includeStats: false,
