@@ -14,6 +14,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(payload)
   } catch (err: any) {
-    return NextResponse.json({ message: err.message || "Failed to fetch orders" }, { status: 500 })
+    return NextResponse.json(
+      { message: err.message || "Failed to fetch orders" },
+      { status: 500 }
+    )
   }
 }
