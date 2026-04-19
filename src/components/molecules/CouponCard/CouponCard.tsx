@@ -26,6 +26,7 @@ export type CouponData = {
   is_used?: boolean
   isEligible?: boolean
   ineligibilityReason?: string
+  eligibilityFingerprint?: string
 }
 
 export type CouponCardProps = {

@@ -4,25 +4,22 @@ import { Modal } from "@/components/molecules/Modal/Modal"
 import { Button, Input } from "@/components/atoms"
 import { Text } from "@medusajs/ui"
 import { Ticket, X } from "lucide-react"
-import { applyPromotions, deletePromotionCode } from "@/lib/data/cart"
 import { Cart } from "@/types/cart"
-import {
-  useState,
-  useEffect,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react"
+import { useCallback, useEffect, useMemo } from "react"
 import { CouponCard } from "../CouponCard/CouponCard"
 import type { CouponData } from "../CouponCard/CouponCard"
 import { CouponConditionsModal } from "../CouponConditionsModal/CouponConditionsModal"
-import { collectCoupon, fetchCoupons, fetchMyCoupons } from "@/lib/data/coupons"
-import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import { evaluateCouponEligibility } from "@/lib/helpers/coupon-eligibility"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
 import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 import { useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/react-query/query-keys"
+import {
+  useApplyCheckoutPromotionMutation,
+  useDiscountModalCouponsQuery,
+  useRemoveCheckoutPromotionMutation,
+} from "@/hooks/useDiscountModalCouponsQuery"
+import { useDiscountModalUiStore } from "@/lib/zustand/discount-modal-ui-store"
 
 type DiscountModalProps = {
   isOpen: boolean
@@ -49,19 +46,43 @@ export const DiscountModal = ({
   const unstagePromotionCode = useCartPageUiStore(
     (state) => state.unstagePromotionCode
   )
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-  const [availableCoupons, setAvailableCoupons] = useState<CouponData[]>([])
-  const [isFetchingCoupons, setIsFetchingCoupons] = useState(true)
-  const [selectedCoupon, setSelectedCoupon] = useState<CouponData | null>(null)
-  const [manualCode, setManualCode] = useState("")
-  const [activeCodes, setActiveCodes] = useState<string[]>([])
-  const [failedCouponReasons, setFailedCouponReasons] = useState<
-    Record<string, string>
-  >({})
-  const syncedServerStateKeyRef = useRef<string | null>(null)
-  const hasLoadedCouponsRef = useRef(false)
+  const manualCode = useDiscountModalUiStore((state) => state.manualCode)
+  const setManualCode = useDiscountModalUiStore((state) => state.setManualCode)
+  const selectedCoupon = useDiscountModalUiStore((state) => state.selectedCoupon)
+  const setSelectedCoupon = useDiscountModalUiStore(
+    (state) => state.setSelectedCoupon
+  )
+  const error = useDiscountModalUiStore((state) => state.error)
+  const setError = useDiscountModalUiStore((state) => state.setError)
+  const message = useDiscountModalUiStore((state) => state.message)
+  const setMessage = useDiscountModalUiStore((state) => state.setMessage)
+  const activeCodes = useDiscountModalUiStore((state) => state.activeCodes)
+  const setActiveCodes = useDiscountModalUiStore((state) => state.setActiveCodes)
+  const failedCouponReasons = useDiscountModalUiStore(
+    (state) => state.failedCouponReasons
+  )
+  const clearCouponFailure = useDiscountModalUiStore(
+    (state) => state.clearCouponFailure
+  )
+  const setCouponFailure = useDiscountModalUiStore(
+    (state) => state.setCouponFailure
+  )
+  const hydrateContext = useDiscountModalUiStore((state) => state.hydrateContext)
+  const applyingCode = useDiscountModalUiStore((state) => state.applyingCode)
+  const setApplyingCode = useDiscountModalUiStore(
+    (state) => state.setApplyingCode
+  )
+  const collectingCouponId = useDiscountModalUiStore(
+    (state) => state.collectingCouponId
+  )
+  const setCollectingCouponId = useDiscountModalUiStore(
+    (state) => state.setCollectingCouponId
+  )
+  const removingCode = useDiscountModalUiStore((state) => state.removingCode)
+  const setRemovingCode = useDiscountModalUiStore((state) => state.setRemovingCode)
+  const resetTransientState = useDiscountModalUiStore(
+    (state) => state.resetTransientState
+  )
 
   const appliedPromotions = useMemo(
     () => cart?.promotions ?? [],
@@ -90,8 +111,13 @@ export const DiscountModal = ({
       ].join("::"),
     [cart, serverAppliedCodesKey, vendorName]
   )
+  const currentCartFingerprint = useMemo(
+    () => checkoutPaymentFingerprint(cart),
+    [cart]
+  )
   const supportsDirectPromotionApply =
     typeof cart?.id === "string" && cart.id.startsWith("cart_")
+  const checkoutCartId = supportsDirectPromotionApply ? cart?.id ?? null : null
   const checkoutCartQueryKey = useMemo(
     () =>
       supportsDirectPromotionApply && cart?.id
@@ -99,17 +125,22 @@ export const DiscountModal = ({
         : null,
     [supportsDirectPromotionApply, cart?.id]
   )
-
-  const syncCheckoutCartQuery = useCallback(() => {
-    if (!checkoutCartQueryKey) {
-      return
-    }
-
-    void queryClient.invalidateQueries({
-      queryKey: checkoutCartQueryKey,
-      exact: true,
-    })
-  }, [checkoutCartQueryKey, queryClient])
+  const couponsQuery = useDiscountModalCouponsQuery({
+    cart,
+    vendorName,
+  })
+  const availableCoupons = couponsQuery.data?.coupons ?? []
+  const isFetchingCoupons = couponsQuery.isPending && !couponsQuery.data
+  const applyCheckoutPromotionMutation =
+    useApplyCheckoutPromotionMutation(checkoutCartId)
+  const removeCheckoutPromotionMutation =
+    useRemoveCheckoutPromotionMutation(checkoutCartId)
+  const isMutating =
+    Boolean(applyingCode) ||
+    Boolean(collectingCouponId) ||
+    Boolean(removingCode) ||
+    applyCheckoutPromotionMutation.isPending ||
+    removeCheckoutPromotionMutation.isPending
 
   const setOptimisticCheckoutPromotionCodes = useCallback(
     (nextCodes: string[]) => {
@@ -147,52 +178,20 @@ export const DiscountModal = ({
   )
 
   useEffect(() => {
-    if (!isOpen) return
-
-    async function loadCoupons() {
-      if (!hasLoadedCouponsRef.current) {
-        setIsFetchingCoupons(true)
-      }
-      try {
-        const data = vendorName
-          ? await fetchCoupons(undefined, 200, 0, { vendorName })
-          : await fetchMyCoupons({
-              cartId: cart?.id,
-              vendorName,
-            })
-        setAvailableCoupons(data.map(mapCouponToCardData))
-        hasLoadedCouponsRef.current = true
-      } catch (e) {
-        console.error("Failed to fetch coupons:", e)
-      } finally {
-        setIsFetchingCoupons(false)
-      }
-    }
-    loadCoupons()
-  }, [cart?.id, couponContextKey, isOpen, vendorName])
-
-  useEffect(() => {
     if (!isOpen) {
-      syncedServerStateKeyRef.current = null
+      resetTransientState()
       return
     }
 
-    const syncKey = `${cart?.id ?? ""}::${vendorName ?? ""}::${serverAppliedCodesKey}`
-    if (syncedServerStateKeyRef.current === syncKey) {
-      return
-    }
-
-    syncedServerStateKeyRef.current = syncKey
-    setActiveCodes(
+    hydrateContext(
+      `${cart?.id ?? ""}::${vendorName ?? ""}::${serverAppliedCodesKey}`,
       Array.from(new Set([...serverAppliedCodes, ...stagedPromotionCodes]))
     )
-    setFailedCouponReasons({})
-    setError(null)
-    setMessage(null)
-    setManualCode("")
   }, [
     cart?.id,
+    hydrateContext,
     isOpen,
+    resetTransientState,
     serverAppliedCodes,
     serverAppliedCodesKey,
     stagedPromotionCodes,
@@ -206,7 +205,7 @@ export const DiscountModal = ({
       (coupon) => coupon.code.trim().toLowerCase() === normalizedCode.toLowerCase()
     )
     const previousActiveCodes = [...activeCodes]
-    setIsLoading(true)
+    setApplyingCode(normalizedCode)
     setError(null)
     setMessage(null)
     if (supportsDirectPromotionApply) {
@@ -214,25 +213,14 @@ export const DiscountModal = ({
       setActiveCodes([normalizedCode])
       setOptimisticCheckoutPromotionCodes([normalizedCode])
     }
-    setFailedCouponReasons((current) => {
-      if (!(normalizedCode in current)) {
-        return current
-      }
-
-      const next = { ...current }
-      delete next[normalizedCode]
-      return next
-    })
+    clearCouponFailure(normalizedCode)
 
     try {
       if (!supportsDirectPromotionApply) {
         if (!matchedCoupon) {
           const failedReason = "คูปองไม่ถูกต้อง หรือเงื่อนไขไม่ครบถ้วน"
           setError(failedReason)
-          setFailedCouponReasons((current) => ({
-            ...current,
-            [normalizedCode]: failedReason,
-          }))
+          setCouponFailure(normalizedCode, failedReason)
           return false
         }
 
@@ -240,6 +228,7 @@ export const DiscountModal = ({
           cart,
           appliedCodes,
           vendorName,
+          cartFingerprint: currentCartFingerprint,
         })
 
         if (!eligibility.isEligible) {
@@ -247,44 +236,40 @@ export const DiscountModal = ({
             eligibility.disabledReason ||
             "คูปองไม่ถูกต้อง หรือเงื่อนไขไม่ครบถ้วน"
           setError(failedReason)
-          setFailedCouponReasons((current) => ({
-            ...current,
-            [normalizedCode]: failedReason,
-          }))
+          setCouponFailure(normalizedCode, failedReason)
           return false
         }
 
         stagePromotionCode(matchedCoupon.code)
         setManualCode("")
-        setActiveCodes((current) =>
-          Array.from(new Set([...current, matchedCoupon.code]))
-        )
+        setActiveCodes(Array.from(new Set([...activeCodes, matchedCoupon.code])))
         setMessage("เลือกโค้ดส่วนลดแล้ว ระบบจะนำไปใช้ในขั้นตอนชำระเงิน")
         return true
       }
 
-      const result = await applyPromotions([normalizedCode])
+      const updatedCart = await applyCheckoutPromotionMutation.mutateAsync([
+        normalizedCode,
+      ])
+      const nextCodes = (updatedCart.promotions ?? [])
+        .map((promotion) => promotion.code)
+        .filter(
+          (code): code is string => typeof code === "string" && code.length > 0
+        )
 
-      // applyPromotions returns false only when it explicitly fails
-      // It may return undefined on success if cart.promotions isn't populated in the response
-      if (result === false) {
+      if (!nextCodes.includes(normalizedCode)) {
         setActiveCodes(previousActiveCodes)
         setOptimisticCheckoutPromotionCodes(previousActiveCodes)
         const failedReason = "คูปองไม่ถูกต้อง หรือเงื่อนไขไม่ครบถ้วน"
         setError(failedReason)
-        setFailedCouponReasons((current) => ({
-          ...current,
-          [normalizedCode]: failedReason,
-        }))
+        setCouponFailure(normalizedCode, failedReason)
         return false
-      } else {
-        setMessage("โค้ดส่วนลดถูกใช้แล้ว")
-        setManualCode("")
-        setActiveCodes([normalizedCode])
-        setOptimisticCheckoutPromotionCodes([normalizedCode])
-        syncCheckoutCartQuery()
-        return true
       }
+
+      setMessage("โค้ดส่วนลดถูกใช้แล้ว")
+      setManualCode("")
+      setActiveCodes(nextCodes)
+      setOptimisticCheckoutPromotionCodes(nextCodes)
+      return true
     } catch (error: unknown) {
       if (supportsDirectPromotionApply) {
         setActiveCodes(previousActiveCodes)
@@ -299,32 +284,36 @@ export const DiscountModal = ({
       ) {
         const failedReason = "คูปองไม่ถูกต้อง หรือหมดอายุแล้ว"
         setError(failedReason)
-        setFailedCouponReasons((current) => ({
-          ...current,
-          [normalizedCode]: failedReason,
-        }))
+        setCouponFailure(normalizedCode, failedReason)
       } else {
         const failedReason = "เกิดข้อผิดพลาดในการใช้คูปอง"
         setError(failedReason)
-        setFailedCouponReasons((current) => ({
-          ...current,
-          [normalizedCode]: failedReason,
-        }))
+        setCouponFailure(normalizedCode, failedReason)
       }
       console.error("Discount Error:", error)
       return false
     } finally {
-      setIsLoading(false)
+      setApplyingCode(null)
     }
   }
 
   const handleCollect = async (coupon: CouponData) => {
-    setIsLoading(true)
+    setCollectingCouponId(coupon.id)
     setError(null)
     setMessage(null)
 
     try {
-      const result = await collectCoupon(coupon.id)
+      const response = await fetch(
+        `/api/coupons/${encodeURIComponent(coupon.id)}/collect`,
+        {
+          method: "POST",
+        }
+      )
+
+      const result = (await response.json().catch(() => ({}))) as {
+        success?: boolean
+        message?: string
+      }
 
       if (!result.success) {
         const message =
@@ -340,11 +329,9 @@ export const DiscountModal = ({
         return false
       }
 
-      setAvailableCoupons((current) =>
-        current.map((item) =>
-          item.id === coupon.id ? { ...item, is_collected: true } : item
-        )
-      )
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.coupons.all(),
+      })
       setMessage("เก็บโค้ดส่วนลดแล้ว")
       return true
     } catch (error) {
@@ -352,13 +339,13 @@ export const DiscountModal = ({
       setError("ไม่สามารถเก็บคูปองได้")
       return false
     } finally {
-      setIsLoading(false)
+      setCollectingCouponId(null)
     }
   }
 
   const handleRemove = async (codeToRemove: string) => {
     const previousActiveCodes = [...activeCodes]
-    setIsLoading(true)
+    setRemovingCode(codeToRemove)
     setError(null)
     setMessage(null)
 
@@ -368,18 +355,23 @@ export const DiscountModal = ({
         setMessage("กำลังลบโค้ดส่วนลด…")
         setActiveCodes(nextCodes)
         setOptimisticCheckoutPromotionCodes(nextCodes)
-        await deletePromotionCode(codeToRemove)
+        const updatedCart = await removeCheckoutPromotionMutation.mutateAsync(
+          codeToRemove
+        )
+        const confirmedCodes = (updatedCart.promotions ?? [])
+          .map((promotion) => promotion.code)
+          .filter(
+            (code): code is string =>
+              typeof code === "string" && code.length > 0
+          )
+        setActiveCodes(confirmedCodes)
+        setOptimisticCheckoutPromotionCodes(confirmedCodes)
         setMessage("ลบโค้ดส่วนลดแล้ว")
       } else {
         unstagePromotionCode(codeToRemove)
         setMessage("ยกเลิกโค้ดส่วนลดแล้ว")
       }
-      setActiveCodes((current) =>
-        current.filter((code) => code !== codeToRemove)
-      )
-      if (supportsDirectPromotionApply) {
-        syncCheckoutCartQuery()
-      }
+      setActiveCodes(activeCodes.filter((code) => code !== codeToRemove))
     } catch (e: unknown) {
       if (supportsDirectPromotionApply) {
         setActiveCodes(previousActiveCodes)
@@ -387,7 +379,7 @@ export const DiscountModal = ({
       }
       setError("เกิดข้อผิดพลาดในการลบคูปอง")
     } finally {
-      setIsLoading(false)
+      setRemovingCode(null)
     }
   }
 
@@ -409,6 +401,7 @@ export const DiscountModal = ({
         cart,
         appliedCodes,
         vendorName,
+        cartFingerprint: currentCartFingerprint,
       })
 
       return {
@@ -440,7 +433,14 @@ export const DiscountModal = ({
 
       return left.coupon.code.localeCompare(right.coupon.code, "th")
     })
-  }, [appliedCodes, availableCoupons, cart, failedCouponReasons, vendorName])
+  }, [
+    appliedCodes,
+    availableCoupons,
+    cart,
+    currentCartFingerprint,
+    failedCouponReasons,
+    vendorName,
+  ])
 
   if (!isOpen) return null
 
@@ -453,6 +453,14 @@ export const DiscountModal = ({
       <div className="px-4 pb-4 flex flex-col gap-4">
         {error && <Text className="text-red-500 text-sm">{error}</Text>}
         {message && <Text className="text-green-600 text-sm">{message}</Text>}
+        {(isMutating || (couponsQuery.isFetching && !isFetchingCoupons)) && (
+          <div className="flex items-center gap-2 rounded-lg bg-sop-primary-50 px-3 py-2 text-sop-primary-600">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            <Text className="text-sm">
+              {isMutating ? "กำลังอัปเดตโค้ดส่วนลด…" : "กำลังตรวจสอบคูปองล่าสุด…"}
+            </Text>
+          </div>
+        )}
 
         <div className="flex flex-col gap-2">
           <Text className="text-sm font-medium text-gray-900">
@@ -467,8 +475,8 @@ export const DiscountModal = ({
             />
             <Button
               onClick={() => handleApply(manualCode)}
-              disabled={isLoading || manualCode.trim().length === 0}
-              loading={isLoading}
+              disabled={isMutating || manualCode.trim().length === 0}
+              loading={applyingCode === manualCode.trim()}
               className="shrink-0"
             >
               ใช้โค้ด
@@ -500,7 +508,7 @@ export const DiscountModal = ({
                 </div>
                 <button
                   onClick={() => handleRemove(promo.code!)}
-                  disabled={isLoading}
+                  disabled={isMutating}
                   className="p-1 hover:bg-green-100 rounded-full transition-colors text-green-600"
                 >
                   <X className="w-4 h-4" />
@@ -547,6 +555,11 @@ export const DiscountModal = ({
                     coupon.is_collected || appliedCodes.has(coupon.code)
                       ? "use"
                       : "collect"
+                  }
+                  isLoading={
+                    applyingCode === coupon.code ||
+                    collectingCouponId === coupon.id ||
+                    removingCode === coupon.code
                   }
                 />
               ))}
