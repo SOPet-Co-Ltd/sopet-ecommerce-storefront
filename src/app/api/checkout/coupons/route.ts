@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     request.nextUrl.searchParams.get("eligibilityFingerprint") || null
 
   const coupons = vendorName
-    ? await fetchCoupons(undefined, 200, 0, { vendorName })
+    ? await fetchCoupons(undefined, 200, 0, { vendorName, cartId })
     : await fetchMyCoupons({ cartId, vendorName })
 
   return NextResponse.json({
