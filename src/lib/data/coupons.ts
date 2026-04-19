@@ -60,6 +60,7 @@ export async function fetchCoupons(
   offset: number = 0,
   options?: {
     vendorName?: string
+    cartId?: string
   }
 ): Promise<CouponApiData[]> {
   if (isCouponFeatureUnavailable()) {
@@ -75,6 +76,9 @@ export async function fetchCoupons(
     }
     if (options?.vendorName) {
       url.searchParams.set("vendor_name", options.vendorName)
+    }
+    if (isMedusaCartId(options?.cartId)) {
+      url.searchParams.set("cart_id", options.cartId)
     }
 
     const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""

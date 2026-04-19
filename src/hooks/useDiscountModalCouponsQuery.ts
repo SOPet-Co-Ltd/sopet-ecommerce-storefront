@@ -4,7 +4,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
-import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import { queryKeys } from "@/lib/react-query/query-keys"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import type { Cart } from "@/types/cart"
@@ -48,36 +47,6 @@ async function parseJson<T>(response: Response): Promise<T> {
   }
 
   return JSON.parse(text) as T
-}
-
-function getSellerGroupCount(cart: Cart | null) {
-  if (!cart?.items?.length) {
-    return 0
-  }
-
-  const sellerKeys = new Set<string>()
-
-  for (const item of cart.items) {
-    const { key } = getCartItemSellerGroup(item)
-    if (key) {
-      sellerKeys.add(key)
-    }
-  }
-
-  return sellerKeys.size
-}
-
-function isCheckoutCouponEligibilityReady(cart: Cart | null) {
-  if (!cart?.id) {
-    return false
-  }
-
-  const sellerGroupCount = getSellerGroupCount(cart)
-  if (sellerGroupCount === 0) {
-    return true
-  }
-
-  return (cart.shipping_methods?.length ?? 0) >= sellerGroupCount
 }
 
 async function fetchDiscountModalCoupons(args: {
@@ -175,12 +144,12 @@ export function useDiscountModalCouponsQuery({
   cart,
   vendorName,
 }: UseDiscountModalCouponsQueryArgs) {
-  const couponEligibilityReady = isCheckoutCouponEligibilityReady(cart)
   const cartId = typeof cart?.id === "string" && cart.id.startsWith("cart_")
     ? cart.id
     : undefined
-  const eligibilityFingerprint =
-    cartId && couponEligibilityReady ? checkoutPaymentFingerprint(cart) : null
+  const eligibilityFingerprint = cartId
+    ? checkoutPaymentFingerprint(cart)
+    : null
 
   return useQuery({
     queryKey: queryKeys.coupons.discountModal(
@@ -190,7 +159,7 @@ export function useDiscountModalCouponsQuery({
     ),
     queryFn: () =>
       fetchDiscountModalCoupons({
-        cartId: couponEligibilityReady ? cartId : undefined,
+        cartId,
         vendorName,
         eligibilityFingerprint,
       }),
