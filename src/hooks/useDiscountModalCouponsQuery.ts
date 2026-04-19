@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 
 import type { CouponData } from "@/components/molecules/CouponCard/CouponCard"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
+import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import { queryKeys } from "@/lib/react-query/query-keys"
 import { mapCouponToCardData } from "@/lib/utils/coupon-mapper"
 import type { Cart } from "@/types/cart"
@@ -39,6 +40,10 @@ type DiscountModalCouponsResult = {
   eligibilityFingerprint: string | null
 }
 
+type SellerGroupCountArgs = {
+  cart: Cart | null
+}
+
 async function parseJson<T>(response: Response): Promise<T> {
   const text = await response.text()
 
@@ -47,6 +52,24 @@ async function parseJson<T>(response: Response): Promise<T> {
   }
 
   return JSON.parse(text) as T
+}
+
+function getSellerGroupCount({ cart }: SellerGroupCountArgs) {
+  if (!cart?.items?.length) {
+    return 0
+  }
+
+  const sellerKeys = new Set<string>()
+
+  for (const item of cart.items) {
+    const { key } = getCartItemSellerGroup(item)
+
+    if (key) {
+      sellerKeys.add(key)
+    }
+  }
+
+  return sellerKeys.size
 }
 
 async function fetchDiscountModalCoupons(args: {
@@ -147,11 +170,16 @@ export function useDiscountModalCouponsQuery({
   const cartId = typeof cart?.id === "string" && cart.id.startsWith("cart_")
     ? cart.id
     : undefined
+  const sellerGroupCount = getSellerGroupCount({ cart })
+  const couponEligibilityReady =
+    !cartId ||
+    sellerGroupCount === 0 ||
+    (cart?.shipping_methods?.length ?? 0) >= sellerGroupCount
   const eligibilityFingerprint = cartId
     ? checkoutPaymentFingerprint(cart)
     : null
 
-  return useQuery({
+  const query = useQuery({
     queryKey: queryKeys.coupons.discountModal(
       cartId,
       vendorName,
@@ -163,11 +191,16 @@ export function useDiscountModalCouponsQuery({
         vendorName,
         eligibilityFingerprint,
       }),
-    enabled: Boolean(cartId || vendorName),
+    enabled: Boolean((cartId || vendorName) && couponEligibilityReady),
     staleTime: 30 * 1000,
     refetchOnWindowFocus: false,
     placeholderData: (previousData) => previousData,
   })
+
+  return {
+    ...query,
+    couponEligibilityReady,
+  }
 }
 
 export function useApplyCheckoutPromotionMutation(cartId: string | null) {

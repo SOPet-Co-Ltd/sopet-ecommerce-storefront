@@ -12,12 +12,13 @@ import Image from "next/image"
 import { convertToLocale } from "@/lib/helpers/money"
 
 import { ShippingOptionDialog } from "@/components/organisms/ShippingOptionDialog/ShippingOptionDialog"
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { DeliveryTruckIcon, DiscountIcon } from "@/icons"
 import { setMultiShippingMethods } from "@/lib/data/cart"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/lib/react-query/query-keys"
 import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
+import { buildCartDefaultShippingSelection } from "@/lib/helpers/cart-shipping-selection"
 import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
 import { useCheckoutPageUIStore } from "@/lib/zustand/checkout-page-ui-store"
 
@@ -37,6 +38,7 @@ const CheckoutItemPreview = ({
 }: CheckoutItemPreviewProps) => {
   const queryClient = useQueryClient()
   const { refetch: refetchCheckoutPageData } = useCheckoutPageData()
+  const autoPersistSignatureRef = useRef<string | null>(null)
   const getNumericAmount = (value: unknown): number => {
     if (typeof value === "number") return value
     if (typeof value === "string") {
@@ -80,6 +82,9 @@ const CheckoutItemPreview = ({
       await Promise.all([
         queryClient.invalidateQueries({
           queryKey: queryKeys.checkout.cart(cart.id),
+        }),
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.checkout.pageData(cart.id, cart.region_id ?? cart.region?.id),
         }),
       ])
     },
@@ -174,6 +179,13 @@ const CheckoutItemPreview = ({
     groupedItems,
     shippingOptionsBySellerKey,
   ])
+  const defaultShippingSelection = useMemo(
+    () =>
+      cart
+        ? buildCartDefaultShippingSelection(cart, availableShippingMethods)
+        : { optionIds: [], needsPersist: false },
+    [availableShippingMethods, cart]
+  )
 
 
 
@@ -195,6 +207,41 @@ const CheckoutItemPreview = ({
     refetchCheckoutPageData,
   ])
 
+  useEffect(() => {
+    if (!cart?.id || isUpdatingShipping) {
+      return
+    }
+
+    if (
+      !defaultShippingSelection.needsPersist ||
+      defaultShippingSelection.optionIds.length === 0
+    ) {
+      autoPersistSignatureRef.current = null
+      return
+    }
+
+    const nextSignature = [...defaultShippingSelection.optionIds].sort().join("|")
+
+    if (autoPersistSignatureRef.current === nextSignature) {
+      return
+    }
+
+    autoPersistSignatureRef.current = nextSignature
+
+    void updateShippingMethods(defaultShippingSelection.optionIds).catch(
+      (error: unknown) => {
+        autoPersistSignatureRef.current = null
+        console.error("Failed to auto-select shipping methods:", error)
+      }
+    )
+  }, [
+    cart?.id,
+    defaultShippingSelection.needsPersist,
+    defaultShippingSelection.optionIds,
+    isUpdatingShipping,
+    updateShippingMethods,
+  ])
+
   if (!cart) return null
 
   const handleOpenShippingDialog = (sellerId: string) => {
@@ -212,8 +259,8 @@ const CheckoutItemPreview = ({
     if (allOptionIds.length > 0) {
       try {
         await updateShippingMethods(allOptionIds)
-      } catch (e: any) {
-        console.error("Failed to set shipping methods:", e)
+      } catch (error: unknown) {
+        console.error("Failed to set shipping methods:", error)
       }
     }
   }

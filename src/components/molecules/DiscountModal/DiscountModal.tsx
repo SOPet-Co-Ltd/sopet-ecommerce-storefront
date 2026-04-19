@@ -131,6 +131,8 @@ export const DiscountModal = ({
   })
   const availableCoupons = couponsQuery.data?.coupons ?? []
   const isFetchingCoupons = couponsQuery.isPending && !couponsQuery.data
+  const isPreparingCouponEligibility =
+    supportsDirectPromotionApply && !couponsQuery.couponEligibilityReady
   const applyCheckoutPromotionMutation =
     useApplyCheckoutPromotionMutation(checkoutCartId)
   const removeCheckoutPromotionMutation =
@@ -453,11 +455,17 @@ export const DiscountModal = ({
       <div className="px-4 pb-4 flex flex-col gap-4">
         {error && <Text className="text-red-500 text-sm">{error}</Text>}
         {message && <Text className="text-green-600 text-sm">{message}</Text>}
-        {(isMutating || (couponsQuery.isFetching && !isFetchingCoupons)) && (
+        {(isMutating ||
+          isPreparingCouponEligibility ||
+          (couponsQuery.isFetching && !isFetchingCoupons)) && (
           <div className="flex items-center gap-2 rounded-lg bg-sop-primary-50 px-3 py-2 text-sop-primary-600">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <Text className="text-sm">
-              {isMutating ? "กำลังอัปเดตโค้ดส่วนลด…" : "กำลังตรวจสอบคูปองล่าสุด…"}
+              {isMutating
+                ? "กำลังอัปเดตโค้ดส่วนลด…"
+                : isPreparingCouponEligibility
+                  ? "กำลังเตรียมเงื่อนไขคูปองล่าสุด…"
+                  : "กำลังตรวจสอบคูปองล่าสุด…"}
             </Text>
           </div>
         )}
@@ -524,7 +532,7 @@ export const DiscountModal = ({
           <Text className="text-sm font-medium text-gray-900">
             {vendorName ? `คูปองของร้าน ${vendorName}` : "โค้ดส่วนลดของฉัน"}
           </Text>
-          {isFetchingCoupons ? (
+          {isFetchingCoupons || isPreparingCouponEligibility ? (
             <div className="flex justify-center items-center py-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sop-primary-500"></div>
             </div>
