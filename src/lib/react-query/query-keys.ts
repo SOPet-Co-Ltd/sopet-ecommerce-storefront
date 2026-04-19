@@ -25,5 +25,17 @@ export const queryKeys = {
   coupons: {
     all: () => ["coupons"] as const,
     page: () => ["coupons", "page"] as const,
+    discountModal: (
+      cartId: string | null | undefined,
+      vendorName: string | null | undefined,
+      eligibilityFingerprint: string | null | undefined
+    ) =>
+      [
+        "coupons",
+        "discount-modal",
+        cartId ?? "",
+        vendorName ?? "",
+        eligibilityFingerprint ?? "",
+      ] as const,
   },
 } as const

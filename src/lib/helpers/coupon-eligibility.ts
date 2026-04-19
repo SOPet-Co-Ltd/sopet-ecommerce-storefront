@@ -90,9 +90,14 @@ export function evaluateCouponEligibility(
     cart: Cart | null
     appliedCodes?: Set<string>
     vendorName?: string
+    cartFingerprint?: string
   }
 ): CouponEligibility {
-  const { cart, appliedCodes, vendorName } = options
+  const { cart, appliedCodes, vendorName, cartFingerprint } = options
+  const canTrustBackendEligibility =
+    !coupon.eligibilityFingerprint ||
+    !cartFingerprint ||
+    coupon.eligibilityFingerprint === cartFingerprint
 
   if (appliedCodes?.has(coupon.code)) {
     return { isEligible: true }
@@ -131,14 +136,14 @@ export function evaluateCouponEligibility(
     }
   }
 
-  if (coupon.isEligible === false) {
+  if (canTrustBackendEligibility && coupon.isEligible === false) {
     return {
       isEligible: false,
       disabledReason: coupon.ineligibilityReason,
     }
   }
 
-  if (coupon.isEligible === true) {
+  if (canTrustBackendEligibility && coupon.isEligible === true) {
     return { isEligible: true }
   }
 
