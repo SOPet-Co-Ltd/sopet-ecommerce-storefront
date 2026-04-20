@@ -20,6 +20,7 @@ import {
   useRemoveCheckoutPromotionMutation,
 } from "@/hooks/useDiscountModalCouponsQuery"
 import { useDiscountModalUiStore } from "@/lib/zustand/discount-modal-ui-store"
+import { useCheckoutPageUIStore } from "@/lib/zustand/checkout-page-ui-store"
 
 type DiscountModalProps = {
   isOpen: boolean
@@ -83,6 +84,9 @@ export const DiscountModal = ({
   const resetTransientState = useDiscountModalUiStore(
     (state) => state.resetTransientState
   )
+  const isAutoSelectingShipping = useCheckoutPageUIStore(
+    (state) => state.isAutoSelectingShipping
+  )
 
   const appliedPromotions = useMemo(
     () => cart?.promotions ?? [],
@@ -132,7 +136,8 @@ export const DiscountModal = ({
   const availableCoupons = couponsQuery.data?.coupons ?? []
   const isFetchingCoupons = couponsQuery.isPending && !couponsQuery.data
   const isPreparingCouponEligibility =
-    supportsDirectPromotionApply && !couponsQuery.couponEligibilityReady
+    supportsDirectPromotionApply &&
+    (isAutoSelectingShipping || !couponsQuery.couponEligibilityReady)
   const applyCheckoutPromotionMutation =
     useApplyCheckoutPromotionMutation(checkoutCartId)
   const removeCheckoutPromotionMutation =

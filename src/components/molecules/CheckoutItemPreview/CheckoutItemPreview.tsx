@@ -65,6 +65,7 @@ const CheckoutItemPreview = ({
   const {
     isShippingOpen,
     editingSellerId,
+    setIsAutoSelectingShipping,
     setIsShippingOpen,
     setEditingSellerId,
   } = useCheckoutPageUIStore()
@@ -217,6 +218,7 @@ const CheckoutItemPreview = ({
       defaultShippingSelection.optionIds.length === 0
     ) {
       autoPersistSignatureRef.current = null
+      setIsAutoSelectingShipping(false)
       return
     }
 
@@ -227,10 +229,12 @@ const CheckoutItemPreview = ({
     }
 
     autoPersistSignatureRef.current = nextSignature
+    setIsAutoSelectingShipping(true)
 
     void updateShippingMethods(defaultShippingSelection.optionIds).catch(
       (error: unknown) => {
         autoPersistSignatureRef.current = null
+        setIsAutoSelectingShipping(false)
         console.error("Failed to auto-select shipping methods:", error)
       }
     )
@@ -239,8 +243,15 @@ const CheckoutItemPreview = ({
     defaultShippingSelection.needsPersist,
     defaultShippingSelection.optionIds,
     isUpdatingShipping,
+    setIsAutoSelectingShipping,
     updateShippingMethods,
   ])
+
+  useEffect(() => {
+    if (!isUpdatingShipping) {
+      setIsAutoSelectingShipping(false)
+    }
+  }, [isUpdatingShipping, setIsAutoSelectingShipping])
 
   if (!cart) return null
 
