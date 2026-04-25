@@ -578,7 +578,16 @@ export async function clearMedusaCartForLoginPage() {
 }
 
 export async function signout() {
-  await sdk.auth.logout()
+  await finalizeSignout()
+  redirect(`/`)
+}
+
+export async function finalizeSignout() {
+  try {
+    await sdk.auth.logout()
+  } catch {
+    // Continue cleanup even if backend logout request fails.
+  }
 
   await removeAuthToken()
 
@@ -589,7 +598,6 @@ export async function signout() {
 
   const cartCacheTag = await getCacheTag("carts")
   revalidateTag(cartCacheTag)
-  redirect(`/`)
 }
 
 /**

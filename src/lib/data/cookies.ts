@@ -57,9 +57,38 @@ export const setAuthToken = async (token: string) => {
 
 export const removeAuthToken = async () => {
   const cookies = await nextCookies()
-  cookies.set("_medusa_jwt", "", {
-    maxAge: -1,
-  })
+  const cookieDomain = process.env.COOKIE_DOMAIN?.trim()
+  const deletionTargets: Array<{
+    domain?: string
+    sameSite?: "lax" | "none"
+    secure?: boolean
+  }> = [
+    {},
+    { sameSite: "lax", secure: false },
+    { sameSite: "none", secure: true },
+  ]
+
+  if (cookieDomain) {
+    const normalized = cookieDomain.startsWith(".")
+      ? cookieDomain
+      : `.${cookieDomain}`
+    deletionTargets.push(
+      { domain: normalized },
+      { domain: normalized, sameSite: "lax", secure: true },
+      { domain: normalized, sameSite: "none", secure: true }
+    )
+  }
+
+  for (const target of deletionTargets) {
+    cookies.set("_medusa_jwt", "", {
+      path: "/",
+      maxAge: 0,
+      expires: new Date(0),
+      ...(target.domain ? { domain: target.domain } : {}),
+      ...(target.sameSite ? { sameSite: target.sameSite } : {}),
+      ...(typeof target.secure === "boolean" ? { secure: target.secure } : {}),
+    })
+  }
 }
 
 export const getCartId = async () => {

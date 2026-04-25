@@ -58,3 +58,62 @@ If you add another sign-in success screen (non-OAuth), reuse the same helper:
 - From a client component that runs after successful login, call:
   - `await mergeAnonymousCartIntoCustomerAfterLogin()`
 - This keeps merge behavior and conflict rules consistent across all auth flows.
+
+## Checkout handoff contract (`transfer-to-medusa`)
+
+Storefront checkout from the cart uses this backend bridge endpoint:
+
+- `POST /store/customer-cart/transfer-to-medusa`
+- Called by `transferCustomerCartItemsToMedusa()` in `src/lib/data/customer-cart.ts`.
+
+### Request payload
+
+```json
+{
+  "customer_cart_item_ids": ["cci_..."],
+  "region_id": "reg_...",
+  "sales_channel_id": "sc_...",
+  "currency_code": "thb"
+}
+```
+
+Notes:
+
+- `customer_cart_item_ids` is required and must be non-empty.
+- `region_id`, `sales_channel_id`, and `currency_code` are forwarded from the active Medusa cart context when available.
+- On the storefront cart page, selected line-item IDs are customer-cart item IDs already, so they are passed directly.
+
+### Success response
+
+```json
+{
+  "medusa_cart_id": "cart_..."
+}
+```
+
+Storefront then sets cart cookie with `medusa_cart_id` and redirects to checkout.
+
+### Error response (400 contract)
+
+Backend validation failures are expected to follow this machine-readable shape:
+
+```json
+{
+  "code": "transfer_validation_failed",
+  "message": "Human-readable actionable reason",
+  "details": {}
+}
+```
+
+Storefront behavior:
+
+- Parses `code`, `message`, and optional `details` from backend error body.
+- Logs safe debug context (`status`, `code`, `customerCartItemCount`, context-presence flags) without auth/token data.
+- Re-throws normalized error so UI handlers can display a clear message.
+
+### Deterministic preconditions expected by storefront
+
+- Customer is authenticated for customer-cart endpoints.
+- Selected customer cart items exist and are eligible for checkout transfer.
+- Region/currency/sales channel context is resolvable for checkout handoff.
+- Any backend item/stock/region validation failure should return the standardized 400 contract above.
