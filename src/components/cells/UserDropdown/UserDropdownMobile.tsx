@@ -10,9 +10,9 @@ import {
   VetAIIcon,
 } from "@/icons"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
-import { signout } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
 import { HttpTypes } from "@medusajs/types"
+import { useParams } from "next/navigation"
 import { useId, useState, type ReactNode } from "react"
 
 type DropDownItemProps = {
@@ -75,6 +75,8 @@ export const UserDropdownMobile = ({
   const avatarUrl = metadata?.avatar_url as string | undefined
   const [open, setOpen] = useState(false)
   const panelId = useId()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
   const navigationItems = getNavigationItems()
 
   return (
@@ -174,9 +176,9 @@ export const UserDropdownMobile = ({
                   icon={<SignOutIcon size={14} color="#454547" />}
                   label="ออกจากระบบ"
                   separator
-                  onClick={async () => {
-                    await signout()
+                  onClick={() => {
                     setOpen(false)
+                    window.location.assign(`/${locale}/signout`)
                   }}
                 />
               </>
