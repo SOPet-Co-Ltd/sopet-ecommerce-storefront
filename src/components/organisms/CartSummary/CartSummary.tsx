@@ -8,6 +8,7 @@ import { checkoutCustomerCartSelection } from "@/lib/data/customer-cart"
 import { prepareGuestCheckout } from "@/lib/data/cart"
 import { moveAnonymousCartItemsToCheckoutHoldByIds } from "@/lib/data/local-customer-cart"
 import { useState } from "react"
+import { toast } from "sonner"
 
 interface CartSummaryProps {
   cart: HttpTypes.StoreCart | Cart
@@ -68,6 +69,11 @@ export const CartSummary = ({
       }
     } catch (e) {
       console.error("[CartSummary] Checkout failed:", e)
+      const message =
+        e instanceof Error && e.message
+          ? e.message
+          : "ไม่สามารถเริ่มการชำระเงินได้ กรุณาลองใหม่อีกครั้ง"
+      toast.error(message)
       setIsLoading(false)
     }
   }

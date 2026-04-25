@@ -31,6 +31,12 @@ interface TransferToMedusaApiResponse {
   medusa_cart_id: string
 }
 
+interface TransferToMedusaErrorPayload {
+  code?: string
+  message?: string
+  details?: unknown
+}
+
 interface CustomerCartItemsApiResponse {
   items: CustomerCartItemFromApi[]
 }
@@ -57,6 +63,53 @@ export type CustomerCartItemFromApi = {
     photo?: string | null
   } | null
   max_quantity?: number | null
+}
+
+function parseTransferToMedusaError(error: any): TransferToMedusaErrorPayload {
+  const body = error?.body
+
+  if (!body) {
+    return {
+      message: error?.message ?? "Failed to transfer customer cart to checkout",
+    }
+  }
+
+  if (typeof body === "object") {
+    return {
+      code: typeof body.code === "string" ? body.code : undefined,
+      message:
+        typeof body.message === "string"
+          ? body.message
+          : (error?.message ?? "Failed to transfer customer cart to checkout"),
+      details: body.details,
+    }
+  }
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body)
+      return {
+        code: typeof parsed?.code === "string" ? parsed.code : undefined,
+        message:
+          typeof parsed?.message === "string"
+            ? parsed.message
+            : (error?.message ??
+              "Failed to transfer customer cart to checkout"),
+        details: parsed?.details,
+      }
+    } catch {
+      return {
+        message:
+          body ||
+          error?.message ||
+          "Failed to transfer customer cart to checkout",
+      }
+    }
+  }
+
+  return {
+    message: error?.message ?? "Failed to transfer customer cart to checkout",
+  }
 }
 
 export async function getOrCreateCustomerCart(): Promise<CustomerCart> {
@@ -318,24 +371,58 @@ export async function transferCustomerCartItemsToMedusa(
     "Content-Type": "application/json",
   }
 
-  const response = await sdk.client.fetch<unknown>(
-    "/store/customer-cart/transfer-to-medusa",
-    {
-      method: "POST",
-      headers,
-      body: {
-        customer_cart_item_ids: customerCartItemIds,
-        region_id: regionId,
-        sales_channel_id: salesChannelId,
-        currency_code: currencyCode,
-      },
-      cache: "no-store",
-    }
-  )
+  let response: unknown
+  try {
+    response = await sdk.client.fetch<unknown>(
+      "/store/customer-cart/transfer-to-medusa",
+      {
+        method: "POST",
+        headers,
+        body: {
+          customer_cart_item_ids: customerCartItemIds,
+          region_id: regionId,
+          sales_channel_id: salesChannelId,
+          currency_code: currencyCode,
+        },
+        cache: "no-store",
+      }
+    )
+  } catch (error: any) {
+    const parsedError = parseTransferToMedusaError(error)
+
+    console.error("[transfer-to-medusa] Request failed", {
+      status: error?.status ?? error?.cause?.status,
+      code: parsedError.code,
+      message: parsedError.message,
+      details: parsedError.details,
+      customerCartItemCount: customerCartItemIds.length,
+      hasRegionId: Boolean(regionId),
+      hasSalesChannelId: Boolean(salesChannelId),
+      currencyCode: currencyCode ?? null,
+    })
+
+    const normalizedError = new Error(
+      parsedError.message ?? "Failed to transfer customer cart to checkout"
+    )
+    ;(normalizedError as Error & { code?: string; details?: unknown }).code =
+      parsedError.code
+    ;(normalizedError as Error & { code?: string; details?: unknown }).details =
+      parsedError.details
+
+    throw normalizedError
+  }
 
   const payload = response as TransferToMedusaApiResponse
 
   if (!payload.medusa_cart_id) {
+    console.error("[transfer-to-medusa] Invalid success payload", {
+      customerCartItemCount: customerCartItemIds.length,
+      hasRegionId: Boolean(regionId),
+      hasSalesChannelId: Boolean(salesChannelId),
+      currencyCode: currencyCode ?? null,
+      payloadKeys:
+        payload && typeof payload === "object" ? Object.keys(payload) : null,
+    })
     throw new Error("Invalid transfer-to-medusa response")
   }
 
