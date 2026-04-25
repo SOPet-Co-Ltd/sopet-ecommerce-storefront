@@ -68,6 +68,14 @@ export const CartSummary = ({
         })
       }
     } catch (e) {
+      if (
+        e instanceof Error &&
+        (e.message === "NEXT_REDIRECT" || e.message.includes("NEXT_REDIRECT"))
+      ) {
+        // Next.js redirect() throws to interrupt rendering; navigation is in progress.
+        return
+      }
+
       console.error("[CartSummary] Checkout failed:", e)
       const message =
         e instanceof Error && e.message
