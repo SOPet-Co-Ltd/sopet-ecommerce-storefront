@@ -1,6 +1,6 @@
 "use client"
-import { signout } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
+import { useParams } from "next/navigation"
 
 type LogoutButtonProps = {
   unstyled?: boolean
@@ -11,8 +11,11 @@ export const LogoutButton: React.FC<LogoutButtonProps> = ({
   className,
   children,
 }) => {
-  const handleLogout = async () => {
-    await signout()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
+
+  const handleLogout = () => {
+    window.location.assign(`/${locale}/signout`)
   }
 
   return (

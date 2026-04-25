@@ -2,10 +2,10 @@
 
 import { Avatar, Button, Dropdown } from "@/components/atoms"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { DownArrowIcon, LogoutIcon, SignOutIcon } from "@/icons"
+import { DownArrowIcon, SignOutIcon } from "@/icons"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
-import { signout } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
+import { useParams } from "next/navigation"
 import { useState, type ReactNode } from "react"
 
 type DropDownItemProps = {
@@ -55,6 +55,8 @@ export const UserDropdown = ({
     ""
   const avatarUrl = metadata?.avatar_url as string | undefined
   const [open, setOpen] = useState(false)
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
 
   const navigationItems = getNavigationItems()
 
@@ -97,9 +99,9 @@ export const UserDropdown = ({
         <DropDownItem
           icon={<SignOutIcon size={14} color="#454547" />}
           label="ออกจากระบบ"
-          onClick={async () => {
-            await signout()
+          onClick={() => {
             setOpen(false)
+            window.location.assign(`/${locale}/signout`)
           }}
         />
       </div>
