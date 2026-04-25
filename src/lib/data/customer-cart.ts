@@ -383,6 +383,7 @@ export async function transferCustomerCartItemsToMedusa(
           region_id: regionId,
           sales_channel_id: salesChannelId,
           currency_code: currencyCode,
+          promotion_codes: promotionCodes,
         },
         cache: "no-store",
       }
