@@ -11,7 +11,7 @@ import { DownArrowIcon, TickHeavyIcon } from "@/icons"
 const DROPDOWN_ITEM_PADDING = "px-[14px] py-[10px]"
 
 /** Viewport max height and scroll (native overflow; no Scroll Area to avoid overflow/overflowY conflict). */
-const DROPDOWN_VIEWPORT_CLASSES = "max-h-60 overflow-x-hidden overflow-y-auto"
+const DROPDOWN_VIEWPORT_CLASSES = "overflow-x-hidden"
 
 /**
  * Radix Select-based dropdown.
