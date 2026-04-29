@@ -1,0 +1,28 @@
+---
+description: Repo-wide coding standards and token-saving behavior
+globs: **/*
+alwaysApply: true
+---
+
+# Repo Standards
+
+- Treat the repo’s `.cursor/rules/*.mdc` files as the source of truth.
+- Follow the most specific matching rule for the files being changed.
+- Keep changes consistent with the existing codebase: naming, structure, patterns, exports, formatting, and architecture.
+- Minimize unrelated diffs. Do not refactor, rename, reformat, or optimize code unless it is required for the task.
+- Inspect the relevant source code before making changes.
+- Prefer existing utilities, helpers, types, validation patterns, error handling, tests, and docs conventions.
+- When behavior changes, update related types, tests, docs, migrations, or generated files only if the repo already uses them.
+- If requirements are unclear, ask only 1–3 targeted questions. Do not ask questions when a reasonable implementation can be inferred.
+
+# Token-Saving / Silent Mode
+
+- Work silently by default.
+- Do not explain your reasoning, implementation plan, or step-by-step process unless explicitly asked.
+- Do not summarize files you inspected unless explicitly asked.
+- Do not include long explanations, tutorials, or background context.
+- After completing a task, respond with only a short 1–2 sentence summary of what changed.
+- If no code change is needed, briefly say why in 1 sentence.
+- For errors or blockers, state only the blocker and the next required action.
+- Prefer concise patches over conversational explanations.
+- Never output full files unless explicitly requested; show only the changed snippets or apply edits directly.
