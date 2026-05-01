@@ -23,9 +23,6 @@ const getOption = (label: string) => {
 export const getFacedFilters = (filters: ReadonlyURLSearchParams): string => {
   let facet = ""
 
-  let minPrice = null
-  let maxPrice = null
-
   let query = ""
   let rating = ""
 
@@ -54,9 +51,6 @@ export const getFacedFilters = (filters: ReadonlyURLSearchParams): string => {
       }
       facet += ` AND ${values}`
     } else {
-      if (key === "min_price") minPrice = value
-      if (key === "max_price") maxPrice = value
-
       if (key === "query") query = ` AND products.title:"${value}"`
 
       if (key === "rating") {
@@ -76,15 +70,5 @@ export const getFacedFilters = (filters: ReadonlyURLSearchParams): string => {
       }
     }
   }
-
-  const priceFilter =
-    minPrice && maxPrice
-      ? ` AND variants.prices.amount:${minPrice} TO ${maxPrice}`
-      : minPrice
-        ? ` AND variants.prices.amount >= ${minPrice}`
-        : maxPrice
-          ? ` AND variants.prices.amount <= ${maxPrice}`
-          : ""
-
-  return facet + priceFilter + rating
+  return facet + rating
 }
