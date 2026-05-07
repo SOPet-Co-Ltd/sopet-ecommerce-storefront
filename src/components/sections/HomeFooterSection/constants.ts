@@ -1,17 +1,10 @@
-import {
-  FooterFacebookIcon,
-  FooterInstagramIcon,
-  FooterYouTubeIcon,
-  FooterLineIcon,
-  FooterLemon8Icon,
-  FooterTikTokIcon,
-} from "@/icons"
+import { FacebookCustomIcon, LineCustomIcon } from "@/icons"
 
 export const SOCIAL_LINKS = [
   {
     name: "Facebook",
     href: "https://www.facebook.com/sopetofficial",
-    Icon: FooterFacebookIcon,
+    Icon: FacebookCustomIcon,
   },
   // {
   //   name: "Instagram",
@@ -26,7 +19,7 @@ export const SOCIAL_LINKS = [
   {
     name: "Line",
     href: "https://line.me/R/ti/p/@131skdjz",
-    Icon: FooterLineIcon,
+    Icon: LineCustomIcon,
   },
   // {
   //   name: "Lemon8",
@@ -44,7 +37,7 @@ export const COMPANY_INFO = {
   name: "บริษัท เอสโอเพ็ท จำกัด",
   address: "เลขที่ 17 ซอยสุขุมวิท 35 แขวงคลองตันเหนือ",
   district: "เขตวัฒนา กรุงเทพมหานคร 10110",
-  email: "sopet@gmail.com",
+  email: "sopetofficial@gmail.com",
   phone: "096-876-5031",
   copyright: "Copyright © 2025 SOpet All right reserved",
 }
@@ -70,8 +63,8 @@ export const FOOTER_MENUS = {
       { label: "ร่วมงานกับเรา", href: "/careers" },
     ],
   },
-  download: {
-    title: "ดาวน์โหลดแอป",
+  line_oa: {
+    title: ["ปรึกษาสัตว​์แพทย์ฟรี !", "ผ่าน LINE OPENCHAT"],
   },
 }
 
