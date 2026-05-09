@@ -3,8 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { BackIcon, LineSquareCustomIcon, QrAddLineOAIcon } from "@/icons"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/atoms"
-
 // Admin is available Mon–Sun, 10:00–17:59 local time.
 function isWithinAdminHours(date: Date): boolean {
   const minutesSinceMidnight = date.getHours() * 60 + date.getMinutes()
@@ -230,13 +228,19 @@ const ChatWithAdminFloatingButton = () => {
                     @sopet
                   </span>
                 </div>
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="bg-sop-system-success-500 hover:bg-sop-system-success-400"
+                <a
+                  href="https://line.me/R/ti/p/@sopet"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    "shadow-xs relative inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap border border-transparent transition-colors",
+                    "bg-sop-primary-500 text-sop-neutral-grayfixed-600 hover:bg-sop-primary-600",
+                    "min-w-[76px] h-sop-36px rounded-sop-32 py-sop-8px px-sop-16px sop-body-sm-medium",
+                    "bg-sop-system-success-500 hover:bg-sop-system-success-400"
+                  )}
                 >
                   แอดไลน์เลย
-                </Button>
+                </a>
               </div>
               <span className="sop-body-sm-light line-clamp-1 text-sop-neutral-gray-200 text-center w-full">
                 เวลาทำการ จ-อา. 10:00 - 18:00
