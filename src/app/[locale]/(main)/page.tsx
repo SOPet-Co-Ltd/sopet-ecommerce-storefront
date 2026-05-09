@@ -25,7 +25,7 @@ import { getAuthHeaders } from "@/lib/data/cookies"
 import { getRequestBaseUrl } from "@/lib/helpers/request-base-url"
 import { Suspense } from "react"
 import type { HomeFaqItem } from "@/components/sections/HomeFaqSection/HomeFaqSection"
-import { VetAIFloatingButton } from "@/components/molecules/VetAIFloatingButton/VetAIFloatingButton"
+import ChatWithAdminFloatingButton from "@/components/molecules/ChatWithAdminFloatingButton/ChatWithAdminFloatingButton"
 
 const HOME_FAQ_ITEMS: HomeFaqItem[] = [
   {
@@ -209,47 +209,52 @@ export default async function Home({
         }}
       />
       {/* Product Banner Section */}
-      <BannerSection banners={bannersData} />
+      <header className="w-full">
+        <BannerSection banners={bannersData} />
+      </header>
 
-      <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
-        <div className="w-full">
-          <HomeCouponSection />
-        </div>
-
-        {/* Bought items — only for signed-in customers */}
-        {isSignedIn ? (
+      {/* Body section */}
+      <section className="relative w-full">
+        <ChatWithAdminFloatingButton />
+        <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
           <div className="w-full">
-            <Suspense fallback={null}>
-              <HomeRecentOrdersSection locale={locale} />
+            <HomeCouponSection />
+          </div>
+
+          {/* Bought items — only for signed-in customers */}
+          {isSignedIn ? (
+            <div className="w-full">
+              <Suspense fallback={null}>
+                <HomeRecentOrdersSection locale={locale} />
+              </Suspense>
+            </div>
+          ) : null}
+
+          {/* Recommended Products Section */}
+          <div className="w-full">
+            <Suspense
+              fallback={
+                <div className="px-4 py-6 sop-body-md-medium text-sop-neutral-gray-200">
+                  กำลังโหลดสินค้าแนะนำ...
+                </div>
+              }
+            >
+              <HomeRecommendedProductSection
+                heading="สินค้าแนะนำ"
+                locale={locale}
+              />
             </Suspense>
           </div>
-        ) : null}
+        </section>
 
-        {/* Recommended Products Section */}
-        <div className="w-full">
-          <Suspense
-            fallback={
-              <div className="px-4 py-6 sop-body-md-medium text-sop-neutral-gray-200">
-                กำลังโหลดสินค้าแนะนำ...
-              </div>
-            }
-          >
-            <HomeRecommendedProductSection
-              heading="สินค้าแนะนำ"
-              locale={locale}
-            />
-          </Suspense>
-        </div>
-      </section>
-
-      <section className="w-full lg:px-20 lg:py-10 p-0 flex flex-col gap-10 bg-sop-base-white overflow-hidden">
-        <HomeSponsorsSection sponsors={sponsorsData} />
-        <HomeFaqSection items={HOME_FAQ_ITEMS} />
+        <section className="w-full lg:px-20 lg:py-10 p-0 flex flex-col gap-10 bg-sop-base-white overflow-hidden">
+          <HomeSponsorsSection sponsors={sponsorsData} />
+          <HomeFaqSection items={HOME_FAQ_ITEMS} />
+        </section>
       </section>
 
       {/* Footer Section */}
       <HomeFooterSection />
-      <VetAIFloatingButton />
     </main>
   )
 }
