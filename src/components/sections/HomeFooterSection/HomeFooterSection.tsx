@@ -76,7 +76,10 @@ export const HomeFooterSection = () => {
 
 const FooterContent = () => (
   <div
-    className={cn("bg-sop-base-white w-full", responsiveClasses.desktopPadding)}
+    className={cn(
+      "bg-sop-base-white w-full bg-pattern-dog-paw relative",
+      responsiveClasses.desktopPadding
+    )}
   >
     <div
       className={cn(
