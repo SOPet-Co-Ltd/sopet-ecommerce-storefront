@@ -1,5 +1,6 @@
 import ClearCartOnNonCheckout from "@/components/atoms/ClearCartOnNonCheckout/ClearCartOnNonCheckout"
 import { Footer, Header } from "@/components/organisms"
+import { PromotionalAdsModal } from "@/components/organisms/PromotionalAdsModal/PromotionalAdsModal"
 import { getSessionCustomer } from "@/lib/data/customer"
 import { checkRegion } from "@/lib/helpers/check-region"
 import { Session } from "@talkjs/react"
@@ -26,6 +27,7 @@ export default async function RootLayout({
     return (
       <div className="flex min-h-dvh flex-col">
         <ClearCartOnNonCheckout />
+        <PromotionalAdsModal />
         <Header user={user} />
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
@@ -36,6 +38,7 @@ export default async function RootLayout({
     <Session appId={APP_ID} userId={user.id}>
       <div className="flex min-h-dvh flex-col">
         <ClearCartOnNonCheckout />
+        <PromotionalAdsModal />
         <Header user={user} />
         <div className="flex-1 min-h-0 flex flex-col">{children}</div>
         <Footer />
