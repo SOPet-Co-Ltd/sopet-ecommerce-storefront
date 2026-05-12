@@ -38,4 +38,8 @@ export const queryKeys = {
         eligibilityFingerprint ?? "",
       ] as const,
   },
+  ads: {
+    all: () => ["ads"] as const,
+    modal: () => ["ads", "modal"] as const,
+  },
 } as const
