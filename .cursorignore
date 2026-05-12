@@ -1,0 +1,30 @@
+# Node / Next / build outputs
+**/node_modules/
+**/.next/
+**/dist/
+**/build/
+**/out/
+**/.turbo/
+**/.vercel/
+**/.cache/
+**/coverage/
+
+# Logs
+**/*.log
+
+# Local env / secrets
+**/.env
+**/.env.*
+
+# IDE / editor
+**/.vscode/
+**/.idea/
+
+# OS files
+**/.DS_Store
+
+# TypeScript build artifacts
+**/*.tsbuildinfo
+
+# Yarn offline cache
+**/.yarn/

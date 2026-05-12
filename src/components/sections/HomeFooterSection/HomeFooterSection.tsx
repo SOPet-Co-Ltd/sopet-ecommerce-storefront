@@ -1,107 +1,69 @@
-"use client"
-
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { FooterPhoneIcon, FooterMailIcon } from "@/icons"
+import { FooterMailIcon } from "@/icons"
 import {
   SOCIAL_LINKS,
   COMPANY_INFO,
   FOOTER_MENUS,
   FOOTER_LINKS,
 } from "./constants"
-import {
-  FooterLink,
-  FooterMenuColumn,
-  FooterMenuList,
-  responsiveClasses,
-} from "./components"
-import { Accordion } from "./Accordion"
+import { FooterSectionHeading, responsiveClasses } from "./components"
+import Image from "next/image"
 
-// Social media icons using Footer icon components
-const SocialMediaLinks = () => {
-  return (
-    <div className="flex gap-sop-16px items-center">
-      {SOCIAL_LINKS.map(({ name, href, Icon }) => (
-        <Link key={name} href={href} target="_blank" rel="noopener noreferrer">
-          <Icon size={24} />
-        </Link>
-      ))}
-    </div>
-  )
-}
+const SocialMediaLinks = () => (
+  <div className="flex gap-sop-16px items-center">
+    {SOCIAL_LINKS.map(({ name, href, Icon }) => (
+      <Link key={name} href={href} target="_blank" rel="noopener noreferrer">
+        <Icon size={24} />
+      </Link>
+    ))}
+  </div>
+)
 
-// Phone button component
-const PhoneButton = () => {
-  return (
-    <button className="bg-sop-primary-500 text-sop-base-white pr-sop-12px pl-sop-8px py-sop-8px rounded-sop-36px flex items-center gap-2 hover:opacity-90 transition-opacity w-fit">
-      <span className="inline-flex items-center justify-center w-8 h-8 bg-sop-base-white rounded-full">
-        <FooterPhoneIcon size={12} color="#9C6ADE" />
-      </span>
-      <span className="sop-body-xs-medium text-sop-base-white">
-        {COMPANY_INFO.phone}
-      </span>
-    </button>
-  )
-}
+// LINE OA QR code for app download — image dimensions match the white background container
+const QRCodeSection = () => (
+  <div
+    className="bg-sop-base-white"
+    style={{ width: "180px", height: "180px" }}
+  >
+    <Image
+      src="/images/qr/LINE_OC_INVITE_QR.png"
+      alt="LINE OA QR Code"
+      width={1800}
+      height={1800}
+      loading="lazy"
+    />
+  </div>
+)
 
-// QR code and download section
-const QRCodeSection = () => {
-  return (
-    <div className="flex flex-col gap-sop-12px">
-      {/* <div
-        className="bg-sop-base-white p-sop-8px rounded-sop-16px border border-sop-neutral-gray-100"
-        style={{ width: "140px", height: "140px" }}
-      >
-        <div className="w-full h-full bg-sop-neutral-gray-500 rounded-sop-8px flex items-center justify-center">
-          <div className="text-center">
-            <div className="text-sop-neutral-gray-300 sop-body-xs-regular">
-              QR Code
-            </div>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col gap-sop-8px w-full">
-        <button className="bg-sop-base-black text-sop-base-white sop-body-xs-regular px-sop-8px py-sop-8px rounded-sop-8px hover:opacity-80 transition-opacity">
-          App Store
-        </button>
-        <button className="bg-sop-base-black text-sop-base-white sop-body-xs-regular px-sop-8px py-sop-8px rounded-sop-8px hover:opacity-80 transition-opacity">
-          Google Play
-        </button>
-      </div> */}
-    </div>
-  )
-}
-
-// Reusable contact info section
+// Renders company address, email link, and social icons.
+// Font size props allow each breakpoint layout to tune typography independently.
 const ContactInfoSection = ({
   nameFontSize = "sop-body-lg-regular",
   emailFontSize = "sop-body-md-medium",
 }: {
   nameFontSize?: string
   emailFontSize?: string
-}) => {
-  return (
-    <div className="flex flex-col gap-sop-28px">
-      <p className={`${nameFontSize} text-sop-base-black`}>
-        {COMPANY_INFO.name}
-        <br />
-        {COMPANY_INFO.address}
-        <br />
-        {COMPANY_INFO.district}
-      </p>
-      <Link href={`mailto:${COMPANY_INFO.email}`}>
-        <div className="flex gap-2 items-center">
-          <FooterMailIcon size={21} />
-          <p className={`${emailFontSize} text-sop-base-black`}>
-            {COMPANY_INFO.email}
-          </p>
-        </div>
-      </Link>
-      <SocialMediaLinks />
-      {/* <PhoneButton /> */}
-    </div>
-  )
-}
+}) => (
+  <div className="flex flex-col gap-sop-20px">
+    <p className={`${nameFontSize} text-sop-base-black`}>
+      {COMPANY_INFO.name}
+      <br />
+      {COMPANY_INFO.address}
+      <br />
+      {COMPANY_INFO.district}
+    </p>
+    <Link href={`mailto:${COMPANY_INFO.email}`}>
+      <div className="flex gap-2 items-center">
+        <FooterMailIcon size={21} />
+        <p className={`${emailFontSize} text-sop-base-black`}>
+          {COMPANY_INFO.email}
+        </p>
+      </div>
+    </Link>
+    <SocialMediaLinks />
+  </div>
+)
 
 export const HomeFooterSection = () => {
   return (
@@ -112,161 +74,45 @@ export const HomeFooterSection = () => {
   )
 }
 
-const FooterContent = () => {
-  return (
+const FooterContent = () => (
+  <div
+    className={cn(
+      "bg-sop-base-white w-full bg-pattern-dog-paw relative",
+      responsiveClasses.desktopPadding
+    )}
+  >
     <div
       className={cn(
-        "bg-sop-base-white w-full",
-        responsiveClasses.desktopPadding
+        "grid sm:grid-cols-1 lg:grid-cols-[1fr_auto] gap-sop-20px",
+        "gap-sop-20px"
       )}
     >
-      {/* Desktop Layout */}
-      <div className={cn(responsiveClasses.desktopOnly, "gap-sop-20px")}>
-        {/* Contact Info Section */}
-        <div className="col-span-2">
-          <ContactInfoSection />
-        </div>
-
-        {/* Products Menu */}
-        <div>{/* <FooterMenuList items={FOOTER_MENUS.products} /> */}</div>
-
-        {/* Services Menu */}
-        <div>
-          {/* <FooterMenuColumn
-            title={FOOTER_MENUS.services.title}
-            links={FOOTER_MENUS.services.links}
-          /> */}
-        </div>
-
-        {/* About SOPet Menu */}
-        <div>
-          {/* <FooterMenuColumn
-            title={FOOTER_MENUS.about.title}
-            links={FOOTER_MENUS.about.links}
-          /> */}
-        </div>
-
-        {/* App Download Section */}
-        <div>
-          {/* <div className="flex flex-col gap-sop-24px">
-            <FooterSectionHeading>
-              {FOOTER_MENUS.download.title}
-            </FooterSectionHeading>
-            <QRCodeSection />
-          </div> */}
-        </div>
+      <div className="">
+        <ContactInfoSection />
       </div>
 
-      {/* Tablet Layout */}
-      <div className={cn(responsiveClasses.tabletOnly, "gap-sop-32px")}>
-        {/* Contact Info Section */}
-        <div className="col-span-3">
-          <ContactInfoSection
-            nameFontSize="sop-body-md-regular"
-            emailFontSize="sop-body-sm-medium"
-          />
-        </div>
-
-        {/* Products Menu */}
-        <div>
-          {/* <FooterMenuList
-            items={FOOTER_MENUS.products}
-            linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          /> */}
-        </div>
-
-        {/* Services Menu */}
-        <div>
-          {/* <FooterMenuColumn
-            title={FOOTER_MENUS.services.title}
-            links={FOOTER_MENUS.services.links}
-            linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          /> */}
-        </div>
-
-        {/* About SOPet Menu */}
-        <div>
-          {/* <FooterMenuColumn
-            title={FOOTER_MENUS.about.title}
-            links={FOOTER_MENUS.about.links}
-            linkClassName={`${responsiveClasses.linkClassName.tablet} text-sop-neutral-gray-300 hover:text-sop-base-black transition-colors`}
-          /> */}
-        </div>
-
-        {/* App Download Section */}
-        <div>
-          {/* <div className="flex flex-col gap-sop-24px">
-            <FooterSectionHeading>
-              {FOOTER_MENUS.download.title}
-            </FooterSectionHeading>
-            <div className="flex flex-col gap-sop-12px">
-              <QRCodeSection />
-            </div>
-          </div> */}
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className={responsiveClasses.mobileOnly}>
-        {/* Contact Info Section */}
-        <div className="flex flex-col gap-sop-20px">
-          <ContactInfoSection
-            nameFontSize="sop-body-lg-regular"
-            emailFontSize="sop-body-md-medium"
-          />
-        </div>
-
-        {/* Accordion Menus */}
-        <div className="pt-sop-20px">
-          {/* <div className="flex flex-col">
-            {FOOTER_MENUS.products.map(({ label, href }) => (
-              <FooterLink
-                key={label}
-                href={href}
-                label={label}
-                className={`sop-body-sm-medium py-4 border-b border-sop-neutral-grayalpha-100 text-sop-neutral-gray-100 hover:text-sop-base-black transition-colors`}
-              />
-            ))}
-          </div>
-
-          <Accordion id="services" title={FOOTER_MENUS.services.title}>
-            <div className="flex flex-col gap-sop-12px">
-              {FOOTER_MENUS.services.links.map(({ label, href }) => (
-                <FooterLink
-                  key={label}
-                  href={href}
-                  label={label}
-                  className={`${responsiveClasses.linkClassName.mobile} text-sop-neutral-gray-100 hover:text-sop-base-black transition-colors`}
-                />
-              ))}
-            </div>
-          </Accordion>
-
-          <Accordion id="about" title={FOOTER_MENUS.about.title}>
-            <div className="flex flex-col gap-sop-12px">
-              {FOOTER_MENUS.about.links.map(({ label, href }) => (
-                <FooterLink
-                  key={label}
-                  href={href}
-                  label={label}
-                  className={`${responsiveClasses.linkClassName.mobile} text-sop-neutral-gray-100 hover:text-sop-base-black transition-colors`}
-                />
-              ))}
-            </div>
-          </Accordion> */}
-        </div>
-
-        {/* App Download Section */}
-        <div className="flex flex-col gap-sop-24px pt-sop-20px">
-          {/* <FooterSectionHeading>
-            {FOOTER_MENUS.download.title}
+      <div className="flex flex-col col-span-1 ">
+        <div className="flex flex-col mb-sop-24px">
+          <FooterSectionHeading>
+            {FOOTER_MENUS.line_oa.title[0]}
           </FooterSectionHeading>
-          <QRCodeSection /> */}
+          <FooterSectionHeading>
+            {FOOTER_MENUS.line_oa.title[1]}
+          </FooterSectionHeading>
+        </div>
+        <QRCodeSection />
+        <div>
+          <Image
+            src="/images/footer/LINE_OA.svg"
+            alt="LINE OA QR Code"
+            width={180}
+            height={180}
+          />
         </div>
       </div>
     </div>
-  )
-}
+  </div>
+)
 
 const FooterCopyright = () => {
   return (

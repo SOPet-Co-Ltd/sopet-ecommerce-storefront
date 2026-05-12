@@ -10,6 +10,7 @@ type ModalProps = {
   onClose?: () => void
   /** If false, clicking the backdrop does not close the modal. Default true. */
   closeOnBackdropClick?: boolean
+  overlayClassName?: string
   className?: string
   width?: number
 }
@@ -21,6 +22,7 @@ export const Modal = ({
   onClose,
   closeOnBackdropClick = true,
   className,
+  overlayClassName,
   width = 600,
 }: ModalProps) => {
   const handleEscape = useCallback(
@@ -47,7 +49,7 @@ export const Modal = ({
       aria-modal="true"
     >
       <div
-        className="absolute inset-0 bg-black/50"
+        className={cn("absolute inset-0 bg-black/50", overlayClassName)}
         aria-hidden="true"
         onClick={handleBackdropClick}
       />
