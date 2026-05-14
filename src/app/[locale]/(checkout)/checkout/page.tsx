@@ -70,13 +70,5 @@ export default async function CheckoutPage({
 
   const lineFingerprint = checkoutLineFingerprint(cart)
 
-  return (
-    <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-      <CheckoutFlowClientBoundary cart={cart} initialData={initialData} />
-      <CheckoutCartCapRunner
-        cartId={cart.id}
-        lineFingerprint={lineFingerprint}
-      />
-    </main>
-  )
+  return <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4"></main>
 }
