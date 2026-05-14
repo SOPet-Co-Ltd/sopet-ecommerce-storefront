@@ -11,11 +11,7 @@ import {
   type ReactNode,
 } from "react"
 import type { HttpTypes } from "@medusajs/types"
-import {
-  getCheckoutCustomer,
-  getCustomerPaymentMethods,
-  type CustomerPaymentMethod,
-} from "@/lib/data/customer"
+import { getCheckoutCustomer } from "@/lib/data/customer"
 import { listCartShippingMethods } from "@/lib/data/fulfillment"
 import { listCartPaymentMethods } from "@/lib/data/payment"
 import type { StoreCardShippingMethod } from "@/types/cart"
@@ -25,17 +21,10 @@ export type CheckoutPageDataContextValue = {
   customer: HttpTypes.StoreCustomer | null
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
-  /** Saved cards from Stripe (store API); empty for guests or on failure. */
-  savedStripePaymentMethods: CustomerPaymentMethod[]
-  upsertSavedStripePaymentMethod: (paymentMethod: CustomerPaymentMethod) => void
-  isSavedStripePaymentMethodsLoading: boolean
-  /** First load (blocks checkout sections that need this data). */
   isLoading: boolean
-  /** Background refresh (e.g. after OTP merge) without full skeleton. */
   isRefreshing: boolean
   error: string | null
   refetch: () => Promise<void>
-  refetchSavedStripePaymentMethods: () => Promise<void>
 }
 
 const CheckoutPageDataContext =
@@ -57,27 +46,11 @@ async function fetchCheckoutBundle(
   customer: HttpTypes.StoreCustomer | null
   bundleError: string | null
 }> {
-  const checkoutPerfClient =
-    process.env.NODE_ENV === "development" ||
-    process.env["NEXT_PUBLIC_CHECKOUT_PERF_LOG"] === "1"
-
-  const bundleT0 =
-    checkoutPerfClient && typeof performance !== "undefined"
-      ? performance.now()
-      : null
-
   const settled = await Promise.allSettled([
     listCartShippingMethods(cartId, false),
     regionId ? listCartPaymentMethods(regionId) : Promise.resolve(null),
     getCheckoutCustomer(),
   ])
-
-  if (bundleT0 !== null && typeof performance !== "undefined") {
-    console.info(
-      "[checkout-perf] bundle",
-      `${(performance.now() - bundleT0).toFixed(1)}ms`
-    )
-  }
 
   const [shippingRes, providersRes, customerRes] = settled
 
@@ -97,33 +70,7 @@ async function fetchCheckoutBundle(
       (customerRes.reason as Error)?.message ?? "ไม่สามารถโหลดข้อมูลบัญชีได้"
   }
 
-  return {
-    shippingMethods,
-    paymentMethods,
-    customer,
-    bundleError,
-  }
-}
-
-const SAVED_PAYMENT_METHODS_TIMEOUT_MS = 8000
-
-async function fetchSavedStripePaymentMethodsWithTimeout(): Promise<
-  CustomerPaymentMethod[] | null
-> {
-  try {
-    const result = await Promise.race([
-      getCustomerPaymentMethods().then((response) =>
-        response.success ? response.paymentMethods : null
-      ),
-      new Promise<null>((resolve) =>
-        setTimeout(() => resolve(null), SAVED_PAYMENT_METHODS_TIMEOUT_MS)
-      ),
-    ])
-
-    return result
-  } catch {
-    return null
-  }
+  return { shippingMethods, paymentMethods, customer, bundleError }
 }
 
 export function CheckoutPageDataProvider({
@@ -133,8 +80,6 @@ export function CheckoutPageDataProvider({
   children,
 }: CheckoutPageDataProviderProps) {
   const hasInitialData = Boolean(initialData)
-  const hasInitialSavedStripePaymentMethods =
-    initialData?.savedStripePaymentMethodsLoaded ?? false
   const [customer, setCustomer] = useState<HttpTypes.StoreCustomer | null>(
     initialData?.customer ?? null
   )
@@ -144,25 +89,10 @@ export function CheckoutPageDataProvider({
   const [paymentMethods, setPaymentMethods] = useState<
     HttpTypes.StorePaymentProvider[] | null
   >(initialData?.paymentMethods ?? null)
-  const [savedStripePaymentMethods, setSavedStripePaymentMethods] = useState<
-    CustomerPaymentMethod[]
-  >(initialData?.savedStripePaymentMethods ?? [])
-  const [
-    isSavedStripePaymentMethodsLoading,
-    setIsSavedStripePaymentMethodsLoading,
-  ] = useState(
-    Boolean(initialData?.customer?.id) && !hasInitialSavedStripePaymentMethods
-  )
   const [isLoading, setIsLoading] = useState(!hasInitialData)
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(initialData?.error ?? null)
   const bootstrappedRef = useRef(hasInitialData)
-  const savedPaymentMethodsLoadedForCustomerRef = useRef<string | null>(
-    initialData?.customer?.id && hasInitialSavedStripePaymentMethods
-      ? initialData.customer.id
-      : null
-  )
-  const savedPaymentMethodsFetchingForCustomerRef = useRef<string | null>(null)
 
   const load = useCallback(
     async (mode: "initial" | "refetch") => {
@@ -201,161 +131,36 @@ export function CheckoutPageDataProvider({
 
   useEffect(() => {
     if (!initialData) return
-
-    const nextCustomerId = initialData.customer?.id ?? null
-    const currentCustomerId = customer?.id ?? null
-
     setShippingMethods(initialData.shippingMethods)
     setPaymentMethods(initialData.paymentMethods)
     setCustomer(initialData.customer)
-    if (!nextCustomerId) {
-      setSavedStripePaymentMethods([])
-      savedPaymentMethodsLoadedForCustomerRef.current = null
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setIsSavedStripePaymentMethodsLoading(false)
-    } else if (initialData.savedStripePaymentMethodsLoaded) {
-      setSavedStripePaymentMethods(initialData.savedStripePaymentMethods)
-      savedPaymentMethodsLoadedForCustomerRef.current = nextCustomerId
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setIsSavedStripePaymentMethodsLoading(false)
-    } else if (currentCustomerId !== nextCustomerId) {
-      setSavedStripePaymentMethods([])
-      savedPaymentMethodsLoadedForCustomerRef.current = null
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setIsSavedStripePaymentMethodsLoading(true)
-    } else if (
-      savedPaymentMethodsLoadedForCustomerRef.current !== nextCustomerId
-    ) {
-      setIsSavedStripePaymentMethodsLoading(true)
-    } else {
-      setIsSavedStripePaymentMethodsLoading(false)
-    }
     setError(initialData.error)
     setIsLoading(false)
     setIsRefreshing(false)
-  }, [initialData, cartId, regionId, customer?.id])
+  }, [initialData, cartId, regionId])
 
   const refetch = useCallback(async () => {
     await load("refetch")
   }, [load])
-
-  const refetchSavedStripePaymentMethods = useCallback(async () => {
-    if (!customer?.id) {
-      setSavedStripePaymentMethods([])
-      savedPaymentMethodsLoadedForCustomerRef.current = null
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setIsSavedStripePaymentMethodsLoading(false)
-      return
-    }
-    savedPaymentMethodsFetchingForCustomerRef.current = customer.id
-    setIsSavedStripePaymentMethodsLoading(true)
-    try {
-      const paymentMethods = await fetchSavedStripePaymentMethodsWithTimeout()
-      if (paymentMethods) {
-        setSavedStripePaymentMethods(paymentMethods)
-      }
-    } finally {
-      savedPaymentMethodsLoadedForCustomerRef.current = customer.id
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setIsSavedStripePaymentMethodsLoading(false)
-    }
-  }, [customer?.id])
-
-  const upsertSavedStripePaymentMethod = useCallback(
-    (paymentMethod: CustomerPaymentMethod) => {
-      if (customer?.id) {
-        savedPaymentMethodsLoadedForCustomerRef.current = customer.id
-        savedPaymentMethodsFetchingForCustomerRef.current = null
-      }
-      setSavedStripePaymentMethods((prev) => {
-        const next = [
-          paymentMethod,
-          ...prev.filter((pm) => pm.id !== paymentMethod.id),
-        ]
-        if (paymentMethod.is_default) {
-          return next.map((pm) =>
-            pm.id === paymentMethod.id
-              ? paymentMethod
-              : { ...pm, is_default: false }
-          )
-        }
-        return next
-      })
-    },
-    [customer?.id]
-  )
-
-  useEffect(() => {
-    const customerId = customer?.id ?? null
-
-    if (!customerId) {
-      savedPaymentMethodsLoadedForCustomerRef.current = null
-      savedPaymentMethodsFetchingForCustomerRef.current = null
-      setSavedStripePaymentMethods([])
-      setIsSavedStripePaymentMethodsLoading(false)
-      return
-    }
-
-    if (savedPaymentMethodsLoadedForCustomerRef.current === customerId) {
-      setIsSavedStripePaymentMethodsLoading(false)
-      return
-    }
-
-    if (savedPaymentMethodsFetchingForCustomerRef.current === customerId) {
-      setIsSavedStripePaymentMethodsLoading(true)
-      return
-    }
-
-    savedPaymentMethodsFetchingForCustomerRef.current = customerId
-    setIsSavedStripePaymentMethodsLoading(true)
-
-    let cancelled = false
-    void fetchSavedStripePaymentMethodsWithTimeout()
-      .then((paymentMethods) => {
-        if (cancelled) return
-        if (paymentMethods) {
-          setSavedStripePaymentMethods(paymentMethods)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          savedPaymentMethodsLoadedForCustomerRef.current = customerId
-          savedPaymentMethodsFetchingForCustomerRef.current = null
-          setIsSavedStripePaymentMethodsLoading(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [customer?.id])
 
   const value = useMemo(
     () => ({
       customer,
       shippingMethods,
       paymentMethods,
-      savedStripePaymentMethods,
-      upsertSavedStripePaymentMethod,
-      isSavedStripePaymentMethodsLoading,
       isLoading,
       isRefreshing,
       error,
       refetch,
-      refetchSavedStripePaymentMethods,
     }),
     [
       customer,
       shippingMethods,
       paymentMethods,
-      savedStripePaymentMethods,
-      upsertSavedStripePaymentMethod,
-      isSavedStripePaymentMethodsLoading,
       isLoading,
       isRefreshing,
       error,
       refetch,
-      refetchSavedStripePaymentMethods,
     ]
   )
 

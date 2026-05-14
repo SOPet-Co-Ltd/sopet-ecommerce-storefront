@@ -10,14 +10,12 @@ import {
   completeMarketplaceOrder,
   setAddresses,
 } from "@/lib/data/cart"
-import { useCheckoutElementsSecret } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
 import { useMarketplaceStripePaymentInit } from "@/hooks/useMarketplaceStripePaymentInit"
 import {
   collectionRequiresPayment,
   countPayableMarketplaceSlices,
   findStripeSessionForSlice,
   getMarketplaceSessionsInOrder,
-  isCheckoutSelectableStripeSession,
 } from "@/lib/helpers/marketplace-checkout-ui"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import { writeOrderPromptPayContinuity } from "@/lib/helpers/order-promptpay-continuity"
@@ -28,32 +26,14 @@ import { usePaymentCountdown } from "@/hooks/usePaymentCountdown"
 import {
   formatCountdownHms,
   getPromptPayCheckoutClickDeadlineMs,
-  getPromptPayPendingTtlSeconds,
 } from "@/lib/helpers/pending-payment-expiry"
-import {
-  addCustomerAddress,
-  addCustomerPaymentMethod,
-} from "@/lib/data/customer"
+import { addCustomerAddress } from "@/lib/data/customer"
 import { toast } from "@/lib/helpers/toast"
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react"
-import {
-  CardElement,
-  CardNumberElement,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js"
-import { StripeContext } from "@/components/organisms/PaymentContainer/StripeWrapper"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
 import { useMarketplaceCheckout } from "@/components/sections/CheckoutPaymentSection/MarketplaceCheckoutContext"
 import { useCheckoutPageData } from "@/components/sections/CheckoutPaymentSection/CheckoutPageDataContext"
-import type { PaymentIntent } from "@stripe/stripe-js"
+import { useCheckoutElementsSecret } from "@/components/sections/CheckoutPaymentSection/CheckoutElementsSecretContext"
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { useParams, useRouter } from "next/navigation"
 
@@ -68,7 +48,6 @@ export const CheckoutSummarySection = ({
   const checkoutLocale = (params?.locale as string) || "th"
   const { customer, shippingMethods, paymentMethods } = useCheckoutPageData()
   const method = useCheckoutPayment((state) => state.method)
-  const cardholderName = useCheckoutPayment((state) => state.cardholderName)
   const cardComplete = useCheckoutPayment((state) => state.cardComplete)
   const getCardComplete = useCheckoutPayment((state) => state.getCardComplete)
   const cardError = useCheckoutPayment((state) => state.cardError)
@@ -94,7 +73,6 @@ export const CheckoutSummarySection = ({
   )
   const [error, setError] = useState<string | null>(null)
   const [localSessions, setLocalSessions] = useState<Record<string, any>>({})
-  const stripeReady = useContext(StripeContext)
   const marketplacePaymentInitError = useCheckoutElementsSecret(
     (state) => state.marketplacePaymentInitError
   )
@@ -103,7 +81,6 @@ export const CheckoutSummarySection = ({
     (state) => state.sliceCollectionsById
   )
   const {
-    stripeProviderId,
     promptpayProviderId,
     marketplaceInitializing,
     runMarketplaceInitIfNeeded,
@@ -248,28 +225,9 @@ export const CheckoutSummarySection = ({
   const currencyCode = cart.currency_code || "thb"
 
   const syncShippingMethodBeforePayment = async () => {
-    // Validate that at least one shipping method is selected on the cart
     if (!cart.shipping_methods || cart.shipping_methods.length === 0) {
       throw new Error("กรุณาเลือกวิธีจัดส่งก่อนชำระเงิน")
     }
-    // Shipping methods are already persisted on the cart by the delivery step,
-    // no need to re-sync from localStorage.
-  }
-
-  const getSessionForProvider = (providerId?: string) => {
-    if (!providerId) return undefined
-    const localSession = localSessions[providerId]
-    if (isCheckoutSelectableStripeSession(localSession)) {
-      return localSession
-    }
-
-    return cart.payment_collection
-      ? findStripeSessionForSlice(
-          cart.payment_collection,
-          providerId.toLowerCase().includes("promptpay") ? "promptpay" : "card",
-          providerId
-        )
-      : undefined
   }
 
   const sliceNeedsPayment = (
@@ -296,14 +254,6 @@ export const CheckoutSummarySection = ({
         ]
       : undefined
 
-  const marketplaceCardSession =
-    mpCheckout && stripeProviderId
-      ? findStripeSessionForSlice(
-          firstSliceCollection,
-          "card",
-          stripeProviderId
-        )
-      : undefined
   const marketplacePromptpaySession =
     mpCheckout && promptpayProviderId
       ? findStripeSessionForSlice(
@@ -313,134 +263,12 @@ export const CheckoutSummarySection = ({
         )
       : undefined
 
-  const fallbackStripeSession = cart.payment_collection
-    ? findStripeSessionForSlice(cart.payment_collection, "card")
-    : undefined
   const fallbackPromptpaySession = cart.payment_collection
     ? findStripeSessionForSlice(cart.payment_collection, "promptpay")
     : undefined
 
-  const stripeSession =
-    marketplaceCardSession ||
-    getSessionForProvider(stripeProviderId) ||
-    fallbackStripeSession
   const promptpaySession =
-    marketplacePromptpaySession ||
-    getSessionForProvider(promptpayProviderId) ||
-    fallbackPromptpaySession
-
-  const activeSession = method === "qrcode" ? promptpaySession : stripeSession
-  const clientSecret = activeSession?.data?.client_secret as string | undefined
-
-  const ensurePaymentSession = async (
-    providerId: string | undefined,
-    methodType: "card" | "promptpay",
-    options?: { forceRefresh?: boolean }
-  ) => {
-    if (!providerId) {
-      const fallback = methodType === "card" ? stripeSession : promptpaySession
-      if (fallback) {
-        return fallback
-      }
-      throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
-    }
-
-    const { mp, byId } = await runMarketplaceInitIfNeeded(methodType, options)
-    const targetSlice =
-      mp.slices.find((slice) => sliceNeedsPayment(slice, byId)) ?? mp.slices[0]
-    if (!targetSlice) {
-      throw new Error("ไม่พบรายการชำระเงิน")
-    }
-    const targetCollection = byId[targetSlice.payment_collection_id]
-    if (!sliceNeedsPayment(targetSlice, byId)) {
-      return undefined
-    }
-    const session = findStripeSessionForSlice(
-      targetCollection,
-      methodType,
-      providerId
-    )
-    if (!session) {
-      throw new Error("ไม่สามารถสร้างการชำระเงินได้")
-    }
-    setLocalSessions((prev) => ({ ...prev, [providerId]: session }))
-    return session
-  }
-
-  const ensurePromptpayClientSecret = async (): Promise<{
-    clientSecret: string
-    createdAt?: string | null
-  }> => {
-    const session = await ensurePaymentSession(promptpayProviderId, "promptpay")
-    const secret = session?.data?.client_secret as string | undefined
-    if (!secret) {
-      throw new Error("ยังไม่สามารถสร้างการชำระเงินได้")
-    }
-    return {
-      clientSecret: secret,
-      createdAt: (session as { created_at?: string | null } | undefined)
-        ?.created_at,
-    }
-  }
-
-  const prepareCardPaymentAttempt = async (options?: {
-    forceRefresh?: boolean
-  }) => {
-    if (!stripeProviderId) {
-      throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
-    }
-
-    const { mp, byId } = await runMarketplaceInitIfNeeded("card", {
-      forceRefresh: options?.forceRefresh,
-    })
-
-    if (!mp?.slices?.length) {
-      throw new Error("ไม่พบข้อมูลการชำระเงิน กรุณาลองใหม่")
-    }
-
-    const payableSliceCount = countPayableMarketplaceSlices(mp, byId)
-    if (payableSliceCount === 0) {
-      return {
-        payableSliceCount,
-        paymentSessionIds: [] as string[],
-        secrets: [] as string[],
-      }
-    }
-
-    const checkoutSessions = getMarketplaceSessionsInOrder(
-      mp,
-      byId,
-      "card",
-      stripeProviderId
-    )
-    const paymentSessionIds = checkoutSessions
-      .map((session) => session.id)
-      .filter(
-        (sessionId): sessionId is string =>
-          typeof sessionId === "string" && sessionId.length > 0
-      )
-    const secrets = checkoutSessions
-      .map((session) => session.data?.client_secret as string | undefined)
-      .filter(
-        (secret): secret is string =>
-          typeof secret === "string" && secret.length > 0
-      )
-
-    if (secrets.length !== payableSliceCount) {
-      throw new Error("ไม่ครบจำนวนการชำระเงินต่อร้าน กรุณาลองใหม่")
-    }
-    if (paymentSessionIds.length !== payableSliceCount) {
-      throw new Error(
-        "ไม่พบ payment session ที่ตรงกับบัตรที่เลือก กรุณาลองใหม่"
-      )
-    }
-
-    return {
-      payableSliceCount,
-      paymentSessionIds,
-      secrets,
-    }
-  }
+    marketplacePromptpaySession || fallbackPromptpaySession
 
   const uniqueSellerCount = new Set(
     (cart.items ?? [])
@@ -526,9 +354,7 @@ export const CheckoutSummarySection = ({
 
   const disabledBase = submitting || notReady || !addressReadyForButton
 
-  /** Runs before payment: validate, then sync the active address into cart. Returns error message or null. */
   const runBeforePaymentSteps = async (): Promise<string | null> => {
-    // 1. Address validation
     if (shippingAddressIsDraft) {
       const hasRequiredDraft =
         draftAddress.first_name?.trim() &&
@@ -567,23 +393,11 @@ export const CheckoutSummarySection = ({
       }
     }
 
-    // 2. Shipping option validation (check cart data, not localStorage)
     if (!cart.shipping_methods || cart.shipping_methods.length === 0) {
       return "กรุณาเลือกวิธีจัดส่ง"
     }
 
-    // 3. Payment method validation for card
-    if (method === "card") {
-      const hasCard =
-        selectedPaymentMethodId || (useNewCard && getCardComplete())
-      if (!hasCard) {
-        return "กรุณาเลือกบัตรหรือกรอกรายละเอียดบัตร"
-      }
-    }
-
-    // 4. Persist / sync address
     if (shippingAddressIsDraft && draftAddress) {
-      // Draft address flow: create customer address, then sync into cart
       const addressFormData = new FormData()
       addressFormData.set("first_name", draftAddress.first_name)
       addressFormData.set("last_name", draftAddress.last_name)
@@ -660,7 +474,6 @@ export const CheckoutSummarySection = ({
         return setAddrResult
       }
     } else {
-      // Saved address flow: sync currently selected/snapshot address into cart only
       const address =
         (selectedAddress as
           | HttpTypes.StoreCustomerAddress
@@ -792,76 +605,44 @@ export const CheckoutSummarySection = ({
           </div>
         </div>
 
-        {method === "card" ? (
-          stripeReady ? (
-            <>
-              <StripeSummaryPayButton
-                cardholderName={cardholderName}
-                billingAddress={fallbackAddress}
-                email={fallbackEmail}
-                syncShippingMethodBeforePayment={
-                  syncShippingMethodBeforePayment
-                }
-                disabled={
-                  disabledBase || !cardComplete || marketplaceInitializing
-                }
-                submitting={submitting}
-                startSubmitting={startPaymentSubmission}
-                setSubmittingMessage={setPaymentSubmissionMessage}
-                finishSubmitting={finishPaymentSubmission}
-                setError={setError}
-                onBeforePayment={runBeforePaymentSteps}
-                useNewCard={useNewCard}
-                selectedPaymentMethodId={selectedPaymentMethodId}
-                toastError={toast.error}
-                prepareCardPaymentAttempt={prepareCardPaymentAttempt}
-                stripeProviderId={stripeProviderId}
-                cartSnapshot={cartSnapshot}
-              />
-            </>
-          ) : (
-            <Button size="lg" variant="primary" fill disabled>
-              Loading Stripe...
-            </Button>
-          )
-        ) : method === "qrcode" ? (
-          stripeReady ? (
-            <QrSummaryPayButton
-              cartId={cart.id}
-              locale={checkoutLocale}
-              clientSecret={clientSecret}
-              initialSessionCreatedAt={
-                typeof (
-                  promptpaySession as { created_at?: unknown } | undefined
-                )?.created_at === "string"
-                  ? (promptpaySession as { created_at?: string }).created_at
-                  : null
-              }
-              billingAddress={fallbackAddress}
-              email={fallbackEmail}
-              totalAmount={total}
-              currencyCode={currencyCode}
-              disabled={
-                disabledBase ||
-                multiSellerPromptPayBlocked ||
-                marketplaceInitializing
-              }
-              submitting={submitting}
-              startSubmitting={startPaymentSubmission}
-              setSubmittingMessage={setPaymentSubmissionMessage}
-              finishSubmitting={finishPaymentSubmission}
-              setError={setError}
-              syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
-              ensureClientSecret={ensurePromptpayClientSecret}
-              onBeforePayment={runBeforePaymentSteps}
-              toastError={toast.error}
-              cartSnapshot={cartSnapshot}
-            />
-          ) : (
-            <Button size="lg" variant="primary" fill disabled>
-              Loading Stripe...
-            </Button>
-          )
+        {method === "qrcode" ? (
+          <QrSummaryPayButton
+            cartId={cart.id}
+            locale={checkoutLocale}
+            promptpayProviderId={promptpayProviderId}
+            billingAddress={fallbackAddress}
+            email={fallbackEmail}
+            totalAmount={total}
+            currencyCode={currencyCode}
+            disabled={
+              disabledBase ||
+              multiSellerPromptPayBlocked ||
+              marketplaceInitializing
+            }
+            submitting={submitting}
+            startSubmitting={startPaymentSubmission}
+            setSubmittingMessage={setPaymentSubmissionMessage}
+            finishSubmitting={finishPaymentSubmission}
+            setError={setError}
+            syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
+            runMarketplaceInitIfNeeded={runMarketplaceInitIfNeeded}
+            onBeforePayment={runBeforePaymentSteps}
+            toastError={toast.error}
+            cartSnapshot={cartSnapshot}
+          />
+        ) : method === "card" ? (
+          <CardSummaryPayButton
+            disabled={disabledBase || !cardComplete || marketplaceInitializing}
+            submitting={submitting}
+            startSubmitting={startPaymentSubmission}
+            setSubmittingMessage={setPaymentSubmissionMessage}
+            finishSubmitting={finishPaymentSubmission}
+            setError={setError}
+            syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
+            onBeforePayment={runBeforePaymentSteps}
+            toastError={toast.error}
+            cartSnapshot={cartSnapshot}
+          />
         ) : (
           <ManualSummaryPayButton
             disabled={disabledBase || marketplaceInitializing}
@@ -909,81 +690,15 @@ export const CheckoutSummarySection = ({
   )
 }
 
-const getPromptPayQrUrl = (
-  paymentIntent?: PaymentIntent | null
-): string | null => {
-  const nextAction = paymentIntent?.next_action as any
-  if (!nextAction || nextAction.type !== "promptpay_display_qr_code") {
-    return null
-  }
-
-  return (
-    nextAction.promptpay_display_qr_code?.image_url_png ||
-    nextAction.promptpay_display_qr_code?.image_url_svg ||
-    null
-  )
-}
-
-const getPromptPayRedirectUrl = (
-  paymentIntent?: PaymentIntent | null
-): string | null => {
-  const nextAction = paymentIntent?.next_action as
-    | { type?: string; redirect_to_url?: { url?: string } }
-    | undefined
-  if (
-    nextAction?.type === "redirect_to_url" &&
-    typeof nextAction.redirect_to_url?.url === "string"
-  ) {
-    return nextAction.redirect_to_url.url
-  }
-  return null
-}
-
-const resolveBillingEmail = (email?: string) => {
-  const normalized = email?.trim()
-  if (normalized) {
-    return normalized
-  }
-
-  // PromptPay requires billing_details.email; use a safe fallback for guest checkout.
-  return `guest-${Date.now()}@sopet.app`
-}
-
-const StripeSummaryPayButton = ({
-  cardholderName,
-  billingAddress,
-  email,
-  syncShippingMethodBeforePayment,
-  disabled,
-  submitting,
-  startSubmitting,
-  setSubmittingMessage,
-  finishSubmitting,
-  setError,
-  onBeforePayment,
-  useNewCard,
-  selectedPaymentMethodId,
-  toastError,
-  cartSnapshot,
-  prepareCardPaymentAttempt,
-  stripeProviderId,
-}: {
-  cardholderName: string
-  billingAddress?:
-    | HttpTypes.StoreCustomerAddress
-    | HttpTypes.StoreCartAddress
-    | null
-  email?: string
-  syncShippingMethodBeforePayment: () => Promise<void>
+type CommonButtonProps = {
   disabled: boolean
   submitting: boolean
   startSubmitting: (message?: string | null) => void
   setSubmittingMessage: (message: string | null) => void
   finishSubmitting: () => void
   setError: (error: string | null) => void
+  syncShippingMethodBeforePayment: () => Promise<void>
   onBeforePayment?: () => Promise<string | null>
-  useNewCard?: boolean
-  selectedPaymentMethodId?: string | null
   toastError?: (opts: { title: string; description?: string }) => void
   cartSnapshot?: {
     customerId?: string | null
@@ -992,46 +707,21 @@ const StripeSummaryPayButton = ({
     customerEmail?: string | null
     promotionCodes?: string[] | null
   }
-  prepareCardPaymentAttempt: (options?: { forceRefresh?: boolean }) => Promise<{
-    payableSliceCount: number
-    paymentSessionIds: string[]
-    secrets: string[]
-  }>
-  stripeProviderId?: string
-}) => {
-  const stripe = useStripe()
-  const elements = useElements()
+}
+
+const CardSummaryPayButton = ({
+  disabled,
+  submitting,
+  startSubmitting,
+  setSubmittingMessage,
+  finishSubmitting,
+  setError,
+  syncShippingMethodBeforePayment,
+  onBeforePayment,
+  toastError,
+  cartSnapshot,
+}: CommonButtonProps) => {
   const router = useRouter()
-
-  const completeOrderAndRedirect = async (
-    paymentSessionIds?: string[],
-    paymentIntentIds?: string[]
-  ) => {
-    setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
-    const res = await completeMarketplaceOrder(undefined, {
-      redirect: false,
-      requirePaid: true,
-      providerId: stripeProviderId,
-      paymentMethodType: "card",
-      paymentSessionIds,
-      paymentIntentIds,
-      cartSnapshot,
-    })
-    const orderId = getOrderIdFromPlaceOrderResponse(res)
-
-    if (orderId) {
-      setSubmittingMessage("กำลังพาไปหน้าสำเร็จ…")
-      await clearCheckoutCartCookie()
-      router.push(`/order/${orderId}/confirmed`)
-      return
-    }
-
-    if (!res?.ok) {
-      throw new Error(res?.error?.message || "Payment failed")
-    }
-
-    throw new Error("Payment completed but no order was created")
-  }
 
   const handlePayment = async () => {
     startSubmitting("กำลังตรวจสอบข้อมูลคำสั่งซื้อ…")
@@ -1050,249 +740,20 @@ const StripeSummaryPayButton = ({
       setSubmittingMessage("กำลังเตรียมการชำระเงิน…")
       await syncShippingMethodBeforePayment()
 
-      if (!stripe || !elements) {
-        throw new Error("ระบบชำระเงินยังไม่พร้อมใช้งาน")
+      setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
+      const res = await completeMarketplaceOrder(undefined, {
+        redirect: false,
+        cartSnapshot,
+      })
+      const orderId = getOrderIdFromPlaceOrderResponse(res)
+      if (orderId) {
+        setSubmittingMessage("กำลังพาไปหน้าสำเร็จ…")
+        await clearCheckoutCartCookie()
+        router.push(`/order/${orderId}/confirmed`)
+        return
       }
-
-      const billingNameFromCart = [
-        billingAddress?.first_name,
-        billingAddress?.last_name,
-      ]
-        .filter(Boolean)
-        .join(" ")
-      const billingName =
-        cardholderName?.trim() || billingNameFromCart || undefined
-      const billingEmail = resolveBillingEmail(email)
-      const billingDetails = {
-        name: billingName,
-        address: {
-          city: billingAddress?.city ?? undefined,
-          country: billingAddress?.country_code ?? undefined,
-          line1: billingAddress?.address_1 ?? undefined,
-          line2: billingAddress?.address_2 ?? undefined,
-          postal_code: billingAddress?.postal_code ?? undefined,
-          state: billingAddress?.province ?? undefined,
-        },
-        email: billingEmail,
-        phone: billingAddress?.phone ?? undefined,
-      }
-
-      let paymentMethodIdToUse: string | null = useNewCard
-        ? null
-        : (selectedPaymentMethodId ?? null)
-
-      if (useNewCard) {
-        setSubmittingMessage("กำลังบันทึกบัตรสำหรับชำระเงิน…")
-        const cardElement =
-          elements.getElement(CardNumberElement) ||
-          elements.getElement(CardElement)
-        if (!cardElement) {
-          throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
-        }
-        const { paymentMethod, error: createError } =
-          await stripe.createPaymentMethod({
-            type: "card",
-            card: cardElement,
-            billing_details: billingDetails,
-          })
-        if (createError) {
-          throw new Error(
-            createError.message ?? "ไม่สามารถสร้างวิธีการชำระเงินได้"
-          )
-        }
-        if (!paymentMethod?.id) {
-          throw new Error("ไม่สามารถสร้างวิธีการชำระเงินได้")
-        }
-        const addResult = await addCustomerPaymentMethod({
-          paymentMethodId: paymentMethod.id,
-          makeDefault: false,
-        })
-        if (!addResult.success) {
-          if (
-            addResult.code === "missing_stripe_customer" ||
-            addResult.code === "stripe_customer_not_found"
-          ) {
-            toast.error({
-              title: "ไม่สามารถเพิ่มบัตรได้",
-              description: "กรุณารีเฟรชหรือเข้าสู่ระบบใหม่",
-            })
-          }
-          throw new Error(addResult.error ?? "ไม่สามารถบันทึกบัตรได้")
-        }
-        paymentMethodIdToUse = paymentMethod.id
-      }
-
-      const buildRetryableStripeError = (
-        stripeError:
-          | {
-              code?: string
-              type?: string
-              message?: string
-              payment_intent?: PaymentIntent | null
-            }
-          | null
-          | undefined,
-        paymentIntent: PaymentIntent | null | undefined
-      ) => {
-        const message = stripeError?.message || "ไม่สามารถยืนยันการชำระเงินได้"
-        const error = new Error(message) as Error & { retryable?: boolean }
-        const normalizedCode = stripeError?.code?.trim().toLowerCase()
-        const normalizedType = stripeError?.type?.trim().toLowerCase()
-        const normalizedMessage = message.trim().toLowerCase()
-        const paymentIntentStatus =
-          paymentIntent?.status ?? stripeError?.payment_intent?.status
-
-        error.retryable =
-          normalizedType === "invalid_request_error" ||
-          normalizedCode === "charge_invalid_parameter" ||
-          normalizedCode === "payment_intent_unexpected_state" ||
-          normalizedMessage.includes("destination charges") ||
-          normalizedMessage.includes("no such destination") ||
-          normalizedMessage.includes("unexpected state") ||
-          (paymentIntentStatus === "requires_payment_method" &&
-            normalizedType !== "card_error")
-
-        return error
-      }
-
-      const assertSlicePaid = (
-        stripeError:
-          | {
-              code?: string
-              type?: string
-              message?: string
-              payment_intent?: PaymentIntent | null
-            }
-          | null
-          | undefined,
-        paymentIntent: PaymentIntent | null | undefined
-      ) => {
-        if (stripeError) {
-          const pi = stripeError.payment_intent
-          if (
-            (pi && pi.status === "requires_capture") ||
-            (pi && pi.status === "succeeded")
-          ) {
-            return
-          }
-          throw buildRetryableStripeError(stripeError, paymentIntent)
-        }
-        if (
-          (paymentIntent && paymentIntent.status === "requires_capture") ||
-          paymentIntent?.status === "succeeded"
-        ) {
-          return
-        }
-        throw buildRetryableStripeError(undefined, paymentIntent)
-      }
-
-      const resolveConfirmedPaymentIntent = (
-        stripeError:
-          | {
-              payment_intent?: PaymentIntent | null
-            }
-          | null
-          | undefined,
-        paymentIntent: PaymentIntent | null | undefined
-      ) => paymentIntent ?? stripeError?.payment_intent ?? null
-
-      const cardElement =
-        elements.getElement(CardNumberElement) ||
-        elements.getElement(CardElement)
-
-      const confirmAllSlices = async (forceRefresh: boolean) => {
-        setSubmittingMessage("กำลังยืนยันการชำระเงินกับธนาคาร…")
-        const { payableSliceCount, paymentSessionIds, secrets } =
-          await prepareCardPaymentAttempt({ forceRefresh })
-
-        if (payableSliceCount === 0) {
-          await completeOrderAndRedirect()
-          return
-        }
-
-        const confirmedPaymentIntentIds: string[] = []
-
-        if (paymentMethodIdToUse) {
-          for (const secret of secrets) {
-            const { error: stripeError, paymentIntent } =
-              await stripe.confirmCardPayment(secret, {
-                payment_method: paymentMethodIdToUse,
-              })
-
-            try {
-              assertSlicePaid(stripeError, paymentIntent)
-            } catch (error) {
-              ;(error as Error & { confirmedCount?: number }).confirmedCount =
-                confirmedPaymentIntentIds.length
-              throw error
-            }
-
-            const confirmedPaymentIntent = resolveConfirmedPaymentIntent(
-              stripeError,
-              paymentIntent
-            )
-
-            if (!confirmedPaymentIntent?.id) {
-              const err = new Error(
-                "Stripe ไม่คืน payment intent หลังยืนยันการชำระเงิน"
-              ) as Error & { confirmedCount?: number }
-              err.confirmedCount = confirmedPaymentIntentIds.length
-              throw err
-            }
-
-            confirmedPaymentIntentIds.push(confirmedPaymentIntent.id)
-          }
-        } else {
-          if (!cardElement) {
-            throw new Error("กรุณากรอกรายละเอียดบัตรให้ครบถ้วน")
-          }
-
-          for (const secret of secrets) {
-            const { error: stripeError, paymentIntent } =
-              await stripe.confirmCardPayment(secret, {
-                payment_method: {
-                  card: cardElement,
-                  billing_details: billingDetails,
-                },
-              })
-            try {
-              assertSlicePaid(stripeError, paymentIntent)
-            } catch (error) {
-              ;(error as Error & { confirmedCount?: number }).confirmedCount =
-                confirmedPaymentIntentIds.length
-              throw error
-            }
-            const confirmedPaymentIntent = resolveConfirmedPaymentIntent(
-              stripeError,
-              paymentIntent
-            )
-            if (confirmedPaymentIntent?.id) {
-              confirmedPaymentIntentIds.push(confirmedPaymentIntent.id)
-            }
-          }
-        }
-
-        if (confirmedPaymentIntentIds.length !== payableSliceCount) {
-          throw new Error("Stripe ไม่ยืนยัน payment intent ครบ กรุณาลองใหม่")
-        }
-
-        await completeOrderAndRedirect(
-          paymentSessionIds,
-          confirmedPaymentIntentIds
-        )
-      }
-
-      try {
-        await confirmAllSlices(false)
-      } catch (error) {
-        const retryable = (error as { retryable?: boolean })?.retryable
-        const confirmedCount = (error as { confirmedCount?: number })
-          ?.confirmedCount
-
-        if (!retryable || (confirmedCount ?? 0) > 0) {
-          throw error
-        }
-        await confirmAllSlices(true)
+      if (!res?.ok) {
+        throw new Error(res?.error?.message || "Payment failed")
       }
     } catch (e: unknown) {
       setError((e as Error)?.message || "Payment failed")
@@ -1325,24 +786,7 @@ const ManualSummaryPayButton = ({
   onBeforePayment,
   toastError,
   cartSnapshot,
-}: {
-  disabled: boolean
-  submitting: boolean
-  startSubmitting: (message?: string | null) => void
-  setSubmittingMessage: (message: string | null) => void
-  finishSubmitting: () => void
-  setError: (error: string | null) => void
-  syncShippingMethodBeforePayment: () => Promise<void>
-  onBeforePayment?: () => Promise<string | null>
-  toastError?: (opts: { title: string; description?: string }) => void
-  cartSnapshot?: {
-    customerId?: string | null
-    email?: string | null
-    customerPhone?: string | null
-    customerEmail?: string | null
-    promotionCodes?: string[] | null
-  }
-}) => {
+}: CommonButtonProps) => {
   const router = useRouter()
 
   const handlePayment = async () => {
@@ -1396,8 +840,7 @@ const ManualSummaryPayButton = ({
 const QrSummaryPayButton = ({
   cartId,
   locale,
-  clientSecret,
-  initialSessionCreatedAt,
+  promptpayProviderId,
   billingAddress,
   email,
   totalAmount,
@@ -1409,15 +852,14 @@ const QrSummaryPayButton = ({
   finishSubmitting,
   setError,
   syncShippingMethodBeforePayment,
-  ensureClientSecret,
+  runMarketplaceInitIfNeeded,
   onBeforePayment,
   toastError,
   cartSnapshot,
-}: {
+}: CommonButtonProps & {
   cartId: string
   locale: string
-  clientSecret?: string
-  initialSessionCreatedAt?: string | null
+  promptpayProviderId?: string
   billingAddress?:
     | HttpTypes.StoreCustomerAddress
     | HttpTypes.StoreCartAddress
@@ -1425,42 +867,17 @@ const QrSummaryPayButton = ({
   email?: string
   totalAmount: number
   currencyCode: string
-  disabled: boolean
-  submitting: boolean
-  startSubmitting: (message?: string | null) => void
-  setSubmittingMessage: (message: string | null) => void
-  finishSubmitting: () => void
-  setError: (error: string | null) => void
-  syncShippingMethodBeforePayment: () => Promise<void>
-  ensureClientSecret: () => Promise<{
-    clientSecret: string
-    createdAt?: string | null
-  }>
-  onBeforePayment?: () => Promise<string | null>
-  toastError?: (opts: { title: string; description?: string }) => void
-  cartSnapshot?: {
-    customerId?: string | null
-    email?: string | null
-    customerPhone?: string | null
-    customerEmail?: string | null
-    promotionCodes?: string[] | null
-  }
+  runMarketplaceInitIfNeeded: (
+    methodType: "card" | "promptpay",
+    options?: { forceRefresh?: boolean }
+  ) => Promise<{ mp: any; byId: any }>
 }) => {
-  const stripe = useStripe()
   const router = useRouter()
   const [qrImageUrl, setQrImageUrl] = useState<string | null>(null)
   const [isQrModalOpen, setIsQrModalOpen] = useState(false)
-  const [isPolling, setIsPolling] = useState(false)
   const [qrExpiresAtMs, setQrExpiresAtMs] = useState<number | null>(null)
   const [isRegeneratingQr, setIsRegeneratingQr] = useState(false)
   const orderPlacedRef = useRef(false)
-  const sessionCreatedAtRef = useRef<string | null | undefined>(
-    initialSessionCreatedAt
-  )
-  const [activeClientSecret, setActiveClientSecret] = useState<
-    string | undefined
-  >(clientSecret)
-  const [awaitingBankConfirm, setAwaitingBankConfirm] = useState(false)
 
   const { remainingSeconds, isExpired: isTimerExpired } = usePaymentCountdown(
     qrImageUrl && qrExpiresAtMs != null ? qrExpiresAtMs : null
@@ -1468,22 +885,18 @@ const QrSummaryPayButton = ({
   const hms =
     remainingSeconds != null ? formatCountdownHms(remainingSeconds) : null
 
-  /** Closing the QR modal only hides the UI — it does not cancel the PaymentIntent or clear the cart. */
   const handleCloseQrModal = () => {
     setIsQrModalOpen(false)
   }
 
   useEffect(() => {
-    if (clientSecret) {
-      setActiveClientSecret(clientSecret)
-    }
-  }, [clientSecret])
+    if (!qrImageUrl || qrExpiresAtMs == null) return
+    if (!isTimerExpired) return
 
-  useEffect(() => {
-    sessionCreatedAtRef.current = initialSessionCreatedAt
-  }, [initialSessionCreatedAt])
+    setError("QR หมดเวลา กรุณาสร้างใหม่อีกครั้ง")
+  }, [isTimerExpired, qrExpiresAtMs, qrImageUrl, setError])
 
-  const completePlaceOrderCaptureAndNavigate = useCallback(async () => {
+  const completePlaceOrderAndNavigate = useCallback(async () => {
     const res = await completeMarketplaceOrder(cartId, {
       redirect: false,
       cartSnapshot,
@@ -1497,7 +910,6 @@ const QrSummaryPayButton = ({
       return
     }
 
-    /** PromptPay often settles asynchronously; Medusa capture can fail until Stripe syncs. */
     const backoffMs = [0, 900, 2000, 3500]
     let lastErr: string | null = null
     for (let i = 0; i < backoffMs.length; i++) {
@@ -1506,8 +918,7 @@ const QrSummaryPayButton = ({
       }
       const captureResult = await captureOrderPayment(orderId)
       if (captureResult.success) {
-        setAwaitingBankConfirm(false)
-        router.refresh()
+        await clearCheckoutCartCookie()
         router.push(`/order/${orderId}/confirmed`)
         return
       }
@@ -1521,66 +932,9 @@ const QrSummaryPayButton = ({
     throw new Error(lastErr || "Capture failed")
   }, [cartId, cartSnapshot, router])
 
-  const confirmPromptPayForSecret = async (resolvedSecret: string) => {
-    if (!stripe) {
-      throw new Error("ระบบชำระเงินยังไม่พร้อมใช้งาน")
-    }
-    const billingEmail = resolveBillingEmail(email)
-    return stripe.confirmPromptPayPayment(
-      resolvedSecret,
-      {
-        payment_method: {
-          billing_details: {
-            name: [billingAddress?.first_name, billingAddress?.last_name]
-              .filter(Boolean)
-              .join(" "),
-            email: billingEmail,
-            phone: billingAddress?.phone || undefined,
-            address: {
-              city: billingAddress?.city ?? undefined,
-              country: billingAddress?.country_code ?? undefined,
-              line1: billingAddress?.address_1 ?? undefined,
-              line2: billingAddress?.address_2 ?? undefined,
-              postal_code: billingAddress?.postal_code ?? undefined,
-              state: billingAddress?.province ?? undefined,
-            },
-          },
-        },
-      },
-      { handleActions: false }
-    )
-  }
-
-  const resolveSecretAndMeta = async () => {
-    if (activeClientSecret) {
-      return {
-        clientSecret: activeClientSecret,
-        createdAt: sessionCreatedAtRef.current,
-      }
-    }
-    const ensured = await ensureClientSecret()
-    setActiveClientSecret(ensured.clientSecret)
-    sessionCreatedAtRef.current = ensured.createdAt
-    return ensured
-  }
-
-  const applyQrSuccess = (
-    qrUrl: string,
-    createdAt?: string | null | undefined
-  ) => {
-    orderPlacedRef.current = false
-    setAwaitingBankConfirm(false)
-    setQrImageUrl(qrUrl)
-    setQrExpiresAtMs(getPromptPayCheckoutClickDeadlineMs())
-    setIsQrModalOpen(true)
-    setIsPolling(true)
-    setError(null)
-  }
-
   const handleGenerateQr = async () => {
     startSubmitting("กำลังเตรียม QR สำหรับชำระเงิน…")
     setError(null)
-    setAwaitingBankConfirm(false)
 
     try {
       if (onBeforePayment) {
@@ -1595,505 +949,51 @@ const QrSummaryPayButton = ({
       await syncShippingMethodBeforePayment()
 
       setSubmittingMessage("กำลังสร้างรายการชำระเงิน…")
-      const { clientSecret: resolvedSecret, createdAt } =
-        await resolveSecretAndMeta()
+      const { mp, byId } = await runMarketplaceInitIfNeeded("promptpay")
 
-      setSubmittingMessage("กำลังยืนยันการชำระเงิน…")
-      const { error: stripeError, paymentIntent } =
-        await confirmPromptPayForSecret(resolvedSecret)
-
-      if (stripeError) {
-        throw new Error(stripeError.message || "QR payment failed")
+      setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
+      const orderRes = await completeMarketplaceOrder(cartId, {
+        redirect: false,
+        cartSnapshot,
+      })
+      const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
+      if (!orderRes.ok || !orderIdEarly) {
+        throw new Error(
+          (orderRes as { error?: { message?: string } })?.error?.message ||
+            "ไม่สามารถสร้างคำสั่งซื้อได้"
+        )
       }
 
-      const qrUrl = getPromptPayQrUrl(paymentIntent)
-      const bankRedirectUrl = getPromptPayRedirectUrl(paymentIntent)
-      const status = paymentIntent?.status
-
-      if (bankRedirectUrl) {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (!orderRes.ok || !orderIdEarly) {
-            throw new Error(
-              (orderRes as { error?: { message?: string } })?.error?.message ||
-                "ไม่สามารถสร้างคำสั่งซื้อได้"
-            )
-          }
-          writePromptPayCheckoutLock({
-            cartId,
-            orderId: orderIdEarly,
-            clientSecret: resolvedSecret,
-            locale,
-            qrImageUrl: null,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            sessionCreatedAt: createdAt ?? null,
-            mode: "redirect",
-            redirectUrl: bankRedirectUrl,
-          })
-          writeOrderPromptPayContinuity(orderIdEarly, {
-            clientSecret: resolvedSecret,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            qrImageUrl: null,
-            sessionCreatedAt: createdAt ?? null,
-          })
-          setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
-          router.push(`/${locale}/checkout/promptpay`)
-          return
-        } catch (placeErr) {
-          toastError?.({
-            title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
-            description: (placeErr as Error)?.message,
-          })
-          finishSubmitting()
-          window.open(bankRedirectUrl, "_blank", "noopener,noreferrer")
-          return
-        }
-      }
-
-      if (qrUrl) {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (!orderRes.ok || !orderIdEarly) {
-            throw new Error(
-              (orderRes as { error?: { message?: string } })?.error?.message ||
-                "ไม่สามารถสร้างคำสั่งซื้อได้"
-            )
-          }
-          writePromptPayCheckoutLock({
-            cartId,
-            orderId: orderIdEarly,
-            clientSecret: resolvedSecret,
-            locale,
-            qrImageUrl: qrUrl,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            sessionCreatedAt: createdAt ?? null,
-            mode: "qr",
-          })
-          writeOrderPromptPayContinuity(orderIdEarly, {
-            clientSecret: resolvedSecret,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            qrImageUrl: qrUrl,
-            sessionCreatedAt: createdAt ?? null,
-          })
-          setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
-          router.push(`/${locale}/checkout/promptpay`)
-          return
-        } catch (placeErr) {
-          toastError?.({
-            title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
-            description: (placeErr as Error)?.message,
-          })
-          finishSubmitting()
-          applyQrSuccess(qrUrl, createdAt)
-        }
-      } else if (status === "succeeded" || status === "requires_capture") {
-        orderPlacedRef.current = true
-        setIsPolling(false)
-        setAwaitingBankConfirm(false)
-        setSubmittingMessage("กำลังสร้างคำสั่งซื้อ…")
-        await completePlaceOrderCaptureAndNavigate()
-      } else if (status === "processing") {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (orderRes.ok && orderIdEarly) {
-            writePromptPayCheckoutLock({
-              cartId,
-              orderId: orderIdEarly,
-              clientSecret: resolvedSecret,
-              locale,
-              qrImageUrl: null,
-              qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-              sessionCreatedAt: createdAt ?? null,
-              mode: "processing",
-            })
-            writeOrderPromptPayContinuity(orderIdEarly, {
-              clientSecret: resolvedSecret,
-              qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-              qrImageUrl: null,
-              sessionCreatedAt: createdAt ?? null,
-            })
-            setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
-            router.push(`/${locale}/checkout/promptpay`)
-            return
-          }
-        } catch {
-          // stay on checkout
-        }
-        orderPlacedRef.current = false
-        setAwaitingBankConfirm(true)
-        setIsPolling(true)
-        finishSubmitting()
-      } else {
-        throw new Error("ไม่พบ QR Code สำหรับการชำระเงิน")
-      }
+      writePromptPayCheckoutLock({
+        cartId,
+        orderId: orderIdEarly,
+        clientSecret: "",
+        locale,
+        qrImageUrl: null,
+        qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
+        sessionCreatedAt: null,
+        mode: "processing",
+      })
+      setSubmittingMessage("กำลังพาไปหน้าชำระเงิน…")
+      router.push(`/${locale}/checkout/promptpay`)
     } catch (e: unknown) {
-      setAwaitingBankConfirm(false)
       setError((e as Error)?.message || "QR payment failed")
       finishSubmitting()
     }
   }
 
-  const handleRegenerateQr = async () => {
-    setIsRegeneratingQr(true)
-    setError(null)
-    setAwaitingBankConfirm(false)
-    orderPlacedRef.current = false
-    try {
-      await syncShippingMethodBeforePayment()
-      const ensured = await ensureClientSecret()
-      setActiveClientSecret(ensured.clientSecret)
-      sessionCreatedAtRef.current = ensured.createdAt
-
-      const { error: stripeError, paymentIntent } =
-        await confirmPromptPayForSecret(ensured.clientSecret)
-
-      if (stripeError) {
-        throw new Error(stripeError.message || "QR payment failed")
-      }
-
-      const qrUrl = getPromptPayQrUrl(paymentIntent)
-      const bankRedirectUrl = getPromptPayRedirectUrl(paymentIntent)
-      const st = paymentIntent?.status
-
-      if (bankRedirectUrl) {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (!orderRes.ok || !orderIdEarly) {
-            throw new Error(
-              (orderRes as { error?: { message?: string } })?.error?.message ||
-                "ไม่สามารถสร้างคำสั่งซื้อได้"
-            )
-          }
-          writePromptPayCheckoutLock({
-            cartId,
-            orderId: orderIdEarly,
-            clientSecret: ensured.clientSecret,
-            locale,
-            qrImageUrl: null,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            sessionCreatedAt: ensured.createdAt ?? null,
-            mode: "redirect",
-            redirectUrl: bankRedirectUrl,
-          })
-          writeOrderPromptPayContinuity(orderIdEarly, {
-            clientSecret: ensured.clientSecret,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            qrImageUrl: null,
-            sessionCreatedAt: ensured.createdAt ?? null,
-          })
-          router.push(`/${locale}/checkout/promptpay`)
-          return
-        } catch (placeErr) {
-          toastError?.({
-            title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
-            description: (placeErr as Error)?.message,
-          })
-          window.open(bankRedirectUrl, "_blank", "noopener,noreferrer")
-          return
-        }
-      }
-
-      if (qrUrl) {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (!orderRes.ok || !orderIdEarly) {
-            throw new Error(
-              (orderRes as { error?: { message?: string } })?.error?.message ||
-                "ไม่สามารถสร้างคำสั่งซื้อได้"
-            )
-          }
-          writePromptPayCheckoutLock({
-            cartId,
-            orderId: orderIdEarly,
-            clientSecret: ensured.clientSecret,
-            locale,
-            qrImageUrl: qrUrl,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            sessionCreatedAt: ensured.createdAt ?? null,
-            mode: "qr",
-          })
-          writeOrderPromptPayContinuity(orderIdEarly, {
-            clientSecret: ensured.clientSecret,
-            qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-            qrImageUrl: qrUrl,
-            sessionCreatedAt: ensured.createdAt ?? null,
-          })
-          router.push(`/${locale}/checkout/promptpay`)
-          return
-        } catch (placeErr) {
-          toastError?.({
-            title: "ไม่สามารถบันทึกคำสั่งซื้อล่วงหน้าได้",
-            description: (placeErr as Error)?.message,
-          })
-          applyQrSuccess(qrUrl, ensured.createdAt)
-        }
-      } else if (st === "succeeded" || st === "requires_capture") {
-        orderPlacedRef.current = true
-        setIsPolling(false)
-        setAwaitingBankConfirm(false)
-        await completePlaceOrderCaptureAndNavigate()
-      } else if (st === "processing") {
-        try {
-          const orderRes = await completeMarketplaceOrder(cartId, {
-            redirect: false,
-            cartSnapshot,
-          })
-          const orderIdEarly = getOrderIdFromPlaceOrderResponse(orderRes)
-          if (orderRes.ok && orderIdEarly) {
-            writePromptPayCheckoutLock({
-              cartId,
-              orderId: orderIdEarly,
-              clientSecret: ensured.clientSecret,
-              locale,
-              qrImageUrl: null,
-              qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-              sessionCreatedAt: ensured.createdAt ?? null,
-              mode: "processing",
-            })
-            writeOrderPromptPayContinuity(orderIdEarly, {
-              clientSecret: ensured.clientSecret,
-              qrExpiresAtMs: getPromptPayCheckoutClickDeadlineMs(),
-              qrImageUrl: null,
-              sessionCreatedAt: ensured.createdAt ?? null,
-            })
-            router.push(`/${locale}/checkout/promptpay`)
-            return
-          }
-        } catch {
-          // stay on checkout
-        }
-        orderPlacedRef.current = false
-        setAwaitingBankConfirm(true)
-        setIsPolling(true)
-      } else {
-        throw new Error("ไม่พบ QR Code สำหรับการชำระเงิน")
-      }
-    } catch (e: unknown) {
-      setAwaitingBankConfirm(false)
-      setError((e as Error)?.message || "QR payment failed")
-    } finally {
-      setIsRegeneratingQr(false)
-    }
-  }
-
-  useEffect(() => {
-    if (!isPolling || !activeClientSecret || !stripe) return
-
-    const timer = window.setInterval(async () => {
-      if (orderPlacedRef.current) {
-        window.clearInterval(timer)
-        return
-      }
-
-      try {
-        const piResult = await stripe.retrievePaymentIntent(activeClientSecret)
-        const status = piResult.paymentIntent?.status
-
-        if (status === "canceled") {
-          window.clearInterval(timer)
-          setIsPolling(false)
-          setAwaitingBankConfirm(false)
-          setError("การชำระเงินหมดเวลา กรุณาสร้าง QR ใหม่")
-          return
-        }
-
-        if (status === "succeeded" || status === "requires_capture") {
-          orderPlacedRef.current = true
-          window.clearInterval(timer)
-          setIsPolling(false)
-          setAwaitingBankConfirm(false)
-          try {
-            await completePlaceOrderCaptureAndNavigate()
-          } catch (e: unknown) {
-            setError((e as Error)?.message ?? "ไม่สามารถยืนยันคำสั่งซื้อได้")
-          }
-        }
-      } catch {
-        // keep polling
-      }
-    }, 2500)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [
-    activeClientSecret,
-    completePlaceOrderCaptureAndNavigate,
-    isPolling,
-    setError,
-    stripe,
-  ])
-
-  useEffect(() => {
-    if (!qrImageUrl || qrExpiresAtMs == null) return
-    if (!isTimerExpired || !isPolling) return
-
-    setIsPolling(false)
-    setAwaitingBankConfirm(false)
-    setError("QR หมดเวลา กรุณาสร้างใหม่อีกครั้ง")
-  }, [isTimerExpired, isPolling, qrExpiresAtMs, qrImageUrl, setError])
-
-  const showExpiredOverlay = Boolean(
-    isTimerExpired && qrImageUrl && !isRegeneratingQr
-  )
-
   return (
-    <>
-      <div className="mt-4 space-y-3">
-        <Button
-          size="lg"
-          variant="primary"
-          fill
-          onClick={handleGenerateQr}
-          loading={submitting}
-          disabled={disabled}
-        >
-          ชำระเงิน
-        </Button>
-        {awaitingBankConfirm && !qrImageUrl && (
-          <Text className="text-sm text-gray-600 text-center">
-            กำลังรอธนาคารยืนยันการชำระเงิน… หน้าจะไปต่ออัตโนมัติเมื่อสำเร็จ
-          </Text>
-        )}
-      </div>
-
-      {isQrModalOpen && qrImageUrl && (
-        <Modal
-          header={
-            <div className="flex items-center justify-between">
-              <span>PromptPay QR</span>
-              <button
-                type="button"
-                onClick={handleCloseQrModal}
-                className="text-gray-400 hover:text-gray-600 p-1 -m-1 rounded"
-                aria-label="ปิด"
-              >
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          }
-          onClose={handleCloseQrModal}
-          closeOnBackdropClick={false}
-        >
-          <div className="px-6 pb-6 space-y-4">
-            <div className="rounded-lg bg-sop-primary-50 py-3 px-3 flex flex-wrap items-center justify-between gap-2">
-              <Text className="font-medium">ชำระภายใน</Text>
-              <div className="flex items-center gap-2">
-                <Text className="font-bold text-red-500 tabular-nums">
-                  {hms
-                    ? isTimerExpired
-                      ? "หมดเวลา"
-                      : `${hms.h}:${hms.m}:${hms.s}`
-                    : "—"}
-                </Text>
-                {isTimerExpired && !isRegeneratingQr && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => handleRegenerateQr()}
-                  >
-                    สร้าง QR ใหม่
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <Text className="font-medium">ยอดชำระรวม</Text>
-              <Text className="font-bold">
-                {convertToLocale({
-                  amount: totalAmount,
-                  currency_code: currencyCode,
-                })}
-              </Text>
-            </div>
-
-            <div className="rounded-lg border border-gray-200 p-4 relative min-h-64 flex items-center justify-center">
-              {isRegeneratingQr ? (
-                <Text className="text-gray-500">
-                  กำลังสร้างคิวอาร์โค้ดใหม่...
-                </Text>
-              ) : (
-                <>
-                  <img
-                    src={qrImageUrl}
-                    alt="PromptPay QR"
-                    className="mx-auto h-64 w-64 object-contain"
-                  />
-                  {showExpiredOverlay && (
-                    <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-3 p-4 rounded-lg">
-                      <Text className="font-medium text-red-600 text-center">
-                        QR หมดเวลาแล้ว
-                      </Text>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRegenerateQr()}
-                      >
-                        สร้าง QR ใหม่
-                      </Button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <a
-              href={qrImageUrl}
-              download="promptpay-qr.png"
-              className={`block w-full rounded-full border border-red-400 px-4 py-2.5 text-center text-red-500 hover:bg-red-50 ${
-                showExpiredOverlay || isRegeneratingQr
-                  ? "pointer-events-none opacity-50"
-                  : ""
-              }`}
-            >
-              บันทึก QR Code
-            </a>
-
-            <Text className="text-center text-xs text-gray-500">
-              เมื่อชำระสำเร็จ ระบบจะยืนยันคำสั่งซื้อให้อัตโนมัติ
-            </Text>
-            <Text className="text-center text-xs text-gray-400">
-              การปิดหน้าต่างนี้ไม่ได้ยกเลิกการชำระเงิน หากต้องการดู QR
-              อีกครั้งให้กดปุ่มชำระเงิน
-            </Text>
-          </div>
-        </Modal>
-      )}
-    </>
+    <div className="mt-4 space-y-3">
+      <Button
+        size="lg"
+        variant="primary"
+        fill
+        onClick={handleGenerateQr}
+        loading={submitting}
+        disabled={disabled}
+      >
+        ชำระเงิน
+      </Button>
+    </div>
   )
 }

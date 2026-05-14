@@ -1,11 +1,10 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef } from "react"
-import { Wallet, Plus, Check } from "lucide-react"
+import { useCallback, useEffect, useMemo } from "react"
+import { Wallet, Plus } from "lucide-react"
 import { Heading, Text, clx } from "@medusajs/ui"
-import { Button, PaymentProviderIcon } from "@/components/atoms"
+import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
-import { isStripe } from "@/lib/constants"
 import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { useCheckoutPayment } from "./CheckoutPaymentContext"
 import { useCheckoutElementsSecret } from "./CheckoutElementsSecretContext"
@@ -25,20 +24,10 @@ type PaymentSessionSnapshot = {
 export const CheckoutPaymentSection = ({
   cart,
 }: CheckoutPaymentSectionProps) => {
-  const elementsClientSecret = useCheckoutElementsSecret(
-    (state) => state.clientSecret
-  )
   const marketplacePaymentInitError = useCheckoutElementsSecret(
     (state) => state.marketplacePaymentInitError
   )
-  const {
-    customer,
-    savedStripePaymentMethods,
-    upsertSavedStripePaymentMethod,
-    isSavedStripePaymentMethodsLoading,
-    isLoading: checkoutDataLoading,
-    refetchSavedStripePaymentMethods,
-  } = useCheckoutPageData()
+  const { isLoading: checkoutDataLoading } = useCheckoutPageData()
   const method = useCheckoutPayment((state) => state.method)
   const setMethod = useCheckoutPayment((state) => state.setMethod)
   const setCardComplete = useCheckoutPayment((state) => state.setCardComplete)
@@ -50,13 +39,6 @@ export const CheckoutPaymentSection = ({
   )
   const useNewCard = useCheckoutPayment((state) => state.useNewCard)
   const setUseNewCard = useCheckoutPayment((state) => state.setUseNewCard)
-  const selectedPmIdRef = useRef<string | null>(null)
-  selectedPmIdRef.current = selectedPaymentMethodId
-
-  const isStripeProvider = useCallback(
-    (providerId?: string | null) => isStripe(providerId ?? undefined),
-    []
-  )
 
   const paymentSessionSnapshots = useMemo<PaymentSessionSnapshot[]>(() => {
     return (
@@ -68,58 +50,26 @@ export const CheckoutPaymentSection = ({
     )
   }, [cart?.payment_collection?.payment_sessions])
 
-  const { stripeSession, promptpaySession, nonStripeSession } = useMemo(() => {
-    const stripe = paymentSessionSnapshots.find((session) =>
-      isStripeProvider(session.provider_id)
-    )
+  const { promptpaySession, nonStripeSession } = useMemo(() => {
     const promptpay = paymentSessionSnapshots.find((session) =>
       session.provider_id?.toLowerCase().includes("promptpay")
     )
     const nonStripe = paymentSessionSnapshots.find(
-      (session) => !isStripeProvider(session.provider_id)
+      (session) =>
+        !session.provider_id?.toLowerCase().includes("stripe") &&
+        !session.provider_id?.toLowerCase().includes("card")
     )
 
     return {
-      stripeSession: stripe,
       promptpaySession: promptpay,
       nonStripeSession: nonStripe,
     }
-  }, [isStripeProvider, paymentSessionSnapshots])
+  }, [paymentSessionSnapshots])
 
   const paymentSessionsSignature = useMemo(
     () => JSON.stringify(paymentSessionSnapshots),
     [paymentSessionSnapshots]
   )
-
-  /** Stable identity — `customer` from RSC often gets a new object reference each refresh. */
-  const customerId = customer?.id ?? null
-
-  useEffect(() => {
-    if (method !== "card" || !customerId || checkoutDataLoading) {
-      return
-    }
-    const currentId = selectedPmIdRef.current
-    const stillValid =
-      savedStripePaymentMethods.length > 0 &&
-      savedStripePaymentMethods.some((pm) => pm.id === currentId)
-
-    if (!stillValid && savedStripePaymentMethods.length > 0) {
-      const defaultPm =
-        savedStripePaymentMethods.find((pm) => pm.is_default) ||
-        savedStripePaymentMethods[0]
-      if (defaultPm) {
-        setSelectedPaymentMethodId(defaultPm.id)
-        setUseNewCard(false)
-      }
-    }
-  }, [
-    checkoutDataLoading,
-    customerId,
-    method,
-    savedStripePaymentMethods,
-    setSelectedPaymentMethodId,
-    setUseNewCard,
-  ])
 
   useEffect(() => {
     if (!cart?.payment_collection?.payment_sessions?.length) {
@@ -142,11 +92,6 @@ export const CheckoutPaymentSection = ({
       return
     }
 
-    if (stripeSession) {
-      setMethod("card")
-      return
-    }
-
     if (nonStripeSession) {
       setMethod("qrcode")
     }
@@ -157,16 +102,9 @@ export const CheckoutPaymentSection = ({
     paymentSessionsSignature,
     promptpaySession,
     setMethod,
-    stripeSession,
   ])
 
-  const waitingForSavedCards =
-    method === "card" &&
-    Boolean(customerId) &&
-    isSavedStripePaymentMethodsLoading
-  const savedPaymentMethods = savedStripePaymentMethods
-  const showNewCardForm =
-    !waitingForSavedCards && (useNewCard || savedPaymentMethods.length === 0)
+  const showNewCardForm = useNewCard
 
   useEffect(() => {
     setCardComplete(method === "card" && Boolean(selectedPaymentMethodId))
@@ -190,17 +128,10 @@ export const CheckoutPaymentSection = ({
 
   const handleNewCardSuccess = useCallback(
     async (paymentMethod: CustomerPaymentMethod) => {
-      upsertSavedStripePaymentMethod(paymentMethod)
       setSelectedPaymentMethodId(paymentMethod.id)
       setUseNewCard(false)
-      void refetchSavedStripePaymentMethods()
     },
-    [
-      refetchSavedStripePaymentMethods,
-      setSelectedPaymentMethodId,
-      setUseNewCard,
-      upsertSavedStripePaymentMethod,
-    ]
+    [setSelectedPaymentMethodId, setUseNewCard]
   )
 
   const cardPaymentNotice = (() => {
@@ -209,9 +140,6 @@ export const CheckoutPaymentSection = ({
     }
     if (!cart?.shipping_methods?.length) {
       return "กำลังเตรียมระบบชำระเงิน… กรุณาเลือกวิธีจัดส่งให้ครบก่อน"
-    }
-    if (!elementsClientSecret) {
-      return "ระบบจะเตรียมการชำระเงินเมื่อกดปุ่มชำระเงิน"
     }
     return null
   })()
@@ -286,54 +214,20 @@ export const CheckoutPaymentSection = ({
                   </Text>
                 )}
 
-                {waitingForSavedCards ? (
-                  <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
-                    กำลังโหลดบัตรที่บันทึกไว้…
-                  </Text>
-                ) : waitingForSavedCards ? (
-                  <Text className="sop-body-sm-regular text-sop-neutral-gray-300">
-                    กำลังโหลดบัตรที่บันทึกไว้…
-                  </Text>
-                ) : !showNewCardForm ? (
-                  <>
-                    {savedPaymentMethods.map((pm) => (
-                      <div
-                        key={pm.id}
-                        className={clx(
-                          "flex items-center justify-between py-3 cursor-pointer"
-                        )}
-                        onClick={() => setSelectedPaymentMethodId(pm.id)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <PaymentProviderIcon
-                            brand={pm.brand}
-                            size={40}
-                            className="shrink-0"
-                          />
-                          <Text className="md:sop-body-lg-regular sop-body-md-regular text-sop-neutral-gray-300">
-                            {pm.last4 ? `****${pm.last4}` : "บัตรที่บันทึกไว้"}
-                          </Text>
-                        </div>
-                        {selectedPaymentMethodId === pm.id && (
-                          <Check className="w-4 h-4 text-sop-primary-500" />
-                        )}
-                      </div>
-                    ))}
-
-                    <div>
-                      <Button
-                        variant="secondary"
-                        onClick={() => setUseNewCard(true)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Plus className="w-4 h-4" />
-                          <p>เพิ่มบัตรใหม่</p>
-                        </div>
-                      </Button>
-                    </div>
-                  </>
-                ) : (
+                {showNewCardForm ? (
                   <CreditCardCheckoutForm onSuccess={handleNewCardSuccess} />
+                ) : (
+                  <div>
+                    <Button
+                      variant="secondary"
+                      onClick={() => setUseNewCard(true)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        <p>เพิ่มบัตรใหม่</p>
+                      </div>
+                    </Button>
+                  </div>
                 )}
               </div>
             )}

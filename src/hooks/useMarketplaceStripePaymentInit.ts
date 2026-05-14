@@ -8,8 +8,11 @@ import {
   prepareMarketplacePayments,
 } from "@/lib/data/cart"
 import { checkoutPaymentFingerprint } from "@/lib/helpers/checkout-payment-fingerprint"
-import { getMarketplaceClientSecretsInOrder } from "@/lib/helpers/marketplace-checkout-ui"
-import { isStripe } from "@/lib/constants"
+import {
+  getMarketplaceClientSecretsInOrder,
+  isCardProviderId,
+  isPromptpayProviderId,
+} from "@/lib/helpers/marketplace-checkout-ui"
 import type { Cart } from "@/types/cart"
 import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import type { HttpTypes } from "@medusajs/types"
@@ -95,10 +98,9 @@ export function useMarketplaceStripePaymentInit({
     unifiedStripeCheckout,
     dualPmSingleStripePrepare,
   } = useMemo(() => {
-    const isStripeProv = (providerId?: string) =>
-      providerId === "stripe" || isStripe(providerId)
+    const isStripeProv = (providerId?: string) => isCardProviderId(providerId)
     const isPromptpayProv = (providerId?: string) =>
-      providerId?.toLowerCase().includes("promptpay") ?? false
+      isPromptpayProviderId(providerId) ?? false
     const unifiedId = paymentMethods?.find((p) => isStripeProv(p.id))?.id
     const stripeId =
       paymentMethods?.find((p) => isStripeProv(p.id) && !isPromptpayProv(p.id))
@@ -108,18 +110,16 @@ export function useMarketplaceStripePaymentInit({
 
     const unified = Boolean(stripeId && promptpayId && stripeId === promptpayId)
 
-    /** Separate Medusa provider rows for card vs PromptPay, both backed by Stripe — still one PI per slice if we create with both PM types. */
-    const bothStripeLikeMedusaProviders = (a?: string, b?: string) => {
+    /** Separate Medusa provider rows for card vs PromptPay backed by the same gateway — one PI per slice. */
+    const bothSameGatewayMedusaProviders = (a?: string, b?: string) => {
       if (!a || !b || a === b) return false
-      const medusaStripeish = (id: string) =>
-        id.startsWith("pp_") && /stripe/i.test(id)
-      return medusaStripeish(a) && medusaStripeish(b)
+      return a.startsWith("pp_") && b.startsWith("pp_")
     }
 
     const dualPmSingleStripePrepare = Boolean(
       stripeId &&
       promptpayId &&
-      (unified || bothStripeLikeMedusaProviders(stripeId, promptpayId))
+      (unified || bothSameGatewayMedusaProviders(stripeId, promptpayId))
     )
 
     return {

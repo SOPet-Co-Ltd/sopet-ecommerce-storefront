@@ -1,11 +1,6 @@
-import { CheckoutCartCapRunner } from "@/components/sections/CheckoutPaymentSection/CheckoutCartCapRunner"
-import CheckoutFlowClientBoundary from "@/components/sections/CheckoutPaymentSection/CheckoutFlowClientBoundary"
-
-import { retrieveCart, setMultiShippingMethods } from "@/lib/data/cart"
+import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
 import { getCheckoutCustomer } from "@/lib/data/customer"
-import { buildCartDefaultShippingSelection } from "@/lib/helpers/cart-shipping-selection"
-import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
@@ -43,32 +38,26 @@ export default async function CheckoutPage({
   const initialData = await getCheckoutPageInitialData(cart.id, regionId, {
     customerPromise,
   })
-  const shippingAutoSelection = buildCartDefaultShippingSelection(
-    cart,
-    initialData.shippingMethods
+
+  return (
+    <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+      <pre className="text-xs whitespace-pre-wrap break-all">
+        {JSON.stringify(
+          {
+            cart,
+            customer: initialData.customer,
+            customerAddresses: initialData.customerAddresses,
+            customerCards: initialData.customerCards,
+            sitePromos: initialData.sitePromos,
+            vendorPromos: initialData.vendorPromos,
+            shippingMethods: initialData.shippingMethods,
+            paymentMethods: initialData.paymentMethods,
+            error: initialData.error,
+          },
+          null,
+          2
+        )}
+      </pre>
+    </main>
   )
-
-  if (
-    shippingAutoSelection.needsPersist &&
-    shippingAutoSelection.optionIds.length
-  ) {
-    await setMultiShippingMethods(
-      {
-        cartId: cart.id,
-        optionIds: shippingAutoSelection.optionIds,
-      },
-      {
-        skipCacheRevalidate: true,
-      }
-    )
-
-    const updatedCart = await retrieveCart(cart.id)
-    if (updatedCart) {
-      cart = updatedCart
-    }
-  }
-
-  const lineFingerprint = checkoutLineFingerprint(cart)
-
-  return <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4"></main>
 }

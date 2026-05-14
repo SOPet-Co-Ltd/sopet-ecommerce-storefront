@@ -14,37 +14,6 @@ import {
 } from "./cookies"
 
 /**
- * Ensure the logged-in customer has a Stripe customer linked.
- * Calls POST /store/customers/me/stripe-customer idempotently.
- * This is a best-effort side effect and should not block auth flows.
- */
-export async function ensureStripeCustomer() {
-  const headers = await getAuthHeaders()
-
-  if (!headers || Object.keys(headers).length === 0) {
-    // Not logged in; nothing to do.
-    return null
-  }
-
-  try {
-    const res = await sdk.client.fetch<{ stripe_customer_id: string }>(
-      "/store/customers/me/stripe-customer",
-      {
-        method: "POST",
-        headers,
-      }
-    )
-
-    const customerCacheTag = await getCacheTag("customers")
-    revalidateTag(customerCacheTag)
-    return res.stripe_customer_id ?? null
-  } catch {
-    // Swallow errors to avoid breaking login if Stripe is temporarily unavailable.
-    return null
-  }
-}
-
-/**
  * Lightweight auth check for layout/header usage.
  * Returns basic customer identity without expanding orders/addresses.
  */
@@ -438,8 +407,6 @@ export async function signup(formData: FormData) {
     // Medusa cart is only created at checkout; clear any stale cart cookie so we never POST /store/carts/:id/customer
     await removeCartId()
 
-    await ensureStripeCustomer()
-
     return createdCustomer
   } catch (error: any) {
     return error.toString()
@@ -468,8 +435,6 @@ export async function login(formData: FormData) {
   } catch (error: any) {
     return error.toString()
   }
-
-  await ensureStripeCustomer()
 }
 
 /**
@@ -560,8 +525,6 @@ export async function verifyOtpAndLogin(formData: FormData) {
     revalidateTag(customerCacheTag)
 
     await removeCartId()
-
-    await ensureStripeCustomer()
 
     return null
   } catch (error: any) {
@@ -979,8 +942,6 @@ export async function addCustomerPaymentMethod(options: {
     return { success: false, error: "paymentMethodId is required" }
   }
 
-  await ensureStripeCustomer()
-
   const postPaymentMethod = async () =>
     sdk.client.fetch<{
       payment_method: CustomerPaymentMethod
@@ -1011,28 +972,7 @@ export async function addCustomerPaymentMethod(options: {
   }
 
   const firstAttempt = await attemptSave()
-  if (firstAttempt.success) {
-    return firstAttempt
-  }
-
-  if (
-    firstAttempt.code !== "missing_stripe_customer" &&
-    firstAttempt.code !== "stripe_customer_not_found"
-  ) {
-    return firstAttempt
-  }
-
-  const ensuredStripeCustomerId = await ensureStripeCustomer()
-  if (!ensuredStripeCustomerId) {
-    return {
-      success: false,
-      error: "ไม่สามารถเชื่อมบัญชีบัตรของลูกค้าได้",
-      type: "invalid_data",
-      code: "missing_stripe_customer",
-    }
-  }
-
-  return attemptSave()
+  return firstAttempt
 }
 
 export async function updateCustomerPaymentMethod(

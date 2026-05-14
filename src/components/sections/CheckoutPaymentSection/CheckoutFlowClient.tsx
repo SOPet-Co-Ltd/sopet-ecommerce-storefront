@@ -5,7 +5,7 @@ import {
   readPromptPayCheckoutLock,
 } from "@/lib/helpers/promptpay-checkout-lock"
 import { useParams, useRouter } from "next/navigation"
-import { useCallback, useEffect, useState, useTransition } from "react"
+import { useEffect } from "react"
 import {
   CheckoutPageDataProvider,
   useCheckoutPageData,
@@ -21,11 +21,8 @@ import { CheckoutSummarySection } from "@/components/sections/CheckoutSummarySec
 import { CheckoutDiscountSection } from "@/components/sections/CheckoutDiscountSection/CheckoutDiscountSection"
 import { CartAddressSection } from "@/components/sections/CartAddressSection/CartAddressSection"
 import CartReview from "@/components/sections/CartReview/CartReview"
-import { GuestOTPDialog } from "@/components/organisms/GuestOTPDialog/GuestOTPDialog"
 import { StripePaymentElementsBoundary } from "@/components/organisms/PaymentContainer/StripePaymentElementsBoundary"
 import { RouteLoadingSpinnerBlock } from "@/components/atoms/RouteLoadingFallback/RouteLoadingSpinnerBlock"
-import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
-import { getStripePromise } from "@/lib/stripe/get-stripe"
 import { Cart } from "@/types/cart"
 import { Text } from "@medusajs/ui"
 import type { CheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -66,14 +63,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
   const router = useRouter()
   const params = useParams()
   const locale = (params?.locale as string) || "th"
-  const { customer, refetch, error, isLoading, isRefreshing } =
-    useCheckoutPageData()
-  const [isOTPVerified, setIsOTPVerified] = useState(false)
-  const [verifiedPhone, setVerifiedPhone] = useState("")
-  const [, startRefreshTransition] = useTransition()
-
-  const stripePromise = getStripePromise()
-  const [stripeLoadError, setStripeLoadError] = useState<string | null>(null)
+  const { error, isLoading } = useCheckoutPageData()
 
   useEffect(() => {
     const lock = readPromptPayCheckoutLock()
@@ -89,52 +79,9 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
     }
   }, [cart.id, cart.completed_at, locale, router])
 
-  useEffect(() => {
-    if (!stripePromise) return
-    let cancelled = false
-    stripePromise
-      .then(() => {
-        if (!cancelled) setStripeLoadError(null)
-      })
-      .catch((e: unknown) => {
-        if (!cancelled) {
-          setStripeLoadError(
-            (e as Error)?.message ?? "ไม่สามารถโหลดระบบชำระเงินได้"
-          )
-        }
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [stripePromise])
-
-  const showGuestOTPDialog = !customer && !isOTPVerified
-  const authGateOk = Boolean(customer) || isOTPVerified
-  const dataBootstrapPending = isLoading || (isOTPVerified && isRefreshing)
-
-  const showCheckoutShell = authGateOk && !dataBootstrapPending
-
-  const handleGuestVerified = useCallback(
-    async (phone: string) => {
-      setVerifiedPhone(phone)
-      setIsOTPVerified(true)
-      await mergeAnonymousCartIntoCustomerAfterLogin()
-      await refetch()
-      startRefreshTransition(() => {
-        router.refresh()
-      })
-    },
-    [refetch, router, startRefreshTransition]
-  )
-
   return (
     <CheckoutPaymentProvider>
       <CheckoutPaymentSubmittingOverlay />
-
-      <GuestOTPDialog
-        isOpen={showGuestOTPDialog}
-        onVerified={handleGuestVerified}
-      />
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
@@ -142,20 +89,7 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {showGuestOTPDialog && (
-        <div
-          className="fixed inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-sop-base-white/97 px-6"
-          aria-busy={isLoading}
-          aria-live="polite"
-        >
-          {isLoading && <RouteLoadingSpinnerBlock variant="compact" />}
-          <Text className="text-center text-sop-neutral-gray-300 sop-body-sm-regular max-w-sm">
-            ยืนยันเบอร์โทรศัพท์เพื่อดำเนินการชำระเงิน
-          </Text>
-        </div>
-      )}
-
-      {authGateOk && dataBootstrapPending && (
+      {isLoading && (
         <div
           className="fixed inset-0 z-45 flex flex-col items-center justify-center gap-3 bg-sop-base-white/96 px-6"
           role="status"
@@ -169,18 +103,9 @@ function CheckoutFlowInner({ cart }: { cart: Cart }) {
         </div>
       )}
 
-      {showCheckoutShell && stripeLoadError && (
-        <div
-          className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 mb-4"
-          role="alert"
-        >
-          <Text className="text-sm text-red-800">{stripeLoadError}</Text>
-        </div>
-      )}
-
-      {showCheckoutShell && (
+      {!isLoading && (
         <>
-          <CartAddressSection cart={cart} verifiedPhone={verifiedPhone} />
+          <CartAddressSection cart={cart} />
 
           <CartReview cart={cart} />
 

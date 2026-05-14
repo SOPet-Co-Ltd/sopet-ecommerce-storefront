@@ -349,80 +349,40 @@ export async function getOrSetCart(countryCode: string) {
 }
 
 /**
- * Guest checkout: set Medusa cart to exactly the selected items (by variant + quantity)
- * and redirect to checkout. Call this after removing selected items from the anonymous
- * cart so only non-selected items remain for merge after OTP.
+ * Guest checkout: create a Medusa cart via the dedicated guest-cart endpoint
+ * and redirect to checkout. Call this after removing selected items from the
+ * anonymous cart so only non-selected items remain for restore on back-nav.
  */
-export async function prepareGuestCheckout(
+export async function createGuestMedusaCart(
   selectedItems: { variantId: string; quantity: number }[],
   countryCode: string,
   promotionCodes: string[] = []
 ): Promise<never> {
-  const cart = await getOrSetCart(countryCode)
-  if (!cart?.id) {
-    throw new Error("Failed to get or create cart for guest checkout")
-  }
+  const email = `guest-${Date.now()}@sopet.co.th`
 
-  const selectedByVariant = new Map<string, number>()
-  for (const { variantId, quantity } of selectedItems) {
-    selectedByVariant.set(
-      variantId,
-      (selectedByVariant.get(variantId) ?? 0) + quantity
+  const res = await fetchQuery("/store/guest-cart/create-medusa", {
+    method: "POST",
+    body: {
+      items: selectedItems.map((i) => ({
+        variant_id: i.variantId,
+        quantity: i.quantity,
+      })),
+      email,
+      promotion_codes: promotionCodes,
+    },
+  })
+
+  if (!res.ok || !res.data?.medusa_cart_id) {
+    throw new Error(
+      res.error?.message || "Failed to create guest checkout cart"
     )
   }
 
-  const headers = {
-    ...(await getAuthHeaders()),
-  }
+  await setCartId(res.data.medusa_cart_id)
+
   const cartCacheTag = await getCacheTag("carts")
-
-  for (const item of cart.items ?? []) {
-    const vid = item.variant_id
-    const lineId = item.id
-    if (!vid || !lineId) continue
-    const want = selectedByVariant.get(vid)
-    if (want === undefined) {
-      await sdk.store.cart
-        .deleteLineItem(cart.id, lineId, {}, headers)
-        .catch((e) => console.error("[prepareGuestCheckout] deleteLineItem", e))
-    } else {
-      if (item.quantity !== want) {
-        await sdk.store.cart
-          .updateLineItem(cart.id, lineId, { quantity: want }, {}, headers)
-          .catch((e) =>
-            console.error("[prepareGuestCheckout] updateLineItem", e)
-          )
-      }
-      selectedByVariant.set(vid, -1)
-    }
-  }
-
-  for (const [variantId, qty] of selectedByVariant) {
-    if (qty <= 0) continue
-    await sdk.store.cart
-      .createLineItem(
-        cart.id,
-        { variant_id: variantId, quantity: qty },
-        {},
-        headers
-      )
-      .catch((e) => console.error("[prepareGuestCheckout] createLineItem", e))
-  }
-
-  if (promotionCodes.length > 0) {
-    await sdk.store.cart
-      .update(
-        cart.id,
-        { promo_codes: promotionCodes },
-        {},
-        headers
-      )
-      .catch((e) =>
-        console.error("[prepareGuestCheckout] apply promotion codes", e)
-      )
-  }
-
   revalidateTag(cartCacheTag)
+
   redirect(`/${countryCode}/checkout`)
 }
 
@@ -931,14 +891,8 @@ export async function completeMarketplaceOrder(
       }
     : null
 
-  if (!cartBeforeComplete?.customer_id) {
+  if (!cartBeforeComplete?.customer_id && !cartBeforeComplete?.email) {
     cartBeforeComplete = await retrieveCart(id)
-  }
-
-  if (!cartBeforeComplete?.customer_id) {
-    throw new Error(
-      "Cart is not linked to a customer. Please sign in again before placing the order."
-    )
   }
 
   if (!cartBeforeComplete?.email) {
@@ -1220,13 +1174,8 @@ export async function placeOrder(
     ...(await getAuthHeaders()),
   }
 
-  // Ensure cart is linked to a customer before completing the order
+  // Ensure cart data is available before completing the order
   let cartBeforeComplete = await retrieveCart(id)
-  if (!cartBeforeComplete?.customer_id) {
-    throw new Error(
-      "Cart is not linked to a customer. Please sign in again before placing the order."
-    )
-  }
 
   if (!cartBeforeComplete?.email) {
     // Force a fallback email if missing to bypass Medusa v2 requirement

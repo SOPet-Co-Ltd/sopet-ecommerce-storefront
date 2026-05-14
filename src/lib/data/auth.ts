@@ -3,7 +3,7 @@
 import { fetchQuery } from "@/lib/config"
 import { revalidateTag } from "next/cache"
 import { getCacheTag, setAuthToken } from "./cookies"
-import { retrieveCustomer, ensureStripeCustomer } from "./customer"
+import { retrieveCustomer } from "./customer"
 
 export async function checkAuthStatus() {
   const customer = await retrieveCustomer()
@@ -62,8 +62,6 @@ export async function verifyOTP(phone: string, otp: string) {
   if (customerCacheTag) {
     await revalidateTag(customerCacheTag)
   }
-
-  await ensureStripeCustomer()
 
   return res.data
 }

@@ -1,9 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
-import { isStripe } from "@/lib/constants"
 
-export function isStripeProviderId(providerId?: string) {
-  return providerId === "stripe" || isStripe(providerId)
+export function isCardProviderId(providerId?: string) {
+  if (!providerId) return false
+  const id = providerId.toLowerCase()
+  return !id.includes("promptpay") && !id.includes("pp_system_default")
 }
 
 export function isPromptpayProviderId(providerId?: string) {
@@ -43,7 +44,9 @@ function toNumericAmount(value: unknown): number {
   return 0
 }
 
-function sliceRawTotalRequiresPayment(slice: { raw_total?: unknown } | undefined) {
+function sliceRawTotalRequiresPayment(
+  slice: { raw_total?: unknown } | undefined
+) {
   return toNumericAmount(slice?.raw_total) > 0
 }
 
@@ -63,11 +66,9 @@ function sessionMatchesMethodType(
   session: HttpTypes.StorePaymentSession,
   methodType: "card" | "promptpay"
 ): boolean {
-  if (!isStripeProviderId(session.provider_id)) return false
-  const data = session.data as { payment_method_types?: string[] } | undefined
-  const types = data?.payment_method_types
-  if (!Array.isArray(types)) return false
-  return types.includes(methodType)
+  if (methodType === "promptpay")
+    return isPromptpayProviderId(session.provider_id) ?? false
+  return isCardProviderId(session.provider_id)
 }
 
 function sessionCreatedAtMs(session: HttpTypes.StorePaymentSession): number {
@@ -87,45 +88,40 @@ export function isCheckoutSelectablePaymentSessionStatus(
   )
 }
 
-export function isCheckoutSelectableStripeSession(
+export function isCheckoutSelectablePaymentSession(
   session: HttpTypes.StorePaymentSession | undefined
 ): session is HttpTypes.StorePaymentSession {
   if (!session) {
     return false
   }
 
-  const clientSecret = session.data?.client_secret
-  return (
-    typeof clientSecret === "string" &&
-    clientSecret.length > 0 &&
-    isCheckoutSelectablePaymentSessionStatus(String(session.status))
-  )
+  return isCheckoutSelectablePaymentSessionStatus(String(session.status))
 }
 
-export function findStripeSessionForSlice(
+export function findPaymentSessionForSlice(
   collection: HttpTypes.StorePaymentCollection | undefined,
   methodType: "card" | "promptpay",
   providerId?: string
 ): HttpTypes.StorePaymentSession | undefined {
   if (!collection?.payment_sessions?.length) return undefined
 
-  const stripeish = (s: HttpTypes.StorePaymentSession) =>
-    isStripeProviderId(s.provider_id) || isPromptpayProviderId(s.provider_id)
+  const matchesMethod = (s: HttpTypes.StorePaymentSession) =>
+    methodType === "promptpay"
+      ? (isPromptpayProviderId(s.provider_id) ?? false)
+      : isCardProviderId(s.provider_id)
 
   const sortNewestFirst = (sessions: HttpTypes.StorePaymentSession[]) =>
-    [...sessions].sort(
-      (a, b) => sessionCreatedAtMs(b) - sessionCreatedAtMs(a)
-    )
+    [...sessions].sort((a, b) => sessionCreatedAtMs(b) - sessionCreatedAtMs(a))
 
   const strict = collection.payment_sessions.filter(
-    (s) => (!providerId || s.provider_id === providerId) && stripeish(s)
+    (s) => (!providerId || s.provider_id === providerId) && matchesMethod(s)
   )
   const pool = strict.length
     ? strict
-    : collection.payment_sessions.filter(stripeish)
+    : collection.payment_sessions.filter(matchesMethod)
 
   const selectablePool = sortNewestFirst(
-    pool.filter(isCheckoutSelectableStripeSession)
+    pool.filter(isCheckoutSelectablePaymentSession)
   )
   const selectableMatch = selectablePool.find((s) =>
     sessionMatchesMethodType(s, methodType)
@@ -141,6 +137,13 @@ export function findStripeSessionForSlice(
   const match = sortedPool.find((s) => sessionMatchesMethodType(s, methodType))
   return match || sortedPool[0]
 }
+
+/** @deprecated use findPaymentSessionForSlice */
+export const findStripeSessionForSlice = findPaymentSessionForSlice
+
+/** @deprecated use isCheckoutSelectablePaymentSession */
+export const isCheckoutSelectableStripeSession =
+  isCheckoutSelectablePaymentSession
 
 export function sliceCollectionAuthorized(
   collection: HttpTypes.StorePaymentCollection | undefined
@@ -171,7 +174,13 @@ export function countPayableMarketplaceSlices(
 ): number {
   return mp.slices.reduce((count, slice) => {
     const collection = byCollectionId[slice.payment_collection_id]
-    return count + (collectionRequiresPayment(collection) || sliceRawTotalRequiresPayment(slice) ? 1 : 0)
+    return (
+      count +
+      (collectionRequiresPayment(collection) ||
+      sliceRawTotalRequiresPayment(slice)
+        ? 1
+        : 0)
+    )
   }, 0)
 }
 
@@ -203,7 +212,10 @@ export function getMarketplaceSessionsInOrder(
   const sessions: HttpTypes.StorePaymentSession[] = []
   for (const slice of mp.slices) {
     const pc = byCollectionId[slice.payment_collection_id]
-    if (!collectionRequiresPayment(pc) && !sliceRawTotalRequiresPayment(slice)) {
+    if (
+      !collectionRequiresPayment(pc) &&
+      !sliceRawTotalRequiresPayment(slice)
+    ) {
       continue
     }
     const session = findStripeSessionForSlice(pc, methodType, providerId)

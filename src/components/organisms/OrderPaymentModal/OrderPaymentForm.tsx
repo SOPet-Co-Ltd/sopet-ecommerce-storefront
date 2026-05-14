@@ -1,7 +1,6 @@
 "use client"
 
 import { Button } from "@/components/atoms/Button/Button"
-import { useStripe } from "@stripe/react-stripe-js"
 import { X, CreditCard } from "lucide-react"
 import { useState } from "react"
 import type { OrderDetails } from "@/types/order"
@@ -11,20 +10,7 @@ interface OrderPaymentFormProps {
   onClose: () => void
   onPaymentSuccess?: () => void | Promise<void>
   selectedCardId?: string | null
-  /** One secret (single seller) or one per marketplace payment collection (multi-seller). */
   clientSecrets: string[]
-}
-
-const toErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === "string") {
-    return error
-  }
-
-  return "เกิดข้อผิดพลาดในการชำระเงิน"
 }
 
 export const OrderPaymentForm = ({
@@ -32,62 +18,29 @@ export const OrderPaymentForm = ({
   onClose,
   onPaymentSuccess,
   selectedCardId,
-  clientSecrets,
+  clientSecrets: _clientSecrets,
 }: OrderPaymentFormProps) => {
-  const stripe = useStripe()
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!stripe) {
-      return
-    }
-
     setIsProcessing(true)
     setError(null)
 
     try {
-      if (!clientSecrets.length) {
-        throw new Error("ไม่พบข้อมูล Payment Session")
-      }
-
       if (!selectedCardId) {
         throw new Error("กรุณาเลือกบัตรที่บันทึกไว้")
-      }
-
-      for (const secret of clientSecrets) {
-        const confirmResult = await stripe.confirmCardPayment(secret, {
-          payment_method: selectedCardId,
-        })
-
-        const stripeError = confirmResult.error
-        const paymentIntent = confirmResult.paymentIntent
-
-        if (stripeError) {
-          throw new Error(stripeError.message)
-        }
-
-        if (
-          paymentIntent?.status !== "succeeded" &&
-          paymentIntent?.status !== "processing" &&
-          paymentIntent?.status !== "requires_action"
-        ) {
-          throw new Error(
-            paymentIntent?.status
-              ? `สถานะการชำระเงินไม่คาดหมาย: ${paymentIntent.status}`
-              : "การชำระเงินไม่สำเร็จ"
-          )
-        }
       }
 
       if (onPaymentSuccess) {
         await onPaymentSuccess()
       }
       onClose()
-    } catch (error: unknown) {
-      setError(toErrorMessage(error))
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : "เกิดข้อผิดพลาดในการชำระเงิน"
+      setError(message)
     } finally {
       setIsProcessing(false)
     }
@@ -95,7 +48,6 @@ export const OrderPaymentForm = ({
 
   return (
     <div className="relative z-10 w-full max-w-[500px] bg-white rounded-3xl p-6 md:p-8 shadow-xl flex flex-col animate-in fade-in zoom-in-95 duration-200">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-sop-primary-100 flex items-center justify-center">
@@ -116,7 +68,6 @@ export const OrderPaymentForm = ({
         </button>
       </div>
 
-      {/* Order Summary */}
       <div className="bg-gray-50 rounded-xl p-4 mb-6">
         <div className="flex justify-between items-center">
           <span className="text-gray-600">ยอดที่ต้องชำระ</span>
@@ -126,7 +77,6 @@ export const OrderPaymentForm = ({
         </div>
       </div>
 
-      {/* Payment Form OR Saved Card Summary */}
       <form
         onSubmit={handleSubmit}
         className="space-y-6 flex flex-col items-center"
@@ -174,7 +124,7 @@ export const OrderPaymentForm = ({
           <Button
             type="submit"
             className="w-full rounded-full bg-sop-primary-500 hover:bg-sop-primary-600 text-white"
-            disabled={!stripe || !selectedCardId || isProcessing}
+            disabled={!selectedCardId || isProcessing}
           >
             {isProcessing ? "กำลังดำเนินการ..." : "ชำระเงิน"}
           </Button>
