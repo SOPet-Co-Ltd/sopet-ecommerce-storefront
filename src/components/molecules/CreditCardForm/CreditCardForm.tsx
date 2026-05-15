@@ -1,15 +1,219 @@
 "use client"
 
-import type { CustomerPaymentMethod } from "@/lib/data/customer"
+import { useState, useRef, useEffect } from "react"
+import { Button, Checkbox, InputSOPet } from "@/components/atoms"
+import {
+  addCustomerPaymentMethod,
+  type CustomerPaymentMethod,
+} from "@/lib/data/customer"
+
+declare global {
+  interface Window {
+    Omise?: {
+      setPublicKey: (key: string) => void
+      createToken: (
+        type: "card",
+        data: {
+          name: string
+          number: string
+          expiration_month: number
+          expiration_year: number
+          security_code: string
+        },
+        callback: (
+          statusCode: number,
+          response: { id?: string; message?: string }
+        ) => void
+      ) => void
+    }
+  }
+}
 
 type CreditCardFormProps = {
   onSuccess?: (paymentMethod: CustomerPaymentMethod) => void | Promise<void>
 }
 
-export const CreditCardForm = (_props: CreditCardFormProps) => {
+const fieldLabelClass =
+  "sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+
+export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
+  const [name, setName] = useState("")
+  const [number, setNumber] = useState("")
+  const [expiry, setExpiry] = useState("")
+  const [cvv, setCvv] = useState("")
+  const [makeDefault, setMakeDefault] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const omiseReady = useRef(false)
+
+  useEffect(() => {
+    const publicKey = process.env.NEXT_PUBLIC_OMISE_KEY
+    if (!publicKey) return
+
+    if (window.Omise) {
+      window.Omise.setPublicKey(publicKey)
+      omiseReady.current = true
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://cdn.omise.co/omise.js"
+    script.async = true
+    script.onload = () => {
+      window.Omise?.setPublicKey(publicKey)
+      omiseReady.current = true
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  const formatNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16)
+    return digits.replace(/(.{4})/g, "$1 ").trim()
+  }
+
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4)
+    if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2)
+    return digits
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const publicKey = process.env.NEXT_PUBLIC_OMISE_KEY
+    if (!publicKey) {
+      setError("ระบบชำระเงินยังไม่พร้อม กรุณาติดต่อผู้ดูแลระบบ")
+      return
+    }
+
+    if (!window.Omise) {
+      setError("ไม่สามารถโหลดระบบชำระเงินได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง")
+      return
+    }
+
+    const [expMonth, expYear] = expiry.split("/")
+    const expirationMonth = parseInt(expMonth ?? "", 10)
+    const expirationYear = parseInt("20" + (expYear ?? ""), 10)
+
+    if (!name.trim()) {
+      setError("กรุณากรอกชื่อบนบัตร")
+      return
+    }
+    if (number.replace(/\s/g, "").length < 16) {
+      setError("กรุณากรอกหมายเลขบัตรให้ครบ")
+      return
+    }
+    if (isNaN(expirationMonth) || isNaN(expirationYear)) {
+      setError("กรุณากรอกวันหมดอายุให้ถูกต้อง")
+      return
+    }
+    if (cvv.length < 3) {
+      setError("กรุณากรอก CVV ให้ครบ")
+      return
+    }
+
+    setSubmitting(true)
+    window.Omise.createToken(
+      "card",
+      {
+        name: name.trim(),
+        number: number.replace(/\s/g, ""),
+        expiration_month: expirationMonth,
+        expiration_year: expirationYear,
+        security_code: cvv,
+      },
+      async (statusCode, response) => {
+        if (statusCode !== 200 || !response.id) {
+          setError(
+            response.message ??
+              "ไม่สามารถสร้าง token บัตรได้ กรุณาตรวจสอบข้อมูลบัตร"
+          )
+          setSubmitting(false)
+          return
+        }
+
+        const res = await addCustomerPaymentMethod({
+          paymentMethodId: response.id,
+          makeDefault,
+        })
+
+        if (res.success) {
+          await onSuccess?.(res.paymentMethod)
+        } else {
+          setError(res.error)
+        }
+        setSubmitting(false)
+      }
+    )
+  }
+
   return (
-    <p className="sop-body-md-regular text-sop-system-error-400">
-      ระบบบัตรเครดิตอยู่ระหว่างอัปเดต
-    </p>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label className={fieldLabelClass}>ชื่อบนบัตร</label>
+        <InputSOPet
+          size="sm"
+          variant="bordered"
+          placeholder="ชื่อ นามสกุล (ภาษาอังกฤษ)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="cc-name"
+        />
+      </div>
+
+      <div>
+        <label className={fieldLabelClass}>หมายเลขบัตร</label>
+        <InputSOPet
+          size="sm"
+          variant="bordered"
+          placeholder="0000 0000 0000 0000"
+          value={number}
+          inputMode="numeric"
+          autoComplete="cc-number"
+          onChange={(e) => setNumber(formatNumber(e.target.value))}
+        />
+      </div>
+
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className={fieldLabelClass}>วันหมดอายุ</label>
+          <InputSOPet
+            size="sm"
+            variant="bordered"
+            placeholder="MM/YY"
+            value={expiry}
+            inputMode="numeric"
+            autoComplete="cc-exp"
+            onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+          />
+        </div>
+        <div className="w-28">
+          <label className={fieldLabelClass}>CVV</label>
+          <InputSOPet
+            size="sm"
+            variant="bordered"
+            placeholder="123"
+            value={cvv}
+            inputMode="numeric"
+            autoComplete="cc-csc"
+            maxLength={4}
+            onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+          />
+        </div>
+      </div>
+
+      <Checkbox
+        label="ตั้งเป็นบัตรค่าเริ่มต้น"
+        checked={makeDefault}
+        onChange={(e) => setMakeDefault(e.target.checked)}
+      />
+
+      {error && <p className="label-md text-negative">{error}</p>}
+
+      <Button type="submit" loading={submitting} fill>
+        บันทึกบัตร
+      </Button>
+    </form>
   )
 }
