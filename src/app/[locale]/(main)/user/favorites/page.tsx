@@ -19,7 +19,7 @@ export async function generateMetadata({
     locale,
     pathname: "user/favorites",
     title: "สินค้าที่ชอบ",
-    description: "สินค้าที่คุณกดถูกใจจากการเลือกซื้อบน SOPet",
+    description: "สินค้าที่คุณกดถูกใจจากการเลือกซื้อบน Sopet",
     indexable: false,
   })
 }

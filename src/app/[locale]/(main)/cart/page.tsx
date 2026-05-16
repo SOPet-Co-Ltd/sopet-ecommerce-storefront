@@ -18,7 +18,7 @@ export async function generateMetadata({
     pathname: "cart",
     title: "ตะกร้าสินค้า",
     description:
-      "ตรวจสอบสินค้าในตะกร้า ปรับจำนวน และดำเนินการชำระเงินเมื่อพร้อมบน SOPet",
+      "ตรวจสอบสินค้าในตะกร้า ปรับจำนวน และดำเนินการชำระเงินเมื่อพร้อมบน Sopet",
     indexable: false,
   })
 }

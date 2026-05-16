@@ -14,7 +14,7 @@ export async function generateMetadata({
     locale,
     pathname: "user/help",
     title: "ศูนย์ช่วยเหลือ",
-    description: "ติดต่อทีม SOPet และรับความช่วยเหลือเมื่อมีปัญหาการใช้งาน",
+    description: "ติดต่อทีม Sopet และรับความช่วยเหลือเมื่อมีปัญหาการใช้งาน",
     indexable: false,
   })
 }

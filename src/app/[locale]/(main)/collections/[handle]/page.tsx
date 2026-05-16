@@ -25,7 +25,7 @@ export async function generateMetadata({
   }
 
   const title = collection.title
-  const site = process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"
+  const site = process.env.NEXT_PUBLIC_SITE_NAME || "Sopet"
   const metaDesc = collection.metadata
   const rawDesc =
     metaDesc && typeof metaDesc === "object" && metaDesc !== null

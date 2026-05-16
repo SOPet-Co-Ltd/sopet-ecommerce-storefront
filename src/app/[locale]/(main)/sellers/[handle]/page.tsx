@@ -20,7 +20,7 @@ export async function generateMetadata({
     return { title: "ไม่พบร้านค้า" }
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"
+  const site = process.env.NEXT_PUBLIC_SITE_NAME || "Sopet"
   const blurb =
     seller.description?.trim() ||
     `สินค้าและบริการจาก ${seller.name} บนแพลตฟอร์ม ${site}`

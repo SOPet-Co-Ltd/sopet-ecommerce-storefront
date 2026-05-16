@@ -1,8 +1,8 @@
-# SOPet Storefront
+# Sopet Storefront
 
-Customer-facing frontend for SOPet ecommerce marketplace.
+Customer-facing frontend for Sopet ecommerce marketplace.
 
-Built with Next.js App Router and integrated with SOPet backend (`sopet-ecommerce-backend`).
+Built with Next.js App Router and integrated with Sopet backend (`sopet-ecommerce-backend`).
 
 ## What This App Covers
 
@@ -44,8 +44,8 @@ NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=pk_...
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_DEFAULT_REGION=th
 NEXT_PUBLIC_STRIPE_KEY=pk_test_...
-NEXT_PUBLIC_SITE_NAME="SOPet"
-NEXT_PUBLIC_SITE_DESCRIPTION="SOPet Storefront"
+NEXT_PUBLIC_SITE_NAME="Sopet"
+NEXT_PUBLIC_SITE_DESCRIPTION="Sopet Storefront"
 NEXT_PUBLIC_ALGOLIA_ID=...
 NEXT_PUBLIC_ALGOLIA_SEARCH_KEY=...
 ```

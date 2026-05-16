@@ -15,7 +15,7 @@ export async function generateMetadata({
     locale,
     pathname: "user/orders",
     title: "คำสั่งซื้อของฉัน",
-    description: "ดูสถานะและประวัติคำสั่งซื้อทั้งหมดของคุณบน SOPet",
+    description: "ดูสถานะและประวัติคำสั่งซื้อทั้งหมดของคุณบน Sopet",
     indexable: false,
   })
 }

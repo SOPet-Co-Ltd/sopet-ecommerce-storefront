@@ -51,13 +51,13 @@ export const FOOTER_MENUS = {
   services: {
     title: "บริการ",
     links: [
-      { label: "SOPet Application", href: "/app" },
+      { label: "Sopet Application", href: "/app" },
       { label: "ช่องทางชำระเงิน", href: "/payment" },
       { label: "คำถามที่พบบ่อย", href: "/faq" },
     ],
   },
   about: {
-    title: "รู้จัก SOPet",
+    title: "รู้จัก Sopet",
     links: [
       { label: "เกี่ยวกับเรา", href: "/about" },
       { label: "ร่วมงานกับเรา", href: "/careers" },

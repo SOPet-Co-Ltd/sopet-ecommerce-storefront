@@ -1,8 +1,8 @@
 /** Fallbacks when `NEXT_PUBLIC_SITE_*` env vars are not set */
-export const DEFAULT_SITE_NAME = "SOPet"
+export const DEFAULT_SITE_NAME = "Sopet"
 
 export const DEFAULT_SITE_DESCRIPTION =
-  "SOPet คือแพลตฟอร์มค้นหายาและสินค้าสำหรับสัตว์เลี้ยงจากโรงพยาบาลและร้านขายยาทั่วไทย เปรียบเทียบราคา รับโค้ดส่วนลด และจัดส่งรวดเร็ว"
+  "Sopet คือแพลตฟอร์มค้นหายาและสินค้าสำหรับสัตว์เลี้ยงจากโรงพยาบาลและร้านขายยาทั่วไทย เปรียบเทียบราคา รับโค้ดส่วนลด และจัดส่งรวดเร็ว"
 
 /** Absolute origin for robots, sitemap, and manifest (matches root layout metadataBase fallback). */
 export function getPublicSiteUrl(): string {
