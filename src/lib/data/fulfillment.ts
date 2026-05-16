@@ -5,6 +5,40 @@ import { HttpTypes } from "@medusajs/types"
 import { getAuthHeaders, getCacheOptions } from "./cookies"
 import { StoreCardShippingMethod } from "@/types/cart"
 
+export const listVendorShippingMethods = async (
+  cartId: string,
+  sellerId: string
+) => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  }
+
+  const next = {
+    ...(await getCacheOptions("fulfillment")),
+  }
+
+  return sdk.client
+    .fetch<{
+      shipping_options: StoreCardShippingMethod[] | null
+      seller_id?: string
+      seller_name?: string | null
+    }>(`/store/shipping-options/vendor`, {
+      method: "GET",
+      query: {
+        cart_id: cartId,
+        seller_id: sellerId,
+      },
+      headers,
+      next,
+      cache: "no-cache",
+    })
+    .then(({ shipping_options }) => shipping_options ?? [])
+    .catch((error) => {
+      console.error("[listVendorShippingMethods] Error:", error)
+      return null
+    })
+}
+
 export const listCartShippingMethods = async (
   cartId: string,
   is_return: boolean = false

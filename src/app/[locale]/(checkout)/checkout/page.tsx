@@ -1,3 +1,5 @@
+import CheckoutDetailsSection from "@/components/molecules/CheckoutDetailsSection/CheckoutDetailsSection"
+import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
 import { getCheckoutCustomer } from "@/lib/data/customer"
@@ -28,7 +30,7 @@ export default async function CheckoutPage({
 }) {
   const { locale } = await params
   const customerPromise = getCheckoutCustomer()
-  let cart = await retrieveCart()
+  const cart = await retrieveCart()
 
   if (!cart) {
     redirect(`/${locale}/cart?checkout=unavailable`)
@@ -41,23 +43,35 @@ export default async function CheckoutPage({
 
   return (
     <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
-      <pre className="text-xs whitespace-pre-wrap break-all">
-        {JSON.stringify(
-          {
-            cart,
-            customer: initialData.customer,
-            customerAddresses: initialData.customerAddresses,
-            customerCards: initialData.customerCards,
-            sitePromos: initialData.sitePromos,
-            vendorPromos: initialData.vendorPromos,
-            shippingMethods: initialData.shippingMethods,
-            paymentMethods: initialData.paymentMethods,
-            error: initialData.error,
-          },
-          null,
-          2
-        )}
-      </pre>
+      <CheckoutStoreProvider
+        cart={cart}
+        customer={initialData.customer}
+        customerAddresses={initialData.customerAddresses}
+        customerCards={initialData.customerCards}
+        shippingMethods={initialData.shippingMethods}
+        paymentMethods={initialData.paymentMethods}
+        sitePromos={initialData.sitePromos}
+        vendorPromos={initialData.vendorPromos}
+        error={initialData.error}
+      >
+        <pre className="text-xs whitespace-pre-wrap break-all">
+          {JSON.stringify(
+            {
+              cart,
+              customer: initialData.customer,
+              customerAddresses: initialData.customerAddresses,
+              customerCards: initialData.customerCards,
+              sitePromos: initialData.sitePromos,
+              vendorPromos: initialData.vendorPromos,
+              shippingMethods: initialData.shippingMethods,
+              paymentMethods: initialData.paymentMethods,
+              error: initialData.error,
+            },
+            null,
+            2
+          )}
+        </pre>
+      </CheckoutStoreProvider>
     </main>
   )
 }

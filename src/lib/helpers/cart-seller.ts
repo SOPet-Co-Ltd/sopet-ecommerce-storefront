@@ -21,9 +21,11 @@ type CartItemLike = Pick<
   "id" | "product_id" | "variant_id" | "metadata"
 > & {
   product?: (HttpTypes.StoreProduct & { seller?: SellerLike }) | null
-  variant?: (HttpTypes.StoreProductVariant & {
-    product?: { seller?: SellerLike } | null
-  }) | null
+  variant?:
+    | (HttpTypes.StoreProductVariant & {
+        product?: { seller?: SellerLike } | null
+      })
+    | null
 }
 
 type CartItemMetadata = Record<string, unknown> | null | undefined
@@ -60,6 +62,8 @@ const firstString = (...values: unknown[]): string | undefined => {
   return undefined
 }
 
+const SYNTHETIC_SELLER_ID_PREFIXES = ["handle:", "name:", "line:"] as const
+
 const getItemFallbackKey = (item: CartItemLike) => {
   return (
     item.id ||
@@ -69,13 +73,22 @@ const getItemFallbackKey = (item: CartItemLike) => {
   )
 }
 
-const buildSyntheticSellerId = (item: CartItemLike, handle?: string, name?: string) => {
+const isSyntheticSellerId = (id: string) =>
+  SYNTHETIC_SELLER_ID_PREFIXES.some((prefix) => id.startsWith(prefix))
+
+const buildNameGroupKey = (name: string) => `name:${name.trim().toLowerCase()}`
+
+const buildSyntheticSellerId = (
+  item: CartItemLike,
+  handle?: string,
+  name?: string
+) => {
   if (handle) {
     return `handle:${handle}`
   }
 
   if (name) {
-    return `name:${encodeURIComponent(name.toLowerCase())}`
+    return buildNameGroupKey(name)
   }
 
   return `line:${getItemFallbackKey(item)}`
@@ -85,7 +98,9 @@ export const buildStorefrontCartItemMetadata = (
   product: HttpTypes.StoreProduct & { seller?: SellerProps },
   variantId: string
 ) => {
-  const variant = product.variants?.find((candidate) => candidate.id === variantId)
+  const variant = product.variants?.find(
+    (candidate) => candidate.id === variantId
+  )
   const thumbnail =
     product.thumbnail ??
     (product.images && product.images.length > 0
@@ -156,7 +171,8 @@ export const getCartItemSeller = (
   item: CartItemLike,
   sellerOverride?: SellerLike
 ): Seller | null => {
-  const metadata = (item.metadata as Record<string, unknown> | null | undefined) ?? null
+  const metadata =
+    (item.metadata as Record<string, unknown> | null | undefined) ?? null
   const productSeller = item.product?.seller
   const variantSeller = item.variant?.product?.seller
 
@@ -198,16 +214,14 @@ export const getCartItemSeller = (
         productSeller?.photo,
         variantSeller?.photo,
         metadata?.seller_photo
-      ) ??
-      DEFAULT_CART_SELLER_PHOTO,
+      ) ?? DEFAULT_CART_SELLER_PHOTO,
     created_at:
       firstString(
         sellerOverride?.created_at,
         productSeller?.created_at,
         variantSeller?.created_at,
         metadata?.seller_created_at
-      ) ??
-      DEFAULT_CART_SELLER_CREATED_AT,
+      ) ?? DEFAULT_CART_SELLER_CREATED_AT,
     description:
       firstString(
         sellerOverride?.description,
@@ -247,13 +261,15 @@ export const getCartItemSellerGroup = (
     const hasReliableDisplayName =
       Boolean(normalizedName) && !GENERIC_SELLER_NAMES.has(normalizedName)
 
+    const hasRealSellerId =
+      Boolean(seller.id) && !isSyntheticSellerId(seller.id)
+
     return {
       key:
-        (hasReliableDisplayName &&
-          `name:${encodeURIComponent(normalizedName)}`) ||
+        (hasRealSellerId && `${seller.id}`) ||
         (normalizedHandle && `handle:${normalizedHandle}`) ||
-        (seller.id && `seller:${seller.id}`) ||
-        (normalizedName && `name:${encodeURIComponent(normalizedName)}`) ||
+        (hasReliableDisplayName && buildNameGroupKey(seller.name)) ||
+        (normalizedName && buildNameGroupKey(seller.name)) ||
         seller.id,
       seller,
     }
