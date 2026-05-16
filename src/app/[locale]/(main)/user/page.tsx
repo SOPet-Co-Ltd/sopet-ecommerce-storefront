@@ -12,7 +12,7 @@ export async function generateMetadata({
     locale,
     pathname: "user",
     title: "บัญชีของฉัน",
-    description: "ศูนย์จัดการบัญชี คำสั่งซื้อ และการตั้งค่าบน SOPet",
+    description: "ศูนย์จัดการบัญชี คำสั่งซื้อ และการตั้งค่าบน Sopet",
     indexable: false,
   })
 }

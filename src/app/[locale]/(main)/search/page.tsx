@@ -12,7 +12,7 @@ export async function generateMetadata({
     pathname: "search",
     title: "ค้นหาสินค้า",
     description:
-      "ค้นหายาและสินค้าสำหรับสัตว์เลี้ยงจากร้านค้าและโรงพยาบาลที่ร่วมรายการบน SOPet",
+      "ค้นหายาและสินค้าสำหรับสัตว์เลี้ยงจากร้านค้าและโรงพยาบาลที่ร่วมรายการบน Sopet",
     indexable: true,
   })
 }

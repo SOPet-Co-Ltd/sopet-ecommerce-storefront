@@ -11,7 +11,7 @@ export async function generateMetadata({
     locale,
     pathname: "user/notifications",
     title: "การแจ้งเตือน",
-    description: "ดูการแจ้งเตือนและอัปเดตในบัญชี SOPet ของคุณ",
+    description: "ดูการแจ้งเตือนและอัปเดตในบัญชี Sopet ของคุณ",
     indexable: false,
   })
 }

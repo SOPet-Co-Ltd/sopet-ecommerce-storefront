@@ -25,7 +25,7 @@ export const mockCart = {
         thumbnail: "",
         seller: {
           id: "seller_1",
-          store_name: "SOPet Official Store",
+          store_name: "Sopet Official Store",
         },
       },
     },
@@ -69,7 +69,7 @@ export const mockCart = {
         thumbnail: "",
         seller: {
           id: "seller_1",
-          store_name: "SOPet Official Store",
+          store_name: "Sopet Official Store",
         },
       },
     },

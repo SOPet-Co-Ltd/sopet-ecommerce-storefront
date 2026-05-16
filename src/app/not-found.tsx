@@ -7,7 +7,7 @@ const defaultLocale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
 export const metadata: Metadata = {
   title: "ไม่พบหน้า",
   description:
-    "ไม่พบหน้าที่คุณกำลังมองหา ลองกลับหน้าหลักหรือค้นหาสินค้าบน SOPet",
+    "ไม่พบหน้าที่คุณกำลังมองหา ลองกลับหน้าหลักหรือค้นหาสินค้าบน Sopet",
 }
 
 function PawMark({ className }: { className?: string }) {

@@ -2,7 +2,7 @@
 
 ## High-Level Overview
 
-The storefront is a Next.js App Router application that renders UI server-side and client-side, while consuming commerce APIs from the SOPet backend.
+The storefront is a Next.js App Router application that renders UI server-side and client-side, while consuming commerce APIs from the Sopet backend.
 
 - Frontend runtime: Next.js (`next dev`, `next start`)
 - Backend integration: Medusa JS SDK + direct `fetch` calls

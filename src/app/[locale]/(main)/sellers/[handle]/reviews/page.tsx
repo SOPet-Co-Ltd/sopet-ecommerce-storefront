@@ -21,7 +21,7 @@ export async function generateMetadata({
   }
 
   const title = `รีวิวร้าน ${seller.name}`
-  const description = `อ่านรีวิวจากลูกค้าสำหรับ ${seller.name} บน ${process.env.NEXT_PUBLIC_SITE_NAME || "SOPet"}`
+  const description = `อ่านรีวิวจากลูกค้าสำหรับ ${seller.name} บน ${process.env.NEXT_PUBLIC_SITE_NAME || "Sopet"}`
 
   return buildPageMetadata({
     locale,
