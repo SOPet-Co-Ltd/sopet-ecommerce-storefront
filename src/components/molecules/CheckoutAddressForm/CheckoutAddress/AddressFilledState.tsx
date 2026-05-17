@@ -3,10 +3,13 @@ import { Button } from "@/components/atoms"
 import { Dot } from "lucide-react"
 
 const AddressFilledState = ({ customer }: any) => {
-  const fullAddress = `${customer?.customer?.addresses?.[0].address_1} ${customer?.customer?.addresses?.[0].address_2} ${customer?.customer?.addresses?.[0].city} ${customer?.customer?.addresses?.[0].province} ${customer?.customer?.addresses?.[0].postal_code}`
+  const address = customer?.customer?.addresses?.find(
+    (a: any) => a.is_default_shipping
+  )
+  const fullAddress = `${address?.address_1} ${address?.address_2} ${address?.city} ${address?.province} ${address?.postal_code}`
   return (
     <div className="flex justify-between items-center">
-      <div>
+      <div className="pr-5.5">
         <div className="flex items-center gap-4">
           <div className="flex  gap-2">
             <label> {customer?.customer?.addresses?.[0].address_name}</label>
