@@ -330,24 +330,6 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           )}
         />
       </div>
-
-      {error && (
-        <p className="sop-body-sm-regular text-sop-system-error-400 mt-4">
-          {error}
-        </p>
-      )}
-
-      <div className="mt-6">
-        <Button
-          type="submit"
-          size="lg"
-          variant="primary"
-          fill
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? "กำลังบันทึก..." : "บันทึกที่อยู่"}
-        </Button>
-      </div>
     </form>
   )
 }
