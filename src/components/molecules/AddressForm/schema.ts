@@ -22,7 +22,8 @@ export const addressSchema = z.object({
     .string()
     .trim()
     .min(1, "อีเมล is required")
-    .email("รูปแบบอีเมลไม่ถูกต้อง"),
+    .email("รูปแบบอีเมลไม่ถูกต้อง")
+    .optional(),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>
