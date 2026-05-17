@@ -47,7 +47,7 @@ export default async function CheckoutPage({
       <CheckoutStoreProvider
         cart={cart}
         customer={initialData.customer}
-        customerAddresses={initialData.customerAddresses}
+        customerAddresses={initialData.customer?.addresses ?? []}
         customerCards={initialData.customerCards}
         shippingMethods={initialData.shippingMethods}
         paymentMethods={initialData.paymentMethods}
@@ -60,7 +60,6 @@ export default async function CheckoutPage({
             {
               cart,
               customer: initialData.customer,
-              customerAddresses: initialData.customerAddresses,
               customerCards: initialData.customerCards,
               sitePromos: initialData.sitePromos,
               vendorPromos: initialData.vendorPromos,
