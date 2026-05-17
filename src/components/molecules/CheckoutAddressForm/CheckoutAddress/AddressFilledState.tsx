@@ -1,19 +1,25 @@
 import { Infotag } from "@/components/atoms/InfoTag/Infotag"
 import { Button } from "@/components/atoms"
 import { Dot } from "lucide-react"
+import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 
-const AddressFilledState = ({ customer }: any) => {
-  const address = customer?.customer?.addresses?.find(
-    (a: any) => a.is_default_shipping
+const AddressFilledState = ({
+  customer,
+}: {
+  customer: StoreCustomer | null
+}) => {
+  const address = customer?.addresses?.find(
+    (a: StoreCustomerAddress) => a.is_default_shipping
   )
+
   const fullAddress = `${address?.address_1} ${address?.address_2} ${address?.city} ${address?.province} ${address?.postal_code}`
   return (
     <div className="flex justify-between items-center">
       <div className="pr-5.5">
         <div className="flex items-center gap-4">
           <div className="flex  gap-2">
-            <label> {customer?.customer?.addresses?.[0].address_name}</label>
-            <label>({customer?.customer?.addresses?.[0].phone})</label>
+            <label> {customer?.addresses?.[0].address_name}</label>
+            <label>({customer?.addresses?.[0].phone})</label>
           </div>
           <Infotag
             className="sop-body-sm-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 pr-2.5"

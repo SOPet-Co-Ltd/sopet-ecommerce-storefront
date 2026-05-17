@@ -7,9 +7,10 @@ import { MapPin } from "lucide-react"
 import { AddressFormData, addressSchema } from "../AddressForm/schema"
 import AddressEmptyState from "./CheckoutAddress/AddressEmptyState"
 import AddressFilledState from "./CheckoutAddress/AddressFilledState"
+import { StoreCustomer } from "@medusajs/types"
 
 interface Props {
-  customer?: any
+  customer?: StoreCustomer | null
   defaultValues?: AddressFormData
   onSubmitForm?: (data: AddressFormData) => Promise<void> | void
 }
@@ -62,7 +63,7 @@ const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
           ข้อมูลการจัดส่ง
         </label>
         <div className="relative overflow-hidden  md:w-203.75 xl:w-203.75 lg:w-203.75 w-85.75 bg-sop-base-white rounded-sop-20 md:px-6 xl:px-6 lg:px-6 px-4 py-6 ">
-          {!customer?.customer.addresses.length ? (
+          {!customer?.addresses.length ? (
             <AddressEmptyState onSubmitForm={onSubmitForm} />
           ) : (
             <AddressFilledState customer={customer} />
