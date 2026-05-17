@@ -77,7 +77,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
         การติดต่อ
       </label>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 grid-cols-1 gap-4 mt-5">
+      <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 grid-cols-1 gap-3 lg:gap-5 mt-5">
         <InputSOPet
           isRequire
           title="เบอร์โทรศัพท์"
@@ -105,7 +105,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
             })}
           />
 
-          <Infotag className="gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600 mt-2 w-full">
+          <Infotag className="gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600 mt-3 w-full">
             📩 กรอกอีเมล เพื่อรับอัปเดตจาก Sopet ก่อนใคร
           </Infotag>
         </div>
@@ -115,7 +115,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
         การจัดส่ง
       </label>
 
-      <div className="grid grid-cols-1 gap-4 mt-5">
+      <div className="grid grid-cols-1 gap-3 lg:gap-5mt-5">
         <InputSOPet
           isRequire
           title="ที่อยู่"
