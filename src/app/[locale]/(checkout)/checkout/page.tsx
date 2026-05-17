@@ -42,7 +42,7 @@ export default async function CheckoutPage({
   })
 
   return (
-    <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+    <main className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
       <CheckoutAddressForm customer={initialData.customer} />
       <CheckoutStoreProvider
         cart={cart}
