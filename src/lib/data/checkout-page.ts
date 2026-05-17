@@ -2,7 +2,11 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { fetchQuery } from "../config"
-import { getCheckoutCustomer } from "./customer"
+import {
+  getCheckoutCustomer,
+  getCustomerPaymentMethods,
+  type CustomerPaymentMethod,
+} from "./customer"
 import { getAuthHeaders } from "./cookies"
 import { listCartShippingMethods } from "./fulfillment"
 import { listCartPaymentMethods } from "./payment"
@@ -38,7 +42,8 @@ export type CheckoutPageBundleData = {
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   customer: HttpTypes.StoreCustomer | null
-  customerCards: []
+  customerAddresses: HttpTypes.StoreCustomerAddress[]
+  customerCards: CustomerPaymentMethod[]
   sitePromos: CouponData[]
   vendorPromos: CouponData[]
   error: string | null
@@ -50,6 +55,7 @@ type CheckoutPageBundleResponse = {
   shipping_methods?: StoreCardShippingMethod[] | null
   payment_methods?: HttpTypes.StorePaymentProvider[] | null
   customer?: HttpTypes.StoreCustomer | null
+  customer_cards?: CustomerPaymentMethod[] | null
   promotions?: PromotionsPayload | null
   error?: string | null
 }
@@ -103,6 +109,7 @@ export async function getCheckoutPageBundleData(
     options?.customerPromise ?? getCheckoutCustomer(),
     fetchSitePromos(cartId),
     fetchVendorPromos(cartId),
+    getCustomerPaymentMethods(),
   ])
 
   const [
@@ -111,6 +118,7 @@ export async function getCheckoutPageBundleData(
     customerRes,
     sitePromosRes,
     vendorPromosRes,
+    customerCardsRes,
   ] = settled
 
   const shippingMethods =
@@ -122,6 +130,10 @@ export async function getCheckoutPageBundleData(
     sitePromosRes.status === "fulfilled" ? sitePromosRes.value : []
   const vendorPromos =
     vendorPromosRes.status === "fulfilled" ? vendorPromosRes.value : []
+  const customerCards =
+    customerCardsRes.status === "fulfilled" && customerCardsRes.value.success
+      ? customerCardsRes.value.paymentMethods
+      : []
 
   let error: string | null = null
   if (shippingRes.status === "rejected") {
@@ -137,7 +149,8 @@ export async function getCheckoutPageBundleData(
     shippingMethods,
     paymentMethods,
     customer,
-    customerCards: [],
+    customerAddresses: customer?.addresses ?? [],
+    customerCards,
     sitePromos,
     vendorPromos,
     error,
@@ -168,6 +181,7 @@ export async function getCheckoutPageBundleDataFromStoreApi(
       shippingMethods: [],
       paymentMethods: null,
       customer: null,
+      customerAddresses: [],
       customerCards: [],
       sitePromos: [],
       vendorPromos: [],
@@ -182,7 +196,8 @@ export async function getCheckoutPageBundleDataFromStoreApi(
     shippingMethods: payload?.shipping_methods ?? [],
     paymentMethods: payload?.payment_methods ?? null,
     customer,
-    customerCards: [],
+    customerAddresses: customer?.addresses ?? [],
+    customerCards: payload?.customer_cards ?? [],
     sitePromos: payload?.promotions?.site ?? [],
     vendorPromos: payload?.promotions?.vendor ?? [],
     error: payload?.error ?? null,

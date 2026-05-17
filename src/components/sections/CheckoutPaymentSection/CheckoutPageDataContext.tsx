@@ -16,13 +16,14 @@ import type {
   CheckoutPageInitialData,
   CouponData,
 } from "@/lib/data/checkout-page"
+import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { queryKeys } from "@/lib/react-query/query-keys"
 import type { StoreCardShippingMethod } from "@/types/cart"
 
 export type CheckoutPageDataContextValue = {
   customer: HttpTypes.StoreCustomer | null
   customerAddresses: HttpTypes.StoreCustomerAddress[]
-  customerCards: []
+  customerCards: CustomerPaymentMethod[]
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   sitePromos: CouponData[]
@@ -93,7 +94,7 @@ export function CheckoutPageDataProvider({
       shippingMethods: initialData.shippingMethods,
       paymentMethods: initialData.paymentMethods,
       customerAddresses: initialData.customerAddresses ?? [],
-      customerCards: [],
+      customerCards: initialData.customerCards ?? [],
       sitePromos: initialData.sitePromos ?? [],
       vendorPromos: initialData.vendorPromos ?? [],
       error: initialData.error,
@@ -126,7 +127,7 @@ export function CheckoutPageDataProvider({
     () => ({
       customer: bundleQuery.data?.customer ?? null,
       customerAddresses: bundleQuery.data?.customerAddresses ?? [],
-      customerCards: [],
+      customerCards: bundleQuery.data?.customerCards ?? [],
       shippingMethods: bundleQuery.data?.shippingMethods ?? [],
       paymentMethods: bundleQuery.data?.paymentMethods ?? null,
       sitePromos: bundleQuery.data?.sitePromos ?? [],

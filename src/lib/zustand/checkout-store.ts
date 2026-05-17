@@ -15,6 +15,7 @@ import type {
   StoreCardShippingMethod,
 } from "@/types/cart"
 import type { CouponData } from "@/lib/data/checkout-page"
+import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { listVendorShippingMethods } from "@/lib/data/fulfillment"
 import { getCartItemSellerGroup } from "../helpers/cart-seller"
 
@@ -82,7 +83,7 @@ type CheckoutState = {
   cart: Cart
   customer: HttpTypes.StoreCustomer | null
   customerAddresses: HttpTypes.StoreCustomerAddress[]
-  customerCards: []
+  customerCards: CustomerPaymentMethod[]
   /** Platform-wide shipping methods from checkout page SSR. */
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
@@ -116,7 +117,7 @@ export type CheckoutStoreInitialProps = {
   cart: Cart
   customer: HttpTypes.StoreCustomer | null
   customerAddresses: HttpTypes.StoreCustomerAddress[]
-  customerCards: []
+  customerCards: CustomerPaymentMethod[]
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   sitePromos: CouponData[]
