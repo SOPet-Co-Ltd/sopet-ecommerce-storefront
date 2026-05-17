@@ -129,7 +129,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           })}
         />
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 md:gap-6 lg:gap-6 xl:gap-6 gap-3">
           <div>
             <Controller
               control={control}
@@ -223,7 +223,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 md:gap-6 lg:gap-6 xl:gap-6 gap-3">
           <div>
             <Controller
               control={control}
@@ -281,7 +281,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 grid-cols-1 gap-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 grid-cols-1 md:gap-6 lg:gap-6 xl:gap-6 gap-3">
           <div>
             <InputSOPet
               isRequire
@@ -314,7 +314,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mt-5.5">
+      <div className="flex items-center gap-2 mt-5.5 mb-sop-16px">
         <Controller
           control={control}
           name="setAsDefault"

@@ -61,7 +61,7 @@ const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
           <MapPin className="fill-sop-primary-500 text-white" size={24} />
           ข้อมูลการจัดส่ง
         </label>
-        <div className="relative overflow-hidden  md:w-203.75 xl:w-203.75 lg:w-203.75 w-85.75 bg-sop-base-white rounded-sop-20 px-6 py-6">
+        <div className="relative overflow-hidden  md:w-203.75 xl:w-203.75 lg:w-203.75 w-85.75 bg-sop-base-white rounded-sop-20 md:px-6 xl:px-6 lg:px-6 px-4 py-6 ">
           {customer?.customer == null ? (
             <AddressEmptyState onSubmitForm={onSubmitForm} />
           ) : (

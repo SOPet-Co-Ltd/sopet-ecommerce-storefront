@@ -1,6 +1,6 @@
 import { Infotag } from "@/components/atoms/InfoTag/Infotag"
 import { Button } from "@/components/atoms"
-import { Dot, Info } from "lucide-react"
+import { Dot } from "lucide-react"
 
 const AddressFilledState = ({ customer }: any) => {
   const fullAddress = `${customer?.customer?.addresses?.[0].address_1} ${customer?.customer?.addresses?.[0].address_2} ${customer?.customer?.addresses?.[0].city} ${customer?.customer?.addresses?.[0].province} ${customer?.customer?.addresses?.[0].postal_code}`
