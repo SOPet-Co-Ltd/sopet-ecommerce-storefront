@@ -1,4 +1,4 @@
-import CheckoutDetailsSection from "@/components/molecules/CheckoutDetailsSection/CheckoutDetailsSection"
+import CheckoutAddressForm from "@/components/molecules/CheckoutAddressForm/CheckoutAddressForm"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -42,11 +42,12 @@ export default async function CheckoutPage({
   })
 
   return (
-    <main className="lg:px-16 px-0 lg:py-4 flex flex-col gap-4">
+    <main className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
+      <CheckoutAddressForm customer={initialData.customer} />
       <CheckoutStoreProvider
         cart={cart}
         customer={initialData.customer}
-        customerAddresses={initialData.customerAddresses}
+        customerAddresses={initialData.customer?.addresses ?? []}
         customerCards={initialData.customerCards}
         shippingMethods={initialData.shippingMethods}
         paymentMethods={initialData.paymentMethods}
@@ -59,7 +60,6 @@ export default async function CheckoutPage({
             {
               cart,
               customer: initialData.customer,
-              customerAddresses: initialData.customerAddresses,
               customerCards: initialData.customerCards,
               sitePromos: initialData.sitePromos,
               vendorPromos: initialData.vendorPromos,

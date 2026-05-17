@@ -38,7 +38,6 @@ export type CheckoutPageBundleData = {
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
   customer: HttpTypes.StoreCustomer | null
-  customerAddresses: HttpTypes.StoreCustomerAddress[]
   customerCards: []
   sitePromos: CouponData[]
   vendorPromos: CouponData[]
@@ -138,7 +137,6 @@ export async function getCheckoutPageBundleData(
     shippingMethods,
     paymentMethods,
     customer,
-    customerAddresses: customer?.addresses ?? [],
     customerCards: [],
     sitePromos,
     vendorPromos,
@@ -170,7 +168,6 @@ export async function getCheckoutPageBundleDataFromStoreApi(
       shippingMethods: [],
       paymentMethods: null,
       customer: null,
-      customerAddresses: [],
       customerCards: [],
       sitePromos: [],
       vendorPromos: [],
@@ -185,7 +182,6 @@ export async function getCheckoutPageBundleDataFromStoreApi(
     shippingMethods: payload?.shipping_methods ?? [],
     paymentMethods: payload?.payment_methods ?? null,
     customer,
-    customerAddresses: customer?.addresses ?? [],
     customerCards: [],
     sitePromos: payload?.promotions?.site ?? [],
     vendorPromos: payload?.promotions?.vendor ?? [],
