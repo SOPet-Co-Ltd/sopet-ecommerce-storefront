@@ -1,5 +1,6 @@
 import CheckoutAddressForm from "@/components/molecules/CheckoutAddressForm/CheckoutAddressForm"
 import CheckoutDetailsSection from "@/components/molecules/CheckoutDetailsSection/CheckoutDetailsSection"
+import CheckoutPaymentSelection from "@/components/molecules/CheckoutPaymentSelection/CheckoutPaymentSelection"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -55,22 +56,33 @@ export default async function CheckoutPage({
         vendorPromos={initialData.vendorPromos}
         error={initialData.error}
       >
-        <CheckoutAddressForm customer={initialData.customer} />
-        <CheckoutDetailsSection
-          cart={cart}
-          vendorPromos={initialData.vendorPromos}
-        />
+        <div className="flex xl:flex-row lg:flex-row md:flex-row flex-col gap-8">
+          <div className="w-full">
+            <CheckoutAddressForm customer={initialData.customer} />
+            <CheckoutDetailsSection
+              cart={cart}
+              vendorPromos={initialData.vendorPromos}
+            />
+          </div>
+          <div className="lg:mt-17 sm:mt-sop-16px  w-full">
+            <CheckoutPaymentSelection
+              payment={initialData.customerCards}
+              paymentMethods={initialData.paymentMethods}
+            />
+          </div>
+        </div>
+
         <pre className="text-xs whitespace-pre-wrap break-all">
           {JSON.stringify(
             {
-              cart,
-              customer: initialData.customer,
+              // cart,
+              // customer: initialData.customer,
               customerCards: initialData.customerCards,
-              sitePromos: initialData.sitePromos,
-              vendorPromos: initialData.vendorPromos,
-              shippingMethods: initialData.shippingMethods,
+              // sitePromos: initialData.sitePromos,
+              // vendorPromos: initialData.vendorPromos,
+              // shippingMethods: initialData.shippingMethods,
               paymentMethods: initialData.paymentMethods,
-              error: initialData.error,
+              // error: initialData.error,
             },
             null,
             2

@@ -57,7 +57,7 @@ const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
   })
   return (
     <form>
-      <div className="mt-6">
+      <div className="mt-6 mb-sop-20px">
         <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5">
           <MapPin className="fill-sop-primary-500 text-white" size={24} />
           ข้อมูลการจัดส่ง

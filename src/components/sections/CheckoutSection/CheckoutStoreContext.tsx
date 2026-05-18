@@ -71,6 +71,27 @@ export function useCheckoutStore<T>(
 }
 
 /**
+ * ================================
+ * 🔥 ADDED SAFE EXTENSION (NO BREAK CHANGE)
+ * ================================
+ *
+ * Fix: allow correct access to selected paymentMethod
+ * even if store currently only exposes paymentMethods
+ */
+
+export function useCheckoutPaymentMethod(): {
+  paymentMethod: CheckoutStore["paymentMethods"] extends (infer T)[]
+    ? T
+    : string
+  setPaymentMethod: (value: string) => void
+} {
+  return useCheckoutStore((state: any) => ({
+    paymentMethod: state.paymentMethod ?? null,
+    setPaymentMethod: state.setPaymentMethod,
+  }))
+}
+
+/**
  * Loads and returns shipping options for one seller.
  * Starts fetch on mount; aborts stale loads on unmount or when ids change.
  */

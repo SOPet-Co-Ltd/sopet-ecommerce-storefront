@@ -94,6 +94,11 @@ type CheckoutState = {
   sellerGroups: GroupedItems
   /** Per-seller shipping options; populated by `loadVendorShippingOptions`. */
   vendorShippingBySellerId: Record<string, VendorShippingState>
+
+  /* =========================
+   * ✅ ADDED: selected payment method (UI state)
+   * ========================= */
+  paymentMethod: string
 }
 
 type CheckoutActions = {
@@ -108,6 +113,11 @@ type CheckoutActions = {
   getVendorShipping: (sellerId: string) => VendorShippingState
   loadVendorShippingOptions: (cartId: string, sellerId: string) => Promise<void>
   abortVendorShippingLoad: (sellerId: string) => void
+
+  /* =========================
+   * ✅ ADDED: setter for selected payment method
+   * ========================= */
+  setPaymentMethod: (method: string) => void
 }
 
 export type CheckoutStore = CheckoutState & CheckoutActions
@@ -130,6 +140,12 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
   return createStore<CheckoutStore>((set, get) => ({
     ...initial,
     vendorShippingBySellerId: {},
+
+    /* =========================
+     * ✅ ADDED INIT VALUE
+     * ========================= */
+    paymentMethod: "promptpay",
+
     setCart: (cart) => set({ cart }),
     setCustomer: (customer) => set({ customer }),
     setCustomerAddresses: (customerAddresses) => set({ customerAddresses }),
@@ -138,13 +154,21 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     setSitePromos: (sitePromos) => set({ sitePromos }),
     setVendorPromos: (vendorPromos) => set({ vendorPromos }),
     setError: (error) => set({ error }),
+
+    /* =========================
+     * ✅ ADDED ACTION
+     * ========================= */
+    setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
+
     sellerGroups: groupCartItemsBySeller(initial.cart),
     getVendorShipping: (sellerId) =>
       get().vendorShippingBySellerId[sellerId] ?? DEFAULT_VENDOR_SHIPPING,
+
     /** Invalidate in-flight loads (e.g. when `useVendorShipping` unmounts). */
     abortVendorShippingLoad: (sellerId) => {
       bumpVendorShippingGeneration(sellerId)
     },
+
     /** Fetches `/store/shipping-options/vendor` and updates `vendorShippingBySellerId`. */
     loadVendorShippingOptions: async (cartId, sellerId) => {
       const generation = bumpVendorShippingGeneration(sellerId)
