@@ -48,8 +48,9 @@ const CheckoutSummarySection = ({
   // TODO: Replace with real calculations
   const vendorDiscount = totalPrice
   const platformDiscount = totalPrice
-  const shippingFee = totalPrice
-  const totalSaving = totalPrice
+  const shippingFee = 500
+  const totalSaving = vendorDiscount + platformDiscount
+  const finalPrice = totalPrice - totalSaving + shippingFee
 
   return (
     <div className="mt-sop-12px w-full rounded-sop-24px bg-sop-base-white lg:px-sop-24px lg:py-sop-20px px-sop-16px py-sop-20px ">
@@ -94,7 +95,7 @@ const CheckoutSummarySection = ({
           </label>
 
           <label className="sop-headline-md-medium text-sop-secondary-600">
-            {formatPrice(totalPrice)}
+            {formatPrice(finalPrice)}
           </label>
         </div>
       </div>
@@ -114,7 +115,7 @@ const CheckoutSummarySection = ({
         size="lg"
         type="submit"
       >
-        ชำระเงิน {formatPrice(totalPrice)}
+        ชำระเงิน {formatPrice(finalPrice)}
       </Button>
     </div>
   )
