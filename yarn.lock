@@ -6718,15 +6718,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/date-fns@npm:^2.6.3":
-  version: 2.6.3
-  resolution: "@types/date-fns@npm:2.6.3"
-  dependencies:
-    date-fns: "npm:*"
-  checksum: 10c0/ad39324ad26b1ec4f9e1fd66536ef5a1090f9a00f4d5cbb0cb4c20caa731b98d3fd7f28e08ed0a0225cf2aea2d2a157722cf6c9954aa6133d510d4452345e803
-  languageName: node
-  linkType: hard
-
 "@types/debug@npm:^4.0.0":
   version: 4.1.13
   resolution: "@types/debug@npm:4.1.13"
@@ -7898,7 +7889,6 @@ __metadata:
     "@tanstack/react-query": "npm:^5.99.0"
     "@types/babel__core": "npm:^7"
     "@types/babel__preset-env": "npm:^7"
-    "@types/date-fns": "npm:^2.6.3"
     "@types/js-cookie": "npm:^3.0.6"
     "@types/lodash": "npm:^4.17.15"
     "@types/node": "npm:^20"
@@ -8726,13 +8716,6 @@ __metadata:
     es-errors: "npm:^1.3.0"
     is-data-view: "npm:^1.0.1"
   checksum: 10c0/fa7aa40078025b7810dcffc16df02c480573b7b53ef1205aa6a61533011005c1890e5ba17018c692ce7c900212b547262d33279fde801ad9843edc0863bf78c4
-  languageName: node
-  linkType: hard
-
-"date-fns@npm:*":
-  version: 4.2.0
-  resolution: "date-fns@npm:4.2.0"
-  checksum: 10c0/28983b184899b2ab7576382aa4f9f1c6bab5a56e9efb83fe9c34e9a3b1b05447259a23e179e5754c8386dfa705abef2c891318f7f5056cc100744c116081e11f
   languageName: node
   linkType: hard
 
