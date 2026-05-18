@@ -5,9 +5,7 @@ import { PaymentProviderIcon } from "@/components/atoms/PaymentProviderIcon/Paym
 import { cn } from "@/lib/utils"
 import { CreditCard, QrCode, Check } from "lucide-react"
 import { useState, useEffect } from "react"
-import {
-  getOrderCustomerPaymentMethods,
-} from "@/lib/data/orders"
+import { getOrderCustomerPaymentMethods } from "@/lib/data/orders"
 import { toast } from "@/lib/helpers/toast"
 import type { CustomerPaymentMethod } from "@/types/order"
 import {
@@ -36,7 +34,7 @@ interface ChangePaymentModalProps {
 
 const PAYMENT_METHODS = [
   {
-    id: "stripe",
+    id: "card",
     name: "Credit / Debit Card",
     icon: CreditCard,
     description: "ชำระผ่านบัตรเครดิตหรือบัตรเดบิต",
@@ -63,7 +61,8 @@ export const ChangePaymentModal = ({
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const updateOrderPaymentSessionMutation = useUpdateOrderPaymentSessionMutation()
+  const updateOrderPaymentSessionMutation =
+    useUpdateOrderPaymentSessionMutation()
 
   useEffect(() => {
     if (!isOpen) {
@@ -94,7 +93,7 @@ export const ChangePaymentModal = ({
   const handleConfirm = async () => {
     if (!selectedMethod) return
 
-    if (selectedMethod === "stripe" && !selectedCardId && !isLoading) {
+    if (selectedMethod === "card" && !selectedCardId && !isLoading) {
       toast.error({
         title: "ไม่สามารถดำเนินการได้",
         description: "กรุณาเพิ่มหรือเลือกบัตรสำหรับชำระด้วยบัตร",
@@ -106,9 +105,7 @@ export const ChangePaymentModal = ({
     try {
       // Map selected method to backend provider ID
       const providerId =
-        selectedMethod === "stripe"
-          ? "pp_card_stripe-connect"
-          : "pp_promptpay_stripe-connect"
+        selectedMethod === "card" ? "pp_card_omise" : "pp_promptpay_omise"
 
       // 1. Initialize/Update Payment Session via Server Action
       const finalAmount = orderTotal ? Math.round(orderTotal) : undefined
@@ -155,7 +152,7 @@ export const ChangePaymentModal = ({
       })
 
       onConfirm?.(
-        selectedMethod === "stripe" ? selectedCardId : null,
+        selectedMethod === "card" ? selectedCardId : null,
         providerId,
         bootstrap.clientSecrets.length > 0 ? bootstrap : null
       )
@@ -231,8 +228,8 @@ export const ChangePaymentModal = ({
                   </div>
                 </div>
 
-                {/* Saved Cards Section (Only for Stripe) */}
-                {isSelected && method.id === "stripe" && (
+                {/* Saved Cards Section (Only for card payment) */}
+                {isSelected && method.id === "card" && (
                   <div className="pl-4 pr-2 py-2 space-y-2 animate-in slide-in-from-top-2 duration-200">
                     {isLoading ? (
                       <p className="text-sm text-gray-500 pl-4">
@@ -296,7 +293,7 @@ export const ChangePaymentModal = ({
             disabled={
               !selectedMethod ||
               isSubmitting ||
-              (selectedMethod === "stripe" &&
+              (selectedMethod === "card" &&
                 (isLoading || savedMethods.length === 0 || !selectedCardId))
             }
           >

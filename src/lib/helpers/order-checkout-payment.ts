@@ -199,9 +199,9 @@ function providerMatchesPreferred(
   const sessionPromptPay = s.includes("promptpay")
   const prefPromptPay = p.includes("promptpay")
   const sessionCard =
-    s.includes("card") || (s.includes("stripe") && !s.includes("promptpay"))
+    s.includes("card") || (s.includes("omise") && !s.includes("promptpay"))
   const prefCard =
-    p.includes("card") || (p.includes("stripe") && !p.includes("promptpay"))
+    p.includes("card") || (p.includes("omise") && !p.includes("promptpay"))
   if (prefPromptPay && sessionPromptPay) {
     return true
   }
@@ -285,7 +285,7 @@ export function getOrderPaymentSessionsSyncKey(
 
 export function mapProviderIdToChangePaymentUiMethod(
   providerId: string | null | undefined
-): "stripe" | "promptpay" | undefined {
+): "card" | "promptpay" | undefined {
   if (!providerId?.trim()) {
     return undefined
   }
@@ -293,5 +293,5 @@ export function mapProviderIdToChangePaymentUiMethod(
   if (p.includes("promptpay")) {
     return "promptpay"
   }
-  return "stripe"
+  return "card"
 }

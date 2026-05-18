@@ -18,6 +18,12 @@ export const addressSchema = z.object({
   postalCode: z.string().trim().min(1, "รหัสไปรษณีย์ is required"),
   address: z.string().trim().min(1, "ที่อยู่ is required"),
   setAsDefault: z.boolean().optional().default(false),
+  email: z
+    .string()
+    .trim()
+    .min(1, "อีเมล is required")
+    .email("รูปแบบอีเมลไม่ถูกต้อง")
+    .optional(),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>

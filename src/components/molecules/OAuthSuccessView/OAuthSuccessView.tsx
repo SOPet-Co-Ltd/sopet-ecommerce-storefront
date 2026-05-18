@@ -72,7 +72,7 @@ export function OAuthSuccessView({ locale, provider }: OAuthSuccessViewProps) {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px] min-w-[300px] overflow-hidden rounded-2xl border border-sop-neutral-grayalpha-100 bg-sop-base-white shadow-[0_4px_24px_var(--color-sop-neutral-grayalpha-100)]">
-        {/* SOPet gradient band */}
+        {/* Sopet gradient band */}
         <div className="sop-gradient-01 h-2 w-full" aria-hidden />
 
         <div className="flex flex-col items-center gap-6 px-8 py-8">

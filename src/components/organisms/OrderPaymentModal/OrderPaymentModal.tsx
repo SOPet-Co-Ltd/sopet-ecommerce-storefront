@@ -1,10 +1,8 @@
 "use client"
 
 import { Button } from "@/components/atoms/Button/Button"
-import { X, Clock, Loader2 } from "lucide-react"
+import { X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
-import { loadStripe } from "@stripe/stripe-js"
-import { Elements, useStripe } from "@stripe/react-stripe-js"
 import { useRouter } from "next/navigation"
 import { OrderPaymentForm } from "./OrderPaymentForm"
 import {
@@ -31,35 +29,17 @@ interface OrderPaymentModalProps {
   isOpen: boolean
   onClose: () => void
   order: OrderDetails
-  /** Should throw or reject when post-Stripe capture fails so the modal stays open. */
   onPaymentSuccess?: () => void | Promise<void>
-  /** When user closes the modal via X while QR code is displayed; e.g. redirect to orders with "need payment" tab */
   onCloseFromQrView?: () => void
   forceMethodSelection?: boolean
   selectedCardId?: string | null
-  /** From change-payment POST: use these Medusa-linked client secrets first (ref-read in effect to avoid stale re-fetch). */
   initialClientSecretsFromChange?: string[] | null
   onConsumedInitialSecrets?: () => void
 }
 
-type PromptPayDisplayQrAction = {
-  type: "promptpay_display_qr_code"
-  promptpay_display_qr_code?: {
-    hosted_instructions_url?: string
-    image_url_svg?: string
-    image_url_png?: string
-  }
-}
-
 const toErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (typeof error === "string") {
-    return error
-  }
-
+  if (error instanceof Error) return error.message
+  if (typeof error === "string") return error
   return "Unknown error"
 }
 
@@ -67,8 +47,6 @@ const PromptPayDisplay = ({
   orderId,
   clientSecret,
   orderTotal,
-  orderEmail,
-  orderName,
   isRegenerating,
   onRegenerateQr,
   onClose,
@@ -86,14 +64,10 @@ const PromptPayDisplay = ({
   onCloseFromQrView?: () => void
   onPaymentSuccess?: () => void | Promise<void>
 }) => {
-  const stripe = useStripe()
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null)
   const [qrExpiresAtMs, setQrExpiresAtMs] = useState<number | null>(null)
-  const [hostedInstructionsUrl, setHostedInstructionsUrl] = useState<
-    string | null
-  >(null)
   const [error, setError] = useState<string | null>(null)
-  const [isConfirming, setIsConfirming] = useState(true)
+  const [isConfirming, setIsConfirming] = useState(false)
 
   const latestCallbacks = useRef({ onPaymentSuccess, onClose })
   useEffect(() => {
@@ -111,201 +85,6 @@ const PromptPayDisplay = ({
     remainingSeconds != null ? formatCountdownHms(remainingSeconds) : null
   const showExpiredOverlay =
     isTimerExpired && !!qrCodeUrl && !isConfirming && !error
-
-  useEffect(() => {
-    if (!qrCodeUrl || !stripe) {
-      return
-    }
-    let cancelled = false
-    void (async () => {
-      try {
-        const { paymentIntent } =
-          await stripe.retrievePaymentIntent(clientSecret)
-        if (cancelled || !paymentIntent) {
-          return
-        }
-        const exp = getPromptPayExpiresAtMsFromStripeIntentCreated(
-          paymentIntent.created
-        )
-        setQrExpiresAtMs(exp)
-        writeOrderPromptPayContinuity(orderId, {
-          clientSecret,
-          qrExpiresAtMs: exp,
-          qrImageUrl: qrCodeUrl,
-          sessionCreatedAt: new Date(
-            paymentIntent.created * 1000
-          ).toISOString(),
-        })
-      } catch {
-        if (!cancelled) {
-          const exp = getPromptPayExpiresAtMsFromStripeIntentCreated(undefined)
-          setQrExpiresAtMs(exp)
-          writeOrderPromptPayContinuity(orderId, {
-            clientSecret,
-            qrExpiresAtMs: exp,
-            qrImageUrl: qrCodeUrl,
-            sessionCreatedAt: null,
-          })
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [qrCodeUrl, stripe, clientSecret, orderId])
-
-  useEffect(() => {
-    if (!qrCodeUrl || !stripe || !clientSecret) return
-
-    const intervalId = window.setInterval(async () => {
-      try {
-        const { paymentIntent } =
-          await stripe.retrievePaymentIntent(clientSecret)
-
-        if (paymentIntent?.status === "canceled") {
-          window.clearInterval(intervalId)
-          setError("การชำระเงินหมดเวลา กรุณาสร้าง QR ใหม่")
-          return
-        }
-
-        if (
-          paymentIntent &&
-          (paymentIntent.status === "succeeded" ||
-            paymentIntent.status === "processing")
-        ) {
-          window.clearInterval(intervalId)
-          const { onPaymentSuccess: successCb, onClose: closeCb } =
-            latestCallbacks.current
-          try {
-            if (successCb) {
-              await successCb()
-            }
-            closeCb()
-          } catch {
-            // Capture/navigation failed — keep modal open
-          }
-        }
-      } catch (pollErr: unknown) {
-        console.error("Error polling payment intent", pollErr)
-      }
-    }, 3000)
-
-    return () => window.clearInterval(intervalId)
-  }, [qrCodeUrl, stripe, clientSecret])
-
-  useEffect(() => {
-    if (!stripe) return
-
-    let isMounted = true
-
-    const applyPromptPayNextAction = (nextAction: unknown) => {
-      if (
-        !nextAction ||
-        typeof nextAction !== "object" ||
-        !("type" in nextAction) ||
-        (nextAction as { type?: string }).type !== "promptpay_display_qr_code"
-      ) {
-        return false
-      }
-      const typed = nextAction as PromptPayDisplayQrAction
-      const qrData = typed.promptpay_display_qr_code
-      if (qrData?.hosted_instructions_url) {
-        setHostedInstructionsUrl(qrData.hosted_instructions_url)
-      }
-      if (qrData?.image_url_svg || qrData?.image_url_png) {
-        setQrCodeUrl(qrData.image_url_svg ?? qrData.image_url_png ?? null)
-        return true
-      }
-      setError("QR code image URL not found in response")
-      return true
-    }
-
-    const generateQR = async () => {
-      try {
-        setIsConfirming(true)
-        setError(null)
-        setQrCodeUrl(null)
-        setHostedInstructionsUrl(null)
-
-        const { paymentIntent: existingPi, error: retrieveError } =
-          await stripe.retrievePaymentIntent(clientSecret)
-
-        if (!isMounted) return
-
-        if (retrieveError && !existingPi) {
-          setError(retrieveError.message || "Failed to load payment")
-          return
-        }
-
-        if (existingPi?.status === "canceled") {
-          setError("การชำระเงินหมดเวลา กรุณาสร้าง QR ใหม่")
-          return
-        }
-
-        if (
-          existingPi?.status === "requires_action" &&
-          existingPi.next_action &&
-          applyPromptPayNextAction(existingPi.next_action)
-        ) {
-          return
-        }
-
-        if (
-          existingPi?.status === "succeeded" ||
-          existingPi?.status === "processing"
-        ) {
-          setError("Payment is already completed or processing. Please wait.")
-          return
-        }
-
-        const { error: confirmError, paymentIntent } =
-          await stripe.confirmPromptPayPayment(
-            clientSecret,
-            {
-              payment_method: {
-                billing_details: {
-                  name: orderName,
-                  email: orderEmail,
-                },
-              },
-            },
-            { handleActions: false }
-          )
-
-        if (!isMounted) return
-
-        if (confirmError) {
-          setError(confirmError.message || "Failed to generate QR code")
-        } else if (
-          paymentIntent?.status === "requires_action" &&
-          paymentIntent.next_action?.type === "promptpay_display_qr_code"
-        ) {
-          applyPromptPayNextAction(paymentIntent.next_action)
-        } else if (
-          paymentIntent?.status === "succeeded" ||
-          paymentIntent?.status === "processing"
-        ) {
-          setError("Payment is already completed or processing. Please wait.")
-        } else {
-          setError("Unexpected payment status: " + paymentIntent?.status)
-        }
-      } catch (genErr: unknown) {
-        if (isMounted) {
-          setError(
-            toErrorMessage(genErr) || "An error occurred retrieving the QR Code"
-          )
-        }
-      } finally {
-        if (isMounted) setIsConfirming(false)
-      }
-    }
-
-    generateQR()
-
-    return () => {
-      isMounted = false
-    }
-  }, [stripe, clientSecret, orderEmail, orderName])
 
   const handleClose = () => {
     if (onCloseFromQrView) onCloseFromQrView()
@@ -325,10 +104,7 @@ const PromptPayDisplay = ({
         </button>
 
         <div className="bg-sop-primary-200 rounded-lg px-4 py-2 flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-sop-primary-500" />
-            <p className="text-sm text-gray-800">ชำระเงินผ่าน QR code ภายใน</p>
-          </div>
+          <p className="text-sm text-gray-800">ชำระเงินผ่าน QR code ภายใน</p>
           <div className="flex items-center gap-2 shrink-0">
             <div className="flex items-center gap-1 text-red-500 font-medium tabular-nums">
               {!qrCodeUrl || qrExpiresAtMs == null ? (
@@ -368,17 +144,11 @@ const PromptPayDisplay = ({
 
         <div className="border border-gray-300 rounded-lg overflow-hidden flex flex-col items-center min-h-[250px] justify-center relative">
           {isRegenerating ? (
-            <div className="flex flex-col items-center gap-3 py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-sop-primary-500" />
-              <p className="text-gray-500 text-sm">
-                กำลังสร้างคิวอาร์โค้ดใหม่...
-              </p>
-            </div>
+            <p className="text-gray-500 text-sm">
+              กำลังสร้างคิวอาร์โค้ดใหม่...
+            </p>
           ) : isConfirming ? (
-            <div className="flex flex-col items-center gap-3 py-10">
-              <Loader2 className="w-8 h-8 animate-spin text-sop-primary-500" />
-              <p className="text-gray-500 text-sm">กำลังสร้างคิวอาร์โค้ด...</p>
-            </div>
+            <p className="text-gray-500 text-sm">กำลังสร้างคิวอาร์โค้ด...</p>
           ) : error ? (
             <div className="p-6 text-center text-red-500 bg-red-50 w-full h-full flex flex-col items-center justify-center gap-4">
               <p>{error}</p>
@@ -401,24 +171,6 @@ const PromptPayDisplay = ({
               <p className="text-xs text-gray-400 mt-4 text-center">
                 แสกนเพื่อชำระเงินผ่านแอปธนาคารใดก็ได้
               </p>
-
-              {process.env["NEXT_PUBLIC_STRIPE_KEY"]?.includes("test") &&
-                hostedInstructionsUrl && (
-                  <a
-                    href={hostedInstructionsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-4 w-full"
-                  >
-                    <Button
-                      variant="outline"
-                      className="w-full text-xs bg-yellow-50 text-yellow-700 border-yellow-300 hover:bg-yellow-100"
-                    >
-                      จำลองการจ่ายเงิน (Test Mode) -&gt;
-                    </Button>
-                  </a>
-                )}
-
               {showExpiredOverlay && (
                 <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-4 p-4">
                   <p className="text-red-600 font-medium text-center">
@@ -435,7 +187,9 @@ const PromptPayDisplay = ({
                 </div>
               )}
             </div>
-          ) : null}
+          ) : (
+            <p className="text-gray-500 text-sm">ระบบ QR อยู่ระหว่างอัปเดต</p>
+          )}
         </div>
 
         <Button
@@ -452,9 +206,6 @@ const PromptPayDisplay = ({
     </div>
   )
 }
-
-const stripeKey = process.env["NEXT_PUBLIC_STRIPE_KEY"]
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 function sortSessionsNewestFirst(
   sessions: OrderPaymentSession[]
@@ -538,7 +289,6 @@ export const OrderPaymentModal = ({
 
   useEffect(() => {
     if (!isOpen) return
-
     if (!orderRef.current) return
 
     let isMounted = true
@@ -583,7 +333,7 @@ export const OrderPaymentModal = ({
           if (prefLower.includes("promptpay")) {
             setSelectedMethod("promptpay")
           } else {
-            setSelectedMethod("stripe")
+            setSelectedMethod("omise")
           }
         }
         onConsumedInitialSecretsRef.current?.()
@@ -632,10 +382,8 @@ export const OrderPaymentModal = ({
             setPaymentClientSecrets([secret])
             if (method.includes("promptpay")) {
               setSelectedMethod("promptpay")
-            } else if (method.includes("stripe") || method.includes("card")) {
-              setSelectedMethod("stripe")
             } else {
-              setSelectedMethod(method)
+              setSelectedMethod("omise")
             }
             setError(null)
           } else {
@@ -674,7 +422,7 @@ export const OrderPaymentModal = ({
       }
 
       setPaymentClientSecrets(secrets)
-      setSelectedMethod("stripe")
+      setSelectedMethod("omise")
       setError(null)
     }
 
@@ -747,53 +495,43 @@ export const OrderPaymentModal = ({
 
   const primaryClientSecret = paymentClientSecrets[0]
 
-  if (primaryClientSecret && selectedMethod === "stripe") {
+  if (primaryClientSecret && selectedMethod === "omise") {
     return (
       <div className="fixed inset-0 z-100 flex items-center justify-center px-4">
         <div
           className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
           onClick={handleClose}
         />
-        <Elements
-          stripe={stripePromise}
-          options={{ clientSecret: primaryClientSecret }}
-        >
-          <OrderPaymentForm
-            order={order}
-            onClose={handleClose}
-            selectedCardId={selectedCardId || autoSelectedCardId}
-            clientSecrets={paymentClientSecrets}
-            {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
-          />
-        </Elements>
+        <OrderPaymentForm
+          order={order}
+          onClose={handleClose}
+          selectedCardId={selectedCardId || autoSelectedCardId}
+          clientSecrets={paymentClientSecrets}
+          {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
+        />
       </div>
     )
   }
 
   if (primaryClientSecret && selectedMethod === "promptpay") {
     return (
-      <Elements
-        stripe={stripePromise}
-        options={{ clientSecret: primaryClientSecret }}
-      >
-        <PromptPayDisplay
-          key={primaryClientSecret}
-          orderId={order.id}
-          clientSecret={primaryClientSecret}
-          orderTotal={order.total}
-          orderEmail={order.email || "customer@example.com"}
-          orderName={
-            order.shipping_address?.first_name
-              ? `${order.shipping_address.first_name} ${order.shipping_address.last_name || ""}`.trim()
-              : "Customer"
-          }
-          isRegenerating={isRegeneratingQr}
-          onRegenerateQr={regeneratePromptPayQr}
-          onClose={handleClose}
-          onCloseFromQrView={onCloseFromQrView}
-          {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
-        />
-      </Elements>
+      <PromptPayDisplay
+        key={primaryClientSecret}
+        orderId={order.id}
+        clientSecret={primaryClientSecret}
+        orderTotal={order.total}
+        orderEmail={order.email || "customer@example.com"}
+        orderName={
+          order.shipping_address?.first_name
+            ? `${order.shipping_address.first_name} ${order.shipping_address.last_name || ""}`.trim()
+            : "Customer"
+        }
+        isRegenerating={isRegeneratingQr}
+        onRegenerateQr={regeneratePromptPayQr}
+        onClose={handleClose}
+        onCloseFromQrView={onCloseFromQrView}
+        {...(onPaymentSuccess ? { onPaymentSuccess } : {})}
+      />
     )
   }
 

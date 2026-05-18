@@ -373,7 +373,7 @@ const Form = forwardRef<AddressFormHandle, Props>(
             submitButton({ onSubmit, isSubmitting, isDirty, hasAnyValue })
           ) : (
             <div className="flex justify-center">
-              <Button rounded="rounded" disabled={isSubmitting}>
+              <Button rounded="rounded" disabled={isSubmitting} type="submit">
                 {isSubmitting ? "กำลังบันทึก..." : "ยืนยัน"}
               </Button>
             </div>

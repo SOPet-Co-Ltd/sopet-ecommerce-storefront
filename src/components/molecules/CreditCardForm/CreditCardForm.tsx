@@ -1,223 +1,219 @@
 "use client"
 
-import { useState } from "react"
-import { loadStripe, StripeCardElementOptions } from "@stripe/stripe-js"
-import {
-  CardNumberElement,
-  CardExpiryElement,
-  CardCvcElement,
-  Elements,
-  useElements,
-  useStripe,
-} from "@stripe/react-stripe-js"
+import { useState, useRef, useEffect } from "react"
 import { Button, Checkbox, InputSOPet } from "@/components/atoms"
 import {
   addCustomerPaymentMethod,
   type CustomerPaymentMethod,
 } from "@/lib/data/customer"
 
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_KEY
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null
-
-type InnerFormProps = {
-  onSuccess?: (paymentMethod: CustomerPaymentMethod) => void | Promise<void>
-}
-
-const stripeElementStyle: StripeCardElementOptions = {
-  style: {
-    base: {
-      // Use the same primary font as the app (Mitr)
-      fontFamily:
-        '"Mitr", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont',
-      fontSize: "14px",
-      lineHeight: "22px",
-      // Match InputSOPet text / placeholder tones as closely as possible
-      color: "#211F23",
-      "::placeholder": {
-        color: "#949495",
-      },
-    },
-  },
-}
-
-const cardNumberOptions: StripeCardElementOptions = stripeElementStyle
-const cardExpiryOptions: StripeCardElementOptions = stripeElementStyle
-const cardCvcOptions: StripeCardElementOptions = stripeElementStyle
-
-const CreditCardInnerForm = ({ onSuccess }: InnerFormProps) => {
-  const stripe = useStripe()
-  const elements = useElements()
-
-  const [cardholderName, setCardholderName] = useState("")
-  const [setAsDefault, setSetAsDefault] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-
-    if (!stripe || !elements) {
-      setError("ไม่สามารถโหลดระบบชำระเงินได้ กรุณาลองใหม่อีกครั้ง")
-      return
-    }
-
-    const cardElement = elements.getElement(CardNumberElement)
-
-    if (!cardElement) {
-      setError("ไม่พบฟอร์มบัตรเครดิต กรุณารีเฟรชหน้าแล้วลองใหม่")
-      return
-    }
-
-    try {
-      setIsSubmitting(true)
-
-      const { error: stripeError, paymentMethod } =
-        await stripe.createPaymentMethod({
-          type: "card",
-          card: cardElement,
-          billing_details: {
-            name: cardholderName?.trim() || undefined,
-          },
-        })
-
-      if (stripeError || !paymentMethod) {
-        setError(stripeError?.message || "ไม่สามารถบันทึกข้อมูลบัตรได้")
-        return
-      }
-
-      const result = await addCustomerPaymentMethod({
-        paymentMethodId: paymentMethod.id,
-        makeDefault: setAsDefault,
-      })
-
-      if (!result.success) {
-        // Check if it's a duplicate card error using error type/code
-        const errorMessage = result.error || "ไม่สามารถบันทึกข้อมูลบัตรได้"
-        if (
-          result.type === "duplicate_payment_method" ||
-          result.code === "duplicate_payment_method"
-        ) {
-          setError("บัตรนี้ถูกบันทึกไว้ในบัญชีของคุณแล้ว")
-        } else {
-          setError(errorMessage)
-        }
-        return
-      }
-
-      await onSuccess?.(result.paymentMethod)
-    } catch (err: any) {
-      setError(err?.message ?? String(err))
-    } finally {
-      setIsSubmitting(false)
+declare global {
+  interface Window {
+    Omise?: {
+      setPublicKey: (key: string) => void
+      createToken: (
+        type: "card",
+        data: {
+          name: string
+          number: string
+          expiration_month: number
+          expiration_year: number
+          security_code: string
+        },
+        callback: (
+          statusCode: number,
+          response: { id?: string; message?: string }
+        ) => void
+      ) => void
     }
   }
-
-  if (!stripe || !elements) {
-    return (
-      <div className="space-y-4">
-        <p className="sop-body-sm-regular text-sop-neutral-gray-300 text-center">
-          กำลังโหลดแบบฟอร์มบัตร...
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        {/* Card number */}
-        <div className="w-full h-[44px] p-2 rounded-[8px] sop-body-sm-regular text-sop-neutral-gray-200 bg-sop-neutral-gray-600 border border-solid border-sop-neutral-grayalpha-100 flex items-center">
-          <div className="w-full">
-            <CardNumberElement options={cardNumberOptions} />
-          </div>
-        </div>
-
-        {/* Expiry + CVC */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <div className="w-full h-[44px] p-2 rounded-[8px] sop-body-sm-regular text-sop-neutral-gray-200 bg-sop-neutral-gray-600 border border-solid border-sop-neutral-grayalpha-100 flex items-center">
-              <div className="w-full">
-                <CardExpiryElement options={cardExpiryOptions} />
-              </div>
-            </div>
-          </div>
-          <div>
-            <div className="w-full h-[44px] p-2 rounded-[8px] sop-body-sm-regular text-sop-neutral-gray-200 bg-sop-neutral-gray-600 border border-solid border-sop-neutral-grayalpha-100 flex items-center">
-              <div className="w-full">
-                <CardCvcElement options={cardCvcOptions} />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Cardholder name */}
-        <InputSOPet
-          size="sm"
-          variant="bordered"
-          placeholder="กรอกชื่อ-นามสกุลตามหน้าบัตร"
-          value={cardholderName}
-          onChange={(e) => setCardholderName(e.target.value)}
-        />
-
-        {/* Default checkbox */}
-        <div className="flex items-center gap-2">
-          <Checkbox
-            label="ตั้งเป็นบัตรเริ่มต้น"
-            checked={setAsDefault}
-            onChange={(e) =>
-              setSetAsDefault((e?.target as HTMLInputElement)?.checked ?? false)
-            }
-          />
-        </div>
-      </div>
-
-      {error && (
-        <p className="sop-body-xs-regular text-sop-system-error-400 text-center">
-          {error}
-        </p>
-      )}
-
-      <div className="flex justify-center">
-        <Button
-          type="submit"
-          rounded="rounded"
-          disabled={isSubmitting || !stripe || !elements}
-        >
-          {isSubmitting ? "กำลังบันทึก..." : "บันทึกบัตร"}
-        </Button>
-      </div>
-    </form>
-  )
 }
 
 type CreditCardFormProps = {
   onSuccess?: (paymentMethod: CustomerPaymentMethod) => void | Promise<void>
 }
 
+const fieldLabelClass =
+  "sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+
 export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
-  if (!stripePromise || !stripeKey) {
-    return (
-      <p className="sop-body-md-regular text-sop-system-error-400">
-        ไม่สามารถเริ่มต้นการชำระเงินได้ เนื่องจากยังไม่ได้ตั้งค่า Stripe Key
-      </p>
+  const [name, setName] = useState("")
+  const [number, setNumber] = useState("")
+  const [expiry, setExpiry] = useState("")
+  const [cvv, setCvv] = useState("")
+  const [makeDefault, setMakeDefault] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const omiseReady = useRef(false)
+
+  useEffect(() => {
+    const publicKey = process.env.NEXT_PUBLIC_OMISE_KEY
+    if (!publicKey) return
+
+    if (window.Omise) {
+      window.Omise.setPublicKey(publicKey)
+      omiseReady.current = true
+      return
+    }
+
+    const script = document.createElement("script")
+    script.src = "https://cdn.omise.co/omise.js"
+    script.async = true
+    script.onload = () => {
+      window.Omise?.setPublicKey(publicKey)
+      omiseReady.current = true
+    }
+    document.head.appendChild(script)
+  }, [])
+
+  const formatNumber = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 16)
+    return digits.replace(/(.{4})/g, "$1 ").trim()
+  }
+
+  const formatExpiry = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 4)
+    if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2)
+    return digits
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+
+    const publicKey = process.env.NEXT_PUBLIC_OMISE_KEY
+    if (!publicKey) {
+      setError("ระบบชำระเงินยังไม่พร้อม กรุณาติดต่อผู้ดูแลระบบ")
+      return
+    }
+
+    if (!window.Omise) {
+      setError("ไม่สามารถโหลดระบบชำระเงินได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง")
+      return
+    }
+
+    const [expMonth, expYear] = expiry.split("/")
+    const expirationMonth = parseInt(expMonth ?? "", 10)
+    const expirationYear = parseInt("20" + (expYear ?? ""), 10)
+
+    if (!name.trim()) {
+      setError("กรุณากรอกชื่อบนบัตร")
+      return
+    }
+    if (number.replace(/\s/g, "").length < 16) {
+      setError("กรุณากรอกหมายเลขบัตรให้ครบ")
+      return
+    }
+    if (isNaN(expirationMonth) || isNaN(expirationYear)) {
+      setError("กรุณากรอกวันหมดอายุให้ถูกต้อง")
+      return
+    }
+    if (cvv.length < 3) {
+      setError("กรุณากรอก CVV ให้ครบ")
+      return
+    }
+
+    setSubmitting(true)
+    window.Omise.createToken(
+      "card",
+      {
+        name: name.trim(),
+        number: number.replace(/\s/g, ""),
+        expiration_month: expirationMonth,
+        expiration_year: expirationYear,
+        security_code: cvv,
+      },
+      async (statusCode, response) => {
+        if (statusCode !== 200 || !response.id) {
+          setError(
+            response.message ??
+              "ไม่สามารถสร้าง token บัตรได้ กรุณาตรวจสอบข้อมูลบัตร"
+          )
+          setSubmitting(false)
+          return
+        }
+
+        const res = await addCustomerPaymentMethod({
+          paymentMethodId: response.id,
+          makeDefault,
+        })
+
+        if (res.success) {
+          await onSuccess?.(res.paymentMethod)
+        } else {
+          setError(res.error)
+        }
+        setSubmitting(false)
+      }
     )
   }
 
   return (
-    <Elements
-      stripe={stripePromise}
-      options={{
-        // Explicitly load Mitr inside Stripe iframes so fontFamily works
-        fonts: [
-          {
-            cssSrc:
-              "https://fonts.googleapis.com/css2?family=Mitr:wght@200;300;400;500;600;700&display=swap",
-          },
-        ],
-      }}
-    >
-      <CreditCardInnerForm onSuccess={onSuccess} />
-    </Elements>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div>
+        <label className={fieldLabelClass}>ชื่อบนบัตร</label>
+        <InputSOPet
+          size="sm"
+          variant="bordered"
+          placeholder="ชื่อ นามสกุล (ภาษาอังกฤษ)"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          autoComplete="cc-name"
+        />
+      </div>
+
+      <div>
+        <label className={fieldLabelClass}>หมายเลขบัตร</label>
+        <InputSOPet
+          size="sm"
+          variant="bordered"
+          placeholder="0000 0000 0000 0000"
+          value={number}
+          inputMode="numeric"
+          autoComplete="cc-number"
+          onChange={(e) => setNumber(formatNumber(e.target.value))}
+        />
+      </div>
+
+      <div className="flex gap-3">
+        <div className="flex-1">
+          <label className={fieldLabelClass}>วันหมดอายุ</label>
+          <InputSOPet
+            size="sm"
+            variant="bordered"
+            placeholder="MM/YY"
+            value={expiry}
+            inputMode="numeric"
+            autoComplete="cc-exp"
+            onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+          />
+        </div>
+        <div className="w-28">
+          <label className={fieldLabelClass}>CVV</label>
+          <InputSOPet
+            size="sm"
+            variant="bordered"
+            placeholder="123"
+            value={cvv}
+            inputMode="numeric"
+            autoComplete="cc-csc"
+            maxLength={4}
+            onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+          />
+        </div>
+      </div>
+
+      <Checkbox
+        label="ตั้งเป็นบัตรค่าเริ่มต้น"
+        checked={makeDefault}
+        onChange={(e) => setMakeDefault(e.target.checked)}
+      />
+
+      {error && <p className="label-md text-negative">{error}</p>}
+
+      <Button type="submit" loading={submitting} fill>
+        บันทึกบัตร
+      </Button>
+    </form>
   )
 }

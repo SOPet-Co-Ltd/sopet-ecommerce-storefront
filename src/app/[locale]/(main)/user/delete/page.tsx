@@ -15,7 +15,7 @@ export async function generateMetadata({
     locale,
     pathname: "user/delete",
     title: "ลบบัญชี",
-    description: "ขอลบบัญชีและข้อมูลส่วนบุคคลของคุณจากระบบ SOPet",
+    description: "ขอลบบัญชีและข้อมูลส่วนบุคคลของคุณจากระบบ Sopet",
     indexable: false,
   })
 }

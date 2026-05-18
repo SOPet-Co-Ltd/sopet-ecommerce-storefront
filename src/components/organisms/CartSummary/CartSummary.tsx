@@ -5,7 +5,7 @@ import { convertToLocale } from "@/lib/helpers/money"
 import { HttpTypes } from "@medusajs/types"
 import { Cart } from "@/types/cart"
 import { checkoutCustomerCartSelection } from "@/lib/data/customer-cart"
-import { prepareGuestCheckout } from "@/lib/data/cart"
+import { createGuestMedusaCart } from "@/lib/data/cart"
 import { moveAnonymousCartItemsToCheckoutHoldByIds } from "@/lib/data/local-customer-cart"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -60,7 +60,7 @@ export const CartSummary = ({
           quantity: i.quantity ?? 1,
         }))
         moveAnonymousCartItemsToCheckoutHoldByIds(selectedItemIds)
-        await prepareGuestCheckout(selectedItems, locale, promotionCodes)
+        await createGuestMedusaCart(selectedItems, locale, promotionCodes)
       } else {
         await checkoutCustomerCartSelection(selectedItemIds, {
           countryCode: locale,

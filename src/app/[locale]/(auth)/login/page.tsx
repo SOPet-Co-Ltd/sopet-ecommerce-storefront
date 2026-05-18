@@ -15,7 +15,7 @@ export async function generateMetadata({
     pathname: "login",
     title: "เข้าสู่ระบบ",
     description:
-      "เข้าสู่ระบบบัญชี SOPet เพื่อติดตามคำสั่งซื้อ คูปอง และข้อความจากร้านค้า",
+      "เข้าสู่ระบบบัญชี Sopet เพื่อติดตามคำสั่งซื้อ คูปอง และข้อความจากร้านค้า",
     indexable: false,
   })
 }

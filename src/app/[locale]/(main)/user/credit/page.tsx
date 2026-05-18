@@ -1,6 +1,6 @@
 import { UserContainer } from "@/components/molecules"
 import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
-import { getCustomerPaymentMethods, verifyCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import { CreditCards } from "@/components/organisms"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -25,13 +25,9 @@ export default async function CreditPage() {
 
   if (!user) return <LoginForm />
 
-  const result = await getCustomerPaymentMethods()
-
-  const paymentMethods = result.success ? result.paymentMethods : []
-
   return (
     <UserContainer title="บัตรเครดิต/เดบิต">
-      <CreditCards paymentMethods={paymentMethods} />
+      <CreditCards />
     </UserContainer>
   )
 }

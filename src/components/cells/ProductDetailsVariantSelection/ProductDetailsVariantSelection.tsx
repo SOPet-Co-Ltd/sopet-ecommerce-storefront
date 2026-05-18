@@ -12,7 +12,7 @@ import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
-import { prepareGuestCheckout } from "@/lib/data/cart"
+import { createGuestMedusaCart } from "@/lib/data/cart"
 import {
   FacebookShareButton,
   FacebookMessengerShareButton,
@@ -463,11 +463,11 @@ export const ProductDetailsVariantSelection = ({
 
     setIsBuyingNow(true)
     try {
-      await prepareGuestCheckout(
+      await createGuestMedusaCart(
         [{ variantId, quantity: productQuantity }],
         locale
       )
-      // prepareGuestCheckout redirects on success; we only reach here on throw
+      // createGuestMedusaCart redirects on success; we only reach here on throw
     } catch (error) {
       // Next.js redirect() throws NEXT_REDIRECT; redirect is in progress — don't show error
       if (error instanceof Error && error.message === "NEXT_REDIRECT") {

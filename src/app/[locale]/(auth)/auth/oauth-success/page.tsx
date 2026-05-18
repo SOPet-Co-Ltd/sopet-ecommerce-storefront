@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation"
 import { OAuthSuccessView } from "@/components/molecules"
-import { ensureStripeCustomer, verifyCustomer } from "@/lib/data/customer"
+import { verifyCustomer } from "@/lib/data/customer"
 import type { OAuthSuccessProvider } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
@@ -59,13 +59,6 @@ export default async function OAuthSuccessPage({
   }
 
   const provider = normalizeOAuthProvider(resolvedSearchParams.oauth)
-
-  // Best-effort: ensure Stripe customer is created/linked after OAuth login.
-  // The backend endpoint is idempotent, so repeated calls are safe, but
-  // this page is only reached immediately after OAuth success.
-  if (provider) {
-    await ensureStripeCustomer()
-  }
 
   // Show success message then client-side redirect to profile.
   return <OAuthSuccessView locale={locale} provider={provider} />

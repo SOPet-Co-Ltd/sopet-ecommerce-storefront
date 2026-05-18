@@ -26,6 +26,8 @@ const DROPDOWN_VIEWPORT_CLASSES = "overflow-x-hidden"
 export interface DropdownProps extends React.ComponentPropsWithoutRef<
   typeof SelectPrimitive.Root
 > {
+  title?: string
+  isRequire?: boolean
   placeholder?: React.ReactNode
   triggerClassName?: string
   contentClassName?: string
@@ -55,6 +57,8 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
       alignOffset,
       sideOffset,
       align,
+      title,
+      isRequire = false,
       ...props
     },
     ref
@@ -72,52 +76,61 @@ export const Dropdown = React.forwardRef<HTMLButtonElement, DropdownProps>(
     )
 
     return (
-      <SelectPrimitive.Root
-        {...props}
-        open={open}
-        onOpenChange={handleOpenChange}
-      >
-        <SelectPrimitive.Trigger
-          ref={ref}
-          className={cn("DropdownTrigger", triggerClassName)}
-          asChild
-        >
-          {trigger ? (
-            trigger
-          ) : (
-            <Button rounded={button?.rounded ?? "rounded"} {...button}>
-              <div className="flex justify-between items-center">
-                <SelectPrimitive.Value placeholder={placeholder} />
-                <SelectPrimitive.Icon className="DropdownIcon">
-                  {icon ?? <DownArrowIcon size={16} color="#211F23" />}
-                </SelectPrimitive.Icon>
-              </div>
-            </Button>
-          )}
-        </SelectPrimitive.Trigger>
+      <div className="w-full">
+        {title !== undefined && (
+          <label className="sop-body-xs-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+            {title}
+            {isRequire && <span className="text-sop-system-error-400">*</span>}
+          </label>
+        )}
 
-        <SelectPrimitive.Portal>
-          <SelectPrimitive.Content
-            className={cn(
-              "shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
-              "bg-sop-neutral-gray-600 overflow-clip border-sop-neutral-gray-500 rounded-sop-8px",
-              width
-                ? `w-[${width}px]`
-                : "w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)",
-              "DropdownContent",
-              contentClassName
-            )}
-            position="popper"
-            alignOffset={alignOffset ?? 0}
-            sideOffset={sideOffset ?? 5}
-            align={align ?? "end"}
+        <SelectPrimitive.Root
+          {...props}
+          open={open}
+          onOpenChange={handleOpenChange}
+        >
+          <SelectPrimitive.Trigger
+            ref={ref}
+            className={cn("DropdownTrigger", triggerClassName)}
+            asChild
           >
-            <SelectPrimitive.Viewport className={DROPDOWN_VIEWPORT_CLASSES}>
-              {children}
-            </SelectPrimitive.Viewport>
-          </SelectPrimitive.Content>
-        </SelectPrimitive.Portal>
-      </SelectPrimitive.Root>
+            {trigger ? (
+              trigger
+            ) : (
+              <Button rounded={button?.rounded ?? "rounded"} {...button}>
+                <div className="flex justify-between items-center">
+                  <SelectPrimitive.Value placeholder={placeholder} />
+                  <SelectPrimitive.Icon className="DropdownIcon">
+                    {icon ?? <DownArrowIcon size={16} color="#211F23" />}
+                  </SelectPrimitive.Icon>
+                </div>
+              </Button>
+            )}
+          </SelectPrimitive.Trigger>
+
+          <SelectPrimitive.Portal>
+            <SelectPrimitive.Content
+              className={cn(
+                "shadow-[0px_4px_6px_-2px_#10182808,0px_12px_16px_-4px_#10182814]",
+                "bg-sop-neutral-gray-600 overflow-clip border-sop-neutral-gray-500 rounded-sop-8px",
+                width
+                  ? `w-[${width}px]`
+                  : "w-(--radix-select-trigger-width) min-w-(--radix-select-trigger-width)",
+                "DropdownContent",
+                contentClassName
+              )}
+              position="popper"
+              alignOffset={alignOffset ?? 0}
+              sideOffset={sideOffset ?? 5}
+              align={align ?? "end"}
+            >
+              <SelectPrimitive.Viewport className={DROPDOWN_VIEWPORT_CLASSES}>
+                {children}
+              </SelectPrimitive.Viewport>
+            </SelectPrimitive.Content>
+          </SelectPrimitive.Portal>
+        </SelectPrimitive.Root>
+      </div>
     )
   }
 )

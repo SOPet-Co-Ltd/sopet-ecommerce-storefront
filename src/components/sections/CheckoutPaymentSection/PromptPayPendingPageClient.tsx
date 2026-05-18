@@ -7,7 +7,6 @@ import {
   completeMarketplaceOrder,
 } from "@/lib/data/cart"
 import { captureOrderPayment } from "@/lib/data/orders"
-import { convertToLocale } from "@/lib/helpers/money"
 import { getOrderIdFromPlaceOrderResponse } from "@/lib/helpers/place-order-response"
 import {
   clearPromptPayCheckoutLock,
@@ -19,9 +18,7 @@ import { usePaymentCountdown } from "@/hooks/usePaymentCountdown"
 import {
   formatCountdownHms,
   getPromptPayCheckoutClickDeadlineMs,
-  getPromptPayExpiresAtMsFromStripeIntentCreated,
 } from "@/lib/helpers/pending-payment-expiry"
-import { getStripePromise } from "@/lib/stripe/get-stripe"
 import { Text } from "@medusajs/ui"
 import { useParams, useRouter } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
@@ -36,10 +33,6 @@ export default function PromptPayPendingPageClient() {
     null
   )
   const [hydrated, setHydrated] = useState(false)
-  const [stripe, setStripe] = useState<Awaited<
-    ReturnType<typeof getStripePromise>
-  > | null>(null)
-  const [isPolling, setIsPolling] = useState(true)
   const orderPlacedRef = useRef(false)
 
   useEffect(() => {
@@ -56,55 +49,7 @@ export default function PromptPayPendingPageClient() {
         : L.qrExpiresAtMs
     )
     setHydrated(true)
-    const stripeP = getStripePromise()
-    if (stripeP) void stripeP.then(setStripe)
   }, [locale, router])
-
-  useEffect(() => {
-    if (!hydrated || !lock || !stripe) {
-      return
-    }
-    let cancelled = false
-    void (async () => {
-      try {
-        const { paymentIntent } = await stripe.retrievePaymentIntent(
-          lock.clientSecret
-        )
-        if (cancelled) {
-          return
-        }
-
-        const now = Date.now()
-        const st = paymentIntent?.status
-
-        if (
-          st === "canceled" ||
-          st === "succeeded" ||
-          st === "requires_capture"
-        ) {
-          return
-        }
-
-        const fromPi = getPromptPayExpiresAtMsFromStripeIntentCreated(
-          paymentIntent?.created
-        )
-        let deadline = Math.max(lock.qrExpiresAtMs, fromPi)
-
-        if (deadline <= now) {
-          deadline = getPromptPayCheckoutClickDeadlineMs()
-        }
-
-        setDisplayExpiresAtMs(deadline)
-      } catch {
-        if (!cancelled && lock.qrExpiresAtMs <= Date.now()) {
-          setDisplayExpiresAtMs(getPromptPayCheckoutClickDeadlineMs())
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
-    }
-  }, [hydrated, lock, stripe])
 
   const { remainingSeconds, isExpired: isTimerExpired } =
     usePaymentCountdown(displayExpiresAtMs)
@@ -154,50 +99,6 @@ export default function PromptPayPendingPageClient() {
     },
     [locale, router]
   )
-
-  useEffect(() => {
-    if (!hydrated || !lock || !stripe || !isPolling) return
-
-    const timer = window.setInterval(async () => {
-      if (orderPlacedRef.current) {
-        window.clearInterval(timer)
-        return
-      }
-
-      try {
-        const piResult = await stripe.retrievePaymentIntent(lock.clientSecret)
-        const status = piResult.paymentIntent?.status
-
-        if (status === "canceled") {
-          window.clearInterval(timer)
-          setIsPolling(false)
-          toast.error({
-            title: "การชำระเงินถูกยกเลิกหรือหมดเวลา",
-          })
-          return
-        }
-
-        if (status === "succeeded" || status === "requires_capture") {
-          orderPlacedRef.current = true
-          window.clearInterval(timer)
-          setIsPolling(false)
-          try {
-            await finalizePaid(lock)
-          } catch (e: unknown) {
-            toast.error({
-              title: (e as Error)?.message ?? "ไม่สามารถยืนยันคำสั่งซื้อได้",
-            })
-          }
-        }
-      } catch {
-        // keep polling
-      }
-    }, 2500)
-
-    return () => {
-      window.clearInterval(timer)
-    }
-  }, [hydrated, lock, stripe, isPolling, finalizePaid])
 
   const leaveToOrders = () => {
     clearPromptPayCheckoutLock()

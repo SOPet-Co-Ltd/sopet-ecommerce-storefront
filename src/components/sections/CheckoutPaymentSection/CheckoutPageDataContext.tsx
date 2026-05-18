@@ -14,6 +14,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type {
   CheckoutPageBundleData,
   CheckoutPageInitialData,
+  CouponData,
 } from "@/lib/data/checkout-page"
 import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { queryKeys } from "@/lib/react-query/query-keys"
@@ -21,16 +22,16 @@ import type { StoreCardShippingMethod } from "@/types/cart"
 
 export type CheckoutPageDataContextValue = {
   customer: HttpTypes.StoreCustomer | null
+  customerAddresses: HttpTypes.StoreCustomerAddress[]
+  customerCards: CustomerPaymentMethod[]
   shippingMethods: StoreCardShippingMethod[]
   paymentMethods: HttpTypes.StorePaymentProvider[] | null
-  savedStripePaymentMethods: CustomerPaymentMethod[]
-  upsertSavedStripePaymentMethod: (paymentMethod: CustomerPaymentMethod) => void
-  isSavedStripePaymentMethodsLoading: boolean
+  sitePromos: CouponData[]
+  vendorPromos: CouponData[]
   isLoading: boolean
   isRefreshing: boolean
   error: string | null
   refetch: () => Promise<void>
-  refetchSavedStripePaymentMethods: () => Promise<void>
 }
 
 const CheckoutPageDataContext =
@@ -43,17 +44,11 @@ type CheckoutPageDataProviderProps = {
   children: ReactNode
 }
 
-type SavedPaymentMethodsResponse = {
-  paymentMethods?: CustomerPaymentMethod[]
-}
-
 async function parseJson<T>(response: Response): Promise<T> {
   const text = await response.text()
-
   if (!text) {
     return {} as T
   }
-
   return JSON.parse(text) as T
 }
 
@@ -61,10 +56,7 @@ async function fetchCheckoutBundle(
   cartId: string,
   regionId: string | null | undefined
 ): Promise<CheckoutPageBundleData> {
-  const params = new URLSearchParams({
-    cartId,
-  })
-
+  const params = new URLSearchParams({ cartId })
   if (regionId) {
     params.set("regionId", regionId)
   }
@@ -79,25 +71,6 @@ async function fetchCheckoutBundle(
   }
 
   return parseJson<CheckoutPageBundleData>(response)
-}
-
-async function fetchSavedStripePaymentMethods(): Promise<
-  CustomerPaymentMethod[]
-> {
-  const response = await fetch("/api/checkout/saved-payment-methods", {
-    cache: "no-store",
-  })
-
-  if (response.status === 401) {
-    return []
-  }
-
-  if (!response.ok) {
-    return []
-  }
-
-  const payload = await parseJson<SavedPaymentMethodsResponse>(response)
-  return payload.paymentMethods ?? []
 }
 
 export function CheckoutPageDataProvider({
@@ -120,6 +93,10 @@ export function CheckoutPageDataProvider({
       customer: initialData.customer,
       shippingMethods: initialData.shippingMethods,
       paymentMethods: initialData.paymentMethods,
+      customerAddresses: initialData.customerAddresses ?? [],
+      customerCards: initialData.customerCards ?? [],
+      sitePromos: initialData.sitePromos ?? [],
+      vendorPromos: initialData.vendorPromos ?? [],
       error: initialData.error,
     }
   }, [initialData])
@@ -136,73 +113,8 @@ export function CheckoutPageDataProvider({
     if (!initialBundleData) {
       return
     }
-
     queryClient.setQueryData(bundleQueryKey, initialBundleData)
   }, [bundleQueryKey, initialBundleData, queryClient])
-
-  const customerId = bundleQuery.data?.customer?.id ?? null
-  const savedPaymentMethodsQueryKey = useMemo(
-    () => queryKeys.checkout.savedPaymentMethods(customerId),
-    [customerId]
-  )
-
-  const savedPaymentMethodsQuery = useQuery({
-    queryKey: savedPaymentMethodsQueryKey,
-    queryFn: fetchSavedStripePaymentMethods,
-    enabled: Boolean(customerId),
-    initialData:
-      customerId && initialData?.savedStripePaymentMethodsLoaded
-        ? initialData.savedStripePaymentMethods
-        : undefined,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-  })
-
-  useEffect(() => {
-    if (!customerId || !initialData?.savedStripePaymentMethodsLoaded) {
-      return
-    }
-
-    queryClient.setQueryData(
-      savedPaymentMethodsQueryKey,
-      initialData.savedStripePaymentMethods
-    )
-  }, [
-    customerId,
-    initialData?.savedStripePaymentMethods,
-    initialData?.savedStripePaymentMethodsLoaded,
-    queryClient,
-    savedPaymentMethodsQueryKey,
-  ])
-
-  const upsertSavedStripePaymentMethod = useCallback(
-    (paymentMethod: CustomerPaymentMethod) => {
-      if (!customerId) {
-        return
-      }
-
-      queryClient.setQueryData<CustomerPaymentMethod[]>(
-        savedPaymentMethodsQueryKey,
-        (current = []) => {
-          const next = [
-            paymentMethod,
-            ...current.filter((candidate) => candidate.id !== paymentMethod.id),
-          ]
-
-          if (!paymentMethod.is_default) {
-            return next
-          }
-
-          return next.map((candidate) =>
-            candidate.id === paymentMethod.id
-              ? paymentMethod
-              : { ...candidate, is_default: false }
-          )
-        }
-      )
-    },
-    [customerId, queryClient, savedPaymentMethodsQueryKey]
-  )
 
   const refetch = useCallback(async () => {
     await queryClient.refetchQueries({
@@ -211,49 +123,28 @@ export function CheckoutPageDataProvider({
     })
   }, [bundleQueryKey, queryClient])
 
-  const refetchSavedStripePaymentMethods = useCallback(async () => {
-    if (!customerId) {
-      return
-    }
-
-    await queryClient.refetchQueries({
-      queryKey: savedPaymentMethodsQueryKey,
-      type: "active",
-    })
-  }, [customerId, queryClient, savedPaymentMethodsQueryKey])
-
   const value = useMemo<CheckoutPageDataContextValue>(
     () => ({
       customer: bundleQuery.data?.customer ?? null,
+      customerAddresses: bundleQuery.data?.customerAddresses ?? [],
+      customerCards: bundleQuery.data?.customerCards ?? [],
       shippingMethods: bundleQuery.data?.shippingMethods ?? [],
       paymentMethods: bundleQuery.data?.paymentMethods ?? null,
-      savedStripePaymentMethods: customerId
-        ? savedPaymentMethodsQuery.data ?? []
-        : [],
-      upsertSavedStripePaymentMethod,
-      isSavedStripePaymentMethodsLoading:
-        Boolean(customerId) &&
-        savedPaymentMethodsQuery.isPending &&
-        savedPaymentMethodsQuery.data === undefined,
+      sitePromos: bundleQuery.data?.sitePromos ?? [],
+      vendorPromos: bundleQuery.data?.vendorPromos ?? [],
       isLoading: bundleQuery.isPending,
       isRefreshing: bundleQuery.isFetching && !bundleQuery.isPending,
       error:
         bundleQuery.data?.error ??
         (bundleQuery.error instanceof Error ? bundleQuery.error.message : null),
       refetch,
-      refetchSavedStripePaymentMethods,
     }),
     [
       bundleQuery.data,
       bundleQuery.error,
       bundleQuery.isFetching,
       bundleQuery.isPending,
-      customerId,
       refetch,
-      refetchSavedStripePaymentMethods,
-      savedPaymentMethodsQuery.data,
-      savedPaymentMethodsQuery.isPending,
-      upsertSavedStripePaymentMethod,
     ]
   )
 

@@ -7,7 +7,7 @@ import { useAdsQuery } from "@/hooks/useAdsQuery"
 
 const ADS_DISMISS_STORAGE_KEY = "sopet:storefront:promo-ads:dismiss-state"
 const DEFAULT_COOLDOWN_MS = 24 * 60 * 60 * 1000
-const ADS_IMAGE_ALT = "SOPet promotional advertisement"
+const ADS_IMAGE_ALT = "Sopet promotional advertisement"
 
 type AdsDismissState = {
   dismissedAt: number
