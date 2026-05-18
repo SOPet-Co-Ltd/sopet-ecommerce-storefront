@@ -53,7 +53,7 @@ export const SelectBox = <T extends string>({
           )}
         </div>
 
-        <span className="pointer-events-none sop-body-md-regular">
+        <span className="pointer-events-none sop-body-md-regular text-sop-neutral-gray-200">
           {children}
         </span>
       </div>
