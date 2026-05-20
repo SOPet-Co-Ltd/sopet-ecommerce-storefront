@@ -1,8 +1,9 @@
-import { Button } from "@/components/atoms"
 import CheckoutAddressForm from "@/components/molecules/CheckoutAddressForm/CheckoutAddressForm"
 import CheckoutDetailsSection from "@/components/molecules/CheckoutDetailsSection/CheckoutDetailsSection"
 import CheckoutPaymentSelection from "@/components/molecules/CheckoutPaymentSelection/CheckoutPaymentSelection"
 import CheckoutSummarySection from "@/components/molecules/CheckoutSummarySection/CheckoutSummarySection"
+import { CheckoutMobileBottomBar } from "@/components/molecules/CheckoutSummarySection/CheckoutMobileBottomBar"
+import { CheckoutPromotionSection } from "@/components/sections/CheckoutPromotionSection"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -33,6 +34,8 @@ export default async function CheckoutPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  // Kick the customer fetch off in parallel — `getCheckoutPageInitialData`
+  // awaits the same promise so we don't double-fetch.
   const customerPromise = getCheckoutCustomer()
   const cart = await retrieveCart()
 
@@ -59,7 +62,7 @@ export default async function CheckoutPage({
         error={initialData.error}
       >
         <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
-          <div className="flex xl:flex-row lg:flex-row md:flex-row flex-col gap-8">
+          <div className="flex flex-col gap-8 md:flex-row">
             <div className="w-full">
               <CheckoutAddressForm customer={initialData.customer} />
               <CheckoutDetailsSection
@@ -67,52 +70,18 @@ export default async function CheckoutPage({
                 vendorPromos={initialData.vendorPromos}
               />
             </div>
-            <div className="lg:mt-17 sm:mt-sop-16px w-full">
+            {/* Right column aligns with address form body on desktop. */}
+            <div className="w-full lg:mt-17 sm:mt-sop-16px">
+              <CheckoutPromotionSection />
               <CheckoutPaymentSelection
                 payment={initialData.customerCards}
                 paymentMethods={initialData.paymentMethods}
               />
-              <CheckoutSummarySection
-                cart={cart}
-                customer={initialData.customer}
-                sitePromos={initialData.sitePromos}
-                vendorPromos={initialData.vendorPromos}
-              />
+              <CheckoutSummarySection customer={initialData.customer} />
             </div>
           </div>
-
-          {/* <pre className="text-xs whitespace-pre-wrap break-all">
-            {JSON.stringify(
-              {
-                cart,
-                customer: initialData.customer,
-                customerCards: initialData.customerCards,
-                sitePromos: initialData.sitePromos,
-                vendorPromos: initialData.vendorPromos,
-                shippingMethods: initialData.shippingMethods,
-                paymentMethods: initialData.paymentMethods,
-                error: initialData.error,
-              },
-              null,
-              2
-            )}
-          </pre> */}
         </div>
-        <div className="block lg:hidden">
-          <div className=" px-sop-32px py-sop-12px rounded-tl-sop-20px rounded-tr-sop-20px bg-sop-base-white flex justify-between items-center mt-14">
-            <div className="flex flex-col ">
-              <label className="sop-body-sm-medium text-sop-neutral-gray-300">
-                ยอดชำระเงิน
-              </label>
-              <label className="text-sop-secondary-600">
-                ฿{cart.total.toFixed(2)}
-              </label>
-            </div>
-            <Button className="w-fit" variant="primary" size="lg" type="submit">
-              ชำระเงิน
-            </Button>
-          </div>
-        </div>
+        <CheckoutMobileBottomBar />
       </CheckoutStoreProvider>
     </main>
   )

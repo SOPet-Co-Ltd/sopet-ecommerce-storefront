@@ -11,6 +11,16 @@ export const queryKeys = {
       ["checkout", "page-data", cartId, regionId ?? ""] as const,
     savedPaymentMethods: (customerId: string | null | undefined) =>
       ["checkout", "saved-payment-methods", customerId ?? ""] as const,
+    promotions: (
+      cartId: string | null | undefined,
+      eligibilityFingerprint: string | null | undefined
+    ) =>
+      [
+        "checkout",
+        "promotions",
+        cartId ?? "",
+        eligibilityFingerprint ?? "",
+      ] as const,
   },
   orders: {
     all: () => ["orders"] as const,

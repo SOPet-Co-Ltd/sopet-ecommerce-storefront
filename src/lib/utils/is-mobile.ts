@@ -2,18 +2,24 @@
 
 import { useEffect, useState } from "react"
 
-export const isMobile = (breakpoint: number = 768) => {
-  const [isMobile, setIsMobile] = useState(false)
+// SSR-safe snapshot — returns false on server, real value on client
+const getIsMobile = (breakpoint: number): boolean => {
+  if (typeof window === "undefined") return false
+  return window.matchMedia(`(max-width: ${breakpoint - 1}px)`).matches
+}
+
+export const useIsMobile = (breakpoint: number = 768) => {
+  const [isMobile, setIsMobile] = useState(() => getIsMobile(breakpoint)) // lazy init avoids SSR/client hydration mismatch
 
   useEffect(() => {
-    const check = () => {
-      setIsMobile(window.innerWidth < breakpoint)
-    }
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`) // fires only at boundary, not every resize pixel
 
-    check()
-    window.addEventListener("resize", check)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
 
-    return () => window.removeEventListener("resize", check)
+    setIsMobile(mql.matches)
+    mql.addEventListener("change", handler)
+
+    return () => mql.removeEventListener("change", handler)
   }, [breakpoint])
 
   return isMobile

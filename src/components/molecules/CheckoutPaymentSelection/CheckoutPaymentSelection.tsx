@@ -1,13 +1,15 @@
 "use client"
 
+import { useEffect } from "react"
 import { Wallet } from "lucide-react"
-import { FormProvider, useForm } from "react-hook-form"
+import { FormProvider, useForm, useWatch } from "react-hook-form"
 
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { SelectBox } from "@/components/atoms/SelectBox/SelectBox"
 import { QrCodeIcon, SubtractIcon } from "@/icons"
 import { SelectWithCreditCard } from "./Components/CheckoutWithCredit"
 import { SelectWithoutCreditCard } from "./Components/CheckoutWithoutCredit"
+import { newCardDraftSchema } from "@/lib/checkout/checkout-payload-schema"
 
 import type {
   PaymentMethodData,
@@ -54,6 +56,7 @@ const CheckoutPaymentSelection = ({
 
   return (
     <FormProvider {...methods}>
+      <NewCardDraftSync />
       <div className="min-h-60 w-full rounded-sop-20 bg-sop-base-white p-sop-24px">
         <div className="flex items-center gap-sop-8px">
           <Wallet className="text-sop-primary-500" />
@@ -103,3 +106,31 @@ const CheckoutPaymentSelection = ({
 }
 
 export default CheckoutPaymentSelection
+
+function NewCardDraftSync() {
+  const paymentMethod = useCheckoutStore((state) => state.paymentMethod)
+  const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
+  const setNewCardDraft = useCheckoutStore((state) => state.setNewCardDraft)
+  const values = useWatch<PaymentFormData>()
+
+  useEffect(() => {
+    if (paymentMethod !== "card" || selectedCardId) {
+      setNewCardDraft(null)
+      return
+    }
+    const parsed = newCardDraftSchema.safeParse({
+      cardNumber: values?.cardNumber ?? "",
+      cardName: values?.cardName ?? "",
+      expiry: values?.expiry ?? "",
+      cvv: values?.cvv ?? "",
+      setAsDefault: values?.setAsDefault ?? false,
+    })
+    if (parsed.success) {
+      setNewCardDraft(parsed.data)
+    } else {
+      setNewCardDraft(null)
+    }
+  }, [paymentMethod, selectedCardId, values, setNewCardDraft])
+
+  return null
+}

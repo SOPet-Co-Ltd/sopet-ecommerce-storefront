@@ -11,32 +11,17 @@ import { getAuthHeaders } from "./cookies"
 import { listCartShippingMethods } from "./fulfillment"
 import { listCartPaymentMethods } from "./payment"
 import type { StoreCardShippingMethod } from "@/types/cart"
+import type {
+  CheckoutCoupon,
+  CheckoutPromotionsPayload,
+} from "@/types/checkout-coupon"
 
-export type CouponData = {
-  id: unknown
-  code: unknown
-  title: string
-  description: string
-  conditions: string
-  category: string
-  discount_value: string
-  min_purchase: unknown
-  expiry_date: string
-  image_color: unknown
-  status: unknown
-  vendorName: string | null
-  source: "vendor" | "site"
-  created_at: string | null
-  is_collected: boolean
-  is_used: boolean
-  is_eligible: boolean
-  ineligibility_reason: string | null
-}
-
-export type PromotionsPayload = {
-  site: CouponData[]
-  vendor: CouponData[]
-}
+/**
+ * @deprecated Import `CheckoutCoupon` from `@/types/checkout-coupon` instead.
+ * Kept as alias so legacy imports continue to compile.
+ */
+export type CouponData = CheckoutCoupon
+export type PromotionsPayload = CheckoutPromotionsPayload
 
 export type CheckoutPageBundleData = {
   shippingMethods: StoreCardShippingMethod[]
@@ -44,8 +29,8 @@ export type CheckoutPageBundleData = {
   customer: HttpTypes.StoreCustomer | null
   customerAddresses: HttpTypes.StoreCustomerAddress[]
   customerCards: CustomerPaymentMethod[]
-  sitePromos: CouponData[]
-  vendorPromos: CouponData[]
+  sitePromos: CheckoutCoupon[]
+  vendorPromos: CheckoutCoupon[]
   error: string | null
 }
 
@@ -70,29 +55,31 @@ export async function getCheckoutPageInitialData(
   return getCheckoutPageBundleData(cartId, regionId, options)
 }
 
-async function fetchSitePromos(cartId: string): Promise<CouponData[]> {
+const CHECKOUT_COUPON_PAGE_SIZE = 200
+
+async function fetchSitePromos(cartId: string): Promise<CheckoutCoupon[]> {
   const headers = { ...(await getAuthHeaders()) }
   const response = await fetchQuery("/store/coupons/site", {
     method: "GET",
-    query: { cart_id: cartId },
+    query: { cart_id: cartId, take: CHECKOUT_COUPON_PAGE_SIZE, skip: 0 },
     headers,
     cache: "no-store",
   })
   if (!response.ok) return []
-  const data = response.data as { coupons?: CouponData[] } | null
+  const data = response.data as { coupons?: CheckoutCoupon[] } | null
   return data?.coupons ?? []
 }
 
-async function fetchVendorPromos(cartId: string): Promise<CouponData[]> {
+async function fetchVendorPromos(cartId: string): Promise<CheckoutCoupon[]> {
   const headers = { ...(await getAuthHeaders()) }
   const response = await fetchQuery("/store/coupons/vendor", {
     method: "GET",
-    query: { cart_id: cartId },
+    query: { cart_id: cartId, take: CHECKOUT_COUPON_PAGE_SIZE, skip: 0 },
     headers,
     cache: "no-store",
   })
   if (!response.ok) return []
-  const data = response.data as { coupons?: CouponData[] } | null
+  const data = response.data as { coupons?: CheckoutCoupon[] } | null
   return data?.coupons ?? []
 }
 

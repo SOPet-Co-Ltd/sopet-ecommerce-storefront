@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { Plus } from "lucide-react"
 
 import { Button } from "@/components/atoms"
 import { SelectBox } from "@/components/atoms/SelectBox/SelectBox"
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 
 import {
   JCBIcon,
@@ -19,17 +20,18 @@ type Props = {
 }
 
 export const SelectWithCreditCard = ({ payment = [] }: Props) => {
-  const [selectedCardId, setSelectedCardId] = useState("")
+  const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
+  const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
 
   useEffect(() => {
     if (payment.length === 0) return
+    if (selectedCardId && payment.some((c) => c.id === selectedCardId)) return
 
     const defaultCard = payment.find((card) => card.is_default)
+    setSelectedCardId(defaultCard?.id ?? payment[0]?.id ?? null)
+  }, [payment, selectedCardId, setSelectedCardId])
 
-    setSelectedCardId(defaultCard?.id ?? payment[0]?.id ?? "")
-  }, [payment])
-
-  const getCardIcon = (brand?: string) => {
+  const getCardIcon = (brand?: string | null) => {
     switch (brand?.toLowerCase()) {
       case "mastercard":
         return <MastercardIcon className="h-sop-32px w-sop-32px" />
@@ -78,8 +80,8 @@ export const SelectWithCreditCard = ({ payment = [] }: Props) => {
             key={card.id}
             name="saved-card"
             value={card.id}
-            selectedValue={selectedCardId}
-            onChange={setSelectedCardId}
+            selectedValue={selectedCardId ?? ""}
+            onChange={(id) => setSelectedCardId(id || null)}
             rightIcon={getCardIcon(card.brand)}
             className="bg-sop-additionalblue-100"
           >

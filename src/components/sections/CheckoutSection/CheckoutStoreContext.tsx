@@ -1,3 +1,5 @@
+"use client"
+
 /**
  * React bridge for the checkout Zustand store.
  *
@@ -5,7 +7,6 @@
  * checkout state without prop drilling. Vendor shipping is loaded per seller
  * via `useVendorShipping`.
  */
-"use client"
 
 import {
   createContext,
@@ -70,25 +71,11 @@ export function useCheckoutStore<T>(
   )
 }
 
-/**
- * ================================
- * 🔥 ADDED SAFE EXTENSION (NO BREAK CHANGE)
- * ================================
- *
- * Fix: allow correct access to selected paymentMethod
- * even if store currently only exposes paymentMethods
- */
-
-export function useCheckoutPaymentMethod(): {
-  paymentMethod: CheckoutStore["paymentMethods"] extends (infer T)[]
-    ? T
-    : string
-  setPaymentMethod: (value: string) => void
-} {
-  return useCheckoutStore((state: any) => ({
-    paymentMethod: state.paymentMethod ?? null,
-    setPaymentMethod: state.setPaymentMethod,
-  }))
+/** Convenience hook for components that only need the payment-method slice. */
+export function useCheckoutPaymentMethod() {
+  const paymentMethod = useCheckoutStore((state) => state.paymentMethod)
+  const setPaymentMethod = useCheckoutStore((state) => state.setPaymentMethod)
+  return { paymentMethod, setPaymentMethod }
 }
 
 /**

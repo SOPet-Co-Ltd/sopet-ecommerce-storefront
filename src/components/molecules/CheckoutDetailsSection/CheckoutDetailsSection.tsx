@@ -11,7 +11,7 @@ import {
 } from "@/icons"
 import type { Cart, ExtendedLineItem, GroupedItems } from "@/types/cart"
 import Image from "next/image"
-import { Fragment, useMemo, type ReactNode } from "react"
+import { Fragment, useEffect, useMemo, type ReactNode } from "react"
 import {
   useCheckoutStore,
   useVendorShipping,
@@ -190,6 +190,32 @@ function SellerGroupCard({
     error: shippingError,
   } = useVendorShipping(cartId, seller.id)
 
+  const selectedShippingMethodId = useCheckoutStore(
+    (state) => state.selectedShippingMethodBySellerId[seller.id] ?? null
+  )
+  const setSelectedShippingMethod = useCheckoutStore(
+    (state) => state.setSelectedShippingMethod
+  )
+
+  useEffect(() => {
+    if (!shippingOptions || shippingOptions.length === 0) return
+    if (
+      selectedShippingMethodId &&
+      shippingOptions.some((opt) => opt.id === selectedShippingMethodId)
+    ) {
+      return
+    }
+    const first = shippingOptions[0]
+    if (first?.id) {
+      setSelectedShippingMethod(seller.id, first.id)
+    }
+  }, [
+    shippingOptions,
+    selectedShippingMethodId,
+    seller.id,
+    setSelectedShippingMethod,
+  ])
+
   const formattedDiscount = formatAmount(sellerDiscount, currencyCode)
   const formattedSubtotal = formatAmount(sellerSubtotal, currencyCode)
 
@@ -197,8 +223,7 @@ function SellerGroupCard({
     if (isLoadingShipping || !shippingOptions?.length) {
       return
     }
-
-    console.log("[CheckoutDetailsSection] shipping options", shippingOptions)
+    // TODO: open shipping selection modal once UI lands.
   }
 
   const shippingActionLabel = isLoadingShipping
@@ -316,7 +341,8 @@ const CheckoutDetailsSection = ({
   const storeSellerGroups = useCheckoutStore((state) => state.sellerGroups)
 
   const handleOpenDiscount = () => {
-    console.log("[CheckoutDetailsSection] vendor promos", vendorPromos)
+    // TODO: open vendor-promo modal; `vendorPromos` will feed it.
+    void vendorPromos
   }
 
   return Object.entries(storeSellerGroups).map(
