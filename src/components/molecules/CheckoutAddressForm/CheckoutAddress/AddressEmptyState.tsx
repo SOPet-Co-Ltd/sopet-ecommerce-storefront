@@ -1,15 +1,8 @@
 "use client"
 
-import {
-  Controller,
-  FieldError,
-  FieldValues,
-  useFormContext,
-} from "react-hook-form"
-import { useState } from "react"
+import { Controller, FieldError, useFormContext } from "react-hook-form"
 
 import {
-  Button,
   Checkbox,
   Dropdown,
   DropdownItem,
@@ -37,16 +30,13 @@ const AddressEmptyState = ({ onSubmitForm }: Props) => {
 
 export default AddressEmptyState
 
-const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
-  const [error, setError] = useState<string>()
-
+const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
   const {
     control,
-    handleSubmit,
     register,
     setValue,
     watch,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useFormContext<AddressFormData>()
 
   const provinceValue = watch("province")
@@ -60,19 +50,8 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
     districtValue
   )
 
-  const submit = async (data: FieldValues) => {
-    try {
-      await onSubmitForm?.(data as AddressFormData)
-      setError("")
-    } catch {
-      setError("เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง")
-    }
-  }
-
-  const onSubmit = handleSubmit(submit)
-
   return (
-    <form onSubmit={onSubmit}>
+    <div>
       <label className="sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
         การติดต่อ
       </label>
@@ -115,7 +94,7 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
         การจัดส่ง
       </label>
 
-      <div className="grid grid-cols-1 gap-3 lg:gap-5mt-5">
+      <div className="grid grid-cols-1 gap-3 lg:gap-5 mt-5">
         <InputSOPet
           isRequire
           title="ที่อยู่"
@@ -281,36 +260,19 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-2 grid-cols-1 md:gap-6 lg:gap-6 xl:gap-6 gap-3">
-          <div>
-            <InputSOPet
-              isRequire
-              title="ชื่อ-นามสกุล (ผู้รับสินค้า)"
-              size="sm"
-              variant="bordered"
-              placeholder="ชื่อ / นามสกุล (ผู้รับสินค้า)"
-              state={errors.recipientFullName ? "error" : "default"}
-              description={(errors.recipientFullName as FieldError)?.message}
-              {...register("recipientFullName", {
-                setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
-              })}
-            />
-          </div>
-
-          <div>
-            <InputSOPet
-              isRequire
-              title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
-              size="sm"
-              variant="bordered"
-              placeholder="099-999-9999"
-              state={errors.phone ? "error" : "default"}
-              description={(errors.phone as FieldError)?.message}
-              {...register("phone", {
-                setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
-              })}
-            />
-          </div>
+        <div className="grid grid-cols-1 gap-3">
+          <InputSOPet
+            isRequire
+            title="ชื่อ-นามสกุล (ผู้รับสินค้า)"
+            size="sm"
+            variant="bordered"
+            placeholder="ชื่อ / นามสกุล (ผู้รับสินค้า)"
+            state={errors.recipientFullName ? "error" : "default"}
+            description={(errors.recipientFullName as FieldError)?.message}
+            {...register("recipientFullName", {
+              setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
+            })}
+          />
         </div>
       </div>
 
@@ -330,6 +292,6 @@ const AddressEmptyStateContent = ({ onSubmitForm }: Props) => {
           )}
         />
       </div>
-    </form>
+    </div>
   )
 }

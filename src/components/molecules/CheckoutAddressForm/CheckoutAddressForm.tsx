@@ -1,13 +1,20 @@
 "use client"
 
-import { FormProvider, useForm, useFormContext } from "react-hook-form"
+import { useEffect } from "react"
+import {
+  FormProvider,
+  useForm,
+  useFormContext,
+  useWatch,
+} from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { MapPin } from "lucide-react"
 
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { AddressFormData, addressSchema } from "../AddressForm/schema"
 import AddressEmptyState from "./CheckoutAddress/AddressEmptyState"
 import AddressFilledState from "./CheckoutAddress/AddressFilledState"
-import { StoreCustomer } from "@medusajs/types"
+import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 
 interface Props {
   customer?: StoreCustomer | null
@@ -27,18 +34,48 @@ export const emptyDefaultAddressValues: AddressFormData = {
   setAsDefault: false,
 }
 
+function customerAddressToFormValues(
+  address: StoreCustomerAddress,
+  customer: StoreCustomer | null | undefined
+): AddressFormData {
+  const recipientFullName =
+    [address.first_name, address.last_name].filter(Boolean).join(" ").trim() ||
+    address.address_name ||
+    ""
+  return {
+    addressId: address.id,
+    recipientFullName,
+    phone: address.phone ?? "",
+    email: customer?.email ?? "",
+    province: address.province ?? "",
+    district: address.city ?? "",
+    subDistrict: address.address_2 ?? "",
+    postalCode: address.postal_code ?? "",
+    address: address.address_1 ?? "",
+    setAsDefault: false,
+  }
+}
+
 const CheckoutAddressForm = ({
   customer,
   defaultValues,
   onSubmitForm,
 }: Props) => {
+  const defaultAddress = customer?.addresses?.find((a) => a.is_default_shipping)
+  const seedValues =
+    defaultValues ??
+    (defaultAddress
+      ? customerAddressToFormValues(defaultAddress, customer ?? null)
+      : emptyDefaultAddressValues)
+
   const methods = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
-    defaultValues: defaultValues || emptyDefaultAddressValues,
+    defaultValues: seedValues,
   })
 
   return (
     <FormProvider {...methods}>
+      <CheckoutAddressStoreSync customer={customer ?? null} />
       <CheckoutAddressFormContent
         customer={customer}
         onSubmitForm={onSubmitForm}
@@ -49,15 +86,46 @@ const CheckoutAddressForm = ({
 
 export default CheckoutAddressForm
 
+function CheckoutAddressStoreSync({
+  customer,
+}: {
+  customer: StoreCustomer | null
+}) {
+  const setShippingAddress = useCheckoutStore(
+    (state) => state.setShippingAddress
+  )
+  const values = useWatch<AddressFormData>()
+
+  useEffect(() => {
+    const parsed = addressSchema.safeParse(values)
+    if (parsed.success) {
+      setShippingAddress(parsed.data)
+    }
+  }, [values, setShippingAddress])
+
+  // Seed once from the customer's default shipping on mount when form is empty.
+  useEffect(() => {
+    const defaultAddress = customer?.addresses?.find(
+      (a) => a.is_default_shipping
+    )
+    if (!defaultAddress) return
+    const seeded = customerAddressToFormValues(defaultAddress, customer)
+    const parsed = addressSchema.safeParse(seeded)
+    if (parsed.success) {
+      setShippingAddress(parsed.data)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer?.id])
+
+  return null
+}
+
 const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
   const { handleSubmit } = useFormContext<AddressFormData>()
 
-  const onSubmit = handleSubmit(async (data) => {
-    await onSubmitForm?.(data)
-  })
   return (
     <form>
-      <div className="mt-6">
+      <div className="mt-6 mb-sop-20px">
         <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5">
           <MapPin className="fill-sop-primary-500 text-white" size={24} />
           ข้อมูลการจัดส่ง

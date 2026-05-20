@@ -190,7 +190,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  const cartUrl = `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`
+  const cartUrl = `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.adjustments,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+shipping_methods.adjustments,+customer`
 
   const fetchCart = () =>
     fetchQuery(cartUrl, {

@@ -28,6 +28,18 @@ export type StoreCardShippingMethod = HttpTypes.StoreCartShippingOption & {
   }
 }
 
+/**
+ * Promotion adjustment attached to a cart line item or shipping method.
+ * Medusa's `StoreCartLineItem` / `StoreCartShippingMethod` types do not surface
+ * adjustments, so checkout utilities use this shape via narrow casts.
+ */
+export type CartAdjustment = {
+  id?: string
+  code?: string | null
+  amount?: number | string | { numeric_?: number; amount?: number } | null
+  promotion_id?: string | null
+}
+
 export interface StoreCartLineItemOptimisticUpdate extends Partial<HttpTypes.StoreCartLineItem> {
   tax_total: number
 }

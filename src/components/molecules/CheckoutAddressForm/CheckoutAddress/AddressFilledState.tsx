@@ -14,11 +14,10 @@ const AddressFilledState = ({
   )
 
   const fullAddress = `${address?.address_1} ${address?.address_2} ${address?.city} ${address?.province} ${address?.postal_code}`
-  const isMobile = useIsMobile()
 
-  return isMobile ? (
+  return useIsMobile() ? (
     <div className="flex gap-3">
-      <div className="flex flex-col">
+      <div className="flex flex-col w-full">
         <div className="flex gap-2 sop-body-sm-medium">
           <label>{address?.address_name}</label>
           <label>({address?.phone})</label>
@@ -31,7 +30,7 @@ const AddressFilledState = ({
           >
             ค่าเริ่มต้น
           </Infotag>
-          <Button type="submit" variant="outline" size="xl" rounded="rounded">
+          <Button type="submit" variant="outline" size="sm" rounded="rounded">
             เปลี่ยน
           </Button>
         </div>
@@ -56,8 +55,7 @@ const AddressFilledState = ({
 
         <label className="sop-body-md-regular">{fullAddress}</label>
       </div>
-
-      <Button type="submit" variant="outline" size="xl" rounded="rounded">
+      <Button type="submit" variant="outline" size="sm" rounded="rounded">
         เปลี่ยน
       </Button>
     </div>

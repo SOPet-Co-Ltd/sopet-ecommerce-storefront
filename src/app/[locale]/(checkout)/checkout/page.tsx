@@ -1,5 +1,9 @@
 import CheckoutAddressForm from "@/components/molecules/CheckoutAddressForm/CheckoutAddressForm"
 import CheckoutDetailsSection from "@/components/molecules/CheckoutDetailsSection/CheckoutDetailsSection"
+import CheckoutPaymentSelection from "@/components/molecules/CheckoutPaymentSelection/CheckoutPaymentSelection"
+import CheckoutSummarySection from "@/components/molecules/CheckoutSummarySection/CheckoutSummarySection"
+import { CheckoutMobileBottomBar } from "@/components/molecules/CheckoutSummarySection/CheckoutMobileBottomBar"
+import { CheckoutPromotionSection } from "@/components/sections/CheckoutPromotionSection"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
@@ -30,6 +34,8 @@ export default async function CheckoutPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
+  // Kick the customer fetch off in parallel — `getCheckoutPageInitialData`
+  // awaits the same promise so we don't double-fetch.
   const customerPromise = getCheckoutCustomer()
   const cart = await retrieveCart()
 
@@ -43,7 +49,7 @@ export default async function CheckoutPage({
   })
 
   return (
-    <main className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
+    <main>
       <CheckoutStoreProvider
         cart={cart}
         customer={initialData.customer}
@@ -55,27 +61,27 @@ export default async function CheckoutPage({
         vendorPromos={initialData.vendorPromos}
         error={initialData.error}
       >
-        <CheckoutAddressForm customer={initialData.customer} />
-        <CheckoutDetailsSection
-          cart={cart}
-          vendorPromos={initialData.vendorPromos}
-        />
-        <pre className="text-xs whitespace-pre-wrap break-all">
-          {JSON.stringify(
-            {
-              cart,
-              customer: initialData.customer,
-              customerCards: initialData.customerCards,
-              sitePromos: initialData.sitePromos,
-              vendorPromos: initialData.vendorPromos,
-              shippingMethods: initialData.shippingMethods,
-              paymentMethods: initialData.paymentMethods,
-              error: initialData.error,
-            },
-            null,
-            2
-          )}
-        </pre>
+        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-8 md:flex-row">
+            <div className="w-full">
+              <CheckoutAddressForm customer={initialData.customer} />
+              <CheckoutDetailsSection
+                cart={cart}
+                vendorPromos={initialData.vendorPromos}
+              />
+            </div>
+            {/* Right column aligns with address form body on desktop. */}
+            <div className="w-full lg:mt-17 sm:mt-sop-16px">
+              <CheckoutPromotionSection />
+              <CheckoutPaymentSelection
+                payment={initialData.customerCards}
+                paymentMethods={initialData.paymentMethods}
+              />
+              <CheckoutSummarySection customer={initialData.customer} />
+            </div>
+          </div>
+        </div>
+        <CheckoutMobileBottomBar />
       </CheckoutStoreProvider>
     </main>
   )

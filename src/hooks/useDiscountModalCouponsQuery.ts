@@ -167,9 +167,10 @@ export function useDiscountModalCouponsQuery({
   cart,
   vendorName,
 }: UseDiscountModalCouponsQueryArgs) {
-  const cartId = typeof cart?.id === "string" && cart.id.startsWith("cart_")
-    ? cart.id
-    : undefined
+  const cartId =
+    typeof cart?.id === "string" && cart.id.startsWith("cart_")
+      ? cart.id
+      : undefined
   const sellerGroupCount = getSellerGroupCount({ cart })
   const couponEligibilityReady =
     !cartId ||
@@ -203,6 +204,19 @@ export function useDiscountModalCouponsQuery({
   }
 }
 
+function invalidateCheckoutPromotionLists(
+  queryClient: ReturnType<typeof useQueryClient>,
+  cartId: string
+) {
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.coupons.all(),
+  })
+  void queryClient.invalidateQueries({
+    queryKey: ["checkout", "promotions", cartId] as const,
+    exact: false,
+  })
+}
+
 export function useApplyCheckoutPromotionMutation(cartId: string | null) {
   const queryClient = useQueryClient()
 
@@ -216,9 +230,7 @@ export function useApplyCheckoutPromotionMutation(cartId: string | null) {
     },
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.checkout.cart(cart.id), cart)
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.coupons.all(),
-      })
+      invalidateCheckoutPromotionLists(queryClient, cart.id)
     },
   })
 }
@@ -236,9 +248,7 @@ export function useRemoveCheckoutPromotionMutation(cartId: string | null) {
     },
     onSuccess: (cart) => {
       queryClient.setQueryData(queryKeys.checkout.cart(cart.id), cart)
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.coupons.all(),
-      })
+      invalidateCheckoutPromotionLists(queryClient, cart.id)
     },
   })
 }
