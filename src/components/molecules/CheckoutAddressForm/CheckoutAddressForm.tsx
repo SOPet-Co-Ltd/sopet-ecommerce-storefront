@@ -32,6 +32,7 @@ export const emptyDefaultAddressValues: AddressFormData = {
   postalCode: "",
   address: "",
   setAsDefault: false,
+  recipientphone: "",
 }
 
 function customerAddressToFormValues(
@@ -53,6 +54,7 @@ function customerAddressToFormValues(
     postalCode: address.postal_code ?? "",
     address: address.address_1 ?? "",
     setAsDefault: false,
+    recipientphone: (address.metadata?.recipientphone as string) ?? "",
   }
 }
 

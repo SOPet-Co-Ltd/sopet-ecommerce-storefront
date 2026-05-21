@@ -57,6 +57,17 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
     })
   }
 
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 10)
+
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 6) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
+    }
+
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
+  }
+
   return (
     <div>
       <label className="sop-body-sm-medium text-sop-neutral-gray-300 mb-2 flex items-center gap-1">
@@ -74,18 +85,18 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           description={(errors.phone as FieldError)?.message}
           {...register("phone", {
             setValueAs: trimValue,
+            onChange: (e) => {
+              e.target.value = formatPhoneNumber(e.target.value)
+            },
           })}
         />
 
         <div>
           <InputSOPet
-            isRequire
             title="อีเมล"
             size="sm"
             variant="bordered"
             placeholder="example@email.com"
-            state={errors.email ? "error" : "default"}
-            description={(errors.email as FieldError)?.message}
             {...register("email", {
               setValueAs: trimValue,
             })}
@@ -180,6 +191,22 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           description={(errors.recipientFullName as FieldError)?.message}
           {...register("recipientFullName", {
             setValueAs: trimValue,
+          })}
+        />
+
+        <InputSOPet
+          isRequire
+          title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
+          size="sm"
+          variant="bordered"
+          placeholder="099-999-9999"
+          state={errors.recipientphone ? "error" : "default"}
+          description={(errors.recipientphone as FieldError)?.message}
+          {...register("recipientphone", {
+            setValueAs: trimValue,
+            onChange: (e) => {
+              e.target.value = formatPhoneNumber(e.target.value)
+            },
           })}
         />
       </div>

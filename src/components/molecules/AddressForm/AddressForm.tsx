@@ -52,6 +52,7 @@ export const emptyDefaultAddressValues: AddressFormData = {
   postalCode: "",
   address: "",
   setAsDefault: false,
+  recipientphone: "",
 }
 
 export const AddressForm = forwardRef<AddressFormHandle, Props>(

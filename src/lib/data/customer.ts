@@ -12,6 +12,7 @@ import {
   removeCartId,
   setAuthToken,
 } from "./cookies"
+import meta from "@/components/atoms/Autocomplete/Autocomplete.stories"
 
 /**
  * Lightweight auth check for layout/header usage.
@@ -640,7 +641,10 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
     province: formData.get("province") as string,
     is_default_billing: Boolean(formData.get("isDefaultBilling")),
     is_default_shipping: Boolean(formData.get("isDefaultShipping")),
-  }
+    metadata: {
+      recipientphone: formData.get("recipientphone") as string,
+    },
+  } as HttpTypes.StoreCreateCustomerAddress
 
   const headers = {
     ...(await getAuthHeaders()),

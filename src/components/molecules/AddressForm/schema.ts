@@ -12,6 +12,11 @@ export const addressSchema = z.object({
     .trim()
     .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
     .regex(/^\+?[0-9\s\-()]+$/, "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง"),
+  recipientphone: z
+    .string()
+    .trim()
+    .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
+    .regex(/^\+?[0-9\s\-()]+$/, "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง"),
   province: z.string().trim().min(1, "กรุณาเลือกจังหวัดของคุณ"),
   district: z.string().trim().min(1, "กรุณาเลือกเขต/อำเภอของคุณ"),
   subDistrict: z.string().trim().min(1, "กรุณาเลือกตำบลของคุณ"),
