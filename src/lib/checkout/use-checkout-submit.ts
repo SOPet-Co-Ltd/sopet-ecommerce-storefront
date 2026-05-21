@@ -125,12 +125,38 @@ export function useCheckoutSubmit() {
   const customer = useCheckoutStore((state) => state.customer)
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
   const setNewCardDraft = useCheckoutStore((state) => state.setNewCardDraft)
+  const addressFormTrigger = useCheckoutStore(
+    (state) => state.addressFormTrigger
+  )
+  const paymentFormTrigger = useCheckoutStore(
+    (state) => state.paymentFormTrigger
+  )
 
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
     setError(null)
     setIsSubmitting(true)
 
     try {
+      // Validate address form
+      if (addressFormTrigger) {
+        const addressValid = await addressFormTrigger()
+        if (!addressValid) {
+          const message = "กรุณากรอกข้อมูลที่อยู่จัดส่งให้ครบถ้วน"
+          setError(message)
+          return { ok: false, reason: "validation", message }
+        }
+      }
+
+      // Validate payment form
+      if (paymentFormTrigger) {
+        const paymentValid = await paymentFormTrigger()
+        if (!paymentValid) {
+          const message = "กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน"
+          setError(message)
+          return { ok: false, reason: "validation", message }
+        }
+      }
+
       let omiseToken: string | null = null
       let resolvedCardId: string | null = selectedCardId
 
@@ -199,6 +225,8 @@ export function useCheckoutSubmit() {
       setIsSubmitting(false)
     }
   }, [
+    addressFormTrigger,
+    paymentFormTrigger,
     buildCheckoutPayload,
     customer,
     newCardDraft,

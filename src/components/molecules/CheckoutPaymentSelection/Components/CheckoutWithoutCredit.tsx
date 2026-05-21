@@ -28,7 +28,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cardNumber"
           defaultValue=""
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
               title="หมายเลขบัตร"
@@ -36,6 +36,8 @@ export const SelectWithoutCreditCard = () => {
               variant="bordered"
               placeholder="0000-1111-0000-1111"
               inputMode="numeric"
+              state={fieldState.error ? "error" : "default"}
+              description={fieldState.error?.message}
               value={field.value}
               onChange={(e: any) =>
                 field.onChange(formatCardNumber(e.target.value))
@@ -49,13 +51,15 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cardName"
           defaultValue=""
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
               title="ชื่อบนบัตร"
               size="sm"
               variant="bordered"
               placeholder="จันจิรา เอสโอเพ็ท"
+              state={fieldState.error ? "error" : "default"}
+              description={fieldState.error?.message}
               value={field.value}
               onChange={(e: any) =>
                 field.onChange(formatCardName(e.target.value))
@@ -69,7 +73,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="expiry"
           defaultValue=""
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
               title="วันหมดอายุ"
@@ -77,6 +81,8 @@ export const SelectWithoutCreditCard = () => {
               variant="bordered"
               placeholder="MM/YY"
               inputMode="numeric"
+              state={fieldState.error ? "error" : "default"}
+              description={fieldState.error?.message}
               value={field.value}
               onChange={(e: any) =>
                 field.onChange(formatExpiry(e.target.value))
@@ -90,7 +96,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cvv"
           defaultValue=""
-          render={({ field }) => (
+          render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
               title="รหัส CVV"
@@ -98,6 +104,8 @@ export const SelectWithoutCreditCard = () => {
               variant="bordered"
               placeholder="***"
               inputMode="numeric"
+              state={fieldState.error ? "error" : "default"}
+              description={fieldState.error?.message}
               value={field.value}
               onChange={(e: any) => field.onChange(formatCVV(e.target.value))}
             />

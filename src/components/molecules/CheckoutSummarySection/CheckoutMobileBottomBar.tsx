@@ -6,7 +6,7 @@ import { formatPrice, useCheckoutTotals } from "./use-checkout-totals"
 
 export function CheckoutMobileBottomBar() {
   const { finalPrice } = useCheckoutTotals()
-  const { submit, isSubmitting, error } = useCheckoutSubmit()
+  const { submit, isSubmitting } = useCheckoutSubmit()
 
   return (
     <div className="block lg:hidden">
@@ -31,11 +31,6 @@ export function CheckoutMobileBottomBar() {
           >
             ชำระเงิน
           </Button>
-          {error && (
-            <p className="mt-sop-4px text-xs text-sop-system-error-500">
-              {error}
-            </p>
-          )}
         </div>
       </div>
     </div>

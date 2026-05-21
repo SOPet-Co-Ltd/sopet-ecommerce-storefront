@@ -94,6 +94,7 @@ const AddressDropdown = <T extends FieldValues>({
               placeholder={placeholder}
               value={search}
               disabled={disabled}
+              state={error ? "error" : "default"}
               onChange={(e) => {
                 setSearch(e.target.value)
 
@@ -132,12 +133,11 @@ const AddressDropdown = <T extends FieldValues>({
               </div>
             )}
 
-            {/* In case you use it */}
-            {/* {error && (
+            {error && (
               <p className="sop-body-xs-regular mt-1 text-sop-system-error-400">
                 {error.message}
               </p>
-            )} */}
+            )}
           </div>
         )
       }}

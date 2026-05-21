@@ -6,24 +6,25 @@ export const addressSchema = z.object({
   recipientFullName: z
     .string()
     .trim()
-    .min(1, "ชื่อ-นามสกุล ผู้รับสินค้า is required"),
+    .min(1, "กรุณากรอกชื่อ / นามสกุล (ผู้รับสินค้า)"),
   phone: z
     .string()
     .trim()
-    .min(1, "เบอร์โทรศัพท์ is required")
-    .regex(/^\+?[0-9\s\-()]+$/, "Invalid phone number format"),
-  province: z.string().trim().min(1, "จังหวัด is required"),
-  district: z.string().trim().min(1, "เขต/อำเภอ is required"),
-  subDistrict: z.string().trim().min(1, "แขวง/ตำบล is required"),
-  postalCode: z.string().trim().min(1, "รหัสไปรษณีย์ is required"),
-  address: z.string().trim().min(1, "ที่อยู่ is required"),
+    .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
+    .regex(/^\+?[0-9\s\-()]+$/, "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง"),
+  province: z.string().trim().min(1, "กรุณาเลือกจังหวัดของคุณ"),
+  district: z.string().trim().min(1, "กรุณาเลือกเขต/อำเภอของคุณ"),
+  subDistrict: z.string().trim().min(1, "กรุณาเลือกตำบลของคุณ"),
+  postalCode: z.string().trim().min(1, "กรุณาเลือกรหัสไปรษณีย์ของคุณ"),
+  address: z.string().trim().min(1, "กรุณากรอกที่อยู่ของคุณ"),
   setAsDefault: z.boolean().optional().default(false),
   email: z
-    .string()
-    .trim()
-    .min(1, "อีเมล is required")
-    .email("รูปแบบอีเมลไม่ถูกต้อง")
-    .optional(),
+    .union([
+      z.literal(""),
+      z.string().trim().email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }),
+    ])
+    .optional()
+    .nullable(),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>

@@ -94,7 +94,17 @@ function CheckoutAddressStoreSync({
   const setShippingAddress = useCheckoutStore(
     (state) => state.setShippingAddress
   )
+  const setAddressFormTrigger = useCheckoutStore(
+    (state) => state.setAddressFormTrigger
+  )
+  const { trigger } = useFormContext<AddressFormData>()
   const values = useWatch<AddressFormData>()
+
+  useEffect(() => {
+    setAddressFormTrigger(trigger)
+    return () => setAddressFormTrigger(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setAddressFormTrigger])
 
   useEffect(() => {
     const parsed = addressSchema.safeParse(values)
@@ -121,8 +131,6 @@ function CheckoutAddressStoreSync({
 }
 
 const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
-  const { handleSubmit } = useFormContext<AddressFormData>()
-
   return (
     <form>
       <div className="mt-6 mb-sop-20px">

@@ -39,7 +39,7 @@ type CheckoutSummarySectionProps = {
 }
 
 const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
-  const { submit, isSubmitting, error } = useCheckoutSubmit()
+  const { submit, isSubmitting } = useCheckoutSubmit()
   const {
     totalQuantity,
     subtotal,
@@ -124,11 +124,6 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
       >
         ชำระเงิน {formatPrice(finalPrice)}
       </Button>
-      {error && (
-        <p className="sop-body-xs-regular mt-sop-8px text-sop-system-error-500">
-          {error}
-        </p>
-      )}
     </div>
   )
 }

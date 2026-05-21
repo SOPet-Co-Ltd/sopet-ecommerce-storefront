@@ -17,9 +17,10 @@ import { CustomerCard } from "../Types/PaymentType"
 
 type Props = {
   payment?: CustomerCard[]
+  error?: string | null
 }
 
-export const SelectWithCreditCard = ({ payment = [] }: Props) => {
+export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
   const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
 
@@ -98,6 +99,12 @@ export const SelectWithCreditCard = ({ payment = [] }: Props) => {
           </SelectBox>
         ))}
       </div>
+
+      {error && (
+        <p className="sop-body-xs-regular mt-sop-8px text-sop-system-error-400">
+          {error}
+        </p>
+      )}
     </div>
   )
 }
