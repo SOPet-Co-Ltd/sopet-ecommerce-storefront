@@ -3,11 +3,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { BackIcon, LineSquareCustomIcon, QrAddLineOAIcon } from "@/icons"
 import { cn } from "@/lib/utils"
-// Admin is available Mon–Sun, 10:00–17:59 local time.
-function isWithinAdminHours(date: Date): boolean {
-  const minutesSinceMidnight = date.getHours() * 60 + date.getMinutes()
-  return minutesSinceMidnight >= 10 * 60 && minutesSinceMidnight < 18 * 60
-}
 
 // Measures and tracks the card's natural (collapsed) pixel width so CSS can animate it.
 function useCollapsedWidth(cardRef: React.RefObject<HTMLDivElement | null>) {
@@ -26,18 +21,6 @@ function useCollapsedWidth(cardRef: React.RefObject<HTMLDivElement | null>) {
     return () => window.removeEventListener("resize", measure)
   }, [cardRef])
   return collapsedWidth
-}
-
-// Polls every minute to reflect whether admin is currently on duty.
-function useAdminStatus() {
-  const [active, setActive] = useState(false)
-  useEffect(() => {
-    const tick = () => setActive(isWithinAdminHours(new Date()))
-    tick()
-    const id = window.setInterval(tick, 60_000)
-    return () => window.clearInterval(id)
-  }, [])
-  return active
 }
 
 // Hides the button when it overlaps the page header or footer.
@@ -94,7 +77,6 @@ const ChatWithAdminFloatingButton = () => {
   const [isQrOpen, setIsQrOpen] = useState(false)
 
   const collapsedWidth = useCollapsedWidth(cardRef)
-  const adminActive = useAdminStatus()
   const overlapping = useOverlapDetection(buttonRef)
 
   // Stagger: open = width first then height; close = height first then width.
@@ -120,8 +102,7 @@ const ChatWithAdminFloatingButton = () => {
       aria-hidden
       className={cn(
         hidden,
-        "w-2.5 h-2.5 rounded-full border border-solid border-sop-base-white",
-        adminActive ? "bg-sop-system-success-400" : "bg-sop-neutral-gray-400"
+        "w-2.5 h-2.5 rounded-full border border-solid border-sop-base-white bg-sop-system-success-400"
       )}
     />
   )
@@ -235,7 +216,7 @@ const ChatWithAdminFloatingButton = () => {
                   className={cn(
                     "shadow-xs relative inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap border border-transparent transition-colors",
                     "bg-sop-primary-500 text-sop-neutral-grayfixed-600 hover:bg-sop-primary-600",
-                    "min-w-[76px] h-sop-36px rounded-sop-32 py-sop-8px px-sop-16px sop-body-sm-medium",
+                    "min-w-19 h-sop-36px rounded-sop-32 py-sop-8px px-sop-16px sop-body-sm-medium",
                     "bg-sop-system-success-500 hover:bg-sop-system-success-400"
                   )}
                 >
@@ -243,7 +224,7 @@ const ChatWithAdminFloatingButton = () => {
                 </a>
               </div>
               <span className="sop-body-sm-light line-clamp-1 text-sop-neutral-gray-200 text-center w-full">
-                เวลาทำการ จ-อา. 10:00 - 18:00
+                ปรึกษาปัญหาสัตว์เลี้ยงฟรี 24 ชม.
               </span>
             </div>
           </div>
