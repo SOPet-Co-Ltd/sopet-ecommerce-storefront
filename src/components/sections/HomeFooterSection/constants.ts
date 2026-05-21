@@ -64,7 +64,7 @@ export const FOOTER_MENUS = {
     ],
   },
   line_oa: {
-    title: ["ปรึกษาสัตว​์แพทย์ฟรี !", "ผ่าน LINE OPENCHAT"],
+    title: ["ปรึกษาสัตว​์แพทย์ฟรี !", "ผ่าน LINE OA"],
   },
 }
 

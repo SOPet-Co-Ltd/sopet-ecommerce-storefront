@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { FooterMailIcon } from "@/icons"
+import { FooterMailIcon, QrAddLineOAIcon } from "@/icons"
 import {
   SOCIAL_LINKS,
   COMPANY_INFO,
@@ -100,14 +100,8 @@ const FooterContent = () => (
             {FOOTER_MENUS.line_oa.title[1]}
           </FooterSectionHeading>
         </div>
-        <QRCodeSection />
-        <div>
-          <Image
-            src="/images/footer/LINE_OA.svg"
-            alt="LINE OA QR Code"
-            width={180}
-            height={180}
-          />
+        <div className="w-fit flex items-center justify-center px-sop-20px py-sop-24px border border-sop-system-success-400 rounded-[14px]">
+          <QrAddLineOAIcon size={128} />
         </div>
       </div>
     </div>
