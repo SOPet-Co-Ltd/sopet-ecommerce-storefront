@@ -61,17 +61,17 @@ export default async function CheckoutPage({
         vendorPromos={initialData.vendorPromos}
         error={initialData.error}
       >
-        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4 mb-sop-40px">
-          <div className="flex flex-col gap-8 md:flex-row">
-            <div className="w-full">
+        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-8 xl:flex-row">
+            <div className="flex-1 xl:min-w-112.5">
               <CheckoutAddressForm customer={initialData.customer} />
               <CheckoutDetailsSection
                 cart={cart}
                 vendorPromos={initialData.vendorPromos}
               />
             </div>
-            {/* Right column aligns with address form body on desktop. */}
-            <div className="w-full lg:mt-17 sm:mt-sop-16px">
+
+            <div className="w-full xl:max-w-105 lg:mt-17 sm:mt-sop-16px">
               <CheckoutPromotionSection />
               <CheckoutPaymentSelection
                 payment={initialData.customerCards}
