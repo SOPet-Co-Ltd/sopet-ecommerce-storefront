@@ -253,11 +253,9 @@ function SellerGroupCard({
     ? "กำลังโหลด..."
     : shippingError
       ? shippingError
-      : selectedShippingOption
-        ? `${selectedShippingOption.name} (${formatAmount(selectedShippingOption.amount ?? 0, currencyCode)})`
-        : shippingOptions && shippingOptions.length > 0
-          ? `เลือกการจัดส่ง (${shippingOptions.length})`
-          : "เลือกการจัดส่ง"
+      : shippingOptions && shippingOptions.length > 0
+        ? `เลือกการจัดส่ง (${shippingOptions.length})`
+        : "เลือกการจัดส่ง"
 
   return (
     <div>
@@ -347,7 +345,21 @@ function SellerGroupCard({
                     : "sop-link-sm-regular lg:sop-link-md-regular text-sop-neutral-gray-400"
               }
             >
-              {shippingActionLabel}
+              {selectedShippingOption ? (
+                <>
+                  <span style={{ color: "#000000" }}>
+                    {selectedShippingOption.name}
+                  </span>{" "}
+                  <span style={{ color: "#6E76EE" }}>
+                    {formatAmount(
+                      selectedShippingOption.amount ?? 0,
+                      currencyCode
+                    )}
+                  </span>
+                </>
+              ) : (
+                shippingActionLabel
+              )}
             </span>
           </SellerGroupAction>
         </div>
