@@ -6,11 +6,11 @@ export const metadata: Metadata = {
   description: "OTP Verification Page",
 }
 
-export default function OtpPage({
+export default async function OtpPage({
   searchParams,
 }: {
-  searchParams: { phone?: string }
+  searchParams: Promise<{ phone?: string }>
 }) {
-  const phone = searchParams.phone ?? ""
-  return <OtpVerifyForm phone={phone} />
+  const { phone } = await searchParams
+  return <OtpVerifyForm phone={phone ?? ""} />
 }
