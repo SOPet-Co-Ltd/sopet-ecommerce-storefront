@@ -31,9 +31,16 @@ export const Modal = ({
   )
 
   useEffect(() => {
-    if (!onClose) return
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
+    if (onClose) {
+      document.addEventListener("keydown", handleEscape)
+    }
+
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape)
+      document.body.style.overflow = ""
+    }
   }, [onClose, handleEscape])
 
   return (
