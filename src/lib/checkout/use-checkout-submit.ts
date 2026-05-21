@@ -131,28 +131,61 @@ export function useCheckoutSubmit() {
   const paymentFormTrigger = useCheckoutStore(
     (state) => state.paymentFormTrigger
   )
+  const sellerGroups = useCheckoutStore((state) => state.sellerGroups)
+  const selectedShippingMethodBySellerId = useCheckoutStore(
+    (state) => state.selectedShippingMethodBySellerId
+  )
 
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
     setError(null)
     setIsSubmitting(true)
+    console.log("[checkout] submit started", {
+      paymentMethod,
+      selectedCardId,
+      newCardDraft: !!newCardDraft,
+    })
 
     try {
       // Validate address form
       if (addressFormTrigger) {
         const addressValid = await addressFormTrigger()
+        console.log("[checkout] address validation:", addressValid)
         if (!addressValid) {
           const message = "กรุณากรอกข้อมูลที่อยู่จัดส่งให้ครบถ้วน"
           setError(message)
+          console.log("[checkout] FAIL - address invalid")
           return { ok: false, reason: "validation", message }
         }
+      }
+
+      // Validate shipping methods - ensure every seller has a selected method
+      const sellerIds = Object.keys(sellerGroups)
+      const missingSellers = sellerIds.filter(
+        (id) => !selectedShippingMethodBySellerId[id]
+      )
+      console.log("[checkout] shipping validation:", {
+        sellerIds,
+        selectedShippingMethodBySellerId,
+        missingSellers,
+      })
+      if (missingSellers.length > 0) {
+        const message = "กรุณาเลือกวิธีการจัดส่งให้ครบทุกร้านค้า"
+        setError(message)
+        console.log(
+          "[checkout] FAIL - missing shipping methods for sellers:",
+          missingSellers
+        )
+        return { ok: false, reason: "validation", message }
       }
 
       // Validate payment form
       if (paymentFormTrigger) {
         const paymentValid = await paymentFormTrigger()
+        console.log("[checkout] payment validation:", paymentValid)
         if (!paymentValid) {
           const message = "กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน"
           setError(message)
+          console.log("[checkout] FAIL - payment invalid")
           return { ok: false, reason: "validation", message }
         }
       }
@@ -164,6 +197,7 @@ export function useCheckoutSubmit() {
         if (!newCardDraft) {
           const message = "กรุณากรอกข้อมูลบัตรเครดิตให้ครบ"
           setError(message)
+          console.log("[checkout] FAIL - no card draft")
           return { ok: false, reason: "validation", message }
         }
 
@@ -171,11 +205,13 @@ export function useCheckoutSubmit() {
         if (!publicKey) {
           const message = "ระบบชำระเงินยังไม่พร้อม กรุณาติดต่อผู้ดูแลระบบ"
           setError(message)
+          console.log("[checkout] FAIL - no OMISE_KEY")
           return { ok: false, reason: "tokenization", message }
         }
 
         await ensureOmiseLoaded(publicKey)
         const { month, year } = parseExpiry(newCardDraft.expiry)
+        console.log("[checkout] creating Omise token...")
         omiseToken = await createOmiseToken({
           name: newCardDraft.cardName.trim(),
           number: newCardDraft.cardNumber.replace(/\s|-/g, ""),
@@ -183,12 +219,14 @@ export function useCheckoutSubmit() {
           expiration_year: year,
           security_code: newCardDraft.cvv,
         })
+        console.log("[checkout] Omise token created:", omiseToken)
 
         if (customer) {
           const saved = await addCustomerPaymentMethod({
             paymentMethodId: omiseToken,
             makeDefault: newCardDraft.setAsDefault,
           })
+          console.log("[checkout] save card result:", saved)
           if (saved.success) {
             resolvedCardId = saved.paymentMethod.id
             setSelectedCardId(resolvedCardId)
@@ -208,18 +246,25 @@ export function useCheckoutSubmit() {
             : { method: "card" }
       }
 
+      console.log("[checkout] payload draft:", draft)
       const result = checkoutPayloadSchema.safeParse(draft)
       if (!result.success) {
         const message = "ข้อมูลการชำระเงินไม่ครบถ้วน"
         setError(message)
+        console.log(
+          "[checkout] FAIL - payload validation failed:",
+          result.error.errors
+        )
         return { ok: false, reason: "validation", message }
       }
 
+      console.log("[checkout] SUCCESS - payload:", result.data)
       return { ok: true, payload: result.data }
     } catch (e: unknown) {
       const message =
         e instanceof Error ? e.message : "เกิดข้อผิดพลาดในการชำระเงิน"
       setError(message)
+      console.log("[checkout] FAIL - exception:", e)
       return { ok: false, reason: "unknown", message }
     } finally {
       setIsSubmitting(false)
@@ -232,6 +277,8 @@ export function useCheckoutSubmit() {
     newCardDraft,
     paymentMethod,
     selectedCardId,
+    selectedShippingMethodBySellerId,
+    sellerGroups,
     setNewCardDraft,
     setSelectedCardId,
   ])

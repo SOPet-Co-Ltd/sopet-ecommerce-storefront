@@ -33,6 +33,12 @@ export function useCheckoutTotals(): CheckoutTotals {
   const cart = useCheckoutStore((state) => state.cart)
   const sitePromos = useCheckoutStore((state) => state.sitePromos)
   const vendorPromos = useCheckoutStore((state) => state.vendorPromos)
+  const selectedShippingMethodBySellerId = useCheckoutStore(
+    (state) => state.selectedShippingMethodBySellerId
+  )
+  const vendorShippingBySellerId = useCheckoutStore(
+    (state) => state.vendorShippingBySellerId
+  )
 
   const totalQuantity =
     cart?.items?.reduce(
@@ -48,7 +54,16 @@ export function useCheckoutTotals(): CheckoutTotals {
   )
   const discountTotal = toNumericAmount(cart?.discount_total ?? 0)
   const vendorDiscount = Math.max(0, discountTotal - platformDiscount)
-  const shippingFee = toNumericAmount(cart?.shipping_total ?? 0)
+
+  const shippingFee = Object.entries(selectedShippingMethodBySellerId).reduce(
+    (sum, [sellerId, optionId]) => {
+      const option = vendorShippingBySellerId[sellerId]?.options?.find(
+        (opt) => opt.id === optionId
+      )
+      return sum + toNumericAmount(option?.amount ?? 0)
+    },
+    0
+  )
   const totalSaving = vendorDiscount + platformDiscount
   const finalPrice = subtotal - totalSaving + shippingFee
 

@@ -224,16 +224,40 @@ function SellerGroupCard({
     if (isLoadingShipping || !shippingOptions?.length) {
       return
     }
+
+    console.log("open shipping selection modal")
+    console.log(`shippingOptions: ${shippingOptions}`)
+    console.log(`selectedShippingMethodId: ${selectedShippingMethodId}`)
+    console.log(`shippingError: ${shippingError}`)
+    console.log(`isLoadingShipping: ${isLoadingShipping}`)
+    console.log(`shippingOptions?.length: ${shippingOptions?.length}`)
+    console.log(`shippingOptions?.length > 0: ${shippingOptions?.length > 0}`)
+    console.log(
+      shippingOptions?.length > 0
+        ? `เลือกการจัดส่ง (${shippingOptions.length})`
+        : "เลือกการจัดส่ง"
+    )
+    console.log(
+      shippingOptions?.length > 0
+        ? `เลือกการจัดส่ง (${shippingOptions.length})`
+        : "เลือกการจัดส่ง"
+    )
     // TODO: open shipping selection modal once UI lands.
   }
+
+  const selectedShippingOption = shippingOptions?.find(
+    (opt) => opt.id === selectedShippingMethodId
+  )
 
   const shippingActionLabel = isLoadingShipping
     ? "กำลังโหลด..."
     : shippingError
       ? shippingError
-      : shippingOptions && shippingOptions.length > 0
-        ? `เลือกการจัดส่ง (${shippingOptions.length})`
-        : "เลือกการจัดส่ง"
+      : selectedShippingOption
+        ? `${selectedShippingOption.name} (${formatAmount(selectedShippingOption.amount ?? 0, currencyCode)})`
+        : shippingOptions && shippingOptions.length > 0
+          ? `เลือกการจัดส่ง (${shippingOptions.length})`
+          : "เลือกการจัดส่ง"
 
   return (
     <div>
@@ -318,7 +342,9 @@ function SellerGroupCard({
               className={
                 shippingError
                   ? "sop-link-sm-regular lg:sop-link-md-regular text-sop-system-error-500"
-                  : "sop-link-sm-regular lg:sop-link-md-regular text-sop-neutral-gray-400"
+                  : selectedShippingOption
+                    ? "sop-body-sm-regular lg:sop-body-md-regular text-sop-system-success-500"
+                    : "sop-link-sm-regular lg:sop-link-md-regular text-sop-neutral-gray-400"
               }
             >
               {shippingActionLabel}
@@ -352,6 +378,14 @@ const CheckoutDetailsSection = ({
 
   const handleOpenDiscount = () => {
     // TODO: open vendor-promo modal; `vendorPromos` will feed it.
+    console.log("open vendor promo modal")
+    console.log(vendorPromos)
+    console.log(`vendorPromos.length: ${vendorPromos.length}`)
+    console.log(`vendorPromos.length > 0: ${vendorPromos.length > 0}`)
+    console.log(
+      `vendorPromos.length > 0 ? ${vendorPromos.length > 0 ? `เลือกส่วนลดร้านค้า (${vendorPromos.length})` : "ไม่มีส่วนลดร้านค้า"}`
+    )
+
     void vendorPromos
   }
 
