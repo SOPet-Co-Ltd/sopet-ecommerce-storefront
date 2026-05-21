@@ -106,7 +106,7 @@ export const noDivisionCurrencies = [
 export const PROTECTED_ROUTES = ["/user"]
 
 /** Paths under [locale] that authenticated customers must not access (redirect to account). */
-export const GUEST_ONLY_ROUTES = ["/login", "/register"]
+export const GUEST_ONLY_ROUTES = ["/login", "/register", "/login/otp"]
 
 export type UserSegmentConfig = {
   label: string
