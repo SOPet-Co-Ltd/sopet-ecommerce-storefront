@@ -61,7 +61,7 @@ export default async function CheckoutPage({
         vendorPromos={initialData.vendorPromos}
         error={initialData.error}
       >
-        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
+        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4 mb-sop-40px">
           <div className="flex flex-col gap-8 md:flex-row">
             <div className="w-full">
               <CheckoutAddressForm customer={initialData.customer} />
