@@ -50,7 +50,7 @@ export const Modal = ({
         {onClose && (
           <button
             onClick={onClose}
-            className=" absolute -top-12 right-3 translate-x-1/2 z-9999 flex h-10 w-10 items-center justify-center rounded-full bg-sop-neutral-gray-500 shadow-lg text-sop-base-black cursor-pointer "
+            className=" absolute -top-14 right-4 translate-x-1/2 z-9999 flex h-10 w-10 items-center justify-center rounded-full bg-sop-base-white shadow-lg text-sop-base-black cursor-pointer "
             aria-label="Close modal"
           >
             {" "}
