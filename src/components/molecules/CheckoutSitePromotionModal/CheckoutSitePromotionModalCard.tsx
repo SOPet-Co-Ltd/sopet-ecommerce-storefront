@@ -13,7 +13,7 @@ import {
 } from "./checkout-site-promotion-utils"
 
 const PROMO_STUB_CLIP_PATH =
-  "path('M56 0H0V24C2 24 4 26 4 28C4 30 2 32 0 32V80H56V0Z')"
+  "path('M56 0H0V49C2 49 4 51 4 55C4 59 2 61 0 61V110H56V0Z')"
 
 type PromotionRadioProps = {
   checked: boolean
@@ -68,7 +68,7 @@ function PromoCardShell({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "relative grid w-full grid-cols-[56px_1fr] overflow-hidden rounded-sop-12px text-left transition-colors",
+        "relative grid min-h-27.5 w-full grid-cols-[56px_1fr] overflow-hidden rounded-sop-12px text-left transition-colors",
         selected
           ? "border-2 border-sop-primary-500"
           : dashed
@@ -84,7 +84,7 @@ function PromoCardShell({
         <div className="absolute right-sop-12px top-sop-12px z-10">{radio}</div>
       ) : null}
       {left}
-      <div className="flex min-w-0 flex-col bg-sop-base-white px-sop-12px py-sop-10px">
+      <div className="flex min-w-0 flex-col justify-between bg-sop-base-white px-sop-12px py-sop-12px">
         {children}
       </div>
     </Component>
@@ -114,19 +114,21 @@ export function SelectablePromoCard({
       radio={<PromotionRadio checked={selected} disabled={disabled} />}
       left={
         <div
-          className="flex h-full min-h-sop-80px items-center justify-center bg-sop-primary-200"
+          className="flex self-stretch items-center justify-center bg-sop-primary-200"
           style={{ clipPath: PROMO_STUB_CLIP_PATH }}
         >
           <OutlinePromoIcon color="#884ECF" className="h-sop-28px w-sop-28px" />
         </div>
       }
     >
-      <p className="sop-body-sm-medium pr-sop-28px text-sop-system-error-500 line-clamp-2">
-        {promo.title}
-      </p>
-      <p className="sop-body-xs-regular text-sop-neutral-gray-400">
-        {formatPromoMinPurchase(promo)}
-      </p>
+      <div>
+        <p className="sop-body-sm-medium pr-sop-28px text-sop-system-error-500 line-clamp-2">
+          {promo.title}
+        </p>
+        <p className="sop-body-xs-regular text-sop-neutral-gray-400">
+          {formatPromoMinPurchase(promo)}
+        </p>
+      </div>
       {expiryLabel ? (
         <p className="mt-sop-4px flex items-center gap-sop-4px sop-body-xs-regular text-sop-neutral-gray-400">
           <Clock className="h-sop-14px w-sop-14px shrink-0" aria-hidden />
@@ -151,19 +153,22 @@ export function NoDiscountCard({ selected, onSelect }: NoDiscountCardProps) {
       radio={<PromotionRadio checked={selected} />}
       left={
         <div
-          className="flex h-full min-h-sop-80px items-center justify-center bg-sop-neutral-gray-500"
+          className="flex self-stretch items-center justify-center bg-sop-neutral-gray-500"
           style={{ clipPath: PROMO_STUB_CLIP_PATH }}
         >
           <OutlinePromoIcon color="#949495" className="h-sop-28px w-sop-28px" />
         </div>
       }
     >
-      <p className="sop-body-sm-medium pr-sop-28px text-sop-base-black">
-        ไม่ใช้ส่วนลด
-      </p>
-      <p className="sop-body-xs-regular text-sop-neutral-gray-400">
-        ยังไม่ต้องการใช้ส่วนลดในขณะนี้
-      </p>
+      <div>
+        <p className="sop-body-sm-medium pr-sop-28px text-sop-base-black">
+          ไม่ใช้ส่วนลด
+        </p>
+
+        <p className="sop-body-xs-regular text-sop-neutral-gray-400">
+          ยังไม่ต้องการใช้ส่วนลดในขณะนี้
+        </p>
+      </div>
     </PromoCardShell>
   )
 }
@@ -183,7 +188,7 @@ export function CollectablePromoCard({
     <PromoCardShell
       left={
         <div
-          className="flex h-full min-h-sop-80px items-center justify-center bg-sop-primary-200"
+          className="flex self-stretch items-center justify-center bg-sop-primary-200"
           style={{ clipPath: PROMO_STUB_CLIP_PATH }}
         >
           <Gift
@@ -193,12 +198,14 @@ export function CollectablePromoCard({
         </div>
       }
     >
-      <p className="sop-body-sm-medium text-sop-primary-600 line-clamp-2">
-        {promo.title}
-      </p>
-      <p className="sop-body-xs-regular text-sop-neutral-gray-400 line-clamp-2">
-        {promo.description || "ไม่มีขั้นต่ำ เก็บแล้วใช้ได้ทันที"}
-      </p>
+      <div>
+        <p className="sop-body-sm-medium text-sop-primary-600 line-clamp-2">
+          {promo.title}
+        </p>
+        <p className="sop-body-xs-regular text-sop-neutral-gray-400 line-clamp-2">
+          {promo.description || "ไม่มีขั้นต่ำ เก็บแล้วใช้ได้ทันที"}
+        </p>
+      </div>
       <div className="mt-sop-8px flex justify-end">
         <Button
           type="button"
@@ -236,7 +243,7 @@ export function UnavailablePromoCard({ promo }: UnavailablePromoCardProps) {
       className="border-sop-primary-200 bg-sop-primary-100"
       left={
         <div
-          className="flex h-full min-h-sop-80px items-center justify-center bg-sop-primary-200"
+          className="flex self-stretch items-center justify-center bg-sop-primary-200"
           style={{ clipPath: PROMO_STUB_CLIP_PATH }}
         >
           <LockKeyhole
@@ -246,20 +253,22 @@ export function UnavailablePromoCard({ promo }: UnavailablePromoCardProps) {
         </div>
       }
     >
-      <p className="sop-body-sm-regular text-sop-neutral-gray-400 line-clamp-2">
-        {promo.title}
-      </p>
-      {requirementText ? (
-        <p className="sop-body-xs-regular text-sop-system-warning-500 line-clamp-2">
-          {requirementText}
+      <div>
+        <p className="sop-body-sm-regular text-sop-neutral-gray-400 line-clamp-2">
+          {promo.title}
         </p>
-      ) : null}
+        {requirementText ? (
+          <p className="sop-body-xs-regular text-sop-system-warning-500 line-clamp-2">
+            {requirementText}
+          </p>
+        ) : null}
+      </div>
       <div className="mt-sop-8px flex justify-end">
         <LocalizedClientLink
           href="/cart"
-          className="inline-flex items-center gap-sop-4px rounded-sop-8px border border-sop-neutral-grayalpha-300 bg-sop-base-white px-sop-12px py-sop-6px sop-body-xs-medium text-sop-neutral-gray-300"
+          className="inline-flex items-center gap-sop-4px rounded-sop-8px border border-sop-neutral-grayalpha-300 bg-sop-base-white px-sop-12px py-sop-8px sop-body-xs-medium text-sop-neutral-gray-300"
         >
-          <ShoppingBag className="h-sop-14px w-sop-14px" aria-hidden />
+          <ShoppingBag aria-hidden size={16} />
           ช้อปเพิ่ม
         </LocalizedClientLink>
       </div>

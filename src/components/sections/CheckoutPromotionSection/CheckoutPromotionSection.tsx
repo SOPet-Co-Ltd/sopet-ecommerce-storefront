@@ -217,7 +217,7 @@ export function CheckoutPromotionSection() {
 
   return (
     <>
-      <section className="w-full rounded-sop-24px bg-sop-base-white px-sop-16px py-sop-20px lg:px-sop-24px lg:py-sop-20px flex flex-col gap-sop-16px">
+      <section className="w-full rounded-sop-24px bg-sop-base-white px-sop-16px py-sop-20px lg:px-sop-24px lg:py-sop-20px flex flex-col gap-sop-16px lg:mb-sop-12px mb-sop-16px">
         <div className="flex items-center gap-sop-8px">
           <DiscountIcon color="#9C6ADE" size={24} />
           <h2 className="sop-body-md-medium lg:sop-body-lg-medium text-sop-primary-500">
