@@ -86,7 +86,12 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           {...register("phone", {
             setValueAs: trimValue,
             onChange: (e) => {
-              e.target.value = formatPhoneNumber(e.target.value)
+              const formatted = formatPhoneNumber(e.target.value)
+
+              setValue("phone", formatted, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
             },
           })}
         />
@@ -205,7 +210,12 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           {...register("recipientphone", {
             setValueAs: trimValue,
             onChange: (e) => {
-              e.target.value = formatPhoneNumber(e.target.value)
+              const formatted = formatPhoneNumber(e.target.value)
+
+              setValue("recipientphone", formatted, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
             },
           })}
         />
