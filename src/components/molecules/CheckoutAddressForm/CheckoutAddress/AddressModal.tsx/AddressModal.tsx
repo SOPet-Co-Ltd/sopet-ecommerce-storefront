@@ -11,6 +11,7 @@ import { PlusIcon } from "@/icons"
 
 import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 import { updateCustomerAddress } from "@/lib/data/customer"
+import { useIsMobile } from "@/lib/utils/is-mobile"
 
 type AddressModalProps = {
   onClose: () => void
@@ -34,7 +35,7 @@ const AddressModal = ({
   }, [addresses])
 
   const [selectedAddress, setSelectedAddress] = useState(initialSelectedId)
-
+  const isMobile = useIsMobile()
   useEffect(() => {
     setSelectedAddress(initialSelectedId)
   }, [initialSelectedId])
@@ -94,7 +95,7 @@ const AddressModal = ({
         </div>
       }
       footer={
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col gap-2 md:flex-row md:justify-end">
           <Button onClick={onClose} variant="filled" fill size="lg">
             ยกเลิก
           </Button>
@@ -128,63 +129,120 @@ const AddressModal = ({
               value={address.id}
               selectedValue={selectedAddress}
               onChange={setSelectedAddress}
+              radioTopOnMobile
             >
               <div className="pointer-events-auto flex flex-col text-sop-neutral-gray-200">
                 <div className="flex justify-between w-full">
-                  <div className="max-w-75">
-                    <div className="flex">
-                      <span className="sop-body-sm-regular pr-3">
+                  <div className="max-w-75 flex-1">
+                    <div
+                      className={`flex ${
+                        isMobile
+                          ? "flex-wrap items-center gap-x-1 gap-y-0.5"
+                          : "items-center"
+                      }`}
+                    >
+                      <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular wrap-break-word">
                         {address.address_name}
                       </span>
 
-                      <span className="sop-body-sm-regular">
-                        {address.phone}
+                      <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular whitespace-nowrap">
+                        ({address.phone})
                       </span>
                     </div>
 
-                    <span className="sop-body-sm-regular block">
+                    <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-light block">
                       {fullAddress}
                     </span>
 
-                    <div className="mt-sop-12px">
-                      {address.is_default_shipping ? (
-                        <span className="sop-body-xs-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 px-2.5 py-1">
-                          ค่าเริ่มต้น
-                        </span>
-                      ) : (
+                    {isMobile ? (
+                      <div className="mt-sop-12px flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {address.is_default_shipping ? (
+                            <span className="sop-body-xs-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 px-2.5 py-1">
+                              ค่าเริ่มต้น
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="filled"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSetDefault(address)
+                              }}
+                              className="sop-body-xs-light text-sop-neutral-gray-200 shrink-0"
+                            >
+                              ตั้งเป็นค่าเริ่มต้น
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-1">
+                          {!address.is_default_shipping ? (
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="filled"
+                              className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                            >
+                              ลบ
+                            </Button>
+                          ) : null}
+
+                          <Button
+                            size="sm"
+                            type="button"
+                            variant="filled"
+                            className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                          >
+                            แก้ไข
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-sop-12px">
+                        {address.is_default_shipping ? (
+                          <span className="sop-body-xs-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 px-2.5 py-1">
+                            ค่าเริ่มต้น
+                          </span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="filled"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleSetDefault(address)
+                            }}
+                            className="sop-body-xs-medium text-sop-neutral-gray-200"
+                          >
+                            ตั้งเป็นค่าเริ่มต้น
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isMobile && (
+                    <div className="flex gap-2 shrink-0">
+                      {!address.is_default_shipping ? (
                         <Button
                           type="button"
                           variant="filled"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleSetDefault(address)
-                          }}
-                          className="sop-body-xs-medium text-sop-neutral-gray-200"
+                          className="text-sop-neutral-gray-200"
                         >
-                          ตั้งเป็นค่าเริ่มต้น
+                          ลบ
                         </Button>
-                      )}
-                    </div>
-                  </div>
+                      ) : null}
 
-                  <div className="flex gap-2 shrink-0">
-                    {!address.is_default_shipping ? (
                       <Button
                         type="button"
                         variant="filled"
                         className="text-sop-neutral-gray-200"
                       >
-                        ลบ
+                        แก้ไข
                       </Button>
-                    ) : null}
-                    <Button
-                      type="button"
-                      variant="filled"
-                      className="text-sop-neutral-gray-200"
-                    >
-                      แก้ไข
-                    </Button>
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </SelectBox>
