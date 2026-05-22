@@ -11,7 +11,9 @@ export const addressSchema = z.object({
     .string()
     .trim()
     .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
-    .regex(/^0\d{9}$/, "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก"),
+    .refine((value) => /^0\d{9}$/.test(value.replace(/\D/g, "")), {
+      message: "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก",
+    }),
 
   // recipientphone: z
   //   .string()
