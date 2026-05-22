@@ -199,26 +199,26 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           })}
         />
 
-        {/* <InputSOPet
+        <InputSOPet
           isRequire
           title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
           size="sm"
           variant="bordered"
           placeholder="099-999-9999"
-          state={errors.recipientphone ? "error" : "default"}
-          description={(errors.recipientphone as FieldError)?.message}
-          {...register("recipientphone", {
+          state={errors.phone ? "error" : "default"}
+          description={(errors.phone as FieldError)?.message}
+          {...register("phone", {
             setValueAs: trimValue,
             onChange: (e) => {
               const formatted = formatPhoneNumber(e.target.value)
 
-              setValue("recipientphone", formatted, {
+              setValue("phone", formatted, {
                 shouldValidate: true,
                 shouldDirty: true,
               })
             },
           })}
-        /> */}
+        />
       </div>
 
       <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
