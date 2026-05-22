@@ -20,6 +20,6 @@ export function customerAddressToFormValues(
     postalCode: address.postal_code ?? "",
     address: address.address_1 ?? "",
     setAsDefault: false,
-    recipientphone: (address.metadata?.recipientphone as string) ?? "",
+    // recipientphone: (address.metadata?.recipientphone as string) ?? "",
   }
 }

@@ -10,9 +10,12 @@ import { Modal } from "@/components/molecules/Modal/Modal"
 import { PlusIcon } from "@/icons"
 
 import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
-import { updateCustomerAddress } from "@/lib/data/customer"
+import {
+  updateCustomerAddress,
+  deleteCustomerAddress,
+} from "@/lib/data/customer"
 import { useIsMobile } from "@/lib/utils/is-mobile"
-import DeleteAddress from "./DeleateAdress"
+import DeleteAddress from "./DeleteAdress"
 
 type AddressModalProps = {
   onClose: () => void
@@ -37,7 +40,9 @@ const AddressModal = ({
 
   const [selectedAddress, setSelectedAddress] = useState(initialSelectedId)
   const [deleteAddressId, setDeleteAddressId] = useState<string | null>(null)
+
   const isMobile = useIsMobile()
+
   useEffect(() => {
     setSelectedAddress(initialSelectedId)
   }, [initialSelectedId])
@@ -76,21 +81,30 @@ const AddressModal = ({
 
     setSelectedAddress(address.id)
   }
+
+  const handleDeleteAddress = async () => {
+    if (!deleteAddressId) return
+
+    try {
+      await deleteCustomerAddress(deleteAddressId)
+
+      setAddresses((prev) => prev.filter((item) => item.id !== deleteAddressId))
+
+      if (selectedAddress === deleteAddressId) {
+        setSelectedAddress("")
+      }
+
+      setDeleteAddressId(null)
+    } catch (error) {
+      console.error(error)
+    }
+  }
+
   if (deleteAddressId) {
     return (
       <DeleteAddress
         onClose={() => setDeleteAddressId(null)}
-        onConfirm={() => {
-          setAddresses((prev) =>
-            prev.filter((item) => item.id !== deleteAddressId)
-          )
-
-          if (selectedAddress === deleteAddressId) {
-            setSelectedAddress("")
-          }
-
-          setDeleteAddressId(null)
-        }}
+        onConfirm={handleDeleteAddress}
       />
     )
   }
@@ -163,7 +177,7 @@ const AddressModal = ({
                             : "items-center"
                         }`}
                       >
-                        <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular break-words">
+                        <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular wrap-break-word pr-2">
                           {address.address_name}
                         </span>
 

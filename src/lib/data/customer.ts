@@ -641,9 +641,9 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
     province: formData.get("province") as string,
     is_default_billing: Boolean(formData.get("isDefaultBilling")),
     is_default_shipping: Boolean(formData.get("isDefaultShipping")),
-    metadata: {
-      recipientphone: formData.get("recipientphone") as string,
-    },
+    // metadata: {
+    //   recipientphone: formData.get("recipientphone") as string,
+    // },
   } as HttpTypes.StoreCreateCustomerAddress
 
   const headers = {

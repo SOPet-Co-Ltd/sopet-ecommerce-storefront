@@ -199,7 +199,7 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           })}
         />
 
-        <InputSOPet
+        {/* <InputSOPet
           isRequire
           title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
           size="sm"
@@ -218,7 +218,7 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
               })
             },
           })}
-        />
+        /> */}
       </div>
 
       <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
