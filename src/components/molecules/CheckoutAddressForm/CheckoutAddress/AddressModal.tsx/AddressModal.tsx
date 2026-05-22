@@ -177,16 +177,13 @@ const AddressModal = ({
                         ลบ
                       </Button>
                     ) : null}
-
-                    <Link href={`/user/addresses/${address.id}/edit`}>
-                      <Button
-                        type="button"
-                        variant="filled"
-                        className="text-sop-neutral-gray-200"
-                      >
-                        แก้ไข
-                      </Button>
-                    </Link>
+                    <Button
+                      type="button"
+                      variant="filled"
+                      className="text-sop-neutral-gray-200"
+                    >
+                      แก้ไข
+                    </Button>
                   </div>
                 </div>
               </div>
