@@ -1,8 +1,8 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
-import { FieldError, Path, useFormContext } from "react-hook-form"
-import { Button, InputSOPet } from "@/components/atoms"
+import { Controller, FieldError, Path, useFormContext } from "react-hook-form"
+import { Button, Checkbox, InputSOPet } from "@/components/atoms"
 import AddressDropdown from "../AddressDropdown"
 import { AddressFormData } from "@/components/molecules/AddressForm/schema"
 import {
@@ -91,8 +91,9 @@ const EditAddress = ({
       "recipientFullName",
       `${address.first_name || ""} ${address.last_name || ""}`.trim()
     )
-  }, [address, setValue])
 
+    setValue("setAsDefault", !!address.is_default_shipping)
+  }, [address, setValue])
   const onSubmit = async (data: AddressFormData) => {
     try {
       const [firstName = "", ...lastNameParts] =
@@ -117,7 +118,7 @@ const EditAddress = ({
 
       formData.append("phone", data.phone.replace(/\D/g, ""))
 
-      if (address.is_default_shipping) {
+      if (data.setAsDefault) {
         formData.append("isDefaultShipping", "1")
         formData.append("isDefaultBilling", "1")
       }
@@ -144,9 +145,8 @@ const EditAddress = ({
         last_name: lastName,
         address_name: data.recipientFullName,
 
-        // preserve default flags
-        is_default_shipping: address.is_default_shipping,
-        is_default_billing: address.is_default_billing,
+        is_default_shipping: data.setAsDefault,
+        is_default_billing: data.setAsDefault,
       })
 
       onClose()
@@ -307,6 +307,22 @@ const EditAddress = ({
                 })
               },
             })}
+          />
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <Controller
+            control={control}
+            name="setAsDefault"
+            render={({ field: { value, onChange, ...field } }) => (
+              <Checkbox
+                label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
+                checked={!!value}
+                onChange={(e) =>
+                  onChange((e.target as HTMLInputElement).checked)
+                }
+                {...field}
+              />
+            )}
           />
         </div>
       </div>

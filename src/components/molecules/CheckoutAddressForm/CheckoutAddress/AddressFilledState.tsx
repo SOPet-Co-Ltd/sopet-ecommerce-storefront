@@ -9,6 +9,7 @@ import { useIsMobile } from "@/lib/utils/is-mobile"
 
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import type { AddressFormData } from "../../AddressForm/schema"
+import { normalizeAddressDefaults } from "../applySingleDefaultShipping"
 import { customerAddressToFormValues } from "../customerAddressToFormValues"
 import AddressModal from "./AddressModal.tsx/AddressModal"
 
@@ -29,10 +30,11 @@ const AddressFilledState = ({
 
   const [openModal, setOpenModal] = useState(false)
 
-  const addresses =
+  const addresses = normalizeAddressDefaults(
     customerAddresses.length > 0
       ? customerAddresses
       : (customer?.addresses ?? [])
+  )
 
   const address =
     addresses.find((a: StoreCustomerAddress) => a.id === addressId) ??

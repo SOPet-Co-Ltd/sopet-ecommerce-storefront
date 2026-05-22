@@ -15,6 +15,10 @@ import {
   deleteCustomerAddress,
 } from "@/lib/data/customer"
 import { useIsMobile } from "@/lib/utils/is-mobile"
+import {
+  applySingleDefaultShipping,
+  normalizeAddressDefaults,
+} from "../../applySingleDefaultShipping"
 import DeleteAddress from "./DeleteAddress"
 import EditAddress from "./EditAddress"
 
@@ -40,7 +44,9 @@ const AddressModal = ({
   initialSelectedId = "",
   customer,
 }: AddressModalProps) => {
-  const [addresses, setAddresses] = useState(customer?.addresses || [])
+  const [addresses, setAddresses] = useState(() =>
+    normalizeAddressDefaults(customer?.addresses || [])
+  )
 
   const patchAddresses = (
     updater: (prev: StoreCustomerAddress[]) => StoreCustomerAddress[]
@@ -86,7 +92,8 @@ const AddressModal = ({
     formData.append("country_code", address.country_code || "")
     formData.append("phone", address.phone || "")
 
-    formData.append("isDefaultShipping", "true")
+    formData.append("isDefaultShipping", "1")
+    formData.append("isDefaultBilling", "1")
 
     const result = await updateCustomerAddress(formData)
 
@@ -95,12 +102,7 @@ const AddressModal = ({
       return
     }
 
-    patchAddresses((prev) =>
-      prev.map((item) => ({
-        ...item,
-        is_default_shipping: item.id === address.id,
-      }))
-    )
+    patchAddresses((prev) => applySingleDefaultShipping(prev, address.id))
 
     setSelectedAddress(address.id)
   }
@@ -145,8 +147,8 @@ const AddressModal = ({
           setEditAddress(null)
         }}
         onUpdated={(updatedAddress) => {
-          patchAddresses((prev) =>
-            prev.map((item) =>
+          patchAddresses((prev) => {
+            const merged = prev.map((item) =>
               item.id === updatedAddress.id
                 ? {
                     ...item,
@@ -160,7 +162,11 @@ const AddressModal = ({
                   }
                 : item
             )
-          )
+
+            return updatedAddress.is_default_shipping
+              ? applySingleDefaultShipping(merged, updatedAddress.id)
+              : merged
+          })
 
           setEditAddress(null)
         }}
