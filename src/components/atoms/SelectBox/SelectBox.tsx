@@ -39,7 +39,7 @@ export const SelectBox = <T extends string>({
         className="hidden"
       />
 
-      <div className="flex items-center gap-sop-16px">
+      <div className="flex w-full items-center gap-sop-16px">
         <div
           className={cn(
             "relative h-sop-20px w-sop-20px rounded-full border",
@@ -53,9 +53,9 @@ export const SelectBox = <T extends string>({
           )}
         </div>
 
-        <span className="pointer-events-none sop-body-md-regular text-sop-neutral-gray-200">
+        <div className="pointer-events-none flex-1 sop-body-md-regular text-sop-neutral-gray-200">
           {children}
-        </span>
+        </div>
       </div>
 
       {rightIcon}

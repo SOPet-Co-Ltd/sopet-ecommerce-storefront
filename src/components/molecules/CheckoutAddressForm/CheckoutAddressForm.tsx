@@ -14,7 +14,8 @@ import { useCheckoutStore } from "@/components/sections/CheckoutSection/Checkout
 import { AddressFormData, addressSchema } from "../AddressForm/schema"
 import AddressEmptyState from "./CheckoutAddress/AddressEmptyState"
 import AddressFilledState from "./CheckoutAddress/AddressFilledState"
-import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
+import { customerAddressToFormValues } from "./customerAddressToFormValues"
+import { StoreCustomer } from "@medusajs/types"
 
 interface Props {
   customer?: StoreCustomer | null
@@ -33,29 +34,6 @@ export const emptyDefaultAddressValues: AddressFormData = {
   address: "",
   setAsDefault: false,
   recipientphone: "",
-}
-
-function customerAddressToFormValues(
-  address: StoreCustomerAddress,
-  customer: StoreCustomer | null | undefined
-): AddressFormData {
-  const recipientFullName =
-    [address.first_name, address.last_name].filter(Boolean).join(" ").trim() ||
-    address.address_name ||
-    ""
-  return {
-    addressId: address.id,
-    recipientFullName,
-    phone: address.phone ?? "",
-    email: customer?.email ?? "",
-    province: address.province ?? "",
-    district: address.city ?? "",
-    subDistrict: address.address_2 ?? "",
-    postalCode: address.postal_code ?? "",
-    address: address.address_1 ?? "",
-    setAsDefault: false,
-    recipientphone: (address.metadata?.recipientphone as string) ?? "",
-  }
 }
 
 const CheckoutAddressForm = ({
