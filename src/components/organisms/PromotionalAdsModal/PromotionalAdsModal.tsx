@@ -93,20 +93,13 @@ export const PromotionalAdsModal = () => {
   return (
     <Modal
       onClose={handleDismiss}
-      closeOnBackdropClick
+      transparentBackground
+      insideCloseButton
       width={420}
-      className="rounded-2xl bg-transparent shadow-none border-0 p-0"
+      className="overflow-visible border-0 bg-transparent p-0 shadow-none"
       overlayClassName="bg-sop-neutral-whitealpha-400 backdrop-blur-sm"
     >
       <div className="relative p-0">
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-sop-neutral-gray-500 text-sop-neutral-gray-100 shadow-xs"
-        >
-          <X size={16} />
-        </button>
-
         <div className="relative mx-auto w-full max-w-90 overflow-hidden rounded-xl">
           <div className="relative aspect-4/5">
             <img
