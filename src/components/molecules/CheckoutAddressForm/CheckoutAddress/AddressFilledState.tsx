@@ -30,20 +30,30 @@ const AddressFilledState = ({
 
   const [openModal, setOpenModal] = useState(false)
 
-  const addresses = normalizeAddressDefaults(
-    customerAddresses.length > 0
-      ? customerAddresses
-      : (customer?.addresses ?? [])
+  const [localAddresses, setLocalAddresses] = useState<StoreCustomerAddress[]>(
+    []
   )
 
+  const addresses = normalizeAddressDefaults(
+    localAddresses.length > 0
+      ? localAddresses
+      : customerAddresses.length > 0
+        ? customerAddresses
+        : (customer?.addresses ?? [])
+  )
   const address =
     addresses.find((a: StoreCustomerAddress) => a.id === addressId) ??
     addresses.find((a: StoreCustomerAddress) => a.is_default_shipping)
 
-  const handleConfirmAddress = (selectedId: string) => {
-    const selected = addresses.find((a) => a.id === selectedId)
+  const handleConfirmAddress = (
+    selectedId: string,
+    latestAddresses: StoreCustomerAddress[]
+  ) => {
+    const selected = latestAddresses.find((a) => a.id === selectedId)
+
     if (!selected) return
 
+    setLocalAddresses(latestAddresses)
     reset(customerAddressToFormValues(selected, customer))
     setOpenModal(false)
   }
@@ -59,6 +69,7 @@ const AddressFilledState = ({
           onClose={() => setOpenModal(false)}
           onConfirm={handleConfirmAddress}
           onAddressesChange={(next) => {
+            setLocalAddresses(next)
             setCustomerAddresses(next)
             if (storeCustomer) {
               setCustomer({ ...storeCustomer, addresses: next })

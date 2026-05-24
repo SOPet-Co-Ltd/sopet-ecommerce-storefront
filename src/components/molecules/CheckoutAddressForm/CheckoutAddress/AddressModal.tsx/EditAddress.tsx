@@ -315,7 +315,7 @@ const EditAddress = ({
             name="setAsDefault"
             render={({ field: { value, onChange, ...field } }) => (
               <Checkbox
-                label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
+                label="ตั้งเป็นค่าเริ่มต้น"
                 checked={!!value}
                 onChange={(e) =>
                   onChange((e.target as HTMLInputElement).checked)
