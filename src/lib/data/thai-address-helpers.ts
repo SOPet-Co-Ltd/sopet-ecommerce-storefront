@@ -86,7 +86,7 @@ export function getSubdistrictsWithPostal(
   )
 
   return rows.map((item) => ({
-    value: `${item.district}-${item.zipcode}`,
+    value: item.district,
     label: item.district,
     searchText: normalizeText(item.district),
     postalCode: String(item.zipcode),
