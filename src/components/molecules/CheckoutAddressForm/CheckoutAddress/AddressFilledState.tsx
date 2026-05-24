@@ -7,7 +7,9 @@ import { Dot } from "lucide-react"
 import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 import { useIsMobile } from "@/lib/utils/is-mobile"
 
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import type { AddressFormData } from "../../AddressForm/schema"
+import { normalizeAddressDefaults } from "../applySingleDefaultShipping"
 import { customerAddressToFormValues } from "../customerAddressToFormValues"
 import AddressModal from "./AddressModal.tsx/AddressModal"
 
@@ -19,15 +21,27 @@ const AddressFilledState = ({
   const isMobile = useIsMobile()
   const { reset } = useFormContext<AddressFormData>()
   const addressId = useWatch({ name: "addressId" })
+  const customerAddresses = useCheckoutStore((state) => state.customerAddresses)
+  const setCustomerAddresses = useCheckoutStore(
+    (state) => state.setCustomerAddresses
+  )
+  const storeCustomer = useCheckoutStore((state) => state.customer)
+  const setCustomer = useCheckoutStore((state) => state.setCustomer)
 
   const [openModal, setOpenModal] = useState(false)
 
+  const addresses = normalizeAddressDefaults(
+    customerAddresses.length > 0
+      ? customerAddresses
+      : (customer?.addresses ?? [])
+  )
+
   const address =
-    customer?.addresses?.find((a: StoreCustomerAddress) => a.id === addressId) ??
-    customer?.addresses?.find((a: StoreCustomerAddress) => a.is_default_shipping)
+    addresses.find((a: StoreCustomerAddress) => a.id === addressId) ??
+    addresses.find((a: StoreCustomerAddress) => a.is_default_shipping)
 
   const handleConfirmAddress = (selectedId: string) => {
-    const selected = customer?.addresses?.find((a) => a.id === selectedId)
+    const selected = addresses.find((a) => a.id === selectedId)
     if (!selected) return
 
     reset(customerAddressToFormValues(selected, customer))
@@ -44,6 +58,20 @@ const AddressFilledState = ({
           initialSelectedId={addressId || address?.id || ""}
           onClose={() => setOpenModal(false)}
           onConfirm={handleConfirmAddress}
+          onAddressesChange={(next) => {
+            setCustomerAddresses(next)
+            if (storeCustomer) {
+              setCustomer({ ...storeCustomer, addresses: next })
+            }
+
+            if (addressId && !next.some((a) => a.id === addressId)) {
+              const fallback =
+                next.find((a) => a.is_default_shipping) ?? next[0]
+              if (fallback) {
+                reset(customerAddressToFormValues(fallback, customer))
+              }
+            }
+          }}
         />
       )}
 

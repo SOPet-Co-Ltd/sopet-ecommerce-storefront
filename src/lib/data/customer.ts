@@ -664,21 +664,22 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
 
 export const deleteCustomerAddress = async (
   addressId: string
-): Promise<void> => {
+): Promise<{ success: boolean; error: string | null }> => {
   const headers = {
     ...(await getAuthHeaders()),
   }
 
-  await sdk.store.customer
-    .deleteAddress(addressId, headers)
-    .then(async () => {
-      const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag)
-      return { success: true, error: null }
-    })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+  try {
+    await sdk.store.customer.deleteAddress(addressId, headers)
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, error: null }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
 }
 
 export const updateCustomerAddress = async (
@@ -701,9 +702,14 @@ export const updateCustomerAddress = async (
     postal_code: formData.get("postal_code") as string,
     province: formData.get("province") as string,
     country_code: formData.get("country_code") as string,
-    is_default_billing: Boolean(formData.get("isDefaultBilling")),
-    is_default_shipping: Boolean(formData.get("isDefaultShipping")),
   } as HttpTypes.StoreUpdateCustomerAddress
+
+  if (formData.has("isDefaultShipping")) {
+    address.is_default_shipping = Boolean(formData.get("isDefaultShipping"))
+  }
+  if (formData.has("isDefaultBilling")) {
+    address.is_default_billing = Boolean(formData.get("isDefaultBilling"))
+  }
 
   const phone = formData.get("phone") as string
 

@@ -15,22 +15,48 @@ import {
   deleteCustomerAddress,
 } from "@/lib/data/customer"
 import { useIsMobile } from "@/lib/utils/is-mobile"
-import DeleteAddress from "./DeleteAdress"
+import {
+  applySingleDefaultShipping,
+  normalizeAddressDefaults,
+} from "../../applySingleDefaultShipping"
+import DeleteAddress from "./DeleteAddress"
+import EditAddress from "./EditAddress"
 
 type AddressModalProps = {
   onClose: () => void
   onConfirm: (addressId: string) => void
+  onAddressesChange?: (addresses: StoreCustomerAddress[]) => void
   initialSelectedId?: string
   customer: StoreCustomer | null
+}
+
+const syncAddresses = (
+  next: StoreCustomerAddress[],
+  onAddressesChange?: (addresses: StoreCustomerAddress[]) => void
+) => {
+  onAddressesChange?.(next)
 }
 
 const AddressModal = ({
   onClose,
   onConfirm,
+  onAddressesChange,
   initialSelectedId = "",
   customer,
 }: AddressModalProps) => {
-  const [addresses, setAddresses] = useState(customer?.addresses || [])
+  const [addresses, setAddresses] = useState(() =>
+    normalizeAddressDefaults(customer?.addresses || [])
+  )
+
+  const patchAddresses = (
+    updater: (prev: StoreCustomerAddress[]) => StoreCustomerAddress[]
+  ) => {
+    setAddresses((prev) => {
+      const next = updater(prev)
+      syncAddresses(next, onAddressesChange)
+      return next
+    })
+  }
 
   const sortedAddresses = useMemo(() => {
     return [...addresses].sort(
@@ -40,6 +66,9 @@ const AddressModal = ({
 
   const [selectedAddress, setSelectedAddress] = useState(initialSelectedId)
   const [deleteAddressId, setDeleteAddressId] = useState<string | null>(null)
+  const [editAddress, setEditAddress] = useState<StoreCustomerAddress | null>(
+    null
+  )
 
   const isMobile = useIsMobile()
 
@@ -63,7 +92,8 @@ const AddressModal = ({
     formData.append("country_code", address.country_code || "")
     formData.append("phone", address.phone || "")
 
-    formData.append("isDefaultShipping", "true")
+    formData.append("isDefaultShipping", "1")
+    formData.append("isDefaultBilling", "1")
 
     const result = await updateCustomerAddress(formData)
 
@@ -72,32 +102,31 @@ const AddressModal = ({
       return
     }
 
-    setAddresses((prev) =>
-      prev.map((item) => ({
-        ...item,
-        is_default_shipping: item.id === address.id,
-      }))
-    )
+    patchAddresses((prev) => applySingleDefaultShipping(prev, address.id))
 
     setSelectedAddress(address.id)
+  }
+
+  const removeAddressFromList = (addressId: string) => {
+    patchAddresses((prev) => prev.filter((item) => item.id !== addressId))
+
+    if (selectedAddress === addressId) {
+      setSelectedAddress("")
+    }
   }
 
   const handleDeleteAddress = async () => {
     if (!deleteAddressId) return
 
-    try {
-      await deleteCustomerAddress(deleteAddressId)
+    const result = await deleteCustomerAddress(deleteAddressId)
 
-      setAddresses((prev) => prev.filter((item) => item.id !== deleteAddressId))
-
-      if (selectedAddress === deleteAddressId) {
-        setSelectedAddress("")
-      }
-
-      setDeleteAddressId(null)
-    } catch (error) {
-      console.error(error)
+    if (!result.success) {
+      console.error(result.error)
+      return
     }
+
+    removeAddressFromList(deleteAddressId)
+    setDeleteAddressId(null)
   }
 
   if (deleteAddressId) {
@@ -105,6 +134,42 @@ const AddressModal = ({
       <DeleteAddress
         onClose={() => setDeleteAddressId(null)}
         onConfirm={handleDeleteAddress}
+      />
+    )
+  }
+  if (editAddress) {
+    return (
+      <EditAddress
+        address={editAddress}
+        onClose={() => setEditAddress(null)}
+        onDeleted={(addressId) => {
+          removeAddressFromList(addressId)
+          setEditAddress(null)
+        }}
+        onUpdated={(updatedAddress) => {
+          patchAddresses((prev) => {
+            const merged = prev.map((item) =>
+              item.id === updatedAddress.id
+                ? {
+                    ...item,
+                    ...updatedAddress,
+                    is_default_shipping:
+                      updatedAddress.is_default_shipping ??
+                      item.is_default_shipping,
+                    is_default_billing:
+                      updatedAddress.is_default_billing ??
+                      item.is_default_billing,
+                  }
+                : item
+            )
+
+            return updatedAddress.is_default_shipping
+              ? applySingleDefaultShipping(merged, updatedAddress.id)
+              : merged
+          })
+
+          setEditAddress(null)
+        }}
       />
     )
   }
@@ -234,6 +299,10 @@ const AddressModal = ({
                               type="button"
                               variant="filled"
                               className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditAddress(address)
+                              }}
                             >
                               แก้ไข
                             </Button>
@@ -282,6 +351,10 @@ const AddressModal = ({
                           type="button"
                           variant="filled"
                           className="text-sop-neutral-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditAddress(address)
+                          }}
                         >
                           แก้ไข
                         </Button>
