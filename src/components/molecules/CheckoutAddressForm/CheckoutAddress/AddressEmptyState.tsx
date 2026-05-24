@@ -130,14 +130,14 @@ const AddressEmptyStateContent = ({
               })}
             />
 
-            <Infotag className="mt-3 w-full gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600">
+            <Infotag className="mt-3 w-full gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600 mb-5">
               📩 กรอกอีเมล เพื่อรับอัปเดตจาก Sopet ก่อนใคร
             </Infotag>
           </div>
         </div>
       </div>
 
-      <label className="sop-body-sm-medium text-sop-neutral-gray-300 mt-5 mb-2 flex items-center gap-1">
+      <label className="sop-body-sm-medium text-sop-neutral-gray-300 mb-2 flex items-center gap-1">
         การจัดส่ง
       </label>
 
