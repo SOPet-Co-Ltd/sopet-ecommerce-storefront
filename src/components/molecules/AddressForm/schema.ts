@@ -25,22 +25,8 @@ export const addressSchema = z.object({
     .string()
     .trim()
     .min(1, "กรุณากรอกชื่อ / นามสกุล (ผู้รับสินค้า)"),
-<<<<<<< Updated upstream
-  phone: z
-    .string()
-    .trim()
-    .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
-    .regex(/^0\d{9}$/, "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก"),
-
-  // recipientphone: z
-  //   .string()
-  //   .trim()
-  //   .min(1, "กรุณากรอกเบอร์โทรศัพท์ของคุณ")
-  //   .regex(/^0\d{9}$/, "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก"),
-=======
   contactPhone: optionalPhoneFieldSchema,
   phone: phoneFieldSchema("กรุณากรอกเบอร์โทรศัพท์ (ผู้รับสินค้า)"),
->>>>>>> Stashed changes
   province: z.string().trim().min(1, "กรุณาเลือกจังหวัดของคุณ"),
   district: z.string().trim().min(1, "กรุณาเลือกเขต/อำเภอของคุณ"),
   subDistrict: z.string().trim().min(1, "กรุณาเลือกตำบลของคุณ"),
