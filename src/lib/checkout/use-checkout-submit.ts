@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import { createContactInformation } from "@/lib/checkout/create-contact-information"
 import { addCustomerPaymentMethod } from "@/lib/data/customer"
 import {
   checkoutPayloadSchema,
@@ -43,6 +44,7 @@ async function ensureOmiseLoaded(publicKey: string): Promise<void> {
       const existing = document.querySelector<HTMLScriptElement>(
         `script[src="${OMISE_SCRIPT_SRC}"]`
       )
+
       if (existing) {
         existing.addEventListener("load", () => resolve(), { once: true })
         existing.addEventListener(
@@ -58,14 +60,17 @@ async function ensureOmiseLoaded(publicKey: string): Promise<void> {
       script.async = true
       script.onload = () => resolve()
       script.onerror = () => reject(new Error("ไม่สามารถโหลด Omise.js ได้"))
+
       document.head.appendChild(script)
     })
   }
 
   const omise = window.Omise
+
   if (!omise) {
     throw new Error("ไม่สามารถโหลด Omise.js ได้")
   }
+
   omise.setPublicKey(publicKey)
 }
 
@@ -81,6 +86,7 @@ function createOmiseToken(data: {
       reject(new Error("Omise.js ยังไม่พร้อมใช้งาน"))
       return
     }
+
     window.Omise.createToken("card", data, (statusCode, response) => {
       if (statusCode !== 200 || !response.id) {
         reject(
@@ -91,6 +97,7 @@ function createOmiseToken(data: {
         )
         return
       }
+
       resolve(response.id)
     })
   })
@@ -98,6 +105,7 @@ function createOmiseToken(data: {
 
 function parseExpiry(expiry: string): { month: number; year: number } {
   const [m, y] = expiry.split("/")
+
   return {
     month: Number.parseInt(m ?? "", 10),
     year: Number.parseInt(`20${y ?? ""}`, 10),
@@ -116,22 +124,34 @@ export function useCheckoutSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
+
   const buildCheckoutPayload = useCheckoutStore(
     (state) => state.buildCheckoutPayload
   )
+
   const paymentMethod = useCheckoutStore((state) => state.paymentMethod)
+
   const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
+
   const newCardDraft = useCheckoutStore((state) => state.newCardDraft)
+
   const customer = useCheckoutStore((state) => state.customer)
+
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
+
   const setNewCardDraft = useCheckoutStore((state) => state.setNewCardDraft)
+
   const addressFormTrigger = useCheckoutStore(
     (state) => state.addressFormTrigger
   )
+
   const paymentFormTrigger = useCheckoutStore(
     (state) => state.paymentFormTrigger
   )
+
   const sellerGroups = useCheckoutStore((state) => state.sellerGroups)
+
   const selectedShippingMethodBySellerId = useCheckoutStore(
     (state) => state.selectedShippingMethodBySellerId
   )
@@ -139,6 +159,7 @@ export function useCheckoutSubmit() {
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
     setError(null)
     setIsSubmitting(true)
+
     console.log("[checkout] submit started", {
       paymentMethod,
       selectedCardId,
@@ -149,46 +170,83 @@ export function useCheckoutSubmit() {
       // Validate address form
       if (addressFormTrigger) {
         const addressValid = await addressFormTrigger()
+
         console.log("[checkout] address validation:", addressValid)
+
         if (!addressValid) {
           const message = "กรุณากรอกข้อมูลที่อยู่จัดส่งให้ครบถ้วน"
+
           setError(message)
+
           console.log("[checkout] FAIL - address invalid")
-          return { ok: false, reason: "validation", message }
+
+          return {
+            ok: false,
+            reason: "validation",
+            message,
+          }
         }
       }
 
-      // Validate shipping methods - ensure every seller has a selected method
+      // Validate shipping methods
       const sellerIds = Object.keys(sellerGroups)
+
       const missingSellers = sellerIds.filter(
         (id) => !selectedShippingMethodBySellerId[id]
       )
+
       console.log("[checkout] shipping validation:", {
         sellerIds,
         selectedShippingMethodBySellerId,
         missingSellers,
       })
+
       if (missingSellers.length > 0) {
         const message = "กรุณาเลือกวิธีการจัดส่งให้ครบทุกร้านค้า"
+
         setError(message)
+
         console.log(
           "[checkout] FAIL - missing shipping methods for sellers:",
           missingSellers
         )
-        return { ok: false, reason: "validation", message }
+
+        return {
+          ok: false,
+          reason: "validation",
+          message,
+        }
       }
 
       // Validate payment form
       if (paymentFormTrigger) {
         const paymentValid = await paymentFormTrigger()
+
         console.log("[checkout] payment validation:", paymentValid)
+
         if (!paymentValid) {
           const message = "กรุณากรอกข้อมูลการชำระเงินให้ครบถ้วน"
+
           setError(message)
+
           console.log("[checkout] FAIL - payment invalid")
-          return { ok: false, reason: "validation", message }
+
+          return {
+            ok: false,
+            reason: "validation",
+            message,
+          }
         }
       }
+
+      const contactPhone = shippingAddress?.contactPhone?.trim()
+
+      const contactPromise = contactPhone
+        ? createContactInformation({
+            customer_phone: contactPhone,
+            email: shippingAddress?.email?.trim() || null,
+          })
+        : Promise.resolve()
 
       let omiseToken: string | null = null
       let resolvedCardId: string | null = selectedCardId
@@ -196,29 +254,54 @@ export function useCheckoutSubmit() {
       if (paymentMethod === "card" && !selectedCardId) {
         if (!newCardDraft) {
           const message = "กรุณากรอกข้อมูลบัตรเครดิตให้ครบ"
+
           setError(message)
+
           console.log("[checkout] FAIL - no card draft")
-          return { ok: false, reason: "validation", message }
+
+          return {
+            ok: false,
+            reason: "validation",
+            message,
+          }
         }
 
         const publicKey = process.env.NEXT_PUBLIC_OMISE_KEY
+
         if (!publicKey) {
           const message = "ระบบชำระเงินยังไม่พร้อม กรุณาติดต่อผู้ดูแลระบบ"
+
           setError(message)
+
           console.log("[checkout] FAIL - no OMISE_KEY")
-          return { ok: false, reason: "tokenization", message }
+
+          return {
+            ok: false,
+            reason: "tokenization",
+            message,
+          }
         }
 
         await ensureOmiseLoaded(publicKey)
+
         const { month, year } = parseExpiry(newCardDraft.expiry)
+
         console.log("[checkout] creating Omise token...")
-        omiseToken = await createOmiseToken({
-          name: newCardDraft.cardName.trim(),
-          number: newCardDraft.cardNumber.replace(/\s|-/g, ""),
-          expiration_month: month,
-          expiration_year: year,
-          security_code: newCardDraft.cvv,
-        })
+
+        const [tokenResult] = await Promise.all([
+          createOmiseToken({
+            name: newCardDraft.cardName.trim(),
+            number: newCardDraft.cardNumber.replace(/\s|-/g, ""),
+            expiration_month: month,
+            expiration_year: year,
+            security_code: newCardDraft.cvv,
+          }),
+
+          contactPromise,
+        ])
+
+        omiseToken = tokenResult
+
         console.log("[checkout] Omise token created:", omiseToken)
 
         if (customer) {
@@ -226,46 +309,79 @@ export function useCheckoutSubmit() {
             paymentMethodId: omiseToken,
             makeDefault: newCardDraft.setAsDefault,
           })
+
           console.log("[checkout] save card result:", saved)
+
           if (saved.success) {
             resolvedCardId = saved.paymentMethod.id
+
             setSelectedCardId(resolvedCardId)
           }
         }
 
-        // Wipe the raw card draft from memory once tokenized.
         setNewCardDraft(null)
+      } else {
+        await contactPromise
       }
 
       const draft = buildCheckoutPayload() as Record<string, unknown>
+
       if (paymentMethod === "card") {
         draft.payment = resolvedCardId
-          ? { method: "card", customerPaymentMethodId: resolvedCardId }
+          ? {
+              method: "card",
+              customerPaymentMethodId: resolvedCardId,
+            }
           : omiseToken
-            ? { method: "card", omiseToken }
-            : { method: "card" }
+            ? {
+                method: "card",
+                omiseToken,
+              }
+            : {
+                method: "card",
+              }
       }
 
       console.log("[checkout] payload draft:", draft)
+
       const result = checkoutPayloadSchema.safeParse(draft)
+
       if (!result.success) {
         const message = "ข้อมูลการชำระเงินไม่ครบถ้วน"
+
         setError(message)
+
         console.log(
           "[checkout] FAIL - payload validation failed:",
           result.error.errors
         )
-        return { ok: false, reason: "validation", message }
+
+        return {
+          ok: false,
+          reason: "validation",
+          message,
+        }
       }
 
       console.log("[checkout] SUCCESS - payload:", result.data)
-      return { ok: true, payload: result.data }
+
+      return {
+        ok: true,
+        payload: result.data,
+      }
     } catch (e: unknown) {
       const message =
         e instanceof Error ? e.message : "เกิดข้อผิดพลาดในการชำระเงิน"
+
       setError(message)
+
       console.log("[checkout] FAIL - exception:", e)
-      return { ok: false, reason: "unknown", message }
+
+      return {
+        ok: false,
+        reason: "unknown",
+        message,
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -273,6 +389,7 @@ export function useCheckoutSubmit() {
     addressFormTrigger,
     paymentFormTrigger,
     buildCheckoutPayload,
+    shippingAddress,
     customer,
     newCardDraft,
     paymentMethod,
@@ -283,5 +400,9 @@ export function useCheckoutSubmit() {
     setSelectedCardId,
   ])
 
-  return { submit, isSubmitting, error }
+  return {
+    submit,
+    isSubmitting,
+    error,
+  }
 }

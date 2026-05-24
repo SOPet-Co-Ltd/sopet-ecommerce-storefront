@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { addressSchema } from "@/components/molecules/AddressForm/schema"
+import { checkoutAddressSchema } from "@/components/molecules/AddressForm/schema"
 import { paymentMethods } from "@/components/molecules/CheckoutPaymentSelection/Schemas/PaymentSchema"
 
 const cleanCardNumber = (value: string) => value.replace(/\s|-/g, "")
@@ -95,8 +95,8 @@ export const couponsSelectionSchema = z.object({
 export const checkoutPayloadSchema = z.object({
   cart: cartSnapshotSchema,
   customerSession: customerSessionSchema,
-  shippingAddress: addressSchema,
-  billingAddress: addressSchema,
+  shippingAddress: checkoutAddressSchema,
+  billingAddress: checkoutAddressSchema,
   shippingMethods: z
     .array(selectedShippingMethodSchema)
     .min(1, "กรุณาเลือกวิธีการจัดส่งสำหรับร้านค้าทุกร้าน"),

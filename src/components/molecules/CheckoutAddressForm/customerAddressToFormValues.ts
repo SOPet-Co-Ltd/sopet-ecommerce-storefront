@@ -12,6 +12,7 @@ export function customerAddressToFormValues(
   return {
     addressId: address.id,
     recipientFullName,
+    contactPhone: customer?.phone ?? address.phone ?? "",
     phone: address.phone ?? "",
     email: customer?.email ?? "",
     province: address.province ?? "",
@@ -20,6 +21,5 @@ export function customerAddressToFormValues(
     postalCode: address.postal_code ?? "",
     address: address.address_1 ?? "",
     setAsDefault: false,
-    // recipientphone: (address.metadata?.recipientphone as string) ?? "",
   }
 }
