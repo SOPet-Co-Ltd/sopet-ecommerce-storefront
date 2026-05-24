@@ -110,7 +110,7 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
         }
         onClose={onClose}
       >
-        <AddressEmptyState storeCustomer={customer} />
+        <AddressEmptyState storeCustomer={customer} isAdding={true} />
       </Modal>
     </FormProvider>
   )

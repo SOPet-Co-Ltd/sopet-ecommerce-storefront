@@ -21,13 +21,19 @@ import { cn } from "@/lib/utils"
 interface Props {
   onSubmitForm?: (data: AddressFormData) => Promise<void> | void
   storeCustomer: StoreCustomer | null | undefined
+  isAdding?: boolean
 }
 
-const AddressEmptyState = ({ onSubmitForm, storeCustomer }: Props) => {
+const AddressEmptyState = ({
+  onSubmitForm,
+  storeCustomer,
+  isAdding,
+}: Props) => {
   return (
     <AddressEmptyStateContent
       onSubmitForm={onSubmitForm}
       storeCustomer={storeCustomer}
+      isAdding={isAdding}
     />
   )
 }
@@ -37,6 +43,7 @@ export default AddressEmptyState
 const AddressEmptyStateContent = ({
   onSubmitForm: _onSubmitForm,
   storeCustomer,
+  isAdding,
 }: Props) => {
   const {
     control,
@@ -58,15 +65,24 @@ const AddressEmptyStateContent = ({
   }
 
   useEffect(() => {
-    if (storeCustomer?.phone) {
+    if (!storeCustomer) return
+
+    if (storeCustomer.phone) {
       setValue("contactPhone", formatPhoneNumber(storeCustomer.phone), {
-        shouldDirty: true,
+        shouldDirty: false,
+        shouldValidate: false,
+        shouldTouch: false,
       })
     }
-    if (storeCustomer?.email) {
-      setValue("email", storeCustomer.email, { shouldDirty: true })
+
+    if (storeCustomer.email) {
+      setValue("email", storeCustomer.email, {
+        shouldDirty: false,
+        shouldValidate: false,
+        shouldTouch: false,
+      })
     }
-  }, [storeCustomer, setValue])
+  }, [storeCustomer?.id, setValue])
 
   const provinceValue = watch("province")
   const districtValue = watch("district")
@@ -86,9 +102,17 @@ const AddressEmptyStateContent = ({
 
   const resetFields = (fields: Path<AddressFormData>[]) => {
     fields.forEach((field) => {
-      setValue(field, "")
+      setValue(field, "", {
+        shouldDirty: false,
+        shouldTouch: false,
+        shouldValidate: false,
+      })
     })
   }
+
+  const defaultLabel = isAdding
+    ? "ตั้งเป็นค่าเริ่มต้น"
+    : "บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
 
   return (
     <div>
@@ -129,7 +153,6 @@ const AddressEmptyStateContent = ({
                 setValueAs: trimValue,
               })}
             />
-
             <Infotag className="mt-3 w-full gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600 mb-5">
               📩 กรอกอีเมล เพื่อรับอัปเดตจาก Sopet ก่อนใคร
             </Infotag>
@@ -165,7 +188,9 @@ const AddressEmptyStateContent = ({
             options={subdistrictOptions}
             error={errors.subDistrict as FieldError}
             onSelect={(option) => {
-              setValue("postalCode", option.postalCode || "")
+              setValue("postalCode", option.postalCode || "", {
+                shouldDirty: false,
+              })
             }}
           />
 
@@ -251,7 +276,7 @@ const AddressEmptyStateContent = ({
           name="setAsDefault"
           render={({ field: { value, onChange, ...field } }) => (
             <Checkbox
-              label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
+              label={defaultLabel}
               checked={!!value}
               onChange={(e) =>
                 onChange((e?.target as HTMLInputElement)?.checked)
