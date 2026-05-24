@@ -45,6 +45,7 @@ interface Props {
 
 export const emptyDefaultAddressValues: AddressFormData = {
   recipientFullName: "",
+  contactPhone: "",
   phone: "",
   province: "",
   district: "",

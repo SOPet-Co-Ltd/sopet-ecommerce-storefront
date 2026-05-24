@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react"
 
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import { createContactInformation } from "@/lib/checkout/create-contact-information"
 import { addCustomerPaymentMethod } from "@/lib/data/customer"
 import {
   checkoutPayloadSchema,
@@ -116,6 +117,7 @@ export function useCheckoutSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
   const buildCheckoutPayload = useCheckoutStore(
     (state) => state.buildCheckoutPayload
   )
@@ -154,6 +156,23 @@ export function useCheckoutSubmit() {
           const message = "กรุณากรอกข้อมูลที่อยู่จัดส่งให้ครบถ้วน"
           setError(message)
           console.log("[checkout] FAIL - address invalid")
+          return { ok: false, reason: "validation", message }
+        }
+      }
+
+      const contactPhone = shippingAddress?.contactPhone?.trim()
+      if (contactPhone) {
+        try {
+          await createContactInformation({
+            customer_phone: contactPhone,
+            email: shippingAddress?.email?.trim() || null,
+          })
+        } catch (e: unknown) {
+          const message =
+            e instanceof Error
+              ? e.message
+              : "ไม่สามารถบันทึกข้อมูลการติดต่อได้"
+          setError(message)
           return { ok: false, reason: "validation", message }
         }
       }
@@ -273,6 +292,7 @@ export function useCheckoutSubmit() {
     addressFormTrigger,
     paymentFormTrigger,
     buildCheckoutPayload,
+    shippingAddress,
     customer,
     newCardDraft,
     paymentMethod,

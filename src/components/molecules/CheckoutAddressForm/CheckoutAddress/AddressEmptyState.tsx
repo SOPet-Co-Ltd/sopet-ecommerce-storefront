@@ -81,14 +81,14 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
           size="sm"
           variant="bordered"
           placeholder="099-999-9999"
-          state={errors.phone ? "error" : "default"}
-          description={(errors.phone as FieldError)?.message}
-          {...register("phone", {
+          state={errors.contactPhone ? "error" : "default"}
+          description={(errors.contactPhone as FieldError)?.message}
+          {...register("contactPhone", {
             setValueAs: trimValue,
             onChange: (e) => {
               const formatted = formatPhoneNumber(e.target.value)
 
-              setValue("phone", formatted, {
+              setValue("contactPhone", formatted, {
                 shouldValidate: true,
                 shouldDirty: true,
               })
