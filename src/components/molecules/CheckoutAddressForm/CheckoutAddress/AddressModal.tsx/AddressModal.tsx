@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 
 import { Button } from "@/components/atoms"
@@ -21,10 +21,11 @@ import {
 } from "../../applySingleDefaultShipping"
 import DeleteAddress from "./DeleteAddress"
 import EditAddress from "./EditAddress"
+import AddAddress from "./AddAddress"
 
 type AddressModalProps = {
   onClose: () => void
-  onConfirm: (addressId: string) => void
+  onConfirm: (addressId: string, addresses: StoreCustomerAddress[]) => void // ← เพิ่ม
   onAddressesChange?: (addresses: StoreCustomerAddress[]) => void
   initialSelectedId?: string
   customer: StoreCustomer | null
@@ -69,8 +70,20 @@ const AddressModal = ({
   const [editAddress, setEditAddress] = useState<StoreCustomerAddress | null>(
     null
   )
+  const [openAddAddress, setOpenAddAddress] = useState(false)
+  const addressesRef = useRef(addresses)
+
+  useEffect(() => {
+    addressesRef.current = addresses
+  }, [addresses])
 
   const isMobile = useIsMobile()
+
+  useEffect(() => {
+    if (!customer?.addresses) return
+
+    setAddresses(normalizeAddressDefaults(customer.addresses))
+  }, [customer?.addresses])
 
   useEffect(() => {
     setSelectedAddress(initialSelectedId)
@@ -129,6 +142,24 @@ const AddressModal = ({
     setDeleteAddressId(null)
   }
 
+  const handleAddAddress = (newAddress: StoreCustomerAddress) => {
+    patchAddresses((prev) => {
+      const merged = [
+        ...prev.filter((item) => item.id !== newAddress.id),
+        newAddress,
+      ]
+      return newAddress.is_default_shipping
+        ? applySingleDefaultShipping(merged, newAddress.id)
+        : merged
+    })
+
+    if (newAddress.id) {
+      setSelectedAddress(newAddress.id)
+    }
+
+    setOpenAddAddress(false)
+  }
+
   if (deleteAddressId) {
     return (
       <DeleteAddress
@@ -173,6 +204,15 @@ const AddressModal = ({
       />
     )
   }
+  if (openAddAddress) {
+    return (
+      <AddAddress
+        customer={customer}
+        onClose={() => setOpenAddAddress(false)}
+        onAdd={handleAddAddress}
+      />
+    )
+  }
 
   return (
     <>
@@ -189,6 +229,7 @@ const AddressModal = ({
               size="sm"
               className="text-sop-secondary-500"
               iconLeft={<PlusIcon size={16} color="currentColor" />}
+              onClick={() => setOpenAddAddress(true)}
             >
               เพิ่มที่อยู่ใหม่
             </Button>
@@ -204,7 +245,7 @@ const AddressModal = ({
               fill
               size="lg"
               disabled={!selectedAddress}
-              onClick={() => onConfirm(selectedAddress)}
+              onClick={() => onConfirm(selectedAddress, addressesRef.current)}
             >
               ยืนยัน
             </Button>
