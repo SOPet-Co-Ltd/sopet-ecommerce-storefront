@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Controller, FieldError, Path, useFormContext } from "react-hook-form"
 
 import { Checkbox, InputSOPet } from "@/components/atoms"
@@ -15,18 +15,29 @@ import {
 
 import { AddressFormData } from "../../AddressForm/schema"
 import AddressDropdown from "./AddressDropdown"
+import { StoreCustomer } from "@medusajs/types"
+import { cn } from "@/lib/utils"
 
 interface Props {
   onSubmitForm?: (data: AddressFormData) => Promise<void> | void
+  storeCustomer: StoreCustomer | null | undefined
 }
 
-const AddressEmptyState = ({ onSubmitForm }: Props) => {
-  return <AddressEmptyStateContent onSubmitForm={onSubmitForm} />
+const AddressEmptyState = ({ onSubmitForm, storeCustomer }: Props) => {
+  return (
+    <AddressEmptyStateContent
+      onSubmitForm={onSubmitForm}
+      storeCustomer={storeCustomer}
+    />
+  )
 }
 
 export default AddressEmptyState
 
-const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
+const AddressEmptyStateContent = ({
+  onSubmitForm: _onSubmitForm,
+  storeCustomer,
+}: Props) => {
   const {
     control,
     register,
@@ -34,6 +45,28 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
     watch,
     formState: { errors },
   } = useFormContext<AddressFormData>()
+
+  const formatPhoneNumber = (value: string) => {
+    const numbers = value.replace(/\D/g, "").slice(0, 10)
+
+    if (numbers.length <= 3) return numbers
+    if (numbers.length <= 6) {
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
+    }
+
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
+  }
+
+  useEffect(() => {
+    if (storeCustomer?.phone) {
+      setValue("contactPhone", formatPhoneNumber(storeCustomer.phone), {
+        shouldDirty: true,
+      })
+    }
+    if (storeCustomer?.email) {
+      setValue("email", storeCustomer.email, { shouldDirty: true })
+    }
+  }, [storeCustomer, setValue])
 
   const provinceValue = watch("province")
   const districtValue = watch("district")
@@ -57,59 +90,50 @@ const AddressEmptyStateContent = ({ onSubmitForm: _onSubmitForm }: Props) => {
     })
   }
 
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, "").slice(0, 10)
-
-    if (numbers.length <= 3) return numbers
-    if (numbers.length <= 6) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
-    }
-
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
-  }
-
   return (
     <div>
-      <label className="sop-body-sm-medium text-sop-neutral-gray-300 mb-2 flex items-center gap-1">
-        การติดต่อ
-      </label>
+      <div className={cn(!storeCustomer ? "block" : "hidden")}>
+        <label className="sop-body-sm-medium text-sop-neutral-gray-300 mb-2 flex items-center gap-1">
+          การติดต่อ
+        </label>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:gap-5">
-        <InputSOPet
-          isRequire
-          title="เบอร์โทรศัพท์"
-          size="sm"
-          variant="bordered"
-          placeholder="099-999-9999"
-          state={errors.contactPhone ? "error" : "default"}
-          description={(errors.contactPhone as FieldError)?.message}
-          {...register("contactPhone", {
-            setValueAs: trimValue,
-            onChange: (e) => {
-              const formatted = formatPhoneNumber(e.target.value)
-
-              setValue("contactPhone", formatted, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            },
-          })}
-        />
-
-        <div>
+        <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:gap-5">
           <InputSOPet
-            title="อีเมล"
+            isRequire={storeCustomer ? false : true}
+            title="เบอร์โทรศัพท์"
             size="sm"
             variant="bordered"
-            placeholder="example@email.com"
-            {...register("email", {
+            placeholder="099-999-9999"
+            state={errors.contactPhone ? "error" : "default"}
+            description={(errors.contactPhone as FieldError)?.message}
+            {...register("contactPhone", {
               setValueAs: trimValue,
+              onChange: (e) => {
+                const formatted = formatPhoneNumber(e.target.value)
+
+                setValue("contactPhone", formatted, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              },
             })}
           />
 
-          <Infotag className="mt-3 w-full gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600">
-            📩 กรอกอีเมล เพื่อรับอัปเดตจาก Sopet ก่อนใคร
-          </Infotag>
+          <div>
+            <InputSOPet
+              title="อีเมล"
+              size="sm"
+              variant="bordered"
+              placeholder="example@email.com"
+              {...register("email", {
+                setValueAs: trimValue,
+              })}
+            />
+
+            <Infotag className="mt-3 w-full gap-2 rounded-sop-8px border border-sop-primary-300 bg-sop-primary-100 px-sop-12px py-sop-8px sop-body-xs-regular text-sop-primary-600">
+              📩 กรอกอีเมล เพื่อรับอัปเดตจาก Sopet ก่อนใคร
+            </Infotag>
+          </div>
         </div>
       </div>
 

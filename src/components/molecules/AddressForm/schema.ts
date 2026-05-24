@@ -10,13 +10,17 @@ const phoneFieldSchema = (requiredMessage: string) =>
     })
 
 const optionalPhoneFieldSchema = z
-  .string()
-  .trim()
+  .union([
+    z.literal(""),
+    z
+      .string()
+      .trim()
+      .refine((value) => !value || /^0\d{9}$/.test(value.replace(/\D/g, "")), {
+        message: "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก",
+      }),
+  ])
   .optional()
-  .default("")
-  .refine((value) => !value || /^0\d{9}$/.test(value.replace(/\D/g, "")), {
-    message: "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก",
-  })
+  .nullable()
 
 export const addressSchema = z.object({
   // Trim first so values like "   " don't pass min(1)
