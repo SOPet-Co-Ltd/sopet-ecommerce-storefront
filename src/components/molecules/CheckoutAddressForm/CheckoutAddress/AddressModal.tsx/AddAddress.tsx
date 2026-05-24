@@ -53,9 +53,9 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
     formData.append("last_name", lastName)
 
     formData.append("address_1", data.address)
-    formData.append("address_2", "")
+    formData.append("address_2", data.district)
 
-    formData.append("city", data.district)
+    formData.append("city", data.subDistrict)
     formData.append("province", data.province)
 
     formData.append("postal_code", data.postalCode)
