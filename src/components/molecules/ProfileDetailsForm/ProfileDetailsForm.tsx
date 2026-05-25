@@ -5,6 +5,7 @@ import {
   FormProvider,
   useForm,
   useFormContext,
+  useWatch,
 } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { profileDetailsSchema, ProfileDetailsFormData } from "./schema"
@@ -13,6 +14,8 @@ import { Button } from "@/components/atoms"
 import { updateCustomer } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 interface Props {
   defaultValues?: ProfileDetailsFormData
@@ -45,14 +48,17 @@ const Form: React.FC<Props> = ({ handleClose }) => {
   const {
     handleSubmit,
     register,
+    setValue,
+    control,
     formState: { errors },
   } = useFormContext()
+  const phone = useWatch({ control, name: "phone" })
 
   const submit = async (data: FieldValues) => {
     const body = {
       first_name: data.firstName,
       last_name: data.lastName,
-      phone: data.phone,
+      phone: normalizeThaiPhoneNumber(data.phone),
     }
     try {
       await updateCustomer(body as HttpTypes.StoreUpdateCustomer)
@@ -81,11 +87,18 @@ const Form: React.FC<Props> = ({ handleClose }) => {
             error={errors.lastName as FieldError}
             {...register("lastName")}
           />
-          <LabeledInput
-            label="Phone"
+          <ThaiPhoneInput
+            title="Phone"
             placeholder="Type phone number"
-            error={errors.phone as FieldError}
-            {...register("phone")}
+            state={errors.phone ? "error" : "default"}
+            description={(errors.phone as FieldError)?.message}
+            value={phone}
+            onValueChange={(value) =>
+              setValue("phone", value, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           />
           <LabeledInput label="Email" disabled {...register("email")} />
         </div>

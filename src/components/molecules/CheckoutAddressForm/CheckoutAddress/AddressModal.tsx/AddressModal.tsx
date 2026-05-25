@@ -22,6 +22,7 @@ import {
 import DeleteAddress from "./DeleteAddress"
 import EditAddress from "./EditAddress"
 import AddAddress from "./AddAddress"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 type AddressModalProps = {
   onClose: () => void
@@ -288,7 +289,7 @@ const AddressModal = ({
                         </span>
 
                         <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular whitespace-nowrap">
-                          ({address.phone})
+                          ({formatThaiPhoneNumberForDisplay(address.phone)})
                         </span>
                       </div>
 

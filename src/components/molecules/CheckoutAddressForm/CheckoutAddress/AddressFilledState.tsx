@@ -12,6 +12,7 @@ import type { AddressFormData } from "../../AddressForm/schema"
 import { normalizeAddressDefaults } from "../applySingleDefaultShipping"
 import { customerAddressToFormValues } from "../customerAddressToFormValues"
 import AddressModal from "./AddressModal.tsx/AddressModal"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 const AddressFilledState = ({
   customer,
@@ -59,6 +60,7 @@ const AddressFilledState = ({
   }
 
   const fullAddress = `${address?.address_1} ${address?.address_2} ${address?.city} ${address?.province} ${address?.postal_code}`
+  const phone = formatThaiPhoneNumberForDisplay(address?.phone)
 
   return (
     <>
@@ -91,7 +93,7 @@ const AddressFilledState = ({
           <div className="flex flex-col w-full">
             <div className="flex gap-2 sop-body-sm-medium">
               <label>{address?.address_name}</label>
-              <label>({address?.phone})</label>
+              <label>({phone})</label>
             </div>
 
             <label className="sop-body-sm-regular">{fullAddress}</label>
@@ -124,7 +126,7 @@ const AddressFilledState = ({
             <div className="flex items-center gap-4">
               <div className="flex gap-2">
                 <label>{address?.address_name}</label>
-                <label>({address?.phone})</label>
+                <label>({phone})</label>
               </div>
 
               {address?.is_default_shipping ? (

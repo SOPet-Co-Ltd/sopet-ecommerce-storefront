@@ -1,23 +1,17 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Button, InputSOPet } from "@/components/atoms"
+import { Button } from "@/components/atoms"
 import { useRouter } from "next/navigation"
 import { clearMedusaCartForLoginPage, requestOtp } from "@/lib/data/customer"
 import { SOPetLogo } from "@/icons"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
+import {
+  isValidThaiPhoneNumber,
+  normalizeThaiPhoneNumber,
+} from "@/lib/helpers/phone"
 
 export const LoginForm = () => {
   return <Form />
-}
-
-const isValidPhone = (value: string): boolean => {
-  return /^(\+?66|0)[0-9]{8,9}$/.test(value.replace(/[-\s]/g, ""))
-}
-
-const applyPhoneMask = (raw: string): string => {
-  const digits = raw.replace(/\D/g, "").slice(0, 10)
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`
 }
 
 const Form = () => {
@@ -30,13 +24,9 @@ const Form = () => {
     clearMedusaCartForLoginPage()
   }, [])
 
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPhone(applyPhoneMask(e.target.value))
-  }
-
   const handleRequestOtp = async () => {
-    const rawPhone = phone.replace(/[-\s]/g, "")
-    if (!isValidPhone(rawPhone)) {
+    const normalizedPhone = normalizeThaiPhoneNumber(phone)
+    if (!isValidThaiPhoneNumber(normalizedPhone)) {
       setError("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง")
       return
     }
@@ -45,7 +35,7 @@ const Form = () => {
     setError("")
 
     const formData = new FormData()
-    formData.append("identifier", rawPhone)
+    formData.append("identifier", normalizedPhone)
 
     const res = await requestOtp(formData)
     if (res) {
@@ -55,7 +45,7 @@ const Form = () => {
     }
 
     setIsRequestingOtp(false)
-    router.push(`/login/otp?phone=${encodeURIComponent(rawPhone)}`)
+    router.push(`/login/otp?phone=${encodeURIComponent(normalizedPhone)}`)
   }
 
   return (
@@ -78,21 +68,18 @@ const Form = () => {
         </div>
         {/* Form */}
         <div className="space-y-4">
-          <InputSOPet
+          <ThaiPhoneInput
             placeholder="เบอร์โทรศัพท์"
             variant="bordered"
             value={phone}
-            onChange={handlePhoneChange}
-            inputMode="numeric"
+            onValueChange={setPhone}
           />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
             variant="primary"
             size="lg"
             fill={true}
-            disabled={
-              isRequestingOtp || !isValidPhone(phone.replace(/[-\s]/g, ""))
-            }
+            disabled={isRequestingOtp || !isValidThaiPhoneNumber(phone)}
             onClick={handleRequestOtp}
           >
             {isRequestingOtp ? "กำลังส่ง OTP..." : "ขอ OTP"}

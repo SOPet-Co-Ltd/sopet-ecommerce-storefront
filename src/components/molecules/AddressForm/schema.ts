@@ -1,12 +1,14 @@
 import { z } from "zod"
 
+import { isValidThaiPhoneNumber } from "@/lib/helpers/phone"
+
 const phoneFieldSchema = (requiredMessage: string) =>
   z
     .string()
     .trim()
     .min(1, requiredMessage)
-    .refine((value) => /^0\d{9}$/.test(value.replace(/\D/g, "")), {
-      message: "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก",
+    .refine((value) => isValidThaiPhoneNumber(value), {
+      message: "กรุณากรอกเบอร์โทรให้ครบ 9 หลัก",
     })
 
 const optionalPhoneFieldSchema = z
@@ -15,8 +17,8 @@ const optionalPhoneFieldSchema = z
     z
       .string()
       .trim()
-      .refine((value) => !value || /^0\d{9}$/.test(value.replace(/\D/g, "")), {
-        message: "กรุณากรอกเบอร์โทรให้ครบ 10 หลัก",
+      .refine((value) => !value || isValidThaiPhoneNumber(value), {
+        message: "กรุณากรอกเบอร์โทรให้ครบ 9 หลัก",
       }),
   ])
   .optional()

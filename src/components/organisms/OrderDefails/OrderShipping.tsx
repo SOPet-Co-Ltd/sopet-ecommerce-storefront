@@ -1,5 +1,6 @@
 import { paymentInfoMap } from "@/lib/constants"
 import { convertToLocale } from "@/lib/helpers/money"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { HttpTypes } from "@medusajs/types"
 import { Container, Text } from "@medusajs/ui"
 
@@ -37,7 +38,7 @@ const OrderShipping = ({ order }: ShippingDetailsProps) => {
           Contact
         </Text>
         <Text className="txt-medium text-ui-fg-subtle">
-          {order.shipping_address?.phone}
+          {formatThaiPhoneNumberForDisplay(order.shipping_address?.phone)}
         </Text>
         <Text className="txt-medium text-ui-fg-subtle">{order.email}</Text>
       </div>

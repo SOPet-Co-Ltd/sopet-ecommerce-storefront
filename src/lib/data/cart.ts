@@ -21,6 +21,7 @@ import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { getCheckoutCartFetchTimeoutMs } from "@/lib/helpers/request-timeout"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 const checkoutPerfLog =
   process.env["CHECKOUT_PERF_LOG"] === "1" ||
@@ -1120,7 +1121,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         city: getText("shipping_address.city"),
         country_code: getText("shipping_address.country_code"),
         province: getText("shipping_address.province"),
-        phone: getText("shipping_address.phone"),
+        phone: normalizeThaiPhoneNumber(getText("shipping_address.phone")),
       },
     }
 

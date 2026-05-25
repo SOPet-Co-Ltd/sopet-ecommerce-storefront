@@ -1,6 +1,7 @@
 import { Text } from "@medusajs/ui"
 import { Cart } from "@/types/cart"
 import Spinner from "@/icons/spinner"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 type ShippingAddressSummaryProps = {
   cart: Cart
@@ -30,7 +31,7 @@ const ShippingAddressSummary = ({
             {shipping_address.first_name} {shipping_address.last_name}
           </Text>
           <Text className="sop-body-md-regular md:sop-headline-sm-regular text-sop-neutral-gray-300">
-            {shipping_address.phone}
+            {formatThaiPhoneNumberForDisplay(shipping_address.phone)}
           </Text>
         </div>
 

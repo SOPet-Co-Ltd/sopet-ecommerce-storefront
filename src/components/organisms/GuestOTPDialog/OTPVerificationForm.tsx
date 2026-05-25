@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/atoms"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { useEffect, useRef, useState } from "react"
 
 export const OTPVerificationForm = ({
@@ -73,7 +74,8 @@ export const OTPVerificationForm = ({
       <div className="space-y-2 text-left">
         <h3 className="heading-xl text-gray-900">ยืนยันเบอร์มือถือของคุณ</h3>
         <p className="text-body-md text-gray-500">
-          กรอกรหัส OTP ที่ส่งไปยังเบอร์ {phoneNumber}
+          กรอกรหัส OTP ที่ส่งไปยังเบอร์{" "}
+          {formatThaiPhoneNumberForDisplay(phoneNumber)}
         </p>
       </div>
 

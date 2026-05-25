@@ -1,4 +1,5 @@
 import { MEDUSA_BACKEND_URL } from "@/lib/config"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 type CreateContactInformationInput = {
   customer_phone: string
@@ -24,7 +25,7 @@ export async function createContactInformation(
         "x-publishable-api-key": publishableKey,
       },
       body: JSON.stringify({
-        customer_phone: input.customer_phone.replace(/\D/g, ""),
+        customer_phone: normalizeThaiPhoneNumber(input.customer_phone),
         ...(input.email?.trim() ? { email: input.email.trim() } : {}),
       }),
     }

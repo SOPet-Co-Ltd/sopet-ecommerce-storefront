@@ -5,6 +5,7 @@ import { Modal } from "@/components/molecules"
 import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
 import { PlusIcon } from "@/icons"
 import { deleteCustomerAddress } from "@/lib/data/customer"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { cn } from "@/lib/utils"
 import { HttpTypes } from "@medusajs/types"
 import { isEmpty } from "lodash"
@@ -108,7 +109,9 @@ export const Addresses = ({
             const contactName = [address.first_name, address.last_name]
               .filter(Boolean)
               .join(" ")
-            const phone = address.phone || user.phone || ""
+            const phone = formatThaiPhoneNumberForDisplay(
+              address.phone || user.phone || ""
+            )
             return (
               <div
                 key={address.id}

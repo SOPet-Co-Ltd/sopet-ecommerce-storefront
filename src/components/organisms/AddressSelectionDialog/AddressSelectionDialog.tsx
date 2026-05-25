@@ -1,5 +1,6 @@
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@/components/atoms"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 
@@ -79,7 +80,7 @@ export const AddressSelectionDialog = ({
                         {address.first_name} {address.last_name}
                       </span>
                       <span className="sop-body-xs-regular md:sop-body-lg-regular text-sop-neutral-gray-400">
-                        {address.phone}
+                        {formatThaiPhoneNumberForDisplay(address.phone)}
                       </span>
                     </div>
                     <div className="flex-1 flex items-center justify-end">

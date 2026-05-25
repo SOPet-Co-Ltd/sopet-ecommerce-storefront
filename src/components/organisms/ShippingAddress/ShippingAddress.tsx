@@ -11,6 +11,8 @@ import { usePathname } from "next/navigation"
 import { AddressSelectionDialog } from "../AddressSelectionDialog/AddressSelectionDialog"
 import { EditAddressDialog } from "../EditAddressDialog/EditAddressDialog"
 import type { DraftShippingAddress } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 /** Split full name into first segment and rest; last_name is "" if only one segment. */
 function splitFullName(fullName: string): {
@@ -40,7 +42,7 @@ function formDataToDraft(
     province: formData["shipping_address.province"] ?? "",
     postal_code: formData["shipping_address.postal_code"] ?? "",
     country_code: formData["shipping_address.country_code"] ?? countryCode,
-    phone: formData["shipping_address.phone"] ?? "",
+    phone: normalizeThaiPhoneNumber(formData["shipping_address.phone"] ?? ""),
   }
 }
 
@@ -339,13 +341,18 @@ const ShippingAddress = ({
           <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
             เบอร์โทรศัพท์
           </label>
-          <Input
-            hasTitle={false}
+          <ThaiPhoneInput
+            title={undefined}
             name="shipping_address.phone"
-            placeholder="099-999-9999"
-            autoComplete="tel"
+            placeholder="99-999-9999"
             value={formData["shipping_address.phone"]}
-            onChange={handleChange}
+            onValueChange={(value) => {
+              const next = { ...formData, "shipping_address.phone": value }
+              setFormData(next)
+              if (isControlled && onDraftChange) {
+                onDraftChange(formDataToDraft(next, locale))
+              }
+            }}
             required
             data-testid="shipping-phone-input"
             className="text-sop-base-black"

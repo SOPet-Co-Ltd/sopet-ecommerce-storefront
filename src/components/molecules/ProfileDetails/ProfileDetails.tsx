@@ -6,6 +6,7 @@ import { useState } from "react"
 import { ProfileDetailsForm } from "../ProfileDetailsForm/ProfileDetailsForm"
 import { Divider, Heading } from "@medusajs/ui"
 import { PencilSquare } from "@medusajs/icons"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 export const ProfileDetails = ({ user }: { user: HttpTypes.StoreCustomer }) => {
   const [showForm, setShowForm] = useState(false)
@@ -40,7 +41,9 @@ export const ProfileDetails = ({ user }: { user: HttpTypes.StoreCustomer }) => {
         <Divider />
         <div className="p-4">
           <p className="label-md text-secondary">Phone number</p>
-          <p className="label-lg text-primary">{user.phone}</p>
+          <p className="label-lg text-primary">
+            {formatThaiPhoneNumberForDisplay(user.phone)}
+          </p>
         </div>
       </Card>
       {showForm && (

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
 import { SOPetLogo } from "@/icons"
 import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 const OTP_COOLDOWN_SECONDS = 180
 
@@ -97,7 +98,7 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
             ยืนยัน OTP
           </h1>
           <p className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400">
-            รหัส OTP ถูกส่งไปยัง {phone}
+            รหัส OTP ถูกส่งไปยัง {formatThaiPhoneNumberForDisplay(phone)}
           </p>
         </div>
         {/* Form */}

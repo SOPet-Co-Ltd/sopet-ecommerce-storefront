@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { Controller, FieldError, Path, useFormContext } from "react-hook-form"
 import { Button, Checkbox, InputSOPet } from "@/components/atoms"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 import AddressDropdown from "../AddressDropdown"
 import { AddressFormData } from "@/components/molecules/AddressForm/schema"
 import {
@@ -18,6 +19,7 @@ import {
   deleteCustomerAddress,
   updateCustomerAddress,
 } from "@/lib/data/customer"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 type Props = {
   address: StoreCustomerAddress
@@ -48,6 +50,7 @@ const EditAddress = ({
   const provinceValue = watch("province")
   const districtValue = watch("district")
   const postalCodeValue = watch("postalCode")
+  const phoneValue = watch("phone")
 
   const provinceOptions = useMemo(() => getProvinces(), [])
 
@@ -65,18 +68,6 @@ const EditAddress = ({
     fields.forEach((field) => {
       setValue(field, "")
     })
-  }
-
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, "").slice(0, 10)
-
-    if (numbers.length <= 3) return numbers
-
-    if (numbers.length <= 6) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
-    }
-
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
   }
 
   useEffect(() => {
@@ -116,7 +107,8 @@ const EditAddress = ({
 
       formData.append("country_code", "th")
 
-      formData.append("phone", data.phone.replace(/\D/g, ""))
+      const normalizedPhone = normalizeThaiPhoneNumber(data.phone)
+      formData.append("phone", normalizedPhone)
 
       if (data.setAsDefault) {
         formData.append("isDefaultShipping", "1")
@@ -139,7 +131,7 @@ const EditAddress = ({
         province: data.province,
         postal_code: data.postalCode,
 
-        phone: data.phone.replace(/\D/g, ""),
+        phone: normalizedPhone,
 
         first_name: firstName,
         last_name: lastName,
@@ -288,25 +280,21 @@ const EditAddress = ({
             })}
           />
 
-          <InputSOPet
+          <ThaiPhoneInput
             isRequire
             title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
             size="sm"
             variant="bordered"
-            placeholder="099-999-9999"
+            placeholder="99-999-9999"
             state={errors.phone ? "error" : "default"}
             description={(errors.phone as FieldError)?.message}
-            {...register("phone", {
-              setValueAs: trimValue,
-              onChange: (e) => {
-                const formatted = formatPhoneNumber(e.target.value)
-
-                setValue("phone", formatted, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                })
-              },
-            })}
+            value={phoneValue}
+            onValueChange={(value) =>
+              setValue("phone", value, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           />
         </div>
         <div className="mt-2 flex items-center gap-2">

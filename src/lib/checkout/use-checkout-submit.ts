@@ -427,10 +427,10 @@ export function useCheckoutSubmit() {
       }
 
       if (methodType === "card") {
-        if (omiseToken) {
-          sessionData.omise_token = omiseToken
-        } else if (resolvedCardId) {
+        if (resolvedCardId) {
           sessionData.customer_payment_method_id = resolvedCardId
+        } else if (omiseToken) {
+          sessionData.omise_token = omiseToken
         }
       }
 
