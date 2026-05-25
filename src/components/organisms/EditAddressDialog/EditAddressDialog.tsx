@@ -1,7 +1,7 @@
 import { HttpTypes } from "@medusajs/types"
 import { Button } from "@/components/atoms"
 import { useState } from "react"
-import { deleteCustomerAddress } from "@/lib/data/customer"
+import { deleteCustomerAddress, getCheckoutCustomer, updateCustomerAddress } from "@/lib/data/customer"
 import { useRouter } from "next/navigation"
 import {
   AddressForm,
@@ -34,6 +34,34 @@ export const EditAddressDialog = ({
     setIsDeleting(true)
     setDeleteError(null)
     try {
+      const isDefault = address.is_default_shipping
+      
+      if (isDefault) {
+        const customer = await getCheckoutCustomer()
+        const allAddresses = customer?.addresses || []
+        const remaining = allAddresses.filter((a) => a.id !== address.id)
+        if (remaining.length > 0) {
+          const nextDefault = remaining[0]
+          const formData = new FormData()
+          formData.append("addressId", nextDefault.id)
+          formData.append("address_name", nextDefault.address_name || "")
+          formData.append("first_name", nextDefault.first_name || "")
+          formData.append("last_name", nextDefault.last_name || "")
+          formData.append("company", nextDefault.company || "")
+          formData.append("address_1", nextDefault.address_1 || "")
+          formData.append("address_2", nextDefault.address_2 || "")
+          formData.append("city", nextDefault.city || "")
+          formData.append("postal_code", nextDefault.postal_code || "")
+          formData.append("province", nextDefault.province || "")
+          formData.append("country_code", nextDefault.country_code || "")
+          formData.append("phone", nextDefault.phone || "")
+          formData.append("isDefaultShipping", "1")
+          formData.append("isDefaultBilling", "1")
+
+          await updateCustomerAddress(formData)
+        }
+      }
+
       await deleteCustomerAddress(address.id)
       onSuccess()
       onClose()

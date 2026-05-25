@@ -4,7 +4,7 @@ import { AddressForm } from "@/components/molecules/AddressForm/AddressForm"
 import { Modal } from "@/components/molecules"
 import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
 import { PlusIcon } from "@/icons"
-import { deleteCustomerAddress } from "@/lib/data/customer"
+import { deleteCustomerAddress, updateCustomerAddress } from "@/lib/data/customer"
 import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { cn } from "@/lib/utils"
 import { HttpTypes } from "@medusajs/types"
@@ -77,8 +77,34 @@ export const Addresses = ({
       : null
 
   const handleDelete = async (addressId: string) => {
+    const addressToDelete = addresses.find((a) => a.id === addressId)
+    const isDefault = !!(addressToDelete as { is_default_shipping?: boolean })?.is_default_shipping
+    const remaining = addresses.filter((a) => a.id !== addressId)
+
+    if (isDefault && remaining.length > 0) {
+      const nextDefault = remaining[0]
+      const formData = new FormData()
+      formData.append("addressId", nextDefault.id)
+      formData.append("address_name", nextDefault.address_name || "")
+      formData.append("first_name", nextDefault.first_name || "")
+      formData.append("last_name", nextDefault.last_name || "")
+      formData.append("company", nextDefault.company || "")
+      formData.append("address_1", nextDefault.address_1 || "")
+      formData.append("address_2", nextDefault.address_2 || "")
+      formData.append("city", nextDefault.city || "")
+      formData.append("postal_code", nextDefault.postal_code || "")
+      formData.append("province", nextDefault.province || "")
+      formData.append("country_code", nextDefault.country_code || "")
+      formData.append("phone", nextDefault.phone || "")
+      formData.append("isDefaultShipping", "1")
+      formData.append("isDefaultBilling", "1")
+
+      await updateCustomerAddress(formData)
+    }
+
     await deleteCustomerAddress(addressId)
     setDeleteAddress(null)
+    router.refresh()
   }
 
   const formatAddressLine = (address: (typeof addresses)[0]) => {

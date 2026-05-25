@@ -90,7 +90,7 @@ const AddressModal = ({
     setSelectedAddress(initialSelectedId)
   }, [initialSelectedId])
 
-  const handleSetDefault = async (address: StoreCustomerAddress) => {
+  const setDefaultAddressHelper = async (address: StoreCustomerAddress) => {
     const formData = new FormData()
 
     formData.append("addressId", address.id)
@@ -113,19 +113,40 @@ const AddressModal = ({
 
     if (!result.success) {
       console.error(result.error)
-      return
+      return false
     }
 
-    patchAddresses((prev) => applySingleDefaultShipping(prev, address.id))
-
-    setSelectedAddress(address.id)
+    return true
   }
 
-  const removeAddressFromList = (addressId: string) => {
-    patchAddresses((prev) => prev.filter((item) => item.id !== addressId))
+  const handleSetDefault = async (address: StoreCustomerAddress) => {
+    const success = await setDefaultAddressHelper(address)
+    if (success) {
+      patchAddresses((prev) => applySingleDefaultShipping(prev, address.id))
+      setSelectedAddress(address.id)
+    }
+  }
+
+  const removeAddressFromList = async (addressId: string) => {
+    const currentAddresses = addressesRef.current
+    const addressToDelete = currentAddresses.find((item) => item.id === addressId)
+    const isDefault = !!addressToDelete?.is_default_shipping
+
+    const remaining = currentAddresses.filter((item) => item.id !== addressId)
 
     if (selectedAddress === addressId) {
       setSelectedAddress("")
+    }
+
+    patchAddresses((prev) => prev.filter((item) => item.id !== addressId))
+
+    if (isDefault && remaining.length > 0) {
+      const nextDefault = remaining[0]
+      const success = await setDefaultAddressHelper(nextDefault)
+      if (success) {
+        patchAddresses((prev) => applySingleDefaultShipping(prev, nextDefault.id))
+        setSelectedAddress(nextDefault.id)
+      }
     }
   }
 
@@ -321,20 +342,18 @@ const AddressModal = ({
                           </div>
 
                           <div className="flex flex-wrap items-center gap-1">
-                            {!address.is_default_shipping ? (
-                              <Button
-                                size="sm"
-                                type="button"
-                                variant="filled"
-                                className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setDeleteAddressId(address.id)
-                                }}
-                              >
-                                ลบ
-                              </Button>
-                            ) : null}
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="filled"
+                              className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteAddressId(address.id)
+                              }}
+                            >
+                              ลบ
+                            </Button>
 
                             <Button
                               size="sm"
@@ -375,19 +394,17 @@ const AddressModal = ({
 
                     {!isMobile && (
                       <div className="flex gap-2 shrink-0">
-                        {!address.is_default_shipping ? (
-                          <Button
-                            type="button"
-                            variant="filled"
-                            className="text-sop-neutral-gray-200"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setDeleteAddressId(address.id)
-                            }}
-                          >
-                            ลบ
-                          </Button>
-                        ) : null}
+                        <Button
+                          type="button"
+                          variant="filled"
+                          className="text-sop-neutral-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteAddressId(address.id)
+                          }}
+                        >
+                          ลบ
+                        </Button>
 
                         <Button
                           type="button"
