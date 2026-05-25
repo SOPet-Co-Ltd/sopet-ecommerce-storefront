@@ -56,11 +56,17 @@ export const customerSessionSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("logged_in"),
     customerId: z.string().min(1),
-    email: z.string().email(),
+    email: z
+      .union([z.literal(""), z.string().trim().email()])
+      .nullable()
+      .optional(),
   }),
   z.object({
     mode: z.literal("guest"),
-    email: z.string().email().optional(),
+    email: z
+      .union([z.literal(""), z.string().trim().email()])
+      .nullable()
+      .optional(),
   }),
 ])
 

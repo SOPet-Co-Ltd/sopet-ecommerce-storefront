@@ -4,11 +4,17 @@ import { useCallback, useState } from "react"
 
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { createContactInformation } from "@/lib/checkout/create-contact-information"
+import { bootstrapMarketplacePaymentSessions } from "@/lib/data/cart"
 import { addCustomerPaymentMethod } from "@/lib/data/customer"
+import {
+  isCardProviderId,
+  isPromptpayProviderId,
+} from "@/lib/helpers/marketplace-checkout-ui"
 import {
   checkoutPayloadSchema,
   type CheckoutPayload,
 } from "./checkout-payload-schema"
+import type { HttpTypes } from "@medusajs/types"
 
 declare global {
   interface Window {
@@ -113,12 +119,38 @@ function parseExpiry(expiry: string): { month: number; year: number } {
 }
 
 export type CheckoutSubmitResult =
-  | { ok: true; payload: CheckoutPayload }
+  | {
+      ok: true
+      payload: CheckoutPayload
+      paymentResponse: {
+        marketplaceCheckout: unknown
+        collectionsById: Record<string, HttpTypes.StorePaymentCollection>
+      }
+    }
   | {
       ok: false
-      reason: "tokenization" | "validation" | "unknown"
+      reason: "tokenization" | "validation" | "payment" | "unknown"
       message: string
     }
+
+function resolvePaymentProviderId(
+  paymentMethods: HttpTypes.StorePaymentProvider[] | null,
+  method: "card" | "promptpay"
+): string | null {
+  if (!paymentMethods?.length) {
+    return null
+  }
+
+  const unifiedId = paymentMethods.find((p) => isCardProviderId(p.id))?.id
+  const cardId =
+    paymentMethods.find(
+      (p) => isCardProviderId(p.id) && !isPromptpayProviderId(p.id)
+    )?.id || unifiedId
+  const promptpayId =
+    paymentMethods.find((p) => isPromptpayProviderId(p.id))?.id || unifiedId
+
+  return (method === "card" ? cardId : promptpayId) ?? null
+}
 
 export function useCheckoutSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -155,6 +187,10 @@ export function useCheckoutSubmit() {
   const selectedShippingMethodBySellerId = useCheckoutStore(
     (state) => state.selectedShippingMethodBySellerId
   )
+
+  const cart = useCheckoutStore((state) => state.cart)
+
+  const paymentMethods = useCheckoutStore((state) => state.paymentMethods)
 
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
     setError(null)
@@ -344,6 +380,8 @@ export function useCheckoutSubmit() {
 
       console.log("[checkout] payload draft:", draft)
 
+      console.log({ draft })
+
       const result = checkoutPayloadSchema.safeParse(draft)
 
       if (!result.success) {
@@ -365,9 +403,68 @@ export function useCheckoutSubmit() {
 
       console.log("[checkout] SUCCESS - payload:", result.data)
 
-      return {
-        ok: true,
-        payload: result.data,
+      const methodType: "card" | "promptpay" =
+        result.data.payment.method === "promptpay" ? "promptpay" : "card"
+
+      const providerId = resolvePaymentProviderId(paymentMethods, methodType)
+
+      if (!providerId) {
+        const message = "ไม่พบผู้ให้บริการชำระเงิน"
+
+        setError(message)
+
+        console.log("[checkout] FAIL - no payment provider for", methodType)
+
+        return {
+          ok: false,
+          reason: "payment",
+          message,
+        }
+      }
+
+      const sessionData: Record<string, unknown> = {
+        payment_method_types: [methodType],
+      }
+
+      if (methodType === "card") {
+        if (omiseToken) {
+          sessionData.omise_token = omiseToken
+        } else if (resolvedCardId) {
+          sessionData.customer_payment_method_id = resolvedCardId
+        }
+      }
+
+      try {
+        const paymentResponse = await bootstrapMarketplacePaymentSessions(
+          cart.id,
+          {
+            provider_id: providerId,
+            data: sessionData,
+          }
+        )
+
+        console.log("[checkout] payment created:", paymentResponse)
+
+        return {
+          ok: true,
+          payload: result.data,
+          paymentResponse,
+        }
+      } catch (paymentErr: unknown) {
+        const message =
+          paymentErr instanceof Error
+            ? paymentErr.message
+            : "ไม่สามารถสร้างรายการชำระเงินได้"
+
+        setError(message)
+
+        console.log("[checkout] FAIL - payment create:", paymentErr)
+
+        return {
+          ok: false,
+          reason: "payment",
+          message,
+        }
       }
     } catch (e: unknown) {
       const message =
@@ -398,6 +495,8 @@ export function useCheckoutSubmit() {
     sellerGroups,
     setNewCardDraft,
     setSelectedCardId,
+    cart,
+    paymentMethods,
   ])
 
   return {
