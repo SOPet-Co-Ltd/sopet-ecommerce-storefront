@@ -5,6 +5,7 @@ import { Controller, FieldError, Path, useFormContext } from "react-hook-form"
 
 import { Checkbox, InputSOPet } from "@/components/atoms"
 import { Infotag } from "@/components/atoms/InfoTag/Infotag"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 
 import {
   getDistricts,
@@ -53,22 +54,11 @@ const AddressEmptyStateContent = ({
     formState: { errors },
   } = useFormContext<AddressFormData>()
 
-  const formatPhoneNumber = (value: string) => {
-    const numbers = value.replace(/\D/g, "").slice(0, 10)
-
-    if (numbers.length <= 3) return numbers
-    if (numbers.length <= 6) {
-      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`
-    }
-
-    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(6)}`
-  }
-
   useEffect(() => {
     if (!storeCustomer) return
 
     if (storeCustomer.phone) {
-      setValue("contactPhone", formatPhoneNumber(storeCustomer.phone), {
+      setValue("contactPhone", storeCustomer.phone, {
         shouldDirty: false,
         shouldValidate: false,
         shouldTouch: false,
@@ -87,6 +77,8 @@ const AddressEmptyStateContent = ({
   const provinceValue = watch("province")
   const districtValue = watch("district")
   const postalCodeValue = watch("postalCode")
+  const contactPhoneValue = watch("contactPhone")
+  const phoneValue = watch("phone")
 
   const provinceOptions = useMemo(() => getProvinces(), [])
 
@@ -122,25 +114,21 @@ const AddressEmptyStateContent = ({
         </label>
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:gap-5">
-          <InputSOPet
+          <ThaiPhoneInput
             isRequire={storeCustomer ? false : true}
             title="เบอร์โทรศัพท์"
             size="sm"
             variant="bordered"
-            placeholder="099-999-9999"
+            placeholder="99-999-9999"
             state={errors.contactPhone ? "error" : "default"}
             description={(errors.contactPhone as FieldError)?.message}
-            {...register("contactPhone", {
-              setValueAs: trimValue,
-              onChange: (e) => {
-                const formatted = formatPhoneNumber(e.target.value)
-
-                setValue("contactPhone", formatted, {
-                  shouldValidate: true,
-                  shouldDirty: true,
-                })
-              },
-            })}
+            value={contactPhoneValue}
+            onValueChange={(value) =>
+              setValue("contactPhone", value, {
+                shouldValidate: true,
+                shouldDirty: true,
+              })
+            }
           />
 
           <div>
@@ -248,25 +236,21 @@ const AddressEmptyStateContent = ({
           })}
         />
 
-        <InputSOPet
+        <ThaiPhoneInput
           isRequire
           title="เบอร์โทรศัพท์ (ผู้รับสินค้า)"
           size="sm"
           variant="bordered"
-          placeholder="099-999-9999"
+          placeholder="99-999-9999"
           state={errors.phone ? "error" : "default"}
           description={(errors.phone as FieldError)?.message}
-          {...register("phone", {
-            setValueAs: trimValue,
-            onChange: (e) => {
-              const formatted = formatPhoneNumber(e.target.value)
-
-              setValue("phone", formatted, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            },
-          })}
+          value={phoneValue}
+          onValueChange={(value) =>
+            setValue("phone", value, {
+              shouldValidate: true,
+              shouldDirty: true,
+            })
+          }
         />
       </div>
 
