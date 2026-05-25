@@ -17,6 +17,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.1",
     "@hookform/resolvers": "^3.10.0",
+    "@lottiefiles/dotlottie-react": "^0.19.4",
     "@medusajs/icons": "^2.11.2",
     "@medusajs/js-sdk": "^2.2.0",
     "@medusajs/ui": "^4.0.7",
