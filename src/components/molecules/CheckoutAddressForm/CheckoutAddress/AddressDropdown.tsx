@@ -111,9 +111,9 @@ const AddressDropdown = <T extends FieldValues>({
             {open && (
               <div className="absolute z-50 mt-1 w-full overflow-hidden rounded-xl border border-sop-neutral-grayalpha-200 bg-sop-base-white shadow-lg">
                 <div className="max-h-35 overflow-y-auto">
-                  {filteredOptions.map((option) => (
+                  {filteredOptions.map((option, index) => (
                     <button
-                      key={option.value}
+                      key={`${option.value}-${option.postalCode || ""}-${index}`}
                       type="button"
                       className="w-full px-4 py-3 text-left hover:bg-gray-100"
                       onClick={() => {

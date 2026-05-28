@@ -221,8 +221,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     }}
                     icon={<DownArrowIcon size={12} color="#454547" />}
                   >
-                    {provinceOptions.map((opt) => (
-                      <DropdownItem key={opt.value} value={opt.value}>
+                    {provinceOptions.map((opt, index) => (
+                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
                         {opt.label}
                       </DropdownItem>
                     ))}
@@ -261,8 +261,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     }}
                     icon={<DownArrowIcon size={12} color="#454547" />}
                   >
-                    {districtOptions.map((opt) => (
-                      <DropdownItem key={opt.value} value={opt.value}>
+                    {districtOptions.map((opt, index) => (
+                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
                         {opt.label}
                       </DropdownItem>
                     ))}
@@ -310,8 +310,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                       onValueChange={handleSubdistrictChange}
                       icon={<DownArrowIcon size={12} color="#454547" />}
                     >
-                      {subdistrictOptions.map((opt) => (
-                        <DropdownItem key={opt.value} value={opt.value}>
+                      {subdistrictOptions.map((opt, index) => (
+                        <DropdownItem key={`${opt.value}-${opt.postalCode || ""}-${index}`} value={opt.value}>
                           {opt.label}
                         </DropdownItem>
                       ))}

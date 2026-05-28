@@ -32,13 +32,6 @@ type AddressModalProps = {
   customer: StoreCustomer | null
 }
 
-const syncAddresses = (
-  next: StoreCustomerAddress[],
-  onAddressesChange?: (addresses: StoreCustomerAddress[]) => void
-) => {
-  onAddressesChange?.(next)
-}
-
 const AddressModal = ({
   onClose,
   onConfirm,
@@ -50,15 +43,21 @@ const AddressModal = ({
     normalizeAddressDefaults(customer?.addresses || [])
   )
 
+  const isLocalUpdateRef = useRef(false)
+
   const patchAddresses = (
     updater: (prev: StoreCustomerAddress[]) => StoreCustomerAddress[]
   ) => {
-    setAddresses((prev) => {
-      const next = updater(prev)
-      syncAddresses(next, onAddressesChange)
-      return next
-    })
+    isLocalUpdateRef.current = true
+    setAddresses((prev) => updater(prev))
   }
+
+  useEffect(() => {
+    if (isLocalUpdateRef.current) {
+      isLocalUpdateRef.current = false
+      onAddressesChange?.(addresses)
+    }
+  }, [addresses, onAddressesChange])
 
   const sortedAddresses = useMemo(() => {
     return [...addresses].sort(
