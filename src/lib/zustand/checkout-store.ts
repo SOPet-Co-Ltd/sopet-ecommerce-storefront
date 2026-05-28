@@ -17,7 +17,7 @@ import type {
 import type { CheckoutCoupon } from "@/types/checkout-coupon"
 import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { fetchVendorShippingMethods } from "@/lib/checkout/fetch-vendor-shipping"
-import { getCartItemSellerGroup } from "../helpers/cart-seller"
+import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import {
   checkoutPayloadSchema,
   type CheckoutPayload,

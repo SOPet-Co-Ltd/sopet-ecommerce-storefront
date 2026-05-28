@@ -6,6 +6,7 @@ import { PiggyBankIcon } from "@/icons"
 import { LockKeyholeIcon } from "lucide-react"
 import { useCheckoutSubmit } from "@/lib/checkout/use-checkout-submit"
 import type { HttpTypes } from "@medusajs/types"
+import { useParams, useRouter } from "next/navigation"
 import { formatPrice, useCheckoutTotals } from "./use-checkout-totals"
 
 type SummaryRowProps = {
@@ -40,6 +41,9 @@ type CheckoutSummarySectionProps = {
 
 const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
   const { submit, isSubmitting } = useCheckoutSubmit()
+  const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || "th"
   const {
     totalQuantity,
     subtotal,
@@ -49,6 +53,14 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
     totalSaving,
     finalPrice,
   } = useCheckoutTotals()
+
+  const handleSubmit = async () => {
+    const res = await submit()
+    if (res.ok) {
+      // Hand off to the dedicated payment page; checkout page is done.
+      router.replace(`/${locale}/payment/${res.sessionId}`)
+    }
+  }
 
   return (
     <div className="mt-sop-12px w-full rounded-sop-24px bg-sop-base-white lg:px-sop-24px lg:py-sop-20px px-sop-16px py-sop-20px ">
@@ -120,7 +132,7 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
         type="button"
         loading={isSubmitting}
         disabled={isSubmitting}
-        onClick={() => void submit()}
+        onClick={() => void handleSubmit()}
       >
         ชำระเงิน {formatPrice(finalPrice)}
       </Button>

@@ -119,9 +119,8 @@ const parseOrdersListPayload = (payload: unknown): OrderListItem[] => {
     parsedList.error.flatten()
   )
 
-  const rawOrders = isRecord(payload) && Array.isArray(payload.orders)
-    ? payload.orders
-    : []
+  const rawOrders =
+    isRecord(payload) && Array.isArray(payload.orders) ? payload.orders : []
 
   const recoveredOrders: OrderListItem[] = []
 
@@ -521,7 +520,8 @@ export const updateOrderPaymentSession = async (
 }
 
 export const captureOrderPayment = async (
-  orderId: string
+  orderId: string,
+  options?: { checkoutSessionId?: string }
 ): Promise<OrderMutationResult<OrderMutationOrder, "order">> => {
   const headers = {
     ...(await getAuthHeaders()),
@@ -532,6 +532,9 @@ export const captureOrderPayment = async (
     .fetch<unknown>(`/store/custom/orders/${orderId}/capture`, {
       method: "POST",
       headers,
+      ...(options?.checkoutSessionId
+        ? { body: { checkout_session_id: options.checkoutSessionId } }
+        : {}),
     })
     .then((response) =>
       parseWithSchema(

@@ -2,11 +2,22 @@
 
 import { Button } from "@/components/atoms"
 import { useCheckoutSubmit } from "@/lib/checkout/use-checkout-submit"
+import { useParams, useRouter } from "next/navigation"
 import { formatPrice, useCheckoutTotals } from "./use-checkout-totals"
 
 export function CheckoutMobileBottomBar() {
   const { finalPrice } = useCheckoutTotals()
   const { submit, isSubmitting } = useCheckoutSubmit()
+  const router = useRouter()
+  const params = useParams()
+  const locale = (params?.locale as string) || "th"
+
+  const handleSubmit = async () => {
+    const res = await submit()
+    if (res.ok) {
+      router.replace(`/${locale}/payment/${res.sessionId}`)
+    }
+  }
 
   return (
     <div className="block lg:hidden">
@@ -27,7 +38,7 @@ export function CheckoutMobileBottomBar() {
             type="button"
             loading={isSubmitting}
             disabled={isSubmitting}
-            onClick={() => void submit()}
+            onClick={() => void handleSubmit()}
           >
             ชำระเงิน
           </Button>
