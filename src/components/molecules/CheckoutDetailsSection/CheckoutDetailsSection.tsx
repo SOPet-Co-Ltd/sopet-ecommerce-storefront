@@ -12,11 +12,12 @@ import {
 } from "@/icons"
 import type { Cart, ExtendedLineItem, GroupedItems } from "@/types/cart"
 import Image from "next/image"
-import { Fragment, useEffect, useMemo, type ReactNode } from "react"
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   useCheckoutStore,
   useVendorShipping,
 } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import ShippingMethod from "./ShippingMethod"
 
 type CheckoutLineItem = ExtendedLineItem & {
   original_total?: unknown
@@ -176,6 +177,8 @@ function SellerGroupCard({
 }) {
   const { seller, items } = group
 
+  const [openShippingModal, setOpenShippingModal] = useState(false)
+
   const { sellerDiscount, sellerSubtotal } = useMemo(() => {
     const discount = getSellerDiscount(items)
     const subtotal = items.reduce(
@@ -225,24 +228,7 @@ function SellerGroupCard({
       return
     }
 
-    console.log("open shipping selection modal")
-    console.log(`shippingOptions: ${shippingOptions}`)
-    console.log(`selectedShippingMethodId: ${selectedShippingMethodId}`)
-    console.log(`shippingError: ${shippingError}`)
-    console.log(`isLoadingShipping: ${isLoadingShipping}`)
-    console.log(`shippingOptions?.length: ${shippingOptions?.length}`)
-    console.log(`shippingOptions?.length > 0: ${shippingOptions?.length > 0}`)
-    console.log(
-      shippingOptions?.length > 0
-        ? `เลือกการจัดส่ง (${shippingOptions.length})`
-        : "เลือกการจัดส่ง"
-    )
-    console.log(
-      shippingOptions?.length > 0
-        ? `เลือกการจัดส่ง (${shippingOptions.length})`
-        : "เลือกการจัดส่ง"
-    )
-    // TODO: open shipping selection modal once UI lands.
+    setOpenShippingModal(true)
   }
 
   const selectedShippingOption = shippingOptions?.find(
@@ -362,6 +348,17 @@ function SellerGroupCard({
               )}
             </span>
           </SellerGroupAction>
+          {openShippingModal && (
+            <ShippingMethod
+              shippingOptions={shippingOptions ?? []}
+              selectedShippingMethodId={selectedShippingMethodId ?? ""}
+              onClose={() => setOpenShippingModal(false)}
+              onSelect={(id) => {
+                setSelectedShippingMethod(seller.id, id)
+                setOpenShippingModal(false)
+              }}
+            />
+          )}
         </div>
 
         <div className="px-sop-24px py-sop-12px flex items-center justify-between bg-sop-primary-200">
