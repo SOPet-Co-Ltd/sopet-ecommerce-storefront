@@ -111,7 +111,7 @@ const ChatWithAdminFloatingButton = () => {
     <div
       ref={buttonRef}
       className={cn(
-        "fixed z-50 bottom-4 right-2 md:bottom-10 md:right-10 transition-all duration-300 ease-out",
+        "fixed z-20 bottom-4 right-2 md:bottom-10 md:right-10 transition-all duration-300 ease-out",
         overlapping
           ? "opacity-0 scale-75 pointer-events-none"
           : "opacity-100 scale-100"
