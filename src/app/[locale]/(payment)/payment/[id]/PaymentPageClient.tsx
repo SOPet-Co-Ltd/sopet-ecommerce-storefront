@@ -356,7 +356,7 @@ function PromptPayPaymentView({
   return (
     <section className="flex md:flex-row flex-col gap-5 w-full justify-center items-center">
       <section>
-        <div className="flex flex-col gap-4 border p-4 bg-sop-neutral-gray-600 border-sop-neutral-grayalpha-100 rounded-sop-16px shadow shadow-sop-neutral-grayalpha-100">
+        <div className="flex flex-col w-[325px] items-center gap-4 border p-4 bg-sop-neutral-gray-600 border-sop-neutral-grayalpha-100 rounded-sop-16px shadow shadow-sop-neutral-grayalpha-100">
           <div className="flex flex-1 w-full justify-between items-center px-4 py-2 rounded-sop-8px bg-sop-secondary-100">
             <p className="sop-body-sm-regular text-sop-base-black">
               กรุณาชำระเงินภายใน
@@ -368,7 +368,7 @@ function PromptPayPaymentView({
             <img
               src={qrImageUrl}
               alt="PromptPay QR"
-              className="h-full w-full object-contain"
+              className="h-68 w-61 object-contain"
             />
           ) : (
             <div className="flex flex-col items-center gap-sop-12px text-sop-neutral-gray-400">
