@@ -64,7 +64,8 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
           บัตรที่บันทึกไว้
         </label>
 
-        <Button
+        {/* เอา hide ออกทีหลังด้วย */}
+        {/* <Button
           type="button"
           variant="outline"
           size="sm"
@@ -72,7 +73,7 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
           iconLeft={<Plus className="h-sop-16px w-sop-16px" />}
         >
           เพิ่มบัตรใหม่
-        </Button>
+        </Button> */}
       </div>
 
       <div className="mt-sop-16px space-y-sop-12px">
