@@ -23,7 +23,7 @@ import {
   getPromptPayPendingTtlSeconds,
 } from "@/lib/helpers/pending-payment-expiry"
 import { toast } from "@/lib/helpers/toast"
-import type { OrderDetails } from "@/types/order"
+import type { OrderDetails, OrderPayment } from "@/types/order"
 import {
   AlertCircle,
   CreditCard,
@@ -34,6 +34,8 @@ import {
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SaveIcon } from "@/icons"
+import { DogLoading } from "@/components/cells"
+import { useIsMobile } from "@/lib/utils/is-mobile"
 
 type ProviderSessionData = {
   qr_image_url?: string | null
@@ -109,6 +111,18 @@ type SavedCheckoutPayload = {
     vendor?: Record<string, string[]> | null
   }
   payment?: { method?: "card" | "promptpay" | string | null } | null
+}
+
+type OmisePaymentData = {
+  source?: {
+    provider_references?: {
+      reference_number_1?: string
+    }
+  }
+}
+
+type ExtendedOrderPayment = OrderPayment & {
+  data?: OmisePaymentData
 }
 
 const CARD_CAPTURE_BACKOFFS_MS = [
@@ -253,6 +267,7 @@ function PromptPayPaymentView({
   order,
   orderId,
   session,
+  promptpayExpiresAtMs,
 }: {
   qrImageUrl: string | null
   qrReference: string | null
@@ -262,9 +277,11 @@ function PromptPayPaymentView({
   session: CheckoutSessionDto
   order: OrderDetails | null
   orderId: string | null
+  promptpayExpiresAtMs: number | null
 }) {
   const timerLabel = hms ? `${hms.h}:${hms.m}:${hms.s}` : "กำลังเตรียมเวลา"
   const amountLabel = getPaymentAmountLabel(session, order)
+  const isMobile = useIsMobile()
 
   async function handleSaveQRCode() {
     if (!qrImageUrl) return
@@ -354,15 +371,34 @@ function PromptPayPaymentView({
     }
   }
 
+  const payment = order?.payment_collections?.[0]
+    ?.payments?.[0] as ExtendedOrderPayment
+
+  const referenceNumber1 =
+    payment?.data?.source?.provider_references?.reference_number_1
+
   return (
     <section className="flex md:flex-row flex-col gap-5 w-full justify-center items-center">
       <section>
+        {isMobile && (
+          <div className="flex flex-col gap-1 justify-center items-center mb-sop-12px">
+            <h2 className="sop-body-md-medium text-sop-neutral-gray-200">
+              สแกน QR เพื่อชำระเงิน
+            </h2>
+            <p className="sop-body-sm-regular text-sop-neutral-gray-300">
+              กรุณาอยู่ในหน้านี้จนกว่าการชำระเงินจะสำเร็จ
+            </p>
+          </div>
+        )}
         <div className="flex flex-col w-[325px] items-center gap-4 border p-4 bg-sop-neutral-gray-600 border-sop-neutral-grayalpha-100 rounded-sop-16px shadow shadow-sop-neutral-grayalpha-100">
           <div className="flex flex-1 w-full justify-between items-center px-4 py-2 rounded-sop-8px bg-sop-secondary-100">
-            <p className="sop-body-sm-regular text-sop-base-black">
+            <p className="lg:sop-body-sm-regular sop-body-sm-medium text-sop-base-black">
               กรุณาชำระเงินภายใน
             </p>
-            <StatusPill errorMsg={errorMsg} statusText={timerLabel} />
+            <PromptPayCountdown
+              expiresAt={promptpayExpiresAtMs}
+              errorMsg={errorMsg}
+            />{" "}
           </div>
           {qrImageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -374,7 +410,7 @@ function PromptPayPaymentView({
           ) : (
             <div className="flex flex-col items-center gap-sop-12px text-sop-neutral-gray-400">
               <PaymentSpinner className="h-10 w-10" />
-              <span className="sop-body-sm-regular">
+              <span className="lg:sop-body-sm-regular sop-body-sm-medium">
                 {isBootstrapping ? "กำลังสร้าง QR…" : "กำลังโหลด QR…"}
               </span>
             </div>
@@ -392,57 +428,69 @@ function PromptPayPaymentView({
         </div>
       </section>
       <div className="flex flex-col gap-3 w-full md:w-116 max-w-116.25">
-        <div className="flex flex-col gap-1">
-          <h2 className="sop-body-lg-medium text-sop-neutral-gray-200">
-            สแกน QR เพื่อชำระเงิน
-          </h2>
-          <p className="sop-body-md-regular text-sop-neutral-gray-300">
-            กรุณาอยู่ในหน้านี้จนกว่าการชำระเงินจะสำเร็จ
-          </p>
-        </div>
-        <div className="flex flex-col gap-5 p-4 bg-sop-neutral-gray-500 rounded-sop-20px">
-          <h2 className="sop-body-lg-medium text-sop-primary-500">
+        {!isMobile && (
+          <div className="flex flex-col gap-1">
+            <h2 className="sop-body-lg-medium text-sop-neutral-gray-200">
+              สแกน QR เพื่อชำระเงิน
+            </h2>
+            <p className="sop-body-md-regular text-sop-neutral-gray-300">
+              กรุณาอยู่ในหน้านี้จนกว่าการชำระเงินจะสำเร็จ
+            </p>
+          </div>
+        )}
+        <div className="flex flex-col lg:gap-5 gap-3 p-4 bg-sop-neutral-gray-500 rounded-sop-20px">
+          <h2 className="lg:sop-body-lg-medium sop-body-sm-medium text-sop-primary-500">
             รายละเอียดการชำระเงิน
           </h2>
           <div>
-            <div className="flex items-center justify-between">
-              <span className="sop-body-md-regular text-[#232323]">
-                รหัสคำสั่งซื้อ
+            <div className="flex items-center justify-between mb-sop-4px">
+              <span className="lg:sop-body-md-regular sop-body-xs-regular text-[#232323]">
+                เลขที่คำสั่งซื้อ
               </span>
-              <span className="sop-body-sm-medium text-sop-base-black">
-                {orderId}
+              <span className="lg:sop-body-sm-medium sop-body-xs-medium text-sop-base-black">
+                SOP-{order?.display_id}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="sop-body-md-regular text-[#232323]">
+              <span className="lg:sop-body-md-regular sop-body-xs-regular text-[#232323]">
                 วันที่สั่งซื้อ
               </span>
-              <span className="sop-body-sm-medium text-sop-base-black">
+              <span className="lg:sop-body-sm-medium sop-body-xs-medium text-sop-base-black">
                 {order?.created_at
-                  ? new Date(order.created_at).toLocaleDateString("th-TH")
+                  ? new Date(order.created_at)
+                      .toLocaleString("th-TH", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                      .replace("เวลา ", "")
                   : "-"}
               </span>
             </div>
           </div>
           <div className="h-px w-full bg-sop-neutral-grayalpha-200"></div>
           <div className="flex justify-between items-center">
-            <h2 className="lg:sop-body-lg-medium text-sop-neutral-gray-300">
+            <h2 className="lg:sop-body-lg-medium sop-body-sm-medium  text-sop-neutral-gray-300">
               ยอดชำระเงิน
             </h2>
-            <span className="lg:sop-headline-md-medium text-sop-secondary-600">
+            <span className="lg:sop-headline-md-medium sop-body-lg-medium  text-sop-secondary-600">
               {amountLabel}
             </span>
           </div>
         </div>
-        <div className="flex flex-col gap-5 p-4 bg-sop-neutral-gray-500 rounded-sop-20px">
-          <h2 className="sop-body-md-medium text-sop-base-black">
-            ข้อมูลบัญชีรับเงิน
+        <div className="flex flex-col lg:gap-5 gap-3 p-4 bg-sop-neutral-gray-500 rounded-sop-20px">
+          <h2 className="lg:sop-body-md-medium sop-body-sm-medium text-sop-base-black">
+            รหัสอ้างอิงการชำระเงิน
           </h2>
           <div>
             <div className="flex items-center justify-between">
-              <span>Reference ID</span>
-              <span className="sop-body-sm-medium text-sop-base-black">
-                {qrReference ?? "-"}
+              <span className="lg:sop-body-lg-medium sop-body-sm-medium  text-sop-neutral-gray-300">
+                Reference ID
+              </span>
+              <span className="lg:sop-body-sm-medium sop-body-xs-medium text-sop-base-black">
+                {referenceNumber1 ?? "-"}
               </span>
             </div>
           </div>
@@ -852,6 +900,23 @@ function detectPaymentFailure(
   return { failed: false }
 }
 
+function PromptPayCountdown({
+  expiresAt,
+  errorMsg,
+}: {
+  expiresAt: number | null
+  errorMsg: string | null
+}) {
+  const { remainingSeconds } = usePaymentCountdown(expiresAt)
+
+  const hms =
+    remainingSeconds != null ? formatCountdownHms(remainingSeconds) : null
+
+  const timerLabel = hms ? `${hms.h}:${hms.m}:${hms.s}` : "กำลังเตรียมเวลา"
+
+  return <StatusPill errorMsg={errorMsg} statusText={timerLabel} />
+}
+
 export default function PaymentPageClient({
   locale,
   session,
@@ -916,13 +981,18 @@ export default function PaymentPageClient({
     return refreshed.session
   }, [checkoutSessionId])
 
+  const [isOrderLoading, setIsOrderLoading] = useState(Boolean(orderId))
+
   useEffect(() => {
     if (!orderId) {
       setOrder(null)
+      setIsOrderLoading(false)
       return
     }
 
     let cancelled = false
+
+    setIsOrderLoading(true)
 
     void retrieveOrder(orderId, { checkoutSessionId })
       .then((nextOrder) => {
@@ -933,6 +1003,11 @@ export default function PaymentPageClient({
       .catch(() => {
         if (!cancelled) {
           setOrder(null)
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsOrderLoading(false)
         }
       })
 
@@ -1160,11 +1235,19 @@ export default function PaymentPageClient({
     providerId,
     refreshCheckoutSession,
   ])
+  const finalizeStartedRef = useRef(false)
 
   useEffect(() => {
     if (!orderId || isBootstrapping || errorMsg) return
 
-    if (paymentMethod === "card" && cardAuthorizeUrl) {
+    if (finalizeStartedRef.current) return
+    finalizeStartedRef.current = true
+
+    if (
+      paymentMethod === "card" &&
+      cardAuthorizeUrl &&
+      !cardAuthOpenedRef.current
+    ) {
       const storageKey = `sopet:card-auth-opened:${checkoutSessionId}`
       const alreadyOpened =
         typeof window !== "undefined" &&
@@ -1220,6 +1303,10 @@ export default function PaymentPageClient({
     }).catch(() => undefined)
   }, [currentSession.id, errorMsg, isExpired, orderId, paymentMethod])
 
+  if (isBootstrapping || isOrderLoading) {
+    return <DogLoading />
+  }
+
   if (paymentMethod === "promptpay") {
     const hms =
       remainingSeconds != null ? formatCountdownHms(remainingSeconds) : null
@@ -1234,6 +1321,7 @@ export default function PaymentPageClient({
         session={currentSession}
         order={order}
         orderId={orderId}
+        promptpayExpiresAtMs={promptpayExpiresAtMs}
       />
     )
   }
