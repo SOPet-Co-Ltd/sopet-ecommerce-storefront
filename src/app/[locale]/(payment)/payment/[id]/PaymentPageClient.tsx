@@ -116,8 +116,7 @@ const CARD_CAPTURE_BACKOFFS_MS = [
 ]
 const PROMPTPAY_POLL_INTERVAL_MS = 3000
 const PROMPTPAY_GRACE_MS = 15000
-const CARD_POPUP_CLOSED_MAX_WAIT_MS = 2000
-const CARD_POPUP_POLL_INTERVAL_MS = 750
+const CARD_3DS_RETURN_PARAM = "return_from_3ds"
 
 async function waitInterruptible(
   ms: number,
@@ -289,12 +288,14 @@ function PromptPayPaymentView({
         const svgUrl = window.URL.createObjectURL(svgBlob)
 
         try {
-          const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-            const img = new Image()
-            img.onload = () => resolve(img)
-            img.onerror = () => reject(new Error("Failed to render SVG"))
-            img.src = svgUrl
-          })
+          const image = await new Promise<HTMLImageElement>(
+            (resolve, reject) => {
+              const img = new Image()
+              img.onload = () => resolve(img)
+              img.onerror = () => reject(new Error("Failed to render SVG"))
+              img.src = svgUrl
+            }
+          )
 
           const canvas = document.createElement("canvas")
           canvas.width = image.naturalWidth || image.width || 512
@@ -875,8 +876,6 @@ export default function PaymentPageClient({
   const bootstrapStartedRef = useRef(false)
   const capturingRef = useRef(false)
   const cardAuthOpenedRef = useRef(false)
-  const cardAuthPopupRef = useRef<Window | null>(null)
-  const popupClosedRef = useRef(false)
   const promptpayExpiresAtMsRef = useRef<number | null>(null)
 
   const paymentMethod = currentSession.payment_method
@@ -959,15 +958,8 @@ export default function PaymentPageClient({
             : (CARD_CAPTURE_BACKOFFS_MS[attempt] ?? null)
 
         if (baseWait == null) break
-        const waitMs =
-          paymentMethod === "card" && popupClosedRef.current
-            ? Math.min(baseWait, CARD_POPUP_CLOSED_MAX_WAIT_MS)
-            : baseWait
-        if (waitMs > 0) {
-          await waitInterruptible(
-            waitMs,
-            () => paymentMethod === "card" && popupClosedRef.current
-          )
+        if (baseWait > 0) {
+          await waitInterruptible(baseWait, () => false)
         }
 
         const sessionRes = await getCheckoutSession(checkoutSessionId).catch(
@@ -1067,9 +1059,13 @@ export default function PaymentPageClient({
           throw new Error("ไม่พบผู้ให้บริการชำระเงิน")
         }
 
+        const returnUri = `${window.location.origin}/${locale}/payment/${currentSession.id}`
         const sessionData: Record<string, unknown> = {
           payment_method_types: [paymentMethod],
-          return_uri: `${window.location.origin}/${locale}/payment/${currentSession.id}`,
+          return_uri:
+            paymentMethod === "card"
+              ? `${returnUri}?${CARD_3DS_RETURN_PARAM}=1`
+              : returnUri,
         }
 
         if (paymentMethod === "card") {
@@ -1168,28 +1164,35 @@ export default function PaymentPageClient({
   useEffect(() => {
     if (!orderId || isBootstrapping || errorMsg) return
 
-    if (
-      paymentMethod === "card" &&
-      cardAuthorizeUrl &&
-      !cardAuthOpenedRef.current
-    ) {
+    if (paymentMethod === "card" && cardAuthorizeUrl) {
       const storageKey = `sopet:card-auth-opened:${checkoutSessionId}`
       const alreadyOpened =
         typeof window !== "undefined" &&
         window.localStorage.getItem(storageKey) === "1"
-      cardAuthOpenedRef.current = true
-      if (!alreadyOpened) {
+      const returnedFrom3ds =
+        typeof window !== "undefined" &&
+        new URLSearchParams(window.location.search).get(
+          CARD_3DS_RETURN_PARAM
+        ) === "1"
+
+      if (!returnedFrom3ds && (alreadyOpened || cardAuthOpenedRef.current)) {
+        setStatusText("รอการยืนยันบัตร")
+        return
+      }
+
+      if (!alreadyOpened && !returnedFrom3ds) {
+        cardAuthOpenedRef.current = true
         try {
           window.localStorage.setItem(storageKey, "1")
         } catch {
           // ignore storage errors (private mode, quota, etc.)
         }
-        const popup = window.open(
-          cardAuthorizeUrl,
-          "_blank",
-          "noopener,noreferrer"
-        )
-        cardAuthPopupRef.current = popup
+        window.location.assign(cardAuthorizeUrl)
+        return
+      }
+
+      if (!returnedFrom3ds) {
+        return
       }
     }
 
@@ -1203,22 +1206,6 @@ export default function PaymentPageClient({
     orderId,
     paymentMethod,
   ])
-
-  useEffect(() => {
-    if (paymentMethod !== "card") return
-    if (!orderId || isBootstrapping || errorMsg) return
-    const popup = cardAuthPopupRef.current
-    if (!popup) return
-
-    const interval = window.setInterval(() => {
-      if (popup.closed && !popupClosedRef.current) {
-        popupClosedRef.current = true
-        window.clearInterval(interval)
-      }
-    }, CARD_POPUP_POLL_INTERVAL_MS)
-
-    return () => window.clearInterval(interval)
-  }, [errorMsg, isBootstrapping, orderId, paymentMethod])
 
   useEffect(() => {
     if (paymentMethod !== "promptpay") return
