@@ -271,14 +271,57 @@ function PromptPayPaymentView({
     if (!qrImageUrl) return
 
     const filename = `promptpay-qr-${orderId ?? "sopet"}.png`
+    const proxiedQrImageUrl = `/api/payment/qr-image?url=${encodeURIComponent(qrImageUrl)}`
 
     try {
-      const response = await fetch(qrImageUrl)
+      const response = await fetch(proxiedQrImageUrl)
       if (!response.ok) {
         throw new Error("Failed to fetch QR code image")
       }
       const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
+      const isSvg =
+        blob.type.includes("svg") || qrImageUrl.toLowerCase().includes(".svg")
+
+      let downloadBlob = blob
+      if (isSvg) {
+        const svgText = await blob.text()
+        const svgBlob = new Blob([svgText], { type: "image/svg+xml" })
+        const svgUrl = window.URL.createObjectURL(svgBlob)
+
+        try {
+          const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+            const img = new Image()
+            img.onload = () => resolve(img)
+            img.onerror = () => reject(new Error("Failed to render SVG"))
+            img.src = svgUrl
+          })
+
+          const canvas = document.createElement("canvas")
+          canvas.width = image.naturalWidth || image.width || 512
+          canvas.height = image.naturalHeight || image.height || 512
+
+          const context = canvas.getContext("2d")
+          if (!context) {
+            throw new Error("Canvas context unavailable")
+          }
+
+          context.drawImage(image, 0, 0)
+
+          downloadBlob = await new Promise<Blob>((resolve, reject) => {
+            canvas.toBlob((pngBlob) => {
+              if (!pngBlob) {
+                reject(new Error("Failed to convert SVG to PNG"))
+                return
+              }
+              resolve(pngBlob)
+            }, "image/png")
+          })
+        } finally {
+          window.URL.revokeObjectURL(svgUrl)
+        }
+      }
+
+      const url = window.URL.createObjectURL(downloadBlob)
       const link = document.createElement("a")
       link.href = url
       link.download = filename
@@ -293,7 +336,7 @@ function PromptPayPaymentView({
       console.error("Error downloading QR code:", error)
       try {
         const link = document.createElement("a")
-        link.href = qrImageUrl
+        link.href = proxiedQrImageUrl
         link.download = filename
         link.target = "_blank"
         link.rel = "noopener noreferrer"
@@ -375,7 +418,7 @@ function PromptPayPaymentView({
               </span>
               <span className="sop-body-sm-medium text-sop-base-black">
                 {order?.created_at
-                  ? new Date(order.created_at).toLocaleDateString()
+                  ? new Date(order.created_at).toLocaleDateString("th-TH")
                   : "-"}
               </span>
             </div>
@@ -817,6 +860,7 @@ export default function PaymentPageClient({
   const router = useRouter()
   const [currentSession, setCurrentSession] =
     useState<CheckoutSessionDto>(session)
+  const [order, setOrder] = useState<OrderDetails | null>(initialOrder)
   const [orderId, setOrderId] = useState<string | null>(session.order_id)
   const [isBootstrapping, setIsBootstrapping] = useState(!session.order_id)
   const [statusText, setStatusText] = useState(
@@ -837,8 +881,8 @@ export default function PaymentPageClient({
 
   const paymentMethod = currentSession.payment_method
   const paymentCollections = useMemo(
-    () => getPaymentCollections(initialOrder, currentSession),
-    [currentSession, initialOrder]
+    () => getPaymentCollections(order, currentSession),
+    [currentSession, order]
   )
   const qrImageUrl =
     paymentMethod === "promptpay" ? extractQrImageUrl(paymentCollections) : null
@@ -872,6 +916,31 @@ export default function PaymentPageClient({
     setOrderId(refreshed.session.order_id)
     return refreshed.session
   }, [checkoutSessionId])
+
+  useEffect(() => {
+    if (!orderId) {
+      setOrder(null)
+      return
+    }
+
+    let cancelled = false
+
+    void retrieveOrder(orderId, { checkoutSessionId })
+      .then((nextOrder) => {
+        if (!cancelled) {
+          setOrder(nextOrder)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOrder(null)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [checkoutSessionId, orderId])
 
   const finalize = useCallback(
     async (nextOrderId: string) => {
@@ -920,7 +989,9 @@ export default function PaymentPageClient({
         })
 
         if (res.success) {
-          const fresh = await retrieveOrder(nextOrderId).catch(() => null)
+          const fresh = await retrieveOrder(nextOrderId, {
+            checkoutSessionId,
+          }).catch(() => null)
           const isPaid =
             (fresh?.metadata as { is_paid?: unknown } | null | undefined)
               ?.is_paid === true
@@ -1174,7 +1245,7 @@ export default function PaymentPageClient({
         isBootstrapping={isBootstrapping}
         errorMsg={errorMsg}
         session={currentSession}
-        order={initialOrder}
+        order={order}
         orderId={orderId}
       />
     )

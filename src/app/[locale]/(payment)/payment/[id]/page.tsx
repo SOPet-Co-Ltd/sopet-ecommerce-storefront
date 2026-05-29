@@ -61,7 +61,9 @@ export default async function PaymentPage({
 
   // Fetch the fresh order if we already have one (refresh case).
   const order = session.order_id
-    ? await retrieveOrder(session.order_id).catch(() => null)
+    ? await retrieveOrder(session.order_id, {
+        checkoutSessionId: session.id,
+      }).catch(() => null)
     : null
 
   return (

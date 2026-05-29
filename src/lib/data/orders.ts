@@ -222,10 +222,15 @@ export const retrieveOrderSet = async (
     .catch((error) => medusaError(error))
 }
 
-export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
+export const retrieveOrder = async (
+  id: string,
+  options?: { checkoutSessionId?: string }
+): Promise<OrderDetails> => {
   const headers = {
     ...(await getAuthHeaders()),
   }
+
+  const checkoutSessionId = options?.checkoutSessionId?.trim()
 
   return sdk.client
     .fetch<unknown>(`/store/custom/orders/${id}`, {
@@ -233,6 +238,9 @@ export const retrieveOrder = async (id: string): Promise<OrderDetails> => {
       query: {
         fields:
           "*payment_collections.payments,*payment_collections.payment_sessions,*items,*items.metadata,*items.variant,*items.variant.product,*items.variant.product.seller,*seller,*order_set,*fulfillments,*fulfillments.items,*fulfillments.labels",
+        ...(checkoutSessionId
+          ? { checkout_session_id: checkoutSessionId }
+          : {}),
       },
       headers,
       cache: "no-store",
