@@ -1,7 +1,5 @@
 "use client"
 
-import type { CouponData } from "@/lib/data/checkout-page"
-import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import { convertToLocale } from "@/lib/helpers/money"
 import {
   ClipboardListIcon,
@@ -13,38 +11,31 @@ import {
 import type { Cart, ExtendedLineItem, GroupedItems } from "@/types/cart"
 import Image from "next/image"
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import {
   useCheckoutStore,
   useVendorShipping,
 } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import {
+  useApplyCheckoutPromotionMutation,
+  useRemoveCheckoutPromotionMutation,
+} from "@/hooks/useDiscountModalCouponsQuery"
+import { queryKeys } from "@/lib/react-query/query-keys"
+import {
+  getCartShippingTotalForPromoEstimate,
+  getCartSubtotalForPromoEstimate,
+  isPromotionCodeOnCart,
+  resolvePromoDiscountAmount,
+} from "@/components/molecules/CheckoutSitePromotionModal/checkout-site-promotion-utils"
+import {
+  buildVendorPromoApplyCodes,
+  filterVendorPromosForSeller,
+  resolveAppliedVendorPromo,
+} from "@/components/molecules/CheckoutVendorPromotionModal/checkout-vendor-promotion-utils"
+import { CheckoutVendorPromotionModal } from "@/components/molecules/CheckoutVendorPromotionModal"
 import ShippingMethod from "./ShippingMethod"
 
-type CheckoutLineItem = ExtendedLineItem & {
-  original_total?: unknown
-  compare_at_unit_price?: unknown
-}
-
 type SellerGroup = GroupedItems[string]
-
-function toNumericAmount(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-
-  if (value && typeof value === "object") {
-    const numericValue = (value as { numeric_?: unknown }).numeric_
-    if (typeof numericValue === "number" && Number.isFinite(numericValue)) {
-      return numericValue
-    }
-  }
-
-  return 0
-}
 
 function getLineItemVariantLabel(item: ExtendedLineItem): string | null {
   const fromOptions = item.variant?.options
@@ -57,26 +48,6 @@ function getLineItemVariantLabel(item: ExtendedLineItem): string | null {
     .join(", ")
 
   return fromOptions || item.variant_title || item.variant?.title || null
-}
-
-function getLineItemDiscount(item: CheckoutLineItem): number {
-  const lineTotal = toNumericAmount(
-    item.total ?? item.unit_price * item.quantity
-  )
-  const compareAt = toNumericAmount(item.compare_at_unit_price)
-  const originalTotal = toNumericAmount(
-    item.original_total ??
-      (compareAt > 0 ? compareAt * item.quantity : lineTotal)
-  )
-
-  return Math.max(0, originalTotal - lineTotal)
-}
-
-function getSellerDiscount(items: ExtendedLineItem[]) {
-  return items.reduce(
-    (sum, item) => sum + getLineItemDiscount(item as CheckoutLineItem),
-    0
-  )
 }
 
 function formatAmount(amount: number, currencyCode: string) {
@@ -168,25 +139,58 @@ function SellerGroupCard({
   cartId,
   group,
   currencyCode,
-  onOpenDiscount,
 }: {
   cartId: string
   group: SellerGroup
   currencyCode: string
-  onOpenDiscount: () => void
 }) {
   const { seller, items } = group
 
-  const [openShippingModal, setOpenShippingModal] = useState(false)
+  const queryClient = useQueryClient()
 
-  const { sellerDiscount, sellerSubtotal } = useMemo(() => {
-    const discount = getSellerDiscount(items)
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.unit_price * item.quantity,
-      0
-    )
-    return { sellerDiscount: discount, sellerSubtotal: subtotal }
-  }, [items])
+  const [openShippingModal, setOpenShippingModal] = useState(false)
+  const [openDiscountModal, setOpenDiscountModal] = useState(false)
+
+  const cart = useCheckoutStore((state) => state.cart)
+  const setCart = useCheckoutStore((state) => state.setCart)
+  const vendorPromos = useCheckoutStore((state) => state.vendorPromos)
+
+  const checkoutCartId =
+    typeof cart.id === "string" && cart.id.startsWith("cart_") ? cart.id : null
+
+  const sellerVendorPromos = useMemo(
+    () => filterVendorPromosForSeller(vendorPromos, seller.name),
+    [vendorPromos, seller.name]
+  )
+
+  const appliedVendorPromo = useMemo(
+    () => resolveAppliedVendorPromo(cart, sellerVendorPromos),
+    [cart, sellerVendorPromos]
+  )
+
+  const appliedVendorDiscount = useMemo(
+    () =>
+      appliedVendorPromo
+        ? resolvePromoDiscountAmount(appliedVendorPromo, {
+            cart,
+            cartSubtotal: getCartSubtotalForPromoEstimate(cart),
+            shippingTotal: getCartShippingTotalForPromoEstimate(cart),
+          })
+        : 0,
+    [appliedVendorPromo, cart]
+  )
+
+  const applyPromotionMutation =
+    useApplyCheckoutPromotionMutation(checkoutCartId)
+  const removePromotionMutation =
+    useRemoveCheckoutPromotionMutation(checkoutCartId)
+  const isDiscountBusy =
+    applyPromotionMutation.isPending || removePromotionMutation.isPending
+
+  const sellerSubtotal = useMemo(
+    () => items.reduce((sum, item) => sum + item.unit_price * item.quantity, 0),
+    [items]
+  )
 
   const {
     options: shippingOptions,
@@ -220,8 +224,73 @@ function SellerGroupCard({
     setSelectedShippingMethod,
   ])
 
-  const formattedDiscount = formatAmount(sellerDiscount, currencyCode)
   const formattedSubtotal = formatAmount(sellerSubtotal, currencyCode)
+
+  const invalidatePromotionsQuery = () => {
+    if (!checkoutCartId) {
+      return
+    }
+    void queryClient.invalidateQueries({
+      queryKey: ["checkout", "promotions", checkoutCartId] as const,
+      exact: false,
+    })
+  }
+
+  const handleApplyVendorPromo = async (code: string): Promise<boolean> => {
+    const normalizedCode = code.trim()
+    if (!normalizedCode || !checkoutCartId) {
+      return false
+    }
+
+    try {
+      const codesToApply = buildVendorPromoApplyCodes(
+        cart,
+        sellerVendorPromos,
+        normalizedCode
+      )
+      const updatedCart = await applyPromotionMutation.mutateAsync(codesToApply)
+
+      if (!isPromotionCodeOnCart(updatedCart, normalizedCode)) {
+        return false
+      }
+
+      setCart(updatedCart)
+      invalidatePromotionsQuery()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const handleRemoveVendorPromo = async (): Promise<boolean> => {
+    const code = appliedVendorPromo?.code?.trim()
+    if (!code || !checkoutCartId) {
+      return !appliedVendorPromo
+    }
+
+    try {
+      const updatedCart = await removePromotionMutation.mutateAsync(code)
+      setCart(updatedCart)
+      invalidatePromotionsQuery()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const handleCloseDiscountModal = () => {
+    setOpenDiscountModal(false)
+
+    if (checkoutCartId) {
+      const cachedCart = queryClient.getQueryData<Cart>(
+        queryKeys.checkout.cart(checkoutCartId)
+      )
+
+      if (cachedCart) {
+        setCart(cachedCart)
+      }
+    }
+  }
 
   const handleOpenShipping = () => {
     if (isLoadingShipping || !shippingOptions?.length) {
@@ -281,7 +350,7 @@ function SellerGroupCard({
         <div className="flex px-sop-16px lg:px-sop-24px h-full items-center lg:gap-sop-20px gap-sop-12px lg:pt-sop-20px lg:pb-sop-28px">
           <SellerGroupAction
             label="ส่วนลดร้านค้า"
-            onClick={onOpenDiscount}
+            onClick={() => setOpenDiscountModal(true)}
             icon={
               <OutlinePromoIcon
                 sizeMobile={24}
@@ -290,11 +359,14 @@ function SellerGroupCard({
               />
             }
           >
-            {sellerDiscount > 0 ? (
+            {appliedVendorPromo ? (
               <span className="sop-body-sm-regular lg:sop-body-md-regular text-sop-system-success-500">
-                <span className="lg:hidden">ลด {formattedDiscount}</span>
+                <span className="lg:hidden">
+                  ลด {formatAmount(appliedVendorDiscount, currencyCode)}
+                </span>
                 <span className="hidden lg:inline">
-                  ใช้ส่วนลด {formattedDiscount} แล้ว
+                  ใช้ส่วนลด {formatAmount(appliedVendorDiscount, currencyCode)}{" "}
+                  แล้ว
                 </span>
               </span>
             ) : (
@@ -370,33 +442,25 @@ function SellerGroupCard({
           </span>
         </div>
       </div>
+
+      <CheckoutVendorPromotionModal
+        isOpen={openDiscountModal}
+        onClose={handleCloseDiscountModal}
+        sellerName={seller.name}
+        vendorPromos={sellerVendorPromos}
+        appliedVendorPromo={appliedVendorPromo}
+        isBusy={isDiscountBusy}
+        onApplyPromo={handleApplyVendorPromo}
+        onRemovePromo={handleRemoveVendorPromo}
+      />
     </div>
   )
 }
 
-const CheckoutDetailsSection = ({
-  cart,
-  vendorPromos,
-}: {
-  cart: Cart
-  vendorPromos: CouponData[]
-}) => {
+const CheckoutDetailsSection = ({ cart }: { cart: Cart }) => {
   const currencyCode = cart.region?.currency_code ?? cart.currency_code
 
   const storeSellerGroups = useCheckoutStore((state) => state.sellerGroups)
-
-  const handleOpenDiscount = () => {
-    // TODO: open vendor-promo modal; `vendorPromos` will feed it.
-    console.log("open vendor promo modal")
-    console.log(vendorPromos)
-    console.log(`vendorPromos.length: ${vendorPromos.length}`)
-    console.log(`vendorPromos.length > 0: ${vendorPromos.length > 0}`)
-    console.log(
-      `vendorPromos.length > 0 ? ${vendorPromos.length > 0 ? `เลือกส่วนลดร้านค้า (${vendorPromos.length})` : "ไม่มีส่วนลดร้านค้า"}`
-    )
-
-    void vendorPromos
-  }
 
   return Object.entries(storeSellerGroups).map(
     ([key, group]: [string, GroupedItems[string]]) => (
@@ -405,7 +469,6 @@ const CheckoutDetailsSection = ({
         cartId={cart.id}
         group={group}
         currencyCode={currencyCode}
-        onOpenDiscount={handleOpenDiscount}
       />
     )
   )

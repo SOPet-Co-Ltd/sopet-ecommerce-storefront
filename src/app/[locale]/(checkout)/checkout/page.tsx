@@ -65,10 +65,7 @@ export default async function CheckoutPage({
           <div className="flex flex-col gap-8 xl:flex-row">
             <div className="flex-1 xl:min-w-112.5">
               <CheckoutAddressForm customer={initialData.customer} />
-              <CheckoutDetailsSection
-                cart={cart}
-                vendorPromos={initialData.vendorPromos}
-              />
+              <CheckoutDetailsSection cart={cart} />
             </div>
 
             <div className="w-full xl:max-w-105 lg:mt-17 sm:mt-sop-16px">
