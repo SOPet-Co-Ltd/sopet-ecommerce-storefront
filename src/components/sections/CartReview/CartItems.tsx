@@ -6,16 +6,18 @@ export const CartItems = ({ cart }: { cart: Cart | null }) => {
 
   const groupedItems: any = groupItemsBySeller(cart)
 
-  return Object.keys(groupedItems).sort().map((key) => (
-    <div key={key} className="mb-4">
-      <CartItemsHeader seller={groupedItems[key]?.seller} />
-      <CartItemsProducts
-        delete_item={false}
-        products={groupedItems[key].items || []}
-        currency_code={cart.currency_code}
-      />
-    </div>
-  ))
+  return Object.keys(groupedItems)
+    .sort()
+    .map((key) => (
+      <div key={key} className="mb-4">
+        <CartItemsHeader seller={groupedItems[key]?.seller} />
+        <CartItemsProducts
+          delete_item={false}
+          products={groupedItems[key].items || []}
+          currency_code={cart.currency_code}
+        />
+      </div>
+    ))
 }
 
 function groupItemsBySeller(cart: Cart) {
@@ -37,7 +39,7 @@ function groupItemsBySeller(cart: Cart) {
           seller: {
             name: "Fleek",
             id: "fleek",
-            photo: "/Logo.svg",
+            photo: "/images/placeholder.svg",
             created_at: new Date(),
           },
           items: [],

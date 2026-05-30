@@ -13,19 +13,21 @@ export const CartItems = ({ cart }: { cart: Cart | null }) => {
 
   if (!Object.keys(groupedItems).length) return <EmptyCart />
 
-  return Object.keys(groupedItems).sort().map((key) => (
-    <div key={key} className="mb-4">
-      <CartItemsHeader seller={groupedItems[key]?.seller} />
-      <CartItemsProducts
-        products={groupedItems[key].items || []}
-        currency_code={cart.currency_code}
-      />
-      <CartItemsFooter
-        currency_code={cart.currency_code}
-        price={cart.shipping_subtotal}
-      />
-    </div>
-  ))
+  return Object.keys(groupedItems)
+    .sort()
+    .map((key) => (
+      <div key={key} className="mb-4">
+        <CartItemsHeader seller={groupedItems[key]?.seller} />
+        <CartItemsProducts
+          products={groupedItems[key].items || []}
+          currency_code={cart.currency_code}
+        />
+        <CartItemsFooter
+          currency_code={cart.currency_code}
+          price={cart.shipping_subtotal}
+        />
+      </div>
+    ))
 }
 
 function groupItemsBySeller(cart: Cart) {
@@ -47,7 +49,7 @@ function groupItemsBySeller(cart: Cart) {
           seller: {
             name: "Fleek",
             id: "fleek",
-            photo: "/Logo.svg",
+            photo: "/images/placeholder.svg",
             created_at: new Date(),
           },
           items: [],

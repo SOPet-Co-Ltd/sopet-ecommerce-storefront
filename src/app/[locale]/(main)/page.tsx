@@ -91,7 +91,7 @@ export async function generateMetadata({
 
   const title = "หน้าหลัก"
   const description = DEFAULT_SITE_DESCRIPTION
-  const ogImage = "/B2C_Storefront_Open_Graph.png"
+  const ogImage = "/opengraph-image"
   const canonical = `${baseUrl}/${locale}`
 
   return {
@@ -173,13 +173,6 @@ export default async function Home({
 
   return (
     <main className="flex flex-col row-start-2 items-center sm:items-start text-primary w-full">
-      <link
-        rel="preload"
-        as="image"
-        href="/images/hero/Image.jpg"
-        imageSrcSet="/images/hero/Image.jpg 700w"
-        imageSizes="(min-width: 1024px) 50vw, 100vw"
-      />
       {/* Organization JSON-LD */}
       <Script
         id="ld-org"

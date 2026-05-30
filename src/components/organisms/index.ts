@@ -1,7 +1,5 @@
 import { ProductCardOld } from "./ProductCardOld/ProductCard"
-import { BrandCard } from "./BrandCard/BrandCard"
 import { CategoryCard } from "./CategoryCard/CategoryCard"
-import { BlogCard } from "./BlogCard/BlogCard"
 import { ProductListingHeader } from "./ProductListingHeader/ProductListingHeader"
 import { ProductsList } from "./ProductsList/ProductsList"
 import { ProductsPagination } from "./ProductsPagination/ProductsPagination"
@@ -31,9 +29,7 @@ import { ProductSortButtons } from "./ProductSortButtons/ProductSortButtons"
 
 export {
   ProductCardOld,
-  BrandCard,
   CategoryCard,
-  BlogCard,
   ProductListingHeader,
   ProductsList,
   ProductsPagination,
