@@ -22,6 +22,7 @@ import { listProducts } from "./products"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { getCheckoutCartFetchTimeoutMs } from "@/lib/helpers/request-timeout"
 import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
+import { buildThankYouPath } from "@/lib/helpers/checkout-redirect"
 
 const checkoutPerfLog =
   process.env["CHECKOUT_PERF_LOG"] === "1" ||
@@ -851,6 +852,7 @@ export async function completeMarketplaceOrder(
     paymentMethodType?: "card" | "promptpay"
     paymentSessionIds?: string[]
     paymentIntentIds?: string[]
+    locale?: string
     cartSnapshot?: {
       customerId?: string | null
       email?: string | null
@@ -981,7 +983,7 @@ export async function completeMarketplaceOrder(
   }
   if (orderId && options?.redirect !== false) {
     removeCartId()
-    redirect(`/order/${orderId}/confirmed`)
+    redirect(buildThankYouPath(options?.locale ?? "th", orderId))
   }
 
   return res
@@ -1163,7 +1165,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
  */
 export async function placeOrder(
   cartId?: string,
-  options?: { redirect?: boolean }
+  options?: { redirect?: boolean; locale?: string }
 ) {
   const id = cartId || (await getCartId())
 
@@ -1216,7 +1218,7 @@ export async function placeOrder(
   }
   if (orderId && options?.redirect !== false) {
     removeCartId()
-    redirect(`/order/${orderId}/confirmed`)
+    redirect(buildThankYouPath(options?.locale ?? "th", orderId))
   }
 
   return res
