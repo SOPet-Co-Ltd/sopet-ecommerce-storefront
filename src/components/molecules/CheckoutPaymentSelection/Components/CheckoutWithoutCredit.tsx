@@ -1,6 +1,6 @@
 "use client"
 
-import { Controller, useFormContext } from "react-hook-form"
+import { Controller, useFormContext, useWatch } from "react-hook-form"
 
 import { Checkbox, InputSOPet } from "@/components/atoms"
 import {
@@ -8,11 +8,13 @@ import {
   formatCardNumber,
   formatCVV,
   formatExpiry,
+  getCvvLength,
 } from "../Utils/PaymentFormat"
 import { PaymentFormData } from "../Types/PaymentType"
 
 export const SelectWithoutCreditCard = () => {
-  const { control } = useFormContext<PaymentFormData>()
+  const { control, getValues, setValue } = useFormContext<PaymentFormData>()
+  const cardNumber = useWatch({ control, name: "cardNumber" }) ?? ""
 
   return (
     <div>
@@ -39,9 +41,11 @@ export const SelectWithoutCreditCard = () => {
               state={fieldState.error ? "error" : "default"}
               description={fieldState.error?.message}
               value={field.value}
-              onChange={(e: any) =>
-                field.onChange(formatCardNumber(e.target.value))
-              }
+              onChange={(e: any) => {
+                const cardNumber = formatCardNumber(e.target.value)
+                field.onChange(cardNumber)
+                setValue("cvv", formatCVV(getValues("cvv"), cardNumber))
+              }}
             />
           )}
         />
@@ -107,7 +111,10 @@ export const SelectWithoutCreditCard = () => {
               state={fieldState.error ? "error" : "default"}
               description={fieldState.error?.message}
               value={field.value}
-              onChange={(e: any) => field.onChange(formatCVV(e.target.value))}
+              maxLength={getCvvLength(cardNumber)}
+              onChange={(e: any) =>
+                field.onChange(formatCVV(e.target.value, cardNumber))
+              }
             />
           )}
         />

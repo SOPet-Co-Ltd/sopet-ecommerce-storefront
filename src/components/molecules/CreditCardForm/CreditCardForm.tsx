@@ -6,6 +6,13 @@ import {
   addCustomerPaymentMethod,
   type CustomerPaymentMethod,
 } from "@/lib/data/customer"
+import {
+  cleanCardNumber,
+  formatCardNumber,
+  formatCVV,
+  getCardNumberLength,
+  getCvvLength,
+} from "@/components/molecules/CheckoutPaymentSelection/Utils/PaymentFormat"
 
 declare global {
   interface Window {
@@ -66,11 +73,6 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
     document.head.appendChild(script)
   }, [])
 
-  const formatNumber = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 16)
-    return digits.replace(/(.{4})/g, "$1 ").trim()
-  }
-
   const formatExpiry = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 4)
     if (digits.length >= 3) return digits.slice(0, 2) + "/" + digits.slice(2)
@@ -100,7 +102,9 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
       setError("กรุณากรอกชื่อบนบัตร")
       return
     }
-    if (number.replace(/\s/g, "").length < 16) {
+    const cleanedNumber = cleanCardNumber(number)
+
+    if (cleanedNumber.length !== getCardNumberLength(cleanedNumber)) {
       setError("กรุณากรอกหมายเลขบัตรให้ครบ")
       return
     }
@@ -108,7 +112,7 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
       setError("กรุณากรอกวันหมดอายุให้ถูกต้อง")
       return
     }
-    if (cvv.length < 3) {
+    if (cvv.length !== getCvvLength(number)) {
       setError("กรุณากรอก CVV ให้ครบ")
       return
     }
@@ -118,7 +122,7 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
       "card",
       {
         name: name.trim(),
-        number: number.replace(/\s/g, ""),
+        number: cleanedNumber,
         expiration_month: expirationMonth,
         expiration_year: expirationYear,
         security_code: cvv,
@@ -171,7 +175,14 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
           value={number}
           inputMode="numeric"
           autoComplete="cc-number"
-          onChange={(e) => setNumber(formatNumber(e.target.value))}
+          onChange={(e) => {
+            const cardNumber = formatCardNumber(e.target.value).replace(
+              /-/g,
+              " "
+            )
+            setNumber(cardNumber)
+            setCvv((currentCvv) => formatCVV(currentCvv, cardNumber))
+          }}
         />
       </div>
 
@@ -197,8 +208,8 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
             value={cvv}
             inputMode="numeric"
             autoComplete="cc-csc"
-            maxLength={4}
-            onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
+            maxLength={getCvvLength(number)}
+            onChange={(e) => setCvv(formatCVV(e.target.value, number))}
           />
         </div>
       </div>

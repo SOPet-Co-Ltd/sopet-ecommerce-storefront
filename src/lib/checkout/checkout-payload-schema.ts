@@ -2,32 +2,45 @@ import { z } from "zod"
 
 import { checkoutAddressSchema } from "@/components/molecules/AddressForm/schema"
 import { paymentMethods } from "@/components/molecules/CheckoutPaymentSelection/Schemas/PaymentSchema"
+import {
+  cleanCardNumber,
+  getCardNumberLength,
+  getCvvLength,
+} from "@/components/molecules/CheckoutPaymentSelection/Utils/PaymentFormat"
 
-const cleanCardNumber = (value: string) => value.replace(/\s|-/g, "")
-
-export const newCardDraftSchema = z.object({
-  cardNumber: z
-    .string()
-    .trim()
-    .refine(
-      (val) => /^\d{16}$/.test(cleanCardNumber(val)),
-      "หมายเลขบัตรต้องเป็น 16 หลัก"
-    ),
-  cardName: z
-    .string()
-    .trim()
-    .min(1, "กรุณากรอกชื่อบนบัตร")
-    .regex(/^[a-zA-Z฀-๿\s]+$/, "ชื่อบนบัตรต้องเป็นตัวอักษรเท่านั้น"),
-  expiry: z
-    .string()
-    .trim()
-    .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "รูปแบบต้องเป็น MM/YY"),
-  cvv: z
-    .string()
-    .trim()
-    .regex(/^\d{3,4}$/, "CVV ไม่ถูกต้อง"),
-  setAsDefault: z.boolean().default(false),
-})
+export const newCardDraftSchema = z
+  .object({
+    cardNumber: z
+      .string()
+      .trim()
+      .refine((val) => {
+        const cleaned = cleanCardNumber(val)
+        return (
+          /^\d+$/.test(cleaned) &&
+          cleaned.length === getCardNumberLength(cleaned)
+        )
+      }, "หมายเลขบัตรไม่ถูกต้อง"),
+    cardName: z
+      .string()
+      .trim()
+      .min(1, "กรุณากรอกชื่อบนบัตร")
+      .regex(/^[a-zA-Z฀-๿\s]+$/, "ชื่อบนบัตรต้องเป็นตัวอักษรเท่านั้น"),
+    expiry: z
+      .string()
+      .trim()
+      .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "รูปแบบต้องเป็น MM/YY"),
+    cvv: z.string().trim().regex(/^\d+$/, "CVV ไม่ถูกต้อง"),
+    setAsDefault: z.boolean().default(false),
+  })
+  .superRefine(({ cardNumber, cvv }, ctx) => {
+    if (cvv.length !== getCvvLength(cardNumber)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["cvv"],
+        message: "CVV ไม่ถูกต้อง",
+      })
+    }
+  })
 
 export type NewCardDraft = z.infer<typeof newCardDraftSchema>
 
