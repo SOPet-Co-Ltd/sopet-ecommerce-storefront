@@ -1,10 +1,4 @@
 {
-  "installCommand": "yarn install --check-files",
-  "git": {
-    "deploymentEnabled": {
-      "main": true,
-      "uat": true,
-      "development": false
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "yarn install --check-files"
 }
