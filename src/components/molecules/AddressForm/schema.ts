@@ -1,29 +1,56 @@
 import { z } from "zod"
 
+import { isValidThaiPhoneNumber } from "@/lib/helpers/phone"
+
+const phoneFieldSchema = (requiredMessage: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, requiredMessage)
+    .refine((value) => isValidThaiPhoneNumber(value), {
+      message: "กรุณากรอกเบอร์โทรให้ครบ 9 หลัก",
+    })
+
+const optionalPhoneFieldSchema = z
+  .union([
+    z.literal(""),
+    z
+      .string()
+      .trim()
+      .refine((value) => !value || isValidThaiPhoneNumber(value), {
+        message: "กรุณากรอกเบอร์โทรให้ครบ 9 หลัก",
+      }),
+  ])
+  .optional()
+  .nullable()
+
 export const addressSchema = z.object({
   // Trim first so values like "   " don't pass min(1)
   addressId: z.string().trim().min(1).optional(),
   recipientFullName: z
     .string()
     .trim()
-    .min(1, "ชื่อ-นามสกุล ผู้รับสินค้า is required"),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "เบอร์โทรศัพท์ is required")
-    .regex(/^\+?[0-9\s\-()]+$/, "Invalid phone number format"),
-  province: z.string().trim().min(1, "จังหวัด is required"),
-  district: z.string().trim().min(1, "เขต/อำเภอ is required"),
-  subDistrict: z.string().trim().min(1, "แขวง/ตำบล is required"),
-  postalCode: z.string().trim().min(1, "รหัสไปรษณีย์ is required"),
-  address: z.string().trim().min(1, "ที่อยู่ is required"),
+    .min(1, "กรุณากรอกชื่อ / นามสกุล (ผู้รับสินค้า)"),
+  contactPhone: optionalPhoneFieldSchema,
+  phone: phoneFieldSchema("กรุณากรอกเบอร์โทรศัพท์ (ผู้รับสินค้า)"),
+  province: z.string().trim().min(1, "กรุณาเลือกจังหวัดของคุณ"),
+  district: z.string().trim().min(1, "กรุณาเลือกเขต/อำเภอของคุณ"),
+  subDistrict: z.string().trim().min(1, "กรุณาเลือกตำบลของคุณ"),
+  postalCode: z.string().trim().min(1, "กรุณาเลือกรหัสไปรษณีย์ของคุณ"),
+  address: z.string().trim().min(1, "กรุณากรอกที่อยู่ของคุณ"),
   setAsDefault: z.boolean().optional().default(false),
   email: z
-    .string()
-    .trim()
-    .min(1, "อีเมล is required")
-    .email("รูปแบบอีเมลไม่ถูกต้อง")
-    .optional(),
+    .union([
+      z.literal(""),
+      z.string().trim().email({ message: "รูปแบบอีเมลไม่ถูกต้อง" }),
+    ])
+    .optional()
+    .nullable(),
+})
+
+export const checkoutAddressSchema = addressSchema.extend({
+  contactPhone: phoneFieldSchema("กรุณากรอกเบอร์โทรศัพท์ของคุณ"),
 })
 
 export type AddressFormData = z.infer<typeof addressSchema>
+export type CheckoutAddressFormData = z.infer<typeof checkoutAddressSchema>

@@ -4,6 +4,7 @@ import { fetchQuery } from "@/lib/config"
 import { revalidateTag } from "next/cache"
 import { getCacheTag, setAuthToken } from "./cookies"
 import { retrieveCustomer } from "./customer"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 export async function checkAuthStatus() {
   const customer = await retrieveCustomer()
@@ -14,16 +15,17 @@ export async function checkAuthStatus() {
 }
 
 export async function sendOTP(phone: string) {
+  const normalizedPhone = normalizeThaiPhoneNumber(phone)
   let res = await fetchQuery("/auth/customer/phone-auth", {
     method: "POST",
-    body: { phone },
+    body: { phone: normalizedPhone },
   })
 
   if (!res.ok && res.error?.message?.includes("does not exist")) {
     console.log("[sendOTP] User not found, registering...")
     const regRes = await fetchQuery("/auth/customer/phone-auth/register", {
       method: "POST",
-      body: { phone },
+      body: { phone: normalizedPhone },
     })
 
     if (!regRes.ok) {
@@ -32,7 +34,7 @@ export async function sendOTP(phone: string) {
 
     res = await fetchQuery("/auth/customer/phone-auth", {
       method: "POST",
-      body: { phone },
+      body: { phone: normalizedPhone },
     })
   }
 
@@ -44,10 +46,11 @@ export async function sendOTP(phone: string) {
 }
 
 export async function verifyOTP(phone: string, otp: string) {
+  const normalizedPhone = normalizeThaiPhoneNumber(phone)
   // Use our custom route that manually handles JWT generation with correct claims
   const res = await fetchQuery("/store/auth/signin/verify", {
     method: "POST", // Changed to POST
-    body: { phone, otp }, // Changed to body
+    body: { phone: normalizedPhone, otp }, // Changed to body
   })
 
   if (!res.ok) {

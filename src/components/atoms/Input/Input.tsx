@@ -119,7 +119,7 @@ export function Input({
       cn(
         "w-full p-2 rounded-[8px]",
         textSizeClasses[textSize],
-        "text-sop-neutral-gray-400",
+        "text-sop-base-black",
         "focus:border-sop-primary-500 focus:outline-none focus:ring-1 focus:ring-sop-primary-500",
         "placeholder:text-sop-neutral-gray-400",
         "transition-all duration-150",

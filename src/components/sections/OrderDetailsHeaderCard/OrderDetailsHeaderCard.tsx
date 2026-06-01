@@ -28,6 +28,7 @@ import {
   useCompleteOrderMutation,
 } from "@/hooks/useOrderManagementQuery"
 import { useOrderManagementUiStore } from "@/lib/zustand/order-management-ui-store"
+import { buildThankYouPath } from "@/lib/helpers/checkout-redirect"
 
 type OrderDetailsHeaderCardProps = {
   order: OrderDetails
@@ -303,7 +304,9 @@ const OrderDetailsHeaderCard = ({
         onCloseFromQrView={handleClosePaymentModalFromQrView}
         order={order}
         initialClientSecretsFromChange={paymentSecretsBootstrap}
-        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(order.id, null)}
+        onConsumedInitialSecrets={() =>
+          setPaymentSecretsBootstrap(order.id, null)
+        }
         selectedCardId={
           selectedCardId ||
           (typeof window !== "undefined"
@@ -327,7 +330,7 @@ const OrderDetailsHeaderCard = ({
             sessionStorage.removeItem(`order_${order.id}_cardId`)
           }
           clearPaymentFlow(order.id)
-          router.push(`/order/${order.id}/confirmed`)
+          router.replace(buildThankYouPath(locale, order.id))
         }}
       />
       <OrderCancelModal

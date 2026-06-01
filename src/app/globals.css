@@ -950,3 +950,9 @@ input[type="range"].slider-thumb:focus::-moz-range-thumb {
     0 0,
     62.21px 71.48px;
 }
+
+@theme {
+  --shadow-lg:
+    0px 0px 24px -4px rgba(34, 34, 41, 0.2),
+    0px 20px 24px -8px rgba(34, 34, 41, 0.2);
+}

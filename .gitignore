@@ -45,3 +45,13 @@ next-env.d.ts
 
 .yarn
 .env*.local
+
+# kasidit
+.kasidit/*
+.kasidit/knowledge/*.private.md
+.kasidit/config.json
+.kasidit/logs/
+
+# claude
+.claude/*
+CLAUDE.md

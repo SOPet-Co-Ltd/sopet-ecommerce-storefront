@@ -1,6 +1,7 @@
 import { Card } from "@/components/atoms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { getRegion } from "@/lib/data/regions"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
   const user = await verifyCustomer()
@@ -29,7 +30,9 @@ export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
           }`}
         </p>
         <p className="label-md text-secondary">
-          {`${user.email}, ${singleOrder.shipping_address.phone || user.phone}`}
+          {`${user.email}, ${formatThaiPhoneNumberForDisplay(
+            singleOrder.shipping_address.phone || user.phone
+          )}`}
         </p>
       </div>
       <div>
@@ -55,9 +58,9 @@ export const OrderAddresses = async ({ singleOrder }: { singleOrder: any }) => {
               }`}
             </p>
             <p className="label-md text-secondary">
-              {`${user.email}, ${
+              {`${user.email}, ${formatThaiPhoneNumberForDisplay(
                 singleOrder.billing_address.phone || user.phone
-              }`}
+              )}`}
             </p>
           </>
         )}

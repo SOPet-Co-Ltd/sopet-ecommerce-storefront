@@ -7,6 +7,11 @@ import {
   requestOtpForUpdate,
   verifyOtpAndUpdateContact,
 } from "@/lib/data/customer"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
+import {
+  isValidThaiPhoneNumber,
+  normalizeThaiPhoneNumber,
+} from "@/lib/helpers/phone"
 
 // -----------------------------------------------------------------------------
 // Types
@@ -33,10 +38,8 @@ const PLACEHOLDERS: Record<ContactType, string> = {
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_REGEX = /^\+?\d+$/
-
 function normalizePhone(value: string): string {
-  return value.replace(/\s/g, "").trim()
+  return normalizeThaiPhoneNumber(value)
 }
 
 // -----------------------------------------------------------------------------
@@ -74,7 +77,7 @@ export function ProfileContactOtpForm({
     }
     if (type === "phone") {
       const normalized = normalizePhone(value)
-      if (!PHONE_REGEX.test(normalized)) {
+      if (!isValidThaiPhoneNumber(normalized)) {
         setError("รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง")
         return
       }
@@ -155,17 +158,33 @@ export function ProfileContactOtpForm({
         {label}
       </label>
       <div className="flex gap-2 items-center w-full flex-wrap">
-        <InputSOPet
-          id="contact-identifier"
-          size="sm"
-          type={type === "email" ? "email" : "tel"}
-          placeholder={placeholder}
-          value={identifier}
-          onChange={handleIdentifierChange}
-          disabled={otpRequested}
-          className="lg:w-[254px] max-w-full"
-          variant="bordered"
-        />
+        {type === "phone" ? (
+          <ThaiPhoneInput
+            id="contact-identifier"
+            size="sm"
+            placeholder={placeholder}
+            value={identifier}
+            onValueChange={(value) => {
+              setIdentifier(value)
+              setError(null)
+            }}
+            disabled={otpRequested}
+            className="lg:w-[254px] max-w-full"
+            variant="bordered"
+          />
+        ) : (
+          <InputSOPet
+            id="contact-identifier"
+            size="sm"
+            type="email"
+            placeholder={placeholder}
+            value={identifier}
+            onChange={handleIdentifierChange}
+            disabled={otpRequested}
+            className="lg:w-[254px] max-w-full"
+            variant="bordered"
+          />
+        )}
       </div>
 
       {/* Row 2: OTP */}

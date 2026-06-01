@@ -20,11 +20,13 @@ import { DownArrowIcon } from "@/icons"
 import { addCustomerAddress, updateCustomerAddress } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
 import { useState, forwardRef, useImperativeHandle } from "react"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 import {
   getDistricts,
   getProvinces,
   getSubdistrictsWithPostal,
 } from "@/lib/data/thai-address-helpers"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 
 export interface AddressFormHandle {
   submit: () => void
@@ -45,6 +47,7 @@ interface Props {
 
 export const emptyDefaultAddressValues: AddressFormData = {
   recipientFullName: "",
+  contactPhone: "",
   phone: "",
   province: "",
   district: "",
@@ -52,6 +55,7 @@ export const emptyDefaultAddressValues: AddressFormData = {
   postalCode: "",
   address: "",
   setAsDefault: false,
+  // recipientphone: "",
 }
 
 export const AddressForm = forwardRef<AddressFormHandle, Props>(
@@ -98,6 +102,7 @@ const Form = forwardRef<AddressFormHandle, Props>(
 
     const provinceValue = watch("province")
     const districtValue = watch("district")
+    const phoneValue = watch("phone")
     const allValues = watch()
 
     const hasAnyValue = Object.values(allValues).some((v) => {
@@ -128,7 +133,7 @@ const Form = forwardRef<AddressFormHandle, Props>(
       formData.append("country_code", "th")
       formData.append("postal_code", data.postalCode)
       formData.append("company", "")
-      formData.append("phone", data.phone)
+      formData.append("phone", normalizeThaiPhoneNumber(data.phone))
       formData.append("isDefaultShipping", data.setAsDefault ? "1" : "")
       formData.append("isDefaultBilling", data.setAsDefault ? "1" : "")
 
@@ -179,16 +184,19 @@ const Form = forwardRef<AddressFormHandle, Props>(
               <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
                 เบอร์โทรศัพท์
               </label>
-              <InputSOPet
+              <ThaiPhoneInput
                 size="sm"
                 variant="bordered"
                 placeholder="กรอกเบอร์โทรศัพท์"
                 state={errors.phone ? "error" : "default"}
                 description={(errors.phone as FieldError)?.message}
-                {...register("phone", {
-                  // Prevent whitespace-only values like " " from passing validation
-                  setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
-                })}
+                value={phoneValue}
+                onValueChange={(value) =>
+                  setValue("phone", value, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }
               />
             </div>
 
@@ -213,8 +221,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     }}
                     icon={<DownArrowIcon size={12} color="#454547" />}
                   >
-                    {provinceOptions.map((opt) => (
-                      <DropdownItem key={opt.value} value={opt.value}>
+                    {provinceOptions.map((opt, index) => (
+                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
                         {opt.label}
                       </DropdownItem>
                     ))}
@@ -253,8 +261,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     }}
                     icon={<DownArrowIcon size={12} color="#454547" />}
                   >
-                    {districtOptions.map((opt) => (
-                      <DropdownItem key={opt.value} value={opt.value}>
+                    {districtOptions.map((opt, index) => (
+                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
                         {opt.label}
                       </DropdownItem>
                     ))}
@@ -302,8 +310,8 @@ const Form = forwardRef<AddressFormHandle, Props>(
                       onValueChange={handleSubdistrictChange}
                       icon={<DownArrowIcon size={12} color="#454547" />}
                     >
-                      {subdistrictOptions.map((opt) => (
-                        <DropdownItem key={opt.value} value={opt.value}>
+                      {subdistrictOptions.map((opt, index) => (
+                        <DropdownItem key={`${opt.value}-${opt.postalCode || ""}-${index}`} value={opt.value}>
                           {opt.label}
                         </DropdownItem>
                       ))}

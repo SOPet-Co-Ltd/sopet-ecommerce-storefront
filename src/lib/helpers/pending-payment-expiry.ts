@@ -14,7 +14,7 @@ export function getPromptPayPendingTtlSeconds(): number {
       return n
     }
   }
-  return 180
+  return 3600
 }
 
 export function getActivePendingPromptPaySession(

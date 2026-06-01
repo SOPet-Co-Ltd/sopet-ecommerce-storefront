@@ -21,6 +21,8 @@ import type { MpCheckoutV1 } from "@/types/marketplace-checkout"
 import { listProducts } from "./products"
 import { checkoutLineFingerprint } from "@/lib/helpers/checkout-line-fingerprint"
 import { getCheckoutCartFetchTimeoutMs } from "@/lib/helpers/request-timeout"
+import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
+import { buildThankYouPath } from "@/lib/helpers/checkout-redirect"
 
 const checkoutPerfLog =
   process.env["CHECKOUT_PERF_LOG"] === "1" ||
@@ -190,7 +192,7 @@ export async function retrieveCart(cartId?: string): Promise<Cart | null> {
     ...(await getAuthHeaders()),
   }
 
-  const cartUrl = `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+customer`
+  const cartUrl = `/store/carts/${id}?fields=*items.variant.options,+items.variant,*items,+items.adjustments,+items.product.seller,+promotions,+region,+metadata,+payment_collection,+payment_collection.payment_sessions,+items.variant_title,+shipping_methods.adjustments,+customer`
 
   const fetchCart = () =>
     fetchQuery(cartUrl, {
@@ -850,6 +852,7 @@ export async function completeMarketplaceOrder(
     paymentMethodType?: "card" | "promptpay"
     paymentSessionIds?: string[]
     paymentIntentIds?: string[]
+    locale?: string
     cartSnapshot?: {
       customerId?: string | null
       email?: string | null
@@ -980,7 +983,7 @@ export async function completeMarketplaceOrder(
   }
   if (orderId && options?.redirect !== false) {
     removeCartId()
-    redirect(`/order/${orderId}/confirmed`)
+    redirect(buildThankYouPath(options?.locale ?? "th", orderId))
   }
 
   return res
@@ -1120,7 +1123,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         city: getText("shipping_address.city"),
         country_code: getText("shipping_address.country_code"),
         province: getText("shipping_address.province"),
-        phone: getText("shipping_address.phone"),
+        phone: normalizeThaiPhoneNumber(getText("shipping_address.phone")),
       },
     }
 
@@ -1162,7 +1165,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
  */
 export async function placeOrder(
   cartId?: string,
-  options?: { redirect?: boolean }
+  options?: { redirect?: boolean; locale?: string }
 ) {
   const id = cartId || (await getCartId())
 
@@ -1215,7 +1218,7 @@ export async function placeOrder(
   }
   if (orderId && options?.redirect !== false) {
     removeCartId()
-    redirect(`/order/${orderId}/confirmed`)
+    redirect(buildThankYouPath(options?.locale ?? "th", orderId))
   }
 
   return res

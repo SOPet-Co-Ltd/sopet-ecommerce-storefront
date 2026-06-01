@@ -2,12 +2,14 @@ type InfotagProps = {
   children: React.ReactNode
   leftIcon?: React.ReactNode
   className?: string
+  classNameIcon?: string
 }
 
 export const Infotag = ({
   children,
   leftIcon,
   className = "",
+  classNameIcon = "",
 }: InfotagProps) => {
   return (
     <span
@@ -17,7 +19,9 @@ export const Infotag = ({
       `}
     >
       {leftIcon && (
-        <span className="flex items-center justify-center">{leftIcon}</span>
+        <span className={`flex items-center justify-center ${classNameIcon}`}>
+          {leftIcon}
+        </span>
       )}
 
       {children}

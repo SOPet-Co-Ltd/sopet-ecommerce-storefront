@@ -40,17 +40,6 @@ export async function createDefaultSocialImageResponse(): Promise<ImageResponse>
   const line =
     description.length > 140 ? `${description.slice(0, 137)}…` : description
 
-  let logoDataUrl = ""
-  try {
-    const svg = await readFile(
-      join(process.cwd(), "public", "Logo.svg"),
-      "utf8"
-    )
-    logoDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-  } catch {
-    logoDataUrl = `${baseUrl}/Logo.svg`
-  }
-
   let fontData: ArrayBuffer
   try {
     const res = await fetch(NOTO_SANS_THAI_TTF)
@@ -95,13 +84,23 @@ export async function createDefaultSocialImageResponse(): Promise<ImageResponse>
           marginBottom: 36,
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={logoDataUrl}
-          alt=""
-          height={52}
-          style={{ height: 52, width: "auto", objectFit: "contain" }}
-        />
+        <div
+          style={{
+            height: 64,
+            width: 64,
+            borderRadius: 20,
+            background: "#ffffff",
+            color: "#1a6b52",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 38,
+            fontWeight: 800,
+            fontFamily,
+          }}
+        >
+          S
+        </div>
       </div>
       <div
         style={{

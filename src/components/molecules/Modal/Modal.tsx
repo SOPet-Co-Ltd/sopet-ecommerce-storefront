@@ -2,17 +2,19 @@
 
 import { useEffect, useCallback } from "react"
 import { cn } from "@/lib/utils"
+import { X } from "lucide-react"
 
 type ModalProps = {
   header?: React.ReactNode
   children?: React.ReactNode
   footer?: React.ReactNode
   onClose?: () => void
-  /** If false, clicking the backdrop does not close the modal. Default true. */
-  closeOnBackdropClick?: boolean
   overlayClassName?: string
   className?: string
   width?: number
+
+  transparentBackground?: boolean
+  insideCloseButton?: boolean
 }
 
 export const Modal = ({
@@ -20,10 +22,11 @@ export const Modal = ({
   children,
   footer,
   onClose,
-  closeOnBackdropClick = true,
   className,
   overlayClassName,
   width = 600,
+  transparentBackground = false,
+  insideCloseButton = false,
 }: ModalProps) => {
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
@@ -33,40 +36,76 @@ export const Modal = ({
   )
 
   useEffect(() => {
-    if (!onClose) return
-    document.addEventListener("keydown", handleEscape)
-    return () => document.removeEventListener("keydown", handleEscape)
+    if (onClose) {
+      document.addEventListener("keydown", handleEscape)
+    }
+
+    document.body.style.overflow = "hidden"
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape)
+      document.body.style.overflow = ""
+    }
   }, [onClose, handleEscape])
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (closeOnBackdropClick && e.target === e.currentTarget) onClose?.()
-  }
-
   return (
-    <div
-      className="fixed inset-0 z-50 flex h-screen items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className={cn("absolute inset-0 bg-black/50", overlayClassName)}
-        aria-hidden="true"
-        onClick={handleBackdropClick}
-      />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pt-14">
       <div
         className={cn(
-          "relative z-10 flex min-h-0 w-full max-h-[calc(100vh-32px)] flex-col overflow-hidden rounded-[20px] bg-sop-base-white",
-          className
+          "absolute inset-0 backdrop-blur-sm",
+          transparentBackground
+            ? "bg-transparent"
+            : "bg-sop-neutral-whitealpha-400",
+          overlayClassName
         )}
+      />
+
+      <div
+        className={cn("relative w-full max-w-150", className)}
         style={{ maxWidth: width }}
-        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4 gap-sop-20px pt-sop-20px">
-          {header != null && <div className="shrink-0">{header}</div>}
-          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-            {children}
-          </div>
-          {footer != null && <div className="shrink-0">{footer}</div>}
+        {onClose && !insideCloseButton && (
+          <button
+            onClick={onClose}
+            className="absolute -top-14 right-4 translate-x-1/2 z-9999 flex h-10 w-10 items-center justify-center rounded-full bg-sop-base-white shadow-lg text-sop-base-black cursor-pointer"
+          >
+            <X size={18} />
+          </button>
+        )}
+
+        <div
+          className={cn(
+            `
+            flex
+            max-h-135.25
+            flex-col
+            overflow-hidden
+            rounded-sop-20px
+            bg-sop-base-white
+            shadow-lg
+            relative
+            `,
+            transparentBackground && "bg-transparent shadow-none"
+          )}
+        >
+          {insideCloseButton && onClose && (
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-sop-base-white shadow-lg text-sop-base-black cursor-pointer"
+            >
+              <X size={16} />
+            </button>
+          )}
+
+          {header != null && <div className="shrink-0 p-4">{header}</div>}
+
+          <div className="flex-1 overflow-y-auto px-4">{children}</div>
+
+          {footer != null && (
+            <div className="shrink-0 bg-sop-base-white p-4">
+              <div className="shrink-0">{footer}</div>
+            </div>
+          )}
         </div>
       </div>
     </div>

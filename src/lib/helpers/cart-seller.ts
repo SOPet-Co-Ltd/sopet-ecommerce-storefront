@@ -36,7 +36,7 @@ type CartVariantOptionMetadata = {
 }
 
 const DEFAULT_CART_SELLER_NAME = "ร้านค้าไม่ระบุ"
-const DEFAULT_CART_SELLER_PHOTO = "/Logo.svg"
+const DEFAULT_CART_SELLER_PHOTO = "/images/placeholder.svg"
 const DEFAULT_CART_SELLER_CREATED_AT = new Date(0).toISOString()
 const GENERIC_SELLER_NAMES = new Set([
   DEFAULT_CART_SELLER_NAME.toLowerCase(),

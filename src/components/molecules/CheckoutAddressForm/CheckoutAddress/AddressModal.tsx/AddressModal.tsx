@@ -1,0 +1,432 @@
+"use client"
+
+import { useEffect, useMemo, useRef, useState } from "react"
+import Link from "next/link"
+
+import { Button } from "@/components/atoms"
+import { SelectBox } from "@/components/atoms/SelectBox/SelectBox"
+import { Modal } from "@/components/molecules/Modal/Modal"
+
+import { PlusIcon } from "@/icons"
+
+import { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
+import {
+  updateCustomerAddress,
+  deleteCustomerAddress,
+} from "@/lib/data/customer"
+import { useIsMobile } from "@/lib/utils/is-mobile"
+import {
+  applySingleDefaultShipping,
+  normalizeAddressDefaults,
+} from "../../applySingleDefaultShipping"
+import DeleteAddress from "./DeleteAddress"
+import EditAddress from "./EditAddress"
+import AddAddress from "./AddAddress"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
+
+type AddressModalProps = {
+  onClose: () => void
+  onConfirm: (addressId: string, addresses: StoreCustomerAddress[]) => void // ← เพิ่ม
+  onAddressesChange?: (addresses: StoreCustomerAddress[]) => void
+  initialSelectedId?: string
+  customer: StoreCustomer | null
+}
+
+const AddressModal = ({
+  onClose,
+  onConfirm,
+  onAddressesChange,
+  initialSelectedId = "",
+  customer,
+}: AddressModalProps) => {
+  const [addresses, setAddresses] = useState(() =>
+    normalizeAddressDefaults(customer?.addresses || [])
+  )
+
+  const isLocalUpdateRef = useRef(false)
+
+  const patchAddresses = (
+    updater: (prev: StoreCustomerAddress[]) => StoreCustomerAddress[]
+  ) => {
+    isLocalUpdateRef.current = true
+    setAddresses((prev) => updater(prev))
+  }
+
+  useEffect(() => {
+    if (isLocalUpdateRef.current) {
+      isLocalUpdateRef.current = false
+      onAddressesChange?.(addresses)
+    }
+  }, [addresses, onAddressesChange])
+
+  const sortedAddresses = useMemo(() => {
+    return [...addresses].sort(
+      (a, b) => Number(b.is_default_shipping) - Number(a.is_default_shipping)
+    )
+  }, [addresses])
+
+  const [selectedAddress, setSelectedAddress] = useState(initialSelectedId)
+  const [deleteAddressId, setDeleteAddressId] = useState<string | null>(null)
+  const [editAddress, setEditAddress] = useState<StoreCustomerAddress | null>(
+    null
+  )
+  const [openAddAddress, setOpenAddAddress] = useState(false)
+  const addressesRef = useRef(addresses)
+
+  useEffect(() => {
+    addressesRef.current = addresses
+  }, [addresses])
+
+  const isMobile = useIsMobile()
+
+  useEffect(() => {
+    if (!customer?.addresses) return
+
+    setAddresses(normalizeAddressDefaults(customer.addresses))
+  }, [customer?.addresses])
+
+  useEffect(() => {
+    setSelectedAddress(initialSelectedId)
+  }, [initialSelectedId])
+
+  const setDefaultAddressHelper = async (address: StoreCustomerAddress) => {
+    const formData = new FormData()
+
+    formData.append("addressId", address.id)
+    formData.append("address_name", address.address_name || "")
+    formData.append("first_name", address.first_name || "")
+    formData.append("last_name", address.last_name || "")
+    formData.append("company", address.company || "")
+    formData.append("address_1", address.address_1 || "")
+    formData.append("address_2", address.address_2 || "")
+    formData.append("city", address.city || "")
+    formData.append("postal_code", address.postal_code || "")
+    formData.append("province", address.province || "")
+    formData.append("country_code", address.country_code || "")
+    formData.append("phone", address.phone || "")
+
+    formData.append("isDefaultShipping", "1")
+    formData.append("isDefaultBilling", "1")
+
+    const result = await updateCustomerAddress(formData)
+
+    if (!result.success) {
+      console.error(result.error)
+      return false
+    }
+
+    return true
+  }
+
+  const handleSetDefault = async (address: StoreCustomerAddress) => {
+    const success = await setDefaultAddressHelper(address)
+    if (success) {
+      patchAddresses((prev) => applySingleDefaultShipping(prev, address.id))
+      setSelectedAddress(address.id)
+    }
+  }
+
+  const removeAddressFromList = async (addressId: string) => {
+    const currentAddresses = addressesRef.current
+    const addressToDelete = currentAddresses.find((item) => item.id === addressId)
+    const isDefault = !!addressToDelete?.is_default_shipping
+
+    const remaining = currentAddresses.filter((item) => item.id !== addressId)
+
+    if (selectedAddress === addressId) {
+      setSelectedAddress("")
+    }
+
+    patchAddresses((prev) => prev.filter((item) => item.id !== addressId))
+
+    if (isDefault && remaining.length > 0) {
+      const nextDefault = remaining[0]
+      const success = await setDefaultAddressHelper(nextDefault)
+      if (success) {
+        patchAddresses((prev) => applySingleDefaultShipping(prev, nextDefault.id))
+        setSelectedAddress(nextDefault.id)
+      }
+    }
+  }
+
+  const handleDeleteAddress = async () => {
+    if (!deleteAddressId) return
+
+    const result = await deleteCustomerAddress(deleteAddressId)
+
+    if (!result.success) {
+      console.error(result.error)
+      return
+    }
+
+    removeAddressFromList(deleteAddressId)
+    setDeleteAddressId(null)
+  }
+
+  const handleAddAddress = (newAddress: StoreCustomerAddress) => {
+    patchAddresses((prev) => {
+      const merged = [
+        ...prev.filter((item) => item.id !== newAddress.id),
+        newAddress,
+      ]
+      return newAddress.is_default_shipping
+        ? applySingleDefaultShipping(merged, newAddress.id)
+        : merged
+    })
+
+    if (newAddress.id) {
+      setSelectedAddress(newAddress.id)
+    }
+
+    setOpenAddAddress(false)
+  }
+
+  if (deleteAddressId) {
+    return (
+      <DeleteAddress
+        onClose={() => setDeleteAddressId(null)}
+        onConfirm={handleDeleteAddress}
+      />
+    )
+  }
+  if (editAddress) {
+    return (
+      <EditAddress
+        address={editAddress}
+        onClose={() => setEditAddress(null)}
+        onDeleted={(addressId) => {
+          removeAddressFromList(addressId)
+          setEditAddress(null)
+        }}
+        onUpdated={(updatedAddress) => {
+          patchAddresses((prev) => {
+            const merged = prev.map((item) =>
+              item.id === updatedAddress.id
+                ? {
+                    ...item,
+                    ...updatedAddress,
+                    is_default_shipping:
+                      updatedAddress.is_default_shipping ??
+                      item.is_default_shipping,
+                    is_default_billing:
+                      updatedAddress.is_default_billing ??
+                      item.is_default_billing,
+                  }
+                : item
+            )
+
+            return updatedAddress.is_default_shipping
+              ? applySingleDefaultShipping(merged, updatedAddress.id)
+              : merged
+          })
+
+          setEditAddress(null)
+        }}
+      />
+    )
+  }
+  if (openAddAddress) {
+    return (
+      <AddAddress
+        customer={customer}
+        onClose={() => setOpenAddAddress(false)}
+        onAdd={handleAddAddress}
+      />
+    )
+  }
+
+  return (
+    <>
+      <Modal
+        onClose={onClose}
+        header={
+          <div className="flex flex-row justify-between content-center pt-4 mb-3">
+            <h2 className="sop-body-lg-medium text-sop-neutral-gray-200">
+              ข้อมูลการจัดส่ง
+            </h2>
+
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-sop-secondary-500"
+              iconLeft={<PlusIcon size={16} color="currentColor" />}
+              onClick={() => setOpenAddAddress(true)}
+            >
+              เพิ่มที่อยู่ใหม่
+            </Button>
+          </div>
+        }
+        footer={
+          <div className="flex flex-col gap-2 md:flex-row md:justify-end">
+            <Button onClick={onClose} variant="filled" fill size="lg">
+              ยกเลิก
+            </Button>
+
+            <Button
+              fill
+              size="lg"
+              disabled={!selectedAddress}
+              onClick={() => onConfirm(selectedAddress, addressesRef.current)}
+            >
+              ยืนยัน
+            </Button>
+          </div>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          {sortedAddresses.map((address: StoreCustomerAddress) => {
+            const fullAddress = [
+              address.address_1,
+              address.address_2,
+              address.city,
+              address.province,
+              address.postal_code,
+            ]
+              .filter(Boolean)
+              .join(" ")
+
+            return (
+              <SelectBox
+                key={address.id}
+                name="address"
+                value={address.id}
+                selectedValue={selectedAddress}
+                onChange={setSelectedAddress}
+                radioTopOnMobile
+              >
+                <div className="pointer-events-auto flex flex-col text-sop-neutral-gray-200">
+                  <div className="flex justify-between w-full">
+                    <div className="max-w-75 flex-1">
+                      <div
+                        className={`flex ${
+                          isMobile
+                            ? "flex-wrap items-center gap-x-1 gap-y-0.5"
+                            : "items-center"
+                        }`}
+                      >
+                        <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular wrap-break-word pr-2">
+                          {address.address_name}
+                        </span>
+
+                        <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-regular whitespace-nowrap">
+                          ({formatThaiPhoneNumberForDisplay(address.phone)})
+                        </span>
+                      </div>
+
+                      <span className="lg:sop-body-sm-regular md:sop-body-sm-regular sop-body-xs-light block">
+                        {fullAddress}
+                      </span>
+
+                      {isMobile ? (
+                        <div className="mt-sop-12px flex flex-wrap items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-1">
+                            {address.is_default_shipping ? (
+                              <span className="sop-body-xs-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 px-2.5 py-1">
+                                ค่าเริ่มต้น
+                              </span>
+                            ) : (
+                              <Button
+                                type="button"
+                                variant="filled"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleSetDefault(address)
+                                }}
+                                className="sop-body-xs-light text-sop-neutral-gray-200 shrink-0"
+                              >
+                                ตั้งเป็นค่าเริ่มต้น
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-1">
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="filled"
+                              className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDeleteAddressId(address.id)
+                              }}
+                            >
+                              ลบ
+                            </Button>
+
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant="filled"
+                              className="text-sop-neutral-gray-200 shrink-0 whitespace-nowrap"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setEditAddress(address)
+                              }}
+                            >
+                              แก้ไข
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-sop-12px">
+                          {address.is_default_shipping ? (
+                            <span className="sop-body-xs-medium bg-sop-secondary-100 text-sop-secondary-500 rounded-sop-16 px-2.5 py-1">
+                              ค่าเริ่มต้น
+                            </span>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="filled"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleSetDefault(address)
+                              }}
+                              className="sop-body-xs-medium text-sop-neutral-gray-200"
+                            >
+                              ตั้งเป็นค่าเริ่มต้น
+                            </Button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {!isMobile && (
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          type="button"
+                          variant="filled"
+                          className="text-sop-neutral-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteAddressId(address.id)
+                          }}
+                        >
+                          ลบ
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant="filled"
+                          className="text-sop-neutral-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setEditAddress(address)
+                          }}
+                        >
+                          แก้ไข
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </SelectBox>
+            )
+          })}
+        </div>
+      </Modal>
+    </>
+  )
+}
+
+export default AddressModal

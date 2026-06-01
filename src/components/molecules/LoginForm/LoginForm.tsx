@@ -1,77 +1,33 @@
 "use client"
 import { useState, useEffect } from "react"
-import { Button, InputSOPet } from "@/components/atoms"
-import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { Button } from "@/components/atoms"
 import { useRouter } from "next/navigation"
+import { clearMedusaCartForLoginPage, requestOtp } from "@/lib/data/customer"
+import { SOPetLogo } from "@/icons"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 import {
-  clearMedusaCartForLoginPage,
-  requestOtp,
-  verifyOtpAndLogin,
-} from "@/lib/data/customer"
-import { initiateOAuth } from "@/lib/data/oauth"
-import {
-  SOPetLogo,
-  FacebookCustomIcon,
-  GoogleIcon,
-  LineCustomIcon,
-} from "@/icons"
-import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
+  isValidThaiPhoneNumber,
+  normalizeThaiPhoneNumber,
+} from "@/lib/helpers/phone"
 
 export const LoginForm = () => {
   return <Form />
 }
 
 const Form = () => {
-  const [identifier, setIdentifier] = useState("")
-  const [otp, setOtp] = useState("")
-  const [otpRequested, setOtpRequested] = useState(false)
+  const [phone, setPhone] = useState("")
   const [isRequestingOtp, setIsRequestingOtp] = useState(false)
-  const [isVerifying, setIsVerifying] = useState(false)
   const [error, setError] = useState("")
-  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0)
   const router = useRouter()
 
-  const OTP_COOLDOWN_SECONDS = 180 // 3 minutes
-
-  // Clear Medusa cart when login page loads (cookie can only be modified in a Server Action)
   useEffect(() => {
     clearMedusaCartForLoginPage()
   }, [])
 
-  useEffect(() => {
-    if (otpCooldownSeconds <= 0) return
-    const timer = setInterval(() => {
-      setOtpCooldownSeconds((prev) => (prev <= 1 ? 0 : prev - 1))
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [otpCooldownSeconds])
-
-  const formatCooldown = (seconds: number) => {
-    const m = Math.floor(seconds / 60)
-    const s = seconds % 60
-    return `${m}:${s.toString().padStart(2, "0")}`
-  }
-
-  const isValidEmailOrPhone = (value: string | null | undefined): boolean => {
-    if (!value || value.trim() === "") {
-      return false
-    }
-
-    const trimmedValue = value.trim()
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-    const phoneRegex = /^(\+?66|0)[0-9]{9,10}$/
-
-    return (
-      emailRegex.test(trimmedValue) ||
-      phoneRegex.test(trimmedValue.replace(/\s+/g, ""))
-    )
-  }
-
   const handleRequestOtp = async () => {
-    if (!identifier.trim()) {
-      setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์")
+    const normalizedPhone = normalizeThaiPhoneNumber(phone)
+    if (!isValidThaiPhoneNumber(normalizedPhone)) {
+      setError("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง")
       return
     }
 
@@ -79,7 +35,7 @@ const Form = () => {
     setError("")
 
     const formData = new FormData()
-    formData.append("identifier", identifier.trim().toLowerCase())
+    formData.append("identifier", normalizedPhone)
 
     const res = await requestOtp(formData)
     if (res) {
@@ -88,55 +44,12 @@ const Form = () => {
       return
     }
 
-    setOtpRequested(true)
-    setOtpCooldownSeconds(OTP_COOLDOWN_SECONDS)
     setIsRequestingOtp(false)
-  }
-
-  const handleVerifyAndLogin = async () => {
-    if (!identifier.trim()) {
-      setError("กรุณากรอกอีเมลหรือเบอร์โทรศัพท์")
-      return
-    }
-    if (!otp.trim()) {
-      setError("กรุณากรอก OTP")
-      return
-    }
-
-    setIsVerifying(true)
-    setError("")
-
-    const formData = new FormData()
-    formData.append("identifier", identifier.trim().toLowerCase())
-    formData.append("otp", otp.trim())
-
-    const res = await verifyOtpAndLogin(formData)
-    if (res) {
-      setError(res)
-      setIsVerifying(false)
-      return
-    }
-
-    // At this point the user should be authenticated. Best-effort merge of any
-    // local anonymous cart items into the customer's server-side cart.
-    try {
-      await mergeAnonymousCartIntoCustomerAfterLogin()
-    } catch (mergeError) {
-      // Do not block login redirect on merge failures; local cart is preserved
-      // by the helper when merge fails.
-      console.error(
-        "[LoginForm] Failed to merge anonymous cart after OTP login:",
-        mergeError
-      )
-    }
-
-    setError("")
-    setIsVerifying(false)
-    router.push("/user")
+    router.push(`/login/otp?phone=${encodeURIComponent(normalizedPhone)}`)
   }
 
   return (
-    <main className="flex justify-center items-center h-full p-4 ">
+    <main className="flex justify-center items-center h-full p-4">
       <div className="space-y-sop-40px md:max-w-[400px] min-w-[300px] w-full">
         {/* Logo */}
         <div className="flex justify-center items-center">
@@ -155,133 +68,27 @@ const Form = () => {
         </div>
         {/* Form */}
         <div className="space-y-4">
-          <InputSOPet
-            placeholder="อีเมลล์/เบอร์โทรศัพท์"
+          <ThaiPhoneInput
+            placeholder="เบอร์โทรศัพท์"
             variant="bordered"
-            value={identifier}
-            disabled={otpRequested}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setIdentifier(e.target.value)
-            }
+            value={phone}
+            onValueChange={setPhone}
           />
-          <div className="relative md:mb-4 mb-12">
-            <InputSOPet
-              placeholder="เลข OTP"
-              variant="bordered"
-              value={otp}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setOtp(e.target.value)
-              }
-            />
-            <div className="absolute right-0 min-w-[190px] md:-right-[200px] md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-end md:justify-start">
-              <Button
-                variant="outline"
-                size="sm"
-                rounded="rounded"
-                style={{ padding: "2px 8px", borderRadius: "8px" }}
-                disabled={
-                  isRequestingOtp ||
-                  !isValidEmailOrPhone(identifier) ||
-                  otpCooldownSeconds > 0
-                }
-                onClick={handleRequestOtp}
-              >
-                {otpCooldownSeconds > 0
-                  ? `ขอ OTP อีกครั้ง (${formatCooldown(otpCooldownSeconds)})`
-                  : "ขอ OTP"}
-              </Button>
-            </div>
-          </div>
-          {otpRequested && (
-            <p className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400 px-1">
-              รหัส OTP ถูกส่งไปยังเบอร์โทรศัพท์ของคุณ
-            </p>
-          )}
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button
             variant="primary"
             size="lg"
             fill={true}
-            disabled={
-              isVerifying || !otpRequested || !otp.trim() || !identifier.trim()
-            }
-            onClick={handleVerifyAndLogin}
+            disabled={isRequestingOtp || !isValidThaiPhoneNumber(phone)}
+            onClick={handleRequestOtp}
           >
-            {isVerifying ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            {isRequestingOtp ? "กำลังส่ง OTP..." : "ขอ OTP"}
           </Button>
           <p className="text-center sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400">
             หากยังไม่มีบัญชี ระบบจะสร้างบัญชีอัตโนมัติ
           </p>
         </div>
-        {/* Divider */}
-        <div className="flex justify-center items-center gap-2">
-          <span className="w-full h-px bg-[#DEDEDE]"></span>
-          <p className="sop-headline-sm-regular text-sop-neutral-gray-300">
-            หรือ
-          </p>
-          <span className="w-full h-px bg-[#DEDEDE]"></span>
-        </div>
-        {/* Media Login */}
-        <div className="flex justify-center items-center gap-8">
-          <button
-            onClick={() => initiateOAuth("facebook")}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign in with Facebook"
-          >
-            <FacebookCustomIcon size={48} />
-          </button>
-          <button
-            onClick={() => initiateOAuth("google")}
-            className="flex justify-center items-center bg-sop-base-white aspect-square rounded-full overflow-clip w-sop-48px h-sop-48px border-[#EEEEEE] cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign in with Google"
-          >
-            <GoogleIcon size={28} />
-          </button>
-          <button
-            onClick={() => initiateOAuth("line")}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign in with LINE"
-          >
-            <LineCustomIcon size={48} />
-          </button>
-        </div>
       </div>
-      {/* <Container className="border max-w-xl mx-auto p-4">
-        <h1 className="heading-md text-primary uppercase mb-8">
-          Log in to your account
-        </h1>
-        <form onSubmit={handleSubmit(submit)}>
-          <div className="space-y-4">
-            <LabeledInput
-              label="E-mail"
-              placeholder="Your e-mail address"
-              error={errors.email as FieldError}
-              {...register("email")}
-            />
-            <LabeledInput
-              label="Password"
-              placeholder="Your password"
-              type="password"
-              error={errors.password as FieldError}
-              {...register("password")}
-            />
-            {error && <p className="label-md text-negative">{error}</p>}
-            <Button
-              className="w-full flex justify-center uppercase"
-              disabled={isSubmitting}
-              loading={isSubmitting}
-            >
-              Log in
-            </Button>
-            <p className="text-center label-md">
-              Don&apos;t have an account yet?{" "}
-              <LocalizedClientLink href="/user/register" className="underline">
-                Sign up!
-              </LocalizedClientLink>
-            </p>
-          </div>
-        </form>
-      </Container> */}
     </main>
   )
 }

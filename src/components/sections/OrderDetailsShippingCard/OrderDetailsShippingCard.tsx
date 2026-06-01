@@ -1,5 +1,6 @@
 "use client"
 import type { OrderShippingAddress } from "@/types/order"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { Copy } from "lucide-react"
 
 type ShippingGroup = {
@@ -109,7 +110,8 @@ const OrderDetailsShippingCard = ({
         </span>
         <div className="flex flex-col gap-5 flex-1">
           <p className="sop-body-md-regular text-sop-neutral-gray-300">
-            {address.first_name} {address.last_name} {address.phone}
+            {address.first_name} {address.last_name}{" "}
+            {formatThaiPhoneNumberForDisplay(address.phone)}
           </p>
           <p className="sop-body-md-regular text-sop-neutral-gray-300">
             {address.address_1} {address.address_2} {address.city}{" "}

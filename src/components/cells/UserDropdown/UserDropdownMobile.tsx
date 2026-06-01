@@ -10,6 +10,7 @@ import {
   VetAIIcon,
 } from "@/icons"
 import { USER_SEGMENT_LABELS } from "@/lib/constants"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import { cn } from "@/lib/utils"
 import { HttpTypes } from "@medusajs/types"
 import { useParams } from "next/navigation"
@@ -69,7 +70,7 @@ export const UserDropdownMobile = ({
     (user &&
       ([user.first_name, user.last_name].filter(Boolean).join(" ") ||
         user.email ||
-        user.phone ||
+        formatThaiPhoneNumberForDisplay(user.phone) ||
         "")) ||
     ""
   const avatarUrl = metadata?.avatar_url as string | undefined

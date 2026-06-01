@@ -38,7 +38,7 @@ export const COMPANY_INFO = {
   address: "เลขที่ 17 ซอยสุขุมวิท 35 แขวงคลองตันเหนือ",
   district: "เขตวัฒนา กรุงเทพมหานคร 10110",
   email: "sopetofficial@gmail.com",
-  phone: "096-876-5031",
+  phone: "+66 96-876-5031",
   copyright: "Copyright © 2025 SOpet All right reserved",
 }
 
@@ -64,7 +64,7 @@ export const FOOTER_MENUS = {
     ],
   },
   line_oa: {
-    title: ["ปรึกษาสัตว​์แพทย์ฟรี !", "ผ่าน LINE OPENCHAT"],
+    title: ["ปรึกษาสัตว​์แพทย์ฟรี !", "ผ่าน LINE OA"],
   },
 }
 

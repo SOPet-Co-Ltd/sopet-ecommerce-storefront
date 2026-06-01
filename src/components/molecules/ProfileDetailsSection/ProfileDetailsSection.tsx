@@ -16,6 +16,7 @@ import {
 import { DownArrowIcon } from "@/icons"
 import { updateProfile, uploadAvatar } from "@/lib/data/customer"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 // -----------------------------------------------------------------------------
 // Types
@@ -55,7 +56,7 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
   const displayName =
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.email ||
-    user.phone ||
+    formatThaiPhoneNumberForDisplay(user.phone) ||
     ""
 
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>(
@@ -224,7 +225,7 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
                 <InputSOPet
                   size="sm"
                   type="text"
-                  value={user.phone}
+                  value={formatThaiPhoneNumberForDisplay(user.phone)}
                   disabled
                   variant="bordered"
                 />

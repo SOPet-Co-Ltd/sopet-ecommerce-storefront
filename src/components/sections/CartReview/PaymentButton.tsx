@@ -8,6 +8,7 @@ import { Button } from "@/components/atoms"
 import { Cart } from "@/types/cart"
 import { useCheckoutPayment } from "@/components/sections/CheckoutPaymentSection/CheckoutPaymentContext"
 import { HttpTypes } from "@medusajs/types"
+import { useParams } from "next/navigation"
 
 type PaymentButtonProps = {
   cart: Cart
@@ -21,6 +22,8 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
   "data-testid": dataTestId,
 }) => {
   const { selectedAddress, selectedEmail } = useCheckoutPayment()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
   const fallbackAddress:
     | HttpTypes.StoreCustomerAddress
     | HttpTypes.StoreCartAddress
@@ -51,6 +54,7 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
     return (
       <ManualTestPaymentButton
         notReady={notReady}
+        locale={locale}
         syncShippingMethodBeforePayment={syncShippingMethodBeforePayment}
         data-testid={dataTestId}
       />
@@ -66,9 +70,11 @@ const PaymentButton: React.FC<PaymentButtonProps> = ({
 
 const ManualTestPaymentButton = ({
   notReady,
+  locale,
   syncShippingMethodBeforePayment,
 }: {
   notReady: boolean
+  locale: string
   syncShippingMethodBeforePayment: () => Promise<void>
 }) => {
   const [submitting, setSubmitting] = useState(false)
@@ -76,7 +82,7 @@ const ManualTestPaymentButton = ({
 
   const onPaymentCompleted = async () => {
     try {
-      const res = await placeOrder()
+      const res = await placeOrder(undefined, { locale })
       if (!res.ok) {
         setErrorMessage(res.error?.message)
       }

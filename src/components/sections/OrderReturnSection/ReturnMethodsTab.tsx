@@ -1,5 +1,6 @@
 import { Card } from "@/components/atoms/Card/Card"
 import { Checkbox } from "@/components/atoms/Checkbox/Checkbox"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 import type { OrderSeller, ReturnShippingMethod } from "@/types/order"
 
 export const ReturnMethodsTab = ({
@@ -56,7 +57,10 @@ export const ReturnMethodsTab = ({
             {seller?.postal_code ?? "-"}, {seller?.country_code ?? "-"}
           </p>
           <p className="label-md">
-            {seller?.email ?? "-"}, {seller?.phone ?? "-"}
+            {seller?.email ?? "-"},{" "}
+            {seller?.phone
+              ? formatThaiPhoneNumberForDisplay(seller.phone)
+              : "-"}
           </p>
         </Card>
       </div>

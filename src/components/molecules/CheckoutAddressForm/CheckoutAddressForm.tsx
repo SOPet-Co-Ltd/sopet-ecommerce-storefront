@@ -1,12 +1,20 @@
 "use client"
 
-import { FormProvider, useForm, useFormContext } from "react-hook-form"
+import { useEffect } from "react"
+import {
+  FormProvider,
+  useForm,
+  useFormContext,
+  useWatch,
+} from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { MapPin } from "lucide-react"
 
-import { AddressFormData, addressSchema } from "../AddressForm/schema"
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import { AddressFormData, checkoutAddressSchema } from "../AddressForm/schema"
 import AddressEmptyState from "./CheckoutAddress/AddressEmptyState"
 import AddressFilledState from "./CheckoutAddress/AddressFilledState"
+import { customerAddressToFormValues } from "./customerAddressToFormValues"
 import { StoreCustomer } from "@medusajs/types"
 
 interface Props {
@@ -17,6 +25,7 @@ interface Props {
 
 export const emptyDefaultAddressValues: AddressFormData = {
   recipientFullName: "",
+  contactPhone: "",
   phone: "",
   email: "",
   province: "",
@@ -32,13 +41,21 @@ const CheckoutAddressForm = ({
   defaultValues,
   onSubmitForm,
 }: Props) => {
+  const defaultAddress = customer?.addresses?.find((a) => a.is_default_shipping)
+  const seedValues =
+    defaultValues ??
+    (defaultAddress
+      ? customerAddressToFormValues(defaultAddress, customer ?? null)
+      : emptyDefaultAddressValues)
+
   const methods = useForm<AddressFormData>({
-    resolver: zodResolver(addressSchema),
-    defaultValues: defaultValues || emptyDefaultAddressValues,
+    resolver: zodResolver(checkoutAddressSchema),
+    defaultValues: seedValues,
   })
 
   return (
     <FormProvider {...methods}>
+      <CheckoutAddressStoreSync customer={customer ?? null} />
       <CheckoutAddressFormContent
         customer={customer}
         onSubmitForm={onSubmitForm}
@@ -49,22 +66,64 @@ const CheckoutAddressForm = ({
 
 export default CheckoutAddressForm
 
-const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
-  const { handleSubmit } = useFormContext<AddressFormData>()
+function CheckoutAddressStoreSync({
+  customer,
+}: {
+  customer: StoreCustomer | null
+}) {
+  const setShippingAddress = useCheckoutStore(
+    (state) => state.setShippingAddress
+  )
+  const setAddressFormTrigger = useCheckoutStore(
+    (state) => state.setAddressFormTrigger
+  )
+  const { trigger } = useFormContext<AddressFormData>()
+  const values = useWatch<AddressFormData>()
 
-  const onSubmit = handleSubmit(async (data) => {
-    await onSubmitForm?.(data)
-  })
+  useEffect(() => {
+    setAddressFormTrigger(trigger)
+    return () => setAddressFormTrigger(null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setAddressFormTrigger])
+
+  useEffect(() => {
+    const parsed = checkoutAddressSchema.safeParse(values)
+    if (parsed.success) {
+      setShippingAddress(parsed.data)
+    }
+  }, [values, setShippingAddress])
+
+  // Seed once from the customer's default shipping on mount when form is empty.
+  useEffect(() => {
+    const defaultAddress = customer?.addresses?.find(
+      (a) => a.is_default_shipping
+    )
+    if (!defaultAddress) return
+    const seeded = customerAddressToFormValues(defaultAddress, customer)
+    const parsed = checkoutAddressSchema.safeParse(seeded)
+    if (parsed.success) {
+      setShippingAddress(parsed.data)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer?.id])
+
+  return null
+}
+
+const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
   return (
     <form>
-      <div className="mt-6">
+      <div className="mt-6 mb-sop-20px">
         <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5">
           <MapPin className="fill-sop-primary-500 text-white" size={24} />
           ข้อมูลการจัดส่ง
         </label>
         <div className="relative overflow-hidden w-fill bg-sop-base-white rounded-sop-20 md:px-6 xl:px-6 lg:px-6 px-4 py-6 ">
           {!customer?.addresses.length ? (
-            <AddressEmptyState onSubmitForm={onSubmitForm} />
+            <AddressEmptyState
+              onSubmitForm={onSubmitForm}
+              storeCustomer={customer}
+            />
           ) : (
             <AddressFilledState customer={customer} />
           )}

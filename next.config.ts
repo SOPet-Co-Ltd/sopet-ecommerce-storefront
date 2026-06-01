@@ -63,6 +63,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "sopet.org",
       },
+      {
+        protocol: "https",
+        hostname: "api.omise.co",
+      },
     ],
   },
   async rewrites() {

@@ -2,6 +2,7 @@ import { Input } from "@/components/atoms/Input/Input"
 import CountrySelect from "@/components/cells/CountrySelect/CountrySelect"
 import React, { useState } from "react"
 import { Cart } from "@/types/cart"
+import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 
 const BillingAddress = ({ cart }: { cart: Cart | null }) => {
   const [formData, setFormData] = useState<any>({
@@ -97,12 +98,16 @@ const BillingAddress = ({ cart }: { cart: Cart | null }) => {
           onChange={handleChange}
           data-testid="billing-province-input"
         />
-        <Input
+        <ThaiPhoneInput
           title="Phone"
           name="billing_address.phone"
-          autoComplete="tel"
           value={formData["billing_address.phone"]}
-          onChange={handleChange}
+          onValueChange={(value) =>
+            setFormData({
+              ...formData,
+              "billing_address.phone": value,
+            })
+          }
           data-testid="billing-phone-input"
         />
       </div>

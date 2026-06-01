@@ -1,0 +1,1 @@
+export { CheckoutVendorPromotionModal } from "./CheckoutVendorPromotionModal"

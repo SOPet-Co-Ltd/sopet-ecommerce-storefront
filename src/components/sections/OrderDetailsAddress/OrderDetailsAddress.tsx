@@ -1,5 +1,6 @@
 import { MapPin } from "lucide-react"
 import type { OrderShippingAddress } from "@/types/order"
+import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
 
 type OrderDetailsAddressProps = {
   address?: OrderShippingAddress | null
@@ -19,7 +20,7 @@ const OrderDetailsAddress = ({ address }: OrderDetailsAddressProps) => {
           <p className="font-medium text-gray-900">
             {address.first_name} {address.last_name}
           </p>
-          <p>{address.phone}</p>
+          <p>{formatThaiPhoneNumberForDisplay(address.phone)}</p>
           <p>
             {address.address_1} {address.address_2 ? address.address_2 : ""}
             <br />

@@ -32,6 +32,7 @@ import { WishlistItem } from "./WishlistItem/WishlistItem"
 import { ProductAdditionalAttributes } from "./ProductAdditionalAttributes/ProductAdditionalAttributes"
 import { ProductDetailQuantitySelection } from "./ProductDetailQuantitySelection/ProductDetailQuantitySelection"
 import { RenderStars } from "./ProductReviewStarRender/ProductReviewStarRender"
+import DogLoading from "./DogLoading/DogLoading"
 
 export {
   Navbar,
@@ -68,4 +69,5 @@ export {
   ProductAdditionalAttributes,
   ProductDetailQuantitySelection,
   RenderStars,
+  DogLoading,
 }

@@ -16,7 +16,7 @@ import {
 } from "@/components/atoms/ActionMenu/ActionMenu"
 import { ReviewModal } from "@/components/organisms/ReviewModal/ReviewModal"
 import { useMemo, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 
 import {
   getOrderStatusLabel,
@@ -36,6 +36,7 @@ import {
   useCompleteOrderMutation,
 } from "@/hooks/useOrderManagementQuery"
 import { useOrderManagementUiStore } from "@/lib/zustand/order-management-ui-store"
+import { buildThankYouPath } from "@/lib/helpers/checkout-redirect"
 
 type OrderCardProps = {
   order: OrderDetails
@@ -45,6 +46,8 @@ type OrderCardProps = {
 const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
+  const params = useParams<{ locale?: string }>()
+  const locale = typeof params?.locale === "string" ? params.locale : "th"
   const activeModal = useOrderManagementUiStore((state) => state.activeModal)
   const openModal = useOrderManagementUiStore((state) => state.openModal)
   const closeModal = useOrderManagementUiStore((state) => state.closeModal)
@@ -77,7 +80,8 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
 
   const displayStatus = useMemo(() => {
     return (
-      (order as any).slice_display_status || getOrderManagementDisplayStatus(order)
+      (order as any).slice_display_status ||
+      getOrderManagementDisplayStatus(order)
     )
   }, [order])
 
@@ -108,9 +112,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         <div className="flex flex-col gap-2.5 md:gap-5">
           {/* Header */}
           <div className="border-b border-sop-neutral-grayalpha-300 pb-sop-12px flex items-center justify-between w-full">
-            <p className="font-medium text-lg text-[#211f23]">
-              {sellerName}
-            </p>
+            <p className="font-medium text-lg text-[#211f23]">{sellerName}</p>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <span
@@ -330,7 +332,9 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
         order={order}
         forceMethodSelection={false}
         initialClientSecretsFromChange={paymentSecretsBootstrap}
-        onConsumedInitialSecrets={() => setPaymentSecretsBootstrap(order.id, null)}
+        onConsumedInitialSecrets={() =>
+          setPaymentSecretsBootstrap(order.id, null)
+        }
         selectedCardId={
           selectedCardId ||
           (typeof window !== "undefined"
@@ -354,7 +358,7 @@ const OrderCard = ({ order, hasAnyReviewed = false }: OrderCardProps) => {
             sessionStorage.removeItem(`order_${order.id}_cardId`)
           }
           clearPaymentFlow(order.id)
-          router.push(`/order/${order.id}/confirmed`)
+          router.replace(buildThankYouPath(locale, order.id))
         }}
       />
 
