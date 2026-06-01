@@ -48,6 +48,7 @@ const AddressDropdown = <T extends FieldValues>({
   const [open, setOpen] = useState(false)
 
   const [search, setSearch] = useState("")
+  const [fieldValue, setFieldValue] = useState<string>("")
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -63,6 +64,18 @@ const AddressDropdown = <T extends FieldValues>({
     }
   }, [])
 
+  useEffect(() => {
+    const selected = options.find(
+      (item) => item.value === fieldValue || item.label === fieldValue
+    )
+
+    if (selected) {
+      setSearch(selected.label)
+    } else {
+      setSearch("")
+    }
+  }, [fieldValue, options])
+
   const filteredOptions = useMemo(() => {
     return options.filter((item) =>
       item.searchText.includes(normalizeSearch(search))
@@ -74,17 +87,10 @@ const AddressDropdown = <T extends FieldValues>({
       control={control}
       name={name}
       render={({ field }) => {
-        useEffect(() => {
-          const selected = options.find(
-            (item) => item.value === field.value || item.label === field.value
-          )
-
-          if (selected) {
-            setSearch(selected.label)
-          } else {
-            setSearch("")
-          }
-        }, [field.value, options])
+        // Sync field value to local state for the effect
+        if (field.value !== fieldValue) {
+          setFieldValue(field.value)
+        }
 
         return (
           <div ref={ref} className="relative">
