@@ -1,6 +1,10 @@
 {
   "installCommand": "yarn install --check-files",
   "git": {
-    "deploymentEnabled": false
+    "deploymentEnabled": {
+      "main": true,
+      "uat": true,
+      "development": false
+    }
   }
 }
