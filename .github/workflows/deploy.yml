@@ -45,7 +45,7 @@ jobs:
           echo "Deploying storefront to production..."
           response=$(curl -f -s -w "\n%{http_code}" 'https://api.vercel.com/v1/integrations/deploy/prj_aU5qahRl4rXO83pRDTLHo9GRZFIG/leg8DesLCO')
           http_code=$(echo "$response" | tail -n1)
-          if [[ "$http_code" != "200" ]]; then
+          if [[ "$http_code" != "200" && "$http_code" != "201" ]]; then
             echo "::error::Vercel deployment failed with HTTP $http_code"
             exit 1
           fi
@@ -57,7 +57,7 @@ jobs:
           echo "Deploying storefront to UAT..."
           response=$(curl -f -s -w "\n%{http_code}" 'https://api.vercel.com/v1/integrations/deploy/prj_aU5qahRl4rXO83pRDTLHo9GRZFIG/lBUUINAtXl')
           http_code=$(echo "$response" | tail -n1)
-          if [[ "$http_code" != "200" ]]; then
+          if [[ "$http_code" != "200" && "$http_code" != "201" ]]; then
             echo "::error::Vercel deployment failed with HTTP $http_code"
             exit 1
           fi
