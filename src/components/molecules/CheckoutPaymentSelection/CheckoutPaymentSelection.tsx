@@ -12,15 +12,15 @@ import { SelectWithoutCreditCard } from "./Components/CheckoutWithoutCredit"
 import { newCardDraftSchema } from "@/lib/checkout/checkout-payload-schema"
 
 import type {
-  PaymentMethodData,
   PaymentFormData,
   CustomerCard,
   PaymentMethod,
 } from "./Types/PaymentType"
+import type { HttpTypes } from "@medusajs/types"
 
 type Props = {
   payment?: CustomerCard[]
-  paymentMethods?: PaymentMethodData[] | null
+  paymentMethods?: HttpTypes.StorePaymentProvider[] | null
 }
 
 const CheckoutPaymentSelection = ({
@@ -106,7 +106,9 @@ const CheckoutPaymentSelection = ({
     }
   }, [selectedCardId])
 
-  const enabledMethods = paymentMethods?.filter((method) => method.is_enabled)
+  const enabledMethods = paymentMethods?.filter(
+    (method) => (method as any).is_enabled !== false
+  )
 
   const showPromptpay = enabledMethods?.some(
     (method) => method.id === "pp_promptpay_omise"
