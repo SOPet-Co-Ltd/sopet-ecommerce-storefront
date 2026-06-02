@@ -113,8 +113,9 @@ src/lib/helpers/        Shared helpers and utils
 src/lib/images/         Image loader logic
 public/                 Static assets
 .storybook/             Storybook config
+docs/                   Technical documentation
 ```
 
-properties of sopet.co 2026 all rights reserved.
+## License
 
-hh
+© 2026 Sopet Co., Ltd. All rights reserved.
