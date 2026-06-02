@@ -1,4 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "yarn install --check-files"
+  "installCommand": "yarn install --check-files",
+  "git": {
+    "deploymentEnabled": false
+  }
 }
