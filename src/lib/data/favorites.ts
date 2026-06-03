@@ -52,6 +52,7 @@ export const getUserFavorites = async (
         handle: productHandles,
         limit: productHandles.length,
       },
+      includeStats: false,
     })
 
     // Create a map of fetched products by handle

@@ -2,7 +2,7 @@ export type PaymentMethod = "promptpay" | "card"
 
 export type PaymentMethodData = {
   id: string
-  is_enabled?: boolean
+  is_enabled: boolean
 }
 
 export type CardBrand = "mastercard" | "visa" | "jcb" | "unionpay"

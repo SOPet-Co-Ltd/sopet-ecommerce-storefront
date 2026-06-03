@@ -1,7 +1,7 @@
 import { ProductDetailsVariantSelection } from "@/components/cells/ProductDetailsVariantSelection/ProductDetailsVariantSelection"
 import ProductReviewStars from "@/components/sections/ProductReview/ProductReview"
 
-import { verifyCustomer } from "@/lib/data/customer"
+import { getSessionCustomer } from "@/lib/data/customer"
 import type { ReviewStats } from "@/lib/data/reviews"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { AdditionalAttributeProps } from "@/types/product"
@@ -21,15 +21,13 @@ export const ProductDetails = async ({
   locale: string
   reviewStats: ReviewStats
 }) => {
-  const user = await verifyCustomer()
+  const user = await getSessionCustomer()
 
   let wishlist: Wishlist[] = []
   if (user) {
     const response = await getUserWishlists()
     wishlist = response.wishlists
   }
-  // Get sold_count from reviewStats (which fetches from stats endpoint)
-  // Fallback to product.sold_count if available
   const soldCount =
     reviewStats.soldCount ?? Number((product as any)?.sold_count ?? 0)
 

@@ -1,9 +1,9 @@
 import { Suspense } from "react"
 import { ProductListingSkeleton } from "../ProductListingSkeleton/ProductListingSkeleton"
-import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
+import { AlgoliaProductsListing } from "@/components/sections/ProductListing/AlgoliaProductsListing"
+import { ProductListing } from "@/components/sections/ProductListing/ProductListing"
 import { TabsContent, TabsList } from "@/components/molecules"
 import { SellerReviewTab } from "@/components/cells"
-import { getRegion } from "@/lib/data/regions"
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID
 const ALGOLIA_SEARCH_KEY = process.env.NEXT_PUBLIC_ALGOLIA_SEARCH_KEY

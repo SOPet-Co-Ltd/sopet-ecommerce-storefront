@@ -35,6 +35,10 @@ export function SmartImage(props: ImageProps) {
     return <Image {...props} />
   }
 
+  if (!isR2Host(url.hostname)) {
+    return <Image {...props} />
+  }
+
   return <Image {...props} loader={cloudflareImageLoader} />
 }
 

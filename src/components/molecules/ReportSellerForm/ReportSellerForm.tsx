@@ -3,16 +3,16 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button, Textarea } from "@/components/atoms"
-import { SelectField } from "../SelectField/SelectField"
+import { SearchableSelectField } from "@/components/molecules/SearchableSelect/SearchableSelectField"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import { cn } from "@/lib/utils"
 
 const reasonOptions = [
-  { label: "", value: "", hidden: true },
   {
     label: "Trademark, Copyright or DMCA Violation",
     value: "Trademark, Copyright or DMCA Violation",
   },
-]
+].map((opt) => toSearchOption(opt.label, opt.value))
 
 const formSchema = z.object({
   reason: z.string().nonempty("Please select reason"),
@@ -23,10 +23,10 @@ type FormData = z.infer<typeof formSchema>
 
 export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
   const {
+    control,
     register,
     handleSubmit,
     formState: { errors, isSubmitted },
-    setValue,
     clearErrors,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -47,20 +47,16 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
           <div className="px-4 pb-5">
             <label className="label-sm">
               <p className={cn(errors?.reason && "text-negative")}>Reason</p>
-              <SelectField
+              <SearchableSelectField
+                control={control}
+                name="reason"
+                placeholder="Select reason"
                 options={reasonOptions}
-                {...register("reason")}
-                selectOption={(value) => {
-                  setValue("reason", value)
-                  clearErrors("reason")
-                }}
-                className={cn(errors?.reason && "border-negative")}
+                hideTitle
+                isRequire={false}
+                error={errors.reason}
+                onSelect={() => clearErrors("reason")}
               />
-              {errors?.reason && (
-                <p className="label-sm text-negative">
-                  {errors.reason.message}
-                </p>
-              )}
             </label>
 
             <label className="label-sm">

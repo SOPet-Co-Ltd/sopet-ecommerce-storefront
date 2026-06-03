@@ -1,9 +1,7 @@
 "use client"
 
-import {
-  ProductCardReviewStars,
-  ProductCardShowPrice,
-} from "@/components/sections"
+import { ProductCardShowPrice } from "@/components/sections/ProductCardShowPrice/ProductCardShowPrice"
+import { ProductCardReviewStars } from "@/components/sections/ProductReview/ProductCardReview"
 import SmartImage from "@/components/atoms/SmartImage/SmartImage"
 import { HttpTypes } from "@medusajs/types"
 import { BaseHit, Hit } from "instantsearch.js"

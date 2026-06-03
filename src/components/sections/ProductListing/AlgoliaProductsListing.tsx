@@ -1,12 +1,10 @@
 "use client"
 
 import { HttpTypes } from "@medusajs/types"
-import {
-  AlgoliaProductSidebar,
-  ProductCard,
-  ProductsPagination,
-  ProductSortButtons,
-} from "@/components/organisms"
+import { ProductCard } from "@/components/organisms/ProductCard/ProductCard"
+import { ProductsPagination } from "@/components/organisms/ProductsPagination/ProductsPagination"
+import { ProductSortButtons } from "@/components/organisms/ProductSortButtons/ProductSortButtons"
+import { AlgoliaProductSidebar } from "@/components/organisms/ProductSidebar/AlgoliaProductSidebar"
 import { client } from "@/lib/client"
 import { Configure, useHits } from "react-instantsearch"
 import { InstantSearchNext } from "react-instantsearch-nextjs"
@@ -137,6 +135,7 @@ const ProductsListing = ({
             handle: items.map((item) => item.handle),
             limit: items.length,
           },
+          includeStats: false,
         })
 
         // Filter products with valid prices
@@ -243,7 +242,13 @@ const ProductsListing = ({
         return indexA - indexB
       })
       .slice(startIndex, endIndex)
-  }, [filteredItems, sortedProductIds, sortedProductIndexMap, page])
+  }, [
+    filteredItems,
+    sortedApiProducts.length,
+    sortedProductIds,
+    sortedProductIndexMap,
+    page,
+  ])
 
   // Calculate pagination
   const count = matchedApiProducts.length

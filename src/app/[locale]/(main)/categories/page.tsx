@@ -2,7 +2,8 @@ import { ProductListingSkeleton } from "@/components/organisms/ProductListingSke
 import { Suspense } from "react"
 
 import { Breadcrumbs } from "@/components/atoms"
-import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
+import { AlgoliaProductsListing } from "@/components/sections/ProductListing/AlgoliaProductsListing"
+import { ProductListing } from "@/components/sections/ProductListing/ProductListing"
 import { getRegion } from "@/lib/data/regions"
 import isBot from "@/lib/helpers/isBot"
 import { headers } from "next/headers"
@@ -101,6 +102,8 @@ async function AllCategories({
   } = await listProducts({
     countryCode: locale,
     queryParams: { limit: 8, order: "created_at", fields: "id,title,handle" },
+    forceCache: true,
+    includeStats: false,
   })
 
   const itemList = jsonLdProducts.slice(0, 8).map((p, idx) => ({

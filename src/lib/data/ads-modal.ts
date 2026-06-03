@@ -1,5 +1,6 @@
 "use server"
 
+import { REVALIDATE_STOREFRONT } from "@/lib/cache/constants"
 import { fetchQuery } from "@/lib/config"
 
 type AdsModalMetadata = Record<string, unknown> | null
@@ -42,7 +43,8 @@ export const getActiveAdsModalEntry =
   async (): Promise<StorefrontAdsModalEntry | null> => {
     const response = await fetchQuery("/store/ads-modal", {
       method: "GET",
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: REVALIDATE_STOREFRONT },
     })
 
     if (!response.ok || response.status === 204 || !response.data) {

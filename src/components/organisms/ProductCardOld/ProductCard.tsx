@@ -7,8 +7,6 @@ import { BaseHit, Hit } from "instantsearch.js"
 import clsx from "clsx"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
-import { ReviewStats } from "@/lib/data/reviews"
-import { SellerProps } from "@/types/seller"
 
 export const ProductCardOld = ({
   product,
@@ -20,12 +18,6 @@ export const ProductCardOld = ({
   if (!api_product) {
     return null
   }
-
-  const seller = (product as unknown as { seller?: SellerProps }).seller
-  const reviewStats = (product as unknown as { reviewStats?: ReviewStats })
-    .reviewStats
-
-  console.log({ seller, reviewStats })
 
   const { cheapestPrice } = getProductPrice({
     product: api_product! as HttpTypes.StoreProduct,

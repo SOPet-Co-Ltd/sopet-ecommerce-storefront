@@ -1,7 +1,7 @@
 "use client"
 
-import { X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useState } from "react"
+import SmartImage from "@/components/atoms/SmartImage/SmartImage"
 import { Modal } from "@/components/molecules/Modal/Modal"
 import { useAdsQuery } from "@/hooks/useAdsQuery"
 
@@ -50,8 +50,9 @@ const parseDismissState = (value: string | null): AdsDismissState | null => {
 export const PromotionalAdsModal = () => {
   const [isHydrated, setIsHydrated] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [shouldFetchAds, setShouldFetchAds] = useState(false)
   const cooldownMs = useMemo(getCooldownMs, [])
-  const adsQuery = useAdsQuery()
+  const adsQuery = useAdsQuery({ enabled: shouldFetchAds })
   const ad = adsQuery.data
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export const PromotionalAdsModal = () => {
 
     if (dismissState && dismissState.expiresAt > now) {
       setIsOpen(false)
+      setShouldFetchAds(false)
       setIsHydrated(true)
       return
     }
@@ -70,6 +72,7 @@ export const PromotionalAdsModal = () => {
     }
 
     setIsOpen(true)
+    setShouldFetchAds(true)
     setIsHydrated(true)
   }, [])
 
@@ -84,6 +87,7 @@ export const PromotionalAdsModal = () => {
 
     localStorage.setItem(ADS_DISMISS_STORAGE_KEY, JSON.stringify(payload))
     setIsOpen(false)
+    setShouldFetchAds(false)
   }, [cooldownMs])
 
   if (!isHydrated || !isOpen || adsQuery.isPending || !ad) {
@@ -102,9 +106,11 @@ export const PromotionalAdsModal = () => {
       <div className="relative p-0">
         <div className="relative mx-auto w-full max-w-90 overflow-hidden rounded-xl">
           <div className="relative aspect-4/5">
-            <img
+            <SmartImage
               src={ad.image_url}
               alt={ADS_IMAGE_ALT}
+              fill
+              sizes="(max-width: 640px) 90vw, 420px"
               className="h-full w-full object-cover"
             />
           </div>

@@ -1,7 +1,5 @@
 "use client"
 
-import { DotLottieReact } from "@lottiefiles/dotlottie-react"
-
 export type RouteLoadingVariant = "main" | "compact"
 
 export function RouteLoadingSpinnerBlock({
@@ -10,19 +8,22 @@ export function RouteLoadingSpinnerBlock({
   variant?: RouteLoadingVariant
 }) {
   const compact = variant === "compact"
-  const siteName = process.env.NEXT_PUBLIC_SITE_NAME
 
   return (
     <div className="flex flex-col items-center">
       <span className="sr-only">
         {variant === "main" ? "กำลังโหลดหน้า" : "กำลังโหลดส่วนของรายการ"}
       </span>
-      <DotLottieReact
-        className={compact ? "w-48 h-24" : "w-65.5 h-32.75"}
-        src="/runningDog.lottie"
-        loop
-        autoplay
-      />
+      <div
+        className={`flex items-center justify-center ${compact ? "h-24 w-48" : "h-32.75 w-65.5"}`}
+        aria-hidden
+      >
+        <div
+          className={`rounded-full border-4 border-sop-secondary-200 border-t-sop-secondary-500 motion-safe:animate-spin ${
+            compact ? "h-10 w-10" : "h-14 w-14"
+          }`}
+        />
+      </div>
       <label className="sop-body-lg-medium text-sop-secondary-500 text-center">
         กำลังโหลด ...
       </label>{" "}

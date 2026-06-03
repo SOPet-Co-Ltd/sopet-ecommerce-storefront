@@ -1,19 +1,12 @@
-import {
-  forwardRef,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  Fragment,
-} from "react"
+import { forwardRef, useImperativeHandle, useMemo, useRef } from "react"
 
 import { HttpTypes } from "@medusajs/types"
 import NativeSelect, {
   NativeSelectProps,
 } from "@/components/molecules/NativeSelect/NativeSelect"
+import { SearchableSelect } from "@/components/molecules/SearchableSelect/SearchableSelect"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import clsx from "clsx"
-import { Listbox, Transition } from "@headlessui/react"
-import { clx } from "@medusajs/ui"
-import { ChevronUpDown } from "@medusajs/icons"
 
 const CountrySelect = forwardRef<
   HTMLSelectElement,
@@ -33,11 +26,25 @@ const CountrySelect = forwardRef<
       return []
     }
 
-    return region.countries?.map((country) => ({
-      value: country.iso_2,
-      label: country.display_name,
-    }))
+    return (
+      region.countries
+        ?.filter((country) => country.iso_2 && country.display_name)
+        .map((country) =>
+          toSearchOption(country.display_name!, country.iso_2!, {
+            searchText:
+              `${country.display_name} ${country.iso_2}`.toLowerCase(),
+          })
+        ) ?? []
+    )
   }, [region])
+
+  const selectedValue = useMemo(() => {
+    const v = props.value
+    if (v === undefined) return ""
+    if (typeof v === "string") return v
+    if (Array.isArray(v)) return v[0] ?? ""
+    return String(v)
+  }, [props.value])
 
   const handleSelect = (value: string) => {
     props.onChange?.({
@@ -48,73 +55,17 @@ const CountrySelect = forwardRef<
     } as React.ChangeEvent<HTMLSelectElement>)
   }
 
-  const listboxValue = useMemo(() => {
-    const v = props.value
-    if (v === undefined) {
-      return undefined
-    }
-    if (typeof v === "string") {
-      return v
-    }
-    if (Array.isArray(v)) {
-      return v[0] ?? undefined
-    }
-    return String(v)
-  }, [props.value])
-
   return (
     <label className="label-md">
       <p className="mb-2">Country</p>
-      <Listbox
+      <SearchableSelect
+        placeholder={placeholder}
+        value={selectedValue}
         onChange={handleSelect}
-        value={props.value as string | undefined}
-      >
-        <div className="relative">
-          <Listbox.Button
-            className={clsx(
-              "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular"
-            )}
-            data-testid="shipping-address-select"
-          >
-            {({ open }) => (
-              <>
-                <span className="block truncate">
-                  {countryOptions?.find(
-                    (country) => country.value === props.value
-                  )?.label || "Choose a country"}
-                </span>
-                <ChevronUpDown
-                  className={clx("transition-rotate duration-200", {
-                    "transform rotate-180": open,
-                  })}
-                />
-              </>
-            )}
-          </Listbox.Button>
-          <Transition
-            as={Fragment}
-            leave="transition ease-in duration-100"
-            leaveFrom="opacity-100"
-            leaveTo="opacity-0"
-          >
-            <Listbox.Options
-              className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm"
-              data-testid="shipping-address-options"
-            >
-              {countryOptions?.map(({ value, label }, index) => (
-                <Listbox.Option
-                  key={index}
-                  value={value}
-                  className="cursor-default select-none relative pl-6 pr-10 hover:bg-gray-50 py-4 border-b"
-                  data-testid="shipping-address-option"
-                >
-                  {label}
-                </Listbox.Option>
-              ))}
-            </Listbox.Options>
-          </Transition>
-        </div>
-      </Listbox>
+        options={countryOptions}
+        hideTitle
+        isRequire={false}
+      />
       <div className="hidden">
         <NativeSelect
           ref={innerRef}
@@ -125,7 +76,7 @@ const CountrySelect = forwardRef<
           )}
           {...props}
         >
-          {countryOptions?.map(({ value, label }, index) => (
+          {countryOptions.map(({ value, label }, index) => (
             <option key={index} value={value}>
               {label}
             </option>

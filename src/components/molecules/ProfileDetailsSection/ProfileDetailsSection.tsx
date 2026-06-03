@@ -4,16 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { z } from "zod"
-import {
-  Avatar,
-  Button,
-  Dropdown,
-  DropdownItem,
-  InputSOPet,
-} from "@/components/atoms"
-import { DownArrowIcon } from "@/icons"
+import { Avatar, Button, InputSOPet } from "@/components/atoms"
+import { SearchableSelectField } from "@/components/molecules/SearchableSelect/SearchableSelectField"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import { updateProfile, uploadAvatar } from "@/lib/data/customer"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
@@ -45,6 +40,37 @@ const BIRTH_YEAR_OPTIONS = Array.from(
   (_, i) => CURRENT_YEAR - i
 )
 
+const BIRTH_DAY_OPTIONS = Array.from({ length: 31 }, (_, index) =>
+  toSearchOption(String(index + 1))
+)
+
+const BIRTH_MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+  toSearchOption(String(index + 1))
+)
+
+const BIRTH_YEAR_SEARCH_OPTIONS = BIRTH_YEAR_OPTIONS.map((year) =>
+  toSearchOption(String(year), String(year))
+)
+
+function parseBirthDateParts(birthDate: string | undefined) {
+  if (!birthDate?.trim()) {
+    return { day: "", month: "", year: "" }
+  }
+
+  const [datePart] = birthDate.split("T")
+  const [year, month, day] = datePart.split("-")
+
+  if (!year || !month || !day) {
+    return { day: "", month: "", year: "" }
+  }
+
+  return {
+    day: String(Number(day)),
+    month: String(Number(month)),
+    year,
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
@@ -53,6 +79,7 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
   const router = useRouter()
   const metadata = (user as { metadata?: Record<string, unknown> }).metadata
   const birthDate = metadata?.birth_date as string | undefined
+  const birthDateParts = parseBirthDateParts(birthDate)
   const displayName =
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.email ||
@@ -78,11 +105,9 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
       name: displayName,
-      birthDay: birthDate ? new Date(birthDate).getDate().toString() : "",
-      birthMonth: birthDate
-        ? (new Date(birthDate).getMonth() + 1).toString()
-        : "",
-      birthYear: birthDate ? new Date(birthDate).getFullYear().toString() : "",
+      birthDay: birthDateParts.day,
+      birthMonth: birthDateParts.month,
+      birthYear: birthDateParts.year,
     },
   })
 
@@ -249,65 +274,38 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
           วันเกิด
         </label>
         <div className="flex gap-2">
-          <Controller
+          <SearchableSelectField
+            control={control}
             name="birthDay"
-            control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="วัน"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {Array.from({ length: 31 }, (_, index) => (
-                  <DropdownItem key={index} value={String(index + 1)}>
-                    {String(index + 1)}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
+            placeholder="วัน"
+            options={BIRTH_DAY_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
           />
-          <Controller
+          <SearchableSelectField
+            control={control}
             name="birthMonth"
-            control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="เดือน"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {Array.from({ length: 12 }, (_, index) => (
-                  <DropdownItem key={index} value={String(index + 1)}>
-                    {String(index + 1)}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
+            placeholder="เดือน"
+            options={BIRTH_MONTH_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
           />
-          <Controller
-            name="birthYear"
+          <SearchableSelectField
             control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="ปี"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {BIRTH_YEAR_OPTIONS.map((year) => (
-                  <DropdownItem key={year} value={String(year)}>
-                    {year}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
+            name="birthYear"
+            placeholder="ปี"
+            options={BIRTH_YEAR_SEARCH_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
           />
         </div>
 

@@ -4,7 +4,8 @@ import { Suspense } from "react"
 
 import type { Metadata } from "next"
 import { Breadcrumbs } from "@/components/atoms"
-import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
+import { AlgoliaProductsListing } from "@/components/sections/ProductListing/AlgoliaProductsListing"
+import { ProductListing } from "@/components/sections/ProductListing/ProductListing"
 import { notFound } from "next/navigation"
 import isBot from "@/lib/helpers/isBot"
 import { headers } from "next/headers"
@@ -120,6 +121,8 @@ async function Category({
     countryCode: locale,
     queryParams: { limit: 8, order: "created_at", fields: "id,title,handle" },
     category_id: category.id,
+    forceCache: true,
+    includeStats: false,
   })
 
   const itemList = jsonLdProducts.slice(0, 8).map((p, idx) => ({

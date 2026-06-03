@@ -1,13 +1,6 @@
 "use client"
 
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOption,
-  ListboxOptions,
-  Transition,
-} from "@headlessui/react"
-import { Fragment, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import ReactCountryFlag from "react-country-flag"
 
 import { useParams, usePathname, useRouter } from "next/navigation"
@@ -16,6 +9,9 @@ import { HttpTypes } from "@medusajs/types"
 import { updateRegionWithValidation } from "@/lib/data/cart"
 import { Label } from "@medusajs/ui"
 import { toast } from "@/lib/helpers/toast"
+import { SearchableSelect } from "@/components/molecules/SearchableSelect/SearchableSelect"
+import { normalizeSearch } from "@/lib/data/thai-address-helpers"
+import type { SearchableOption } from "@/components/molecules/SearchableSelect/types"
 
 type CountryOption = {
   country: string
@@ -50,6 +46,19 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
     return list
   }, [regions])
 
+  const searchableOptions = useMemo<SearchableOption[]>(
+    () =>
+      options?.map((o) => ({
+        value: o.country,
+        label: o.country.toUpperCase(),
+        searchText: normalizeSearch(`${o.label} ${o.country}`),
+        country: o.country,
+        region: o.region,
+        displayLabel: o.label,
+      })) ?? [],
+    [options]
+  )
+
   useEffect(() => {
     if (countryCode) {
       const option = options?.find((o) => o.country === countryCode)
@@ -72,7 +81,6 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
         })
       }
 
-      // Navigate to new region
       router.push(result.newPath)
       router.refresh()
     } catch (error: any) {
@@ -84,71 +92,41 @@ const CountrySelect = ({ regions }: CountrySelectProps) => {
     }
   }
 
+  const renderCountryOption = (option: SearchableOption) => (
+    <span className="flex items-center gap-x-2 pl-2">
+      <ReactCountryFlag
+        svg
+        style={{
+          width: "16px",
+          height: "16px",
+        }}
+        countryCode={String(option.country ?? option.value)}
+      />
+      {String(option.label)}
+    </span>
+  )
+
   return (
     <div className="md:flex gap-2 items-center justify-end relative">
       <Label className="label-md hidden md:block">Shipping to</Label>
-      <div>
-        <Listbox
-          onChange={handleChange}
-          defaultValue={
-            countryCode
-              ? options?.find((o) => o.country === countryCode)
-              : undefined
-          }
-        >
-          <ListboxButton className="relative w-16 flex justify-between items-center h-10 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular">
-            <div className="txt-compact-small flex items-start mx-auto">
-              {current && (
-                <span className="txt-compact-small flex items-center gap-x-2">
-                  {/* @ts-ignore */}
-                  <ReactCountryFlag
-                    alt={`${current.country.toUpperCase()} flag`}
-                    svg
-                    style={{
-                      width: "16px",
-                      height: "16px",
-                    }}
-                    countryCode={current.country}
-                  />
-                  {current.country.toUpperCase()}
-                </span>
-              )}
-            </div>
-          </ListboxButton>
-          <div className="flex relative w-16">
-            <Transition
-              as={Fragment}
-              leave="transition ease-in duration-150"
-              leaveFrom="opacity-100"
-              leaveTo="opacity-0"
-            >
-              <ListboxOptions className="no-scrollbar absolute z-20 overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm">
-                {options?.map((o, index) => {
-                  return (
-                    <ListboxOption
-                      key={index}
-                      value={o}
-                      className="cursor-pointer select-none relative w-16 hover:bg-gray-50 py-2 border-b"
-                    >
-                      <span className="flex items-center gap-x-2 pl-2">
-                        {/* @ts-ignore */}
-                        <ReactCountryFlag
-                          svg
-                          style={{
-                            width: "16px",
-                            height: "16px",
-                          }}
-                          countryCode={o?.country ?? ""}
-                        />{" "}
-                        {o?.country?.toUpperCase()}
-                      </span>
-                    </ListboxOption>
-                  )
-                })}
-              </ListboxOptions>
-            </Transition>
-          </div>
-        </Listbox>
+      <div className="w-16">
+        <SearchableSelect
+          value={current?.country ?? String(countryCode ?? "")}
+          onChange={(country) => {
+            const option = options?.find((o) => o.country === country)
+            if (option) {
+              setCurrent(option)
+              void handleChange(option)
+            }
+          }}
+          options={searchableOptions}
+          placeholder={current?.country.toUpperCase() ?? "TH"}
+          hideTitle
+          isRequire={false}
+          className="w-16"
+          renderOption={renderCountryOption}
+          dropdownWidth="content"
+        />
       </div>
     </div>
   )
