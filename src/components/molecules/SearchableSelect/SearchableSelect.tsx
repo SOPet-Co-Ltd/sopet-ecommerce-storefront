@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
-import { InputSOPet } from "@/components/atoms"
+import { Input as InputSOPet } from "@/components/atoms/InputSOPet/Input"
 import { DownArrowIcon } from "@/icons"
 import { normalizeSearch } from "@/lib/data/thai-address-helpers"
 import { getOptionSearchText } from "@/lib/helpers/searchable-option"
+import { cn } from "@/lib/utils"
 
 import {
   getDropdownPanelClassName,
@@ -16,6 +17,23 @@ import {
 import type { SearchableOption } from "./types"
 
 export type { DropdownAlign, DropdownWidthMode }
+
+function getSearchDisplayFromValue(
+  value: string,
+  options: SearchableOption[],
+  getDisplayLabel?: (value: string, options: SearchableOption[]) => string
+): string {
+  if (!value) return ""
+
+  const selected = options.find(
+    (item) => item.value === value || item.label === value
+  )
+  if (selected) return selected.label
+
+  if (getDisplayLabel) return getDisplayLabel(value, options)
+
+  return value
+}
 
 export type SearchableSelectProps = {
   value: string
@@ -75,7 +93,9 @@ export const SearchableSelect = ({
 }: SearchableSelectProps) => {
   const ref = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  const [search, setSearch] = useState("")
+  const [search, setSearch] = useState(() =>
+    getSearchDisplayFromValue(value, options, getDisplayLabel)
+  )
   const [triggerWidthPx, setTriggerWidthPx] = useState<number | undefined>()
 
   const panelClassName = useMemo(
@@ -137,26 +157,7 @@ export const SearchableSelect = ({
     // Typing to filter calls onChange(""); do not wipe the query while open
     if (searchable && open) return
 
-    if (!value) {
-      setSearch("")
-      return
-    }
-
-    const selected = options.find(
-      (item) => item.value === value || item.label === value
-    )
-
-    if (selected) {
-      setSearch(selected.label)
-      return
-    }
-
-    if (getDisplayLabel) {
-      setSearch(getDisplayLabel(value, options))
-      return
-    }
-
-    setSearch(value)
+    setSearch(getSearchDisplayFromValue(value, options, getDisplayLabel))
   }, [value, options, getDisplayLabel, searchable, open])
 
   const filteredOptions = useMemo(() => {
@@ -172,7 +173,7 @@ export const SearchableSelect = ({
     `${option.value}-${String(option.postalCode ?? "")}-${index}`
 
   return (
-    <div ref={ref} className={className ?? "relative"}>
+    <div ref={ref} className={cn("relative", className)}>
       <InputSOPet
         isRequire={isRequire}
         title={hideTitle ? undefined : title}

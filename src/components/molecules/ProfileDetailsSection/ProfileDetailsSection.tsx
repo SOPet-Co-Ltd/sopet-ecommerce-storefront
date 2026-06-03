@@ -52,6 +52,25 @@ const BIRTH_YEAR_SEARCH_OPTIONS = BIRTH_YEAR_OPTIONS.map((year) =>
   toSearchOption(String(year), String(year))
 )
 
+function parseBirthDateParts(birthDate: string | undefined) {
+  if (!birthDate?.trim()) {
+    return { day: "", month: "", year: "" }
+  }
+
+  const [datePart] = birthDate.split("T")
+  const [year, month, day] = datePart.split("-")
+
+  if (!year || !month || !day) {
+    return { day: "", month: "", year: "" }
+  }
+
+  return {
+    day: String(Number(day)),
+    month: String(Number(month)),
+    year,
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Component
 // -----------------------------------------------------------------------------
@@ -60,6 +79,7 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
   const router = useRouter()
   const metadata = (user as { metadata?: Record<string, unknown> }).metadata
   const birthDate = metadata?.birth_date as string | undefined
+  const birthDateParts = parseBirthDateParts(birthDate)
   const displayName =
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.email ||
@@ -85,11 +105,9 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
       name: displayName,
-      birthDay: birthDate ? new Date(birthDate).getDate().toString() : "",
-      birthMonth: birthDate
-        ? (new Date(birthDate).getMonth() + 1).toString()
-        : "",
-      birthYear: birthDate ? new Date(birthDate).getFullYear().toString() : "",
+      birthDay: birthDateParts.day,
+      birthMonth: birthDateParts.month,
+      birthYear: birthDateParts.year,
     },
   })
 
@@ -256,45 +274,39 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
           วันเกิด
         </label>
         <div className="flex gap-2">
-          <div className="relative">
-            <SearchableSelectField
-              control={control}
-              name="birthDay"
-              placeholder="วัน"
-              options={BIRTH_DAY_OPTIONS}
-              hideTitle
-              isRequire={false}
-              className="max-w-[150px]"
-              showAllOptions
-              dropdownAlign="start"
-            />
-          </div>
-          <div className="relative">
-            <SearchableSelectField
-              control={control}
-              name="birthMonth"
-              placeholder="เดือน"
-              options={BIRTH_MONTH_OPTIONS}
-              hideTitle
-              isRequire={false}
-              className="max-w-[150px]"
-              showAllOptions
-              dropdownAlign="start"
-            />
-          </div>
-          <div className="relative">
-            <SearchableSelectField
-              control={control}
-              name="birthYear"
-              placeholder="ปี"
-              options={BIRTH_YEAR_SEARCH_OPTIONS}
-              hideTitle
-              isRequire={false}
-              className="max-w-[150px]"
-              showAllOptions
-              dropdownAlign="start"
-            />
-          </div>
+          <SearchableSelectField
+            control={control}
+            name="birthDay"
+            placeholder="วัน"
+            options={BIRTH_DAY_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
+          />
+          <SearchableSelectField
+            control={control}
+            name="birthMonth"
+            placeholder="เดือน"
+            options={BIRTH_MONTH_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
+          />
+          <SearchableSelectField
+            control={control}
+            name="birthYear"
+            placeholder="ปี"
+            options={BIRTH_YEAR_SEARCH_OPTIONS}
+            hideTitle
+            isRequire={false}
+            className="max-w-[150px]"
+            showAllOptions
+            dropdownAlign="start"
+          />
         </div>
 
         {profileError && (
