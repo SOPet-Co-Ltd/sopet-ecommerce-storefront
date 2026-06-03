@@ -4973,18 +4973,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@talkjs/react@npm:^0.1.11":
-  version: 0.1.12
-  resolution: "@talkjs/react@npm:0.1.12"
-  dependencies:
-    fast-deep-equal: "npm:^3.1.3"
-  peerDependencies:
-    react: ">=17"
-    talkjs: ">=0"
-  checksum: 10c0/05020a661db55e15fe997a42680d042d00998454cf9588246c4978d3af22760f18955360fae3f7ad97ca41eaa1a9cac334edc2c9fdb22a19048ecf5043d21d9d
-  languageName: node
-  linkType: hard
-
 "@tanstack/query-core@npm:5.100.14":
   version: 5.100.14
   resolution: "@tanstack/query-core@npm:5.100.14"
@@ -6316,7 +6304,6 @@ __metadata:
     "@storybook/react-webpack5": "npm:8.6.14"
     "@storybook/test": "npm:^8.6.14"
     "@tailwindcss/postcss": "npm:^4.1.16"
-    "@talkjs/react": "npm:^0.1.11"
     "@tanstack/react-query": "npm:^5.99.0"
     "@types/babel__core": "npm:^7"
     "@types/babel__preset-env": "npm:^7"
@@ -6366,7 +6353,6 @@ __metadata:
     swr: "npm:^2.4.0"
     tailwind-merge: "npm:^2.6.0"
     tailwindcss: "npm:^4.1.16"
-    talkjs: "npm:^0.37.0"
     typescript: "npm:^5"
     uuid: "npm:^11.0.5"
     webpack: "npm:^5.103.0"
@@ -12684,13 +12670,6 @@ __metadata:
   version: 4.3.0
   resolution: "tailwindcss@npm:4.3.0"
   checksum: 10c0/4cde389ee5e9132e7ef90e4c1d05978d52821761a00700c18b7d46d325881086f0a9c9ec7f616929ecd6e26109c41913538883e066c6dd4bd993debbbbc99084
-  languageName: node
-  linkType: hard
-
-"talkjs@npm:^0.37.0":
-  version: 0.37.0
-  resolution: "talkjs@npm:0.37.0"
-  checksum: 10c0/e9eabfd07e9a210bf5bfa44b2e66739e9680bcd91bd7596d140b06cab95323bc5ca5dd9b40fb85f2fdb7488a7b7f94656876740c00c257215c742fe464c9b613
   languageName: node
   linkType: hard
 
