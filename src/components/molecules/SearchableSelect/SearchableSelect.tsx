@@ -54,7 +54,7 @@ export type SearchableSelectProps = {
   storeFieldValue?: "value" | "label"
   /** When false, input is read-only and the list is not filtered by typing (default: true) */
   searchable?: boolean
-  /** When true, the open panel lists every option and ignores search filtering */
+  /** When true, opening the panel lists every option; typing filters the list */
   showAllOptions?: boolean
   /**
    * Panel width mode. Default `trigger` — options list matches the input width.
@@ -96,7 +96,13 @@ export const SearchableSelect = ({
   const [search, setSearch] = useState(() =>
     getSearchDisplayFromValue(value, options, getDisplayLabel)
   )
+  const [filterBySearch, setFilterBySearch] = useState(false)
   const [triggerWidthPx, setTriggerWidthPx] = useState<number | undefined>()
+
+  const closePanel = useCallback(() => {
+    setOpen(false)
+    if (showAllOptions) setFilterBySearch(false)
+  }, [showAllOptions])
 
   const panelClassName = useMemo(
     () =>
@@ -145,13 +151,13 @@ export const SearchableSelect = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (!ref.current?.contains(event.target as Node)) {
-        setOpen(false)
+        closePanel()
       }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+  }, [closePanel])
 
   useEffect(() => {
     // Typing to filter calls onChange(""); do not wipe the query while open
@@ -161,13 +167,16 @@ export const SearchableSelect = ({
   }, [value, options, getDisplayLabel, searchable, open])
 
   const filteredOptions = useMemo(() => {
-    if (!searchable || showAllOptions) return options
+    if (!searchable) return options
 
     const query = normalizeSearch(search)
+
+    if (showAllOptions && (!filterBySearch || !query)) return options
+
     if (!query) return options
 
     return options.filter((item) => getOptionSearchText(item).includes(query))
-  }, [options, search, searchable, showAllOptions])
+  }, [options, search, searchable, showAllOptions, filterBySearch])
 
   const optionKey = (option: SearchableOption, index: number) =>
     `${option.value}-${String(option.postalCode ?? "")}-${index}`
@@ -188,13 +197,17 @@ export const SearchableSelect = ({
           setSearch(e.target.value)
           onChange("")
           setOpen(true)
+          if (showAllOptions) setFilterBySearch(true)
         }}
         onClick={() => {
           if (!searchable && !disabled) {
             setOpen((prev) => !prev)
           }
         }}
-        onFocus={() => setOpen(true)}
+        onFocus={() => {
+          setOpen(true)
+          if (showAllOptions) setFilterBySearch(false)
+        }}
         size="sm"
         variant="bordered"
         endIcon={<DownArrowIcon size={12} color="#211F23" />}
@@ -219,7 +232,7 @@ export const SearchableSelect = ({
                     )
                     setSearch(option.label)
                     onSelect?.(option)
-                    setOpen(false)
+                    closePanel()
                   }}
                 >
                   <span
