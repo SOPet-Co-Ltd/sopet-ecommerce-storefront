@@ -1,7 +1,7 @@
 import { HttpTypes } from "@medusajs/types"
 import React, { useEffect, useMemo, useState } from "react"
-import { Input, Button, Dropdown, DropdownItem } from "@/components/atoms"
-import { DownArrowIcon } from "@/icons"
+import { Input, Button } from "@/components/atoms"
+import { SearchableSelect } from "@/components/molecules/SearchableSelect/SearchableSelect"
 import {
   getDistricts,
   getProvinces,
@@ -361,79 +361,39 @@ const ShippingAddress = ({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div>
-          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-            จังหวัด
-          </label>
-          <Dropdown
-            button={{ variant: "neutral", size: "lg", fill: true }}
-            triggerClassName="w-full"
-            placeholder="เลือกจังหวัด"
-            value={provinceValue}
-            onValueChange={handleProvinceChange}
-            icon={<DownArrowIcon size={12} color="#454547" />}
-          >
-            {provinceOptions.map((opt) => (
-              <DropdownItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </DropdownItem>
-            ))}
-          </Dropdown>
-        </div>
+        <SearchableSelect
+          title="จังหวัด"
+          placeholder="เลือกจังหวัด"
+          value={provinceValue}
+          onChange={handleProvinceChange}
+          options={provinceOptions}
+        />
 
-        <div>
-          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-            เขต/อำเภอ
-          </label>
-          <Dropdown
-            button={{
-              variant: "neutral",
-              size: "lg",
-              fill: true,
-              disabled: !provinceValue,
-            }}
-            triggerClassName="w-full"
-            placeholder="เลือกเขต/อำเภอ"
-            value={districtValue}
-            onValueChange={handleDistrictChange}
-            icon={<DownArrowIcon size={12} color="#454547" />}
-          >
-            {districtOptions.map((opt) => (
-              <DropdownItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </DropdownItem>
-            ))}
-          </Dropdown>
-        </div>
+        <SearchableSelect
+          title="เขต/อำเภอ"
+          placeholder="เลือกเขต/อำเภอ"
+          value={districtValue}
+          onChange={handleDistrictChange}
+          options={districtOptions}
+          disabled={!provinceValue}
+        />
 
-        <div>
-          <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-            แขวง/ตำบล
-          </label>
-          <Dropdown
-            button={{
-              variant: "neutral",
-              size: "lg",
-              fill: true,
-              disabled: !provinceValue || !districtValue,
-            }}
-            triggerClassName="w-full"
-            placeholder="เลือกแขวง/ตำบล"
-            value={
-              subdistrictOptions.find(
-                (o) => o.label === formData["shipping_address.city"]
-              )?.value ?? ""
-            }
-            onValueChange={handleSubdistrictChange}
-            icon={<DownArrowIcon size={12} color="#454547" />}
-          >
-            {subdistrictOptions.map((opt) => (
-              <DropdownItem key={opt.value} value={opt.value}>
-                {opt.label}
-              </DropdownItem>
-            ))}
-          </Dropdown>
-        </div>
+        <SearchableSelect
+          title="แขวง/ตำบล"
+          placeholder="เลือกแขวง/ตำบล"
+          value={
+            subdistrictOptions.find(
+              (o) => o.label === formData["shipping_address.city"]
+            )?.value ?? ""
+          }
+          onChange={handleSubdistrictChange}
+          options={subdistrictOptions}
+          disabled={!provinceValue || !districtValue}
+          getDisplayLabel={(storedValue, opts) =>
+            opts.find((o) => o.value === storedValue)?.label ??
+            String(formData["shipping_address.city"] ?? "")
+          }
+        />
 
         <div>
           <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">

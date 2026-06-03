@@ -4,16 +4,16 @@ import ErrorMessage from "@/components/molecules/ErrorMessage/ErrorMessage"
 import { setMultiShippingMethods } from "@/lib/data/cart"
 import { calculatePriceForShippingOption } from "@/lib/data/fulfillment"
 import { convertToLocale } from "@/lib/helpers/money"
-import { CheckCircleSolid, ChevronUpDown, Loader } from "@medusajs/icons"
+import { CheckCircleSolid } from "@medusajs/icons"
 import { HttpTypes } from "@medusajs/types"
 import { clx, Heading, Text } from "@medusajs/ui"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { Fragment, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/atoms"
-import { Modal, SelectField } from "@/components/molecules"
+import { Modal } from "@/components/molecules"
+import { SearchableSelect } from "@/components/molecules/SearchableSelect/SearchableSelect"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import { CartShippingMethodRow } from "./CartShippingMethodRow"
-import { Listbox, Transition } from "@headlessui/react"
-import clsx from "clsx"
 import { Cart, StoreCardShippingMethod } from "@/types/cart"
 
 // Extended cart item product type to include seller
@@ -307,86 +307,52 @@ const CartShippingMethodsSection: React.FC<ShippingProps> = ({
             <div data-testid="delivery-options-container">
               <div className="pb-8 md:pt-0 pt-2">
                 {Object.keys(groupedBySellerId).map((key) => {
+                  const shippingOptions = groupedBySellerId[key].map(
+                    (option: any) => {
+                      const priceLabel =
+                        option.price_type === "flat"
+                          ? convertToLocale({
+                              amount: option.amount!,
+                              currency_code: cart?.currency_code,
+                            })
+                          : calculatedPricesMap[option.id]
+                            ? convertToLocale({
+                                amount: calculatedPricesMap[option.id],
+                                currency_code: cart?.currency_code,
+                              })
+                            : isLoadingPrices
+                              ? "..."
+                              : "-"
+
+                      return toSearchOption(
+                        `${option.name} - ${priceLabel}`,
+                        option.id
+                      )
+                    }
+                  )
+
+                  const selectedShippingId =
+                    cart.shipping_methods?.find((sm) =>
+                      groupedBySellerId[key].some(
+                        (opt: any) => opt.id === sm.shipping_option_id
+                      )
+                    )?.shipping_option_id ?? ""
+
                   return (
                     <div key={key} className="mb-4">
                       <Heading level="h3" className="mb-2">
                         {groupedBySellerId[key][0].seller_name}
                       </Heading>
-                      <Listbox
-                        value={
-                          cart.shipping_methods?.find((sm) =>
-                            groupedBySellerId[key].some(
-                              (opt: any) => opt.id === sm.shipping_option_id
-                            )
-                          )?.shipping_option_id
-                        }
+                      <SearchableSelect
+                        value={selectedShippingId}
                         onChange={(value) => {
                           handleSetShippingMethod(key, value)
                         }}
-                      >
-                        <div className="relative">
-                          <Listbox.Button
-                            className={clsx(
-                              "relative w-full flex justify-between items-center px-4 h-12 bg-white text-left cursor-default border rounded-lg focus:outline-none focus:ring-1 focus:ring-sop-primary-500 border-gray-200 text-base"
-                            )}
-                          >
-                            {({ open }) => (
-                              <>
-                                <span className="block truncate">
-                                  Choose delivery option
-                                </span>
-                                <ChevronUpDown
-                                  className={clx(
-                                    "transition-rotate duration-200",
-                                    {
-                                      "transform rotate-180": open,
-                                    }
-                                  )}
-                                />
-                              </>
-                            )}
-                          </Listbox.Button>
-                          <Transition
-                            as={Fragment}
-                            leave="transition ease-in duration-100"
-                            leaveFrom="opacity-100"
-                            leaveTo="opacity-0"
-                          >
-                            <Listbox.Options
-                              className="absolute z-20 w-full overflow-auto text-sm bg-white border rounded-lg shadow-lg max-h-60 focus:outline-none mt-1"
-                              data-testid="shipping-address-options"
-                            >
-                              {groupedBySellerId[key].map((option: any) => {
-                                return (
-                                  <Listbox.Option
-                                    className="cursor-pointer select-none relative pl-6 pr-10 hover:bg-gray-50 py-4 border-b"
-                                    value={option.id}
-                                    key={option.id}
-                                  >
-                                    {option.name}
-                                    {" - "}
-                                    {option.price_type === "flat" ? (
-                                      convertToLocale({
-                                        amount: option.amount!,
-                                        currency_code: cart?.currency_code,
-                                      })
-                                    ) : calculatedPricesMap[option.id] ? (
-                                      convertToLocale({
-                                        amount: calculatedPricesMap[option.id],
-                                        currency_code: cart?.currency_code,
-                                      })
-                                    ) : isLoadingPrices ? (
-                                      <Loader />
-                                    ) : (
-                                      "-"
-                                    )}
-                                  </Listbox.Option>
-                                )
-                              })}
-                            </Listbox.Options>
-                          </Transition>
-                        </div>
-                      </Listbox>
+                        options={shippingOptions}
+                        placeholder="Choose delivery option"
+                        hideTitle
+                        isRequire={false}
+                      />
                     </div>
                   )
                 })}

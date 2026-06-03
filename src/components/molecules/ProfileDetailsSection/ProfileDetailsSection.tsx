@@ -4,16 +4,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
-import { Controller, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { z } from "zod"
-import {
-  Avatar,
-  Button,
-  Dropdown,
-  DropdownItem,
-  InputSOPet,
-} from "@/components/atoms"
-import { DownArrowIcon } from "@/icons"
+import { Avatar, Button, InputSOPet } from "@/components/atoms"
+import { SearchableSelectField } from "@/components/molecules/SearchableSelect/SearchableSelectField"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import { updateProfile, uploadAvatar } from "@/lib/data/customer"
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
 import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
@@ -43,6 +38,18 @@ const CURRENT_YEAR = new Date().getFullYear()
 const BIRTH_YEAR_OPTIONS = Array.from(
   { length: 100 },
   (_, i) => CURRENT_YEAR - i
+)
+
+const BIRTH_DAY_OPTIONS = Array.from({ length: 31 }, (_, index) =>
+  toSearchOption(String(index + 1))
+)
+
+const BIRTH_MONTH_OPTIONS = Array.from({ length: 12 }, (_, index) =>
+  toSearchOption(String(index + 1))
+)
+
+const BIRTH_YEAR_SEARCH_OPTIONS = BIRTH_YEAR_OPTIONS.map((year) =>
+  toSearchOption(String(year), String(year))
 )
 
 // -----------------------------------------------------------------------------
@@ -249,66 +256,45 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
           วันเกิด
         </label>
         <div className="flex gap-2">
-          <Controller
-            name="birthDay"
-            control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="วัน"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {Array.from({ length: 31 }, (_, index) => (
-                  <DropdownItem key={index} value={String(index + 1)}>
-                    {String(index + 1)}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
-          />
-          <Controller
-            name="birthMonth"
-            control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="เดือน"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {Array.from({ length: 12 }, (_, index) => (
-                  <DropdownItem key={index} value={String(index + 1)}>
-                    {String(index + 1)}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
-          />
-          <Controller
-            name="birthYear"
-            control={control}
-            render={({ field }) => (
-              <Dropdown
-                button={{ variant: "neutral", size: "lg", fill: true }}
-                triggerClassName="max-w-[150px]"
-                placeholder="ปี"
-                value={field.value}
-                onValueChange={field.onChange}
-                icon={<DownArrowIcon size={10} color="#454547" />}
-              >
-                {BIRTH_YEAR_OPTIONS.map((year) => (
-                  <DropdownItem key={year} value={String(year)}>
-                    {year}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-            )}
-          />
+          <div className="relative">
+            <SearchableSelectField
+              control={control}
+              name="birthDay"
+              placeholder="วัน"
+              options={BIRTH_DAY_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+            />
+          </div>
+          <div className="relative">
+            <SearchableSelectField
+              control={control}
+              name="birthMonth"
+              placeholder="เดือน"
+              options={BIRTH_MONTH_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+            />
+          </div>
+          <div className="relative">
+            <SearchableSelectField
+              control={control}
+              name="birthYear"
+              placeholder="ปี"
+              options={BIRTH_YEAR_SEARCH_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+            />
+          </div>
         </div>
 
         {profileError && (

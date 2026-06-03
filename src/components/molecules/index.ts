@@ -1,6 +1,8 @@
 import { CategoryNavbar } from "./CategoryNavbar/CategoryNavbar"
 import { PrimeCategoryNavbar } from "./PrimeCategoryNavbar/PrimeCategoryNavbar"
 import { SelectField } from "./SelectField/SelectField"
+import { SearchableSelect } from "./SearchableSelect/SearchableSelect"
+import { SearchableSelectField } from "./SearchableSelect/SearchableSelectField"
 import { Accordion } from "./Accordion/Accordion"
 import { FilterCheckboxOption } from "./FilterCheckboxOption/FilterCheckboxOption"
 import { NavbarSearch } from "./NavbarSearch/NavbarSearch"
@@ -49,6 +51,8 @@ export {
   PrimeCategoryNavbar,
   CategoryNavbar,
   SelectField,
+  SearchableSelect,
+  SearchableSelectField,
   Accordion,
   FilterCheckboxOption,
   NavbarSearch,

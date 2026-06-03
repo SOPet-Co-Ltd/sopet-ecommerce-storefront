@@ -9,14 +9,8 @@ import {
 } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { addressSchema, AddressFormData } from "./schema"
-import {
-  Button,
-  Checkbox,
-  Dropdown,
-  DropdownItem,
-  InputSOPet,
-} from "@/components/atoms"
-import { DownArrowIcon } from "@/icons"
+import { Button, Checkbox, InputSOPet } from "@/components/atoms"
+import { SearchableSelectField } from "@/components/molecules/SearchableSelect/SearchableSelectField"
 import { addCustomerAddress, updateCustomerAddress } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
 import { useState, forwardRef, useImperativeHandle } from "react"
@@ -200,131 +194,47 @@ const Form = forwardRef<AddressFormHandle, Props>(
               />
             </div>
 
-            <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-                จังหวัด
-              </label>
-              <Controller
-                control={control}
-                name="province"
-                render={({ field }) => (
-                  <Dropdown
-                    button={{ variant: "neutral", size: "lg", fill: true }}
-                    triggerClassName="w-full"
-                    placeholder="เลือกจังหวัด"
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      setValue("district", "")
-                      setValue("subDistrict", "")
-                      setValue("postalCode", "")
-                    }}
-                    icon={<DownArrowIcon size={12} color="#454547" />}
-                  >
-                    {provinceOptions.map((opt, index) => (
-                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
-                        {opt.label}
-                      </DropdownItem>
-                    ))}
-                  </Dropdown>
-                )}
-              />
-              {errors.province && (
-                <p className="sop-body-xs-regular text-sop-system-error-400 mt-1">
-                  {(errors.province as FieldError).message}
-                </p>
-              )}
-            </div>
+            <SearchableSelectField
+              control={control}
+              name="province"
+              title="จังหวัด"
+              placeholder="เลือกจังหวัด"
+              options={provinceOptions}
+              error={errors.province as FieldError}
+              onSelect={() => {
+                setValue("district", "")
+                setValue("subDistrict", "")
+                setValue("postalCode", "")
+              }}
+            />
 
-            <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-                เขต/อำเภอ
-              </label>
-              <Controller
-                control={control}
-                name="district"
-                render={({ field }) => (
-                  <Dropdown
-                    button={{
-                      variant: "neutral",
-                      size: "lg",
-                      fill: true,
-                      disabled: !provinceValue,
-                    }}
-                    triggerClassName="w-full"
-                    placeholder="เลือกเขต/อำเภอ"
-                    value={field.value}
-                    onValueChange={(value) => {
-                      field.onChange(value)
-                      setValue("subDistrict", "")
-                      setValue("postalCode", "")
-                    }}
-                    icon={<DownArrowIcon size={12} color="#454547" />}
-                  >
-                    {districtOptions.map((opt, index) => (
-                      <DropdownItem key={`${opt.value}-${index}`} value={opt.value}>
-                        {opt.label}
-                      </DropdownItem>
-                    ))}
-                  </Dropdown>
-                )}
-              />
-              {errors.district && (
-                <p className="sop-body-xs-regular text-sop-system-error-400 mt-1">
-                  {(errors.district as FieldError).message}
-                </p>
-              )}
-            </div>
+            <SearchableSelectField
+              control={control}
+              name="district"
+              title="เขต/อำเภอ"
+              placeholder="เลือกเขต/อำเภอ"
+              options={districtOptions}
+              disabled={!provinceValue}
+              error={errors.district as FieldError}
+              onSelect={() => {
+                setValue("subDistrict", "")
+                setValue("postalCode", "")
+              }}
+            />
 
-            <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
-                แขวง/ตำบล
-              </label>
-              <Controller
-                control={control}
-                name="subDistrict"
-                render={({ field }) => {
-                  const handleSubdistrictChange = (value: string) => {
-                    const opt = subdistrictOptions.find(
-                      (o) => o.value === value
-                    )
-                    if (opt) {
-                      field.onChange(opt.label)
-                      setValue("postalCode", opt.postalCode)
-                    }
-                  }
-                  const dropdownValue =
-                    subdistrictOptions.find((o) => o.label === field.value)
-                      ?.value ?? field.value
-                  return (
-                    <Dropdown
-                      button={{
-                        variant: "neutral",
-                        size: "lg",
-                        fill: true,
-                        disabled: !provinceValue || !districtValue,
-                      }}
-                      triggerClassName="w-full"
-                      placeholder="เลือกแขวง/ตำบล"
-                      value={dropdownValue}
-                      onValueChange={handleSubdistrictChange}
-                      icon={<DownArrowIcon size={12} color="#454547" />}
-                    >
-                      {subdistrictOptions.map((opt, index) => (
-                        <DropdownItem key={`${opt.value}-${opt.postalCode || ""}-${index}`} value={opt.value}>
-                          {opt.label}
-                        </DropdownItem>
-                      ))}
-                    </Dropdown>
-                  )
-                }}
-              />
-              {errors.subDistrict && (
-                <p className="sop-body-xs-regular text-sop-system-error-400 mt-1">
-                  {(errors.subDistrict as FieldError).message}
-                </p>
-              )}
-            </div>
+            <SearchableSelectField
+              control={control}
+              name="subDistrict"
+              title="แขวง/ตำบล"
+              placeholder="เลือกแขวง/ตำบล"
+              options={subdistrictOptions}
+              disabled={!provinceValue || !districtValue}
+              error={errors.subDistrict as FieldError}
+              storeFieldValue="label"
+              onSelect={(option) => {
+                setValue("postalCode", String(option.postalCode ?? ""))
+              }}
+            />
 
             <div>
               <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">

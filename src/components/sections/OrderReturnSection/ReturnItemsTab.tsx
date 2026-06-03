@@ -1,17 +1,9 @@
 import { Card } from "@/components/atoms/Card/Card"
 import { Checkbox } from "@/components/atoms/Checkbox/Checkbox"
 import { convertToLocale } from "@/lib/helpers/money"
-import {
-  Listbox,
-  ListboxButton,
-  ListboxOption,
-  ListboxOptions,
-} from "@headlessui/react"
-import { clx } from "@medusajs/ui"
-import { ChevronUpDown } from "@medusajs/icons"
-
 import Image from "next/image"
-import { cn } from "@/lib/utils"
+import { SearchableSelect } from "@/components/molecules/SearchableSelect/SearchableSelect"
+import { toSearchOption } from "@/lib/helpers/searchable-option"
 import type {
   OrderDetails,
   OrderLineItem,
@@ -32,6 +24,10 @@ export const ReturnItemsTab = ({
   returnReasons: ReturnReason[]
   error: boolean
 }) => {
+  const reasonOptions = returnReasons.map((reason) =>
+    toSearchOption(reason.label, reason.id)
+  )
+
   return (
     <div>
       <Card className="bg-secondary p-4">
@@ -85,63 +81,25 @@ export const ReturnItemsTab = ({
                   </div>
                 </div>
               </div>
-              <div className="md:w-1/3">
-                <Listbox
+              <div className="md:w-1/3 relative">
+                <SearchableSelect
                   value={
                     selectedItems.find((i) => i.line_item_id === item.id)
                       ?.reason_id ?? ""
                   }
                   onChange={(value) => handleSelectItem(item, value || "")}
-                >
-                  <div className="relative">
-                    <ListboxButton
-                      className={cn(
-                        "relative w-full flex justify-between items-center px-4 h-12 bg-component-secondary text-left  cursor-default focus:outline-hidden border rounded-lg focus-visible:ring-2 focus-visible:ring-opacity-75 focus-visible:ring-white focus-visible:ring-offset-gray-300 focus-visible:ring-offset-2 focus-visible:border-gray-300 text-base-regular",
-                        error &&
-                          !selectedItems.find((i) => i.line_item_id === item.id)
-                            ?.reason_id &&
-                          "border-red-700"
-                      )}
-                    >
-                      {({ open }) => (
-                        <>
-                          <span className="block truncate">
-                            {returnReasons.find(
-                              (r) =>
-                                r.id ===
-                                selectedItems.find(
-                                  (i) => i.line_item_id === item.id
-                                )?.reason_id
-                            )?.label || "Select Reason"}
-                          </span>
-                          <ChevronUpDown
-                            className={clx("transition-rotate duration-200", {
-                              "transform rotate-180": open,
-                            })}
-                          />
-                        </>
-                      )}
-                    </ListboxButton>
-                    <ListboxOptions className="absolute z-20 w-full overflow-auto text-small-regular bg-white border rounded-lg border-top-0 max-h-60 focus:outline-hidden sm:text-sm">
-                      {returnReasons.map((reason) => (
-                        <ListboxOption
-                          key={reason.id}
-                          value={reason.id}
-                          className="cursor-default select-none relative pl-6 pr-10 hover:bg-gray-50 py-4 border-b"
-                        >
-                          {reason.label}
-                        </ListboxOption>
-                      ))}
-                    </ListboxOptions>
-                    {error &&
-                      !selectedItems.find((i) => i.line_item_id === item.id)
-                        ?.reason_id && (
-                        <p className="absolute -bottom-6 text-red-700 label-md">
-                          Please select reason
-                        </p>
-                      )}
-                  </div>
-                </Listbox>
+                  options={reasonOptions}
+                  placeholder="Select Reason"
+                  hideTitle
+                  isRequire={false}
+                  error={
+                    error &&
+                    !selectedItems.find((i) => i.line_item_id === item.id)
+                      ?.reason_id
+                      ? { message: "Please select reason" }
+                      : undefined
+                  }
+                />
               </div>
             </li>
           ))}
