@@ -56,6 +56,8 @@ export const HomeProductSection = async ({
         countryCode: locale,
         pageParam: 1,
         queryParams: { id: ids, limit: ids.length },
+        forceCache: true,
+        includeStats: false,
       })
       const byId = new Map(response.products.map((p) => [p.id, p]))
       products = ids
@@ -74,6 +76,7 @@ export const HomeProductSection = async ({
             : sellerList.map((product) => product.handle),
         },
         forceCache: !home,
+        includeStats: false,
       })
     ).response.products
   }

@@ -78,17 +78,21 @@ const DEFAULT_FIELDS = [
   "+metadata",
 ] as const
 
-const DEFAULT_FIELDS_WITHOUT_STATS = [
+const PRODUCT_CARD_FIELDS = [
+  "id",
+  "title",
+  "handle",
+  "thumbnail",
+  "created_at",
   "*variants.calculated_price",
-  "+variants.inventory_quantity",
-  "*variants.options",
-  "*variants.options.option",
   "*seller",
-  "*variants",
-  "*attribute_values",
-  "*attribute_values.attribute",
   "+metadata",
+  "+review_count",
+  "+average_rating",
+  "+sold_count",
 ] as const
+
+const DEFAULT_FIELDS_WITHOUT_STATS = PRODUCT_CARD_FIELDS
 
 const REQUIRED_FIELDS = [
   "+review_count",
@@ -244,7 +248,10 @@ const buildProductsQuery = (
     limit,
     offset,
     region_id: region?.id,
-    fields: buildFieldsQuery(queryParams?.fields, params.includeStats !== false),
+    fields: buildFieldsQuery(
+      queryParams?.fields,
+      params.includeStats !== false
+    ),
     ...(queryParams
       ? Object.fromEntries(
           Object.entries(queryParams).filter(([key]) => key !== "fields")
@@ -263,7 +270,7 @@ export const listProducts = async (
     regionId,
     forceCache = false,
     skipPublishedToAlgoliaFilter = false,
-    includeStats = true,
+    includeStats = false,
   } = params
 
   if (!countryCode && !regionId) {
@@ -382,6 +389,7 @@ export const listProductsWithSort = async ({
     category_id,
     collection_id,
     countryCode,
+    includeStats: false,
   })
 
   // Filter by seller if specified
@@ -461,6 +469,7 @@ export const getSectionProducts = async ({
       pageParam: 1,
       queryParams: { id: product_ids, limit: product_ids.length },
       forceCache: true,
+      includeStats: false,
     })
     const orderMap = new Map(product_ids.map((id, i) => [id, i]))
     const sorted = [...productsRaw].sort(

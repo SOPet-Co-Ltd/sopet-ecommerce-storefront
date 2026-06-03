@@ -8,6 +8,10 @@ type AdsModalApiPayload = {
   ad?: StorefrontAdsModalEntry
 }
 
+type UseAdsQueryOptions = {
+  enabled?: boolean
+}
+
 const parseJson = async <T>(response: Response): Promise<T> => {
   const text = await response.text()
 
@@ -36,9 +40,10 @@ const fetchAdsModal = async (): Promise<StorefrontAdsModalEntry | null> => {
   return payload.ad ?? null
 }
 
-export const useAdsQuery = () =>
+export const useAdsQuery = ({ enabled = true }: UseAdsQueryOptions = {}) =>
   useQuery({
     queryKey: queryKeys.ads.modal(),
     queryFn: fetchAdsModal,
+    enabled,
     staleTime: 60 * 1000,
   })

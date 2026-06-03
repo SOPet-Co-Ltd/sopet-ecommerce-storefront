@@ -94,6 +94,7 @@ export const getRecentOrderProducts = async ({
       pageParam: 1,
       queryParams: { id: orderedIds, limit: orderedIds.length },
       skipPublishedToAlgoliaFilter: true,
+      includeStats: false,
     })
 
     const byId = new Map(pricedProducts.map((p) => [p.id, p]))

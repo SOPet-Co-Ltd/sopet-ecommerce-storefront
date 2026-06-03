@@ -14,6 +14,7 @@ export const getProductByHandleForPdp = cache(
       countryCode: locale,
       queryParams: { handle: [handle], limit: 1 },
       forceCache: true,
+      includeStats: true,
     })
     return response.products[0]
   }

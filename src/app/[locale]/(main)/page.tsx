@@ -1,12 +1,10 @@
-import {
-  BannerSection,
-  HomeCouponSection,
-  HomeFaqSection,
-  HomeFooterSection,
-  HomeRecommendedProductSection,
-  HomeRecentOrdersSection,
-  HomeSponsorsSection,
-} from "@/components/sections"
+import { BannerSection } from "@/components/sections/BannerSection/BannerSection"
+import { HomeCouponSection } from "@/components/sections/HomeCouponSection/HomeCouponSection"
+import { HomeFaqSection } from "@/components/sections/HomeFaqSection/HomeFaqSection"
+import { HomeFooterSection } from "@/components/sections/HomeFooterSection/HomeFooterSection"
+import { HomeRecommendedProductSection } from "@/components/sections/HomeRecommendedProductSection/HomeRecommendedProductSection"
+import { HomeRecentOrdersSection } from "@/components/sections/HomeRecentOrdersSection/HomeRecentOrdersSection"
+import { HomeSponsorsSection } from "@/components/sections/HomeSponsorsSection/HomeSponsorsSection"
 
 import type { Metadata } from "next"
 import { headers } from "next/headers"

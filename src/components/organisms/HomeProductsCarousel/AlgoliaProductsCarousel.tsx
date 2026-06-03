@@ -7,7 +7,7 @@ import { Configure, useHits } from "react-instantsearch"
 import { InstantSearchNext } from "react-instantsearch-nextjs"
 import { ProductCardOld } from "../ProductCardOld/ProductCard"
 import { listProducts } from "@/lib/data/products"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 
 export const AlgoliaProductsCarousel = ({
@@ -36,19 +36,34 @@ export const AlgoliaProductsCarousel = ({
 const ProductsListing = ({ locale }: { locale: string }) => {
   const [prod, setProd] = useState<HttpTypes.StoreProduct[] | null>(null)
   const { items } = useHits()
+  const handles = useMemo(
+    () =>
+      items
+        .map((item) => (item as { handle?: string }).handle)
+        .filter((handle): handle is string => Boolean(handle)),
+    [items]
+  )
+  const handlesKey = handles.join(",")
 
   useEffect(() => {
+    if (!handles.length) {
+      setProd([])
+      return
+    }
+
     listProducts({
       countryCode: locale,
       queryParams: {
-        limit: 99999,
+        handle: handles,
+        limit: handles.length,
         fields:
-          "*variants.calculated_price,*seller.reviews,-thumbnail,-images,-type,-tags,-variants.options,-options,-collection,-collection_id",
+          "id,title,handle,thumbnail,*variants.calculated_price,*seller,+metadata,+review_count,+average_rating,+sold_count",
       },
+      includeStats: false,
     }).then(({ response }) => {
       setProd(response.products)
     })
-  }, [])
+  }, [handles, handlesKey, locale])
 
   return (
     <>

@@ -70,13 +70,16 @@ export const BannerSection = ({ banners = [] }: BannerSectionProps) => {
         >
           {loopedBanners.map((banner, index) => {
             const key = `${banner.id}-${index}`
+            const isFirstVisibleBanner = index === (hasLoop ? 1 : 0)
             const image = (
               <SmartImage
-                fetchPriority="auto"
+                priority={isFirstVisibleBanner}
+                fetchPriority={isFirstVisibleBanner ? "high" : "auto"}
                 src={banner.image_url}
                 alt={banner.name || "Banner"}
                 width={1440}
                 height={480}
+                sizes="100vw"
                 className="h-full w-full object-cover"
               />
             )

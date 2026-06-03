@@ -23,7 +23,6 @@
     "@medusajs/ui": "^4.0.7",
     "@radix-ui/react-scroll-area": "^1.2.2",
     "@radix-ui/react-select": "^2.2.6",
-    "@talkjs/react": "^0.1.11",
     "@tanstack/react-query": "^5.99.0",
     "@types/js-cookie": "^3.0.6",
     "algoliasearch": "^5.20.3",
@@ -52,7 +51,6 @@
     "sonner": "^2.0.7",
     "swr": "^2.4.0",
     "tailwind-merge": "^2.6.0",
-    "talkjs": "^0.37.0",
     "uuid": "^11.0.5",
     "zod": "^3.24.1",
     "zustand": "^5.0.12"

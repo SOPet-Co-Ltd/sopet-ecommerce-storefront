@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache"
 import { sdk } from "../config"
 import { getAuthHeaders } from "./cookies"
 import { HttpTypes } from "@medusajs/types"
+import { REVALIDATE_PRODUCT_LIST } from "@/lib/cache/constants"
 
 export type Review = {
   id: string
@@ -385,18 +386,21 @@ export const createProductReview = async (
  * Get product review statistics (average rating and total count)
  */
 export const getProductReviewStats = async (
-  productId: string
+  productId: string,
+  fallback: ReviewStats = {
+    averageRating: 0,
+    totalReviews: 0,
+    starCounts: [],
+    soldCount: 0,
+  }
 ): Promise<ReviewStats> => {
-  const headers = await getAuthHeaders()
-
   try {
     const data = await sdk.client.fetch<ProductReviewStatsResponse>(
       `/store/products/${productId}/reviews/stats`,
       {
         method: "GET",
-        headers,
-        next: { revalidate: 0 }, // Disable cache to get fresh data
-        cache: "no-store", // Force no cache
+        next: { revalidate: REVALIDATE_PRODUCT_LIST },
+        cache: "force-cache",
       }
     )
 
@@ -450,7 +454,7 @@ export const getProductReviewStats = async (
       `[REVIEWS] Failed to fetch review stats for product ${productId}:`,
       error
     )
-    return { averageRating: 0, totalReviews: 0, starCounts: [], soldCount: 0 }
+    return fallback
   }
 }
 

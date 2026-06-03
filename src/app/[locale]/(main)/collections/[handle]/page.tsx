@@ -1,11 +1,13 @@
 import NotFound from "@/app/not-found"
 import { Breadcrumbs } from "@/components/atoms"
 import { ProductListingSkeleton } from "@/components/organisms/ProductListingSkeleton/ProductListingSkeleton"
-import { AlgoliaProductsListing, ProductListing } from "@/components/sections"
+import { AlgoliaProductsListing } from "@/components/sections/ProductListing/AlgoliaProductsListing"
+import { ProductListing } from "@/components/sections/ProductListing/ProductListing"
 import { getCollectionByHandle } from "@/lib/data/collections"
 import { getRegion } from "@/lib/data/regions"
 import isBot from "@/lib/helpers/isBot"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import { headers } from "next/headers"
 import type { Metadata } from "next"
 import { Suspense } from "react"
 
@@ -52,7 +54,8 @@ const SingleCollectionsPage = async ({
 }) => {
   const { handle, locale } = await params
 
-  const bot = isBot(navigator.userAgent)
+  const ua = (await headers()).get("user-agent") || ""
+  const bot = isBot(ua)
   const collection = await getCollectionByHandle(handle)
 
   if (!collection) return <NotFound />

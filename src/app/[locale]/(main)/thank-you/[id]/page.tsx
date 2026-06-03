@@ -1,15 +1,18 @@
 import { Button } from "@/components/atoms/Button/Button"
 import { ThankYouRecommendedProductSection } from "@/components/sections/ThankYouRecommendedProductSection/ThankYouRecommendedProductSection"
 import { BigCheckIcon } from "@/icons"
+import { getSessionCustomer } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 
 type Props = {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string; locale: string }>
 }
 
 export default async function ThankYouPage(props: Props) {
-  const { id } = await props.params
+  const { id, locale } = await props.params
+  const customer = await getSessionCustomer()
+  const isGuest = !customer
   return (
     <section className="min-h-dvh flex flex-col bg-sop-primary-100">
       <div className="h-[400px] bg-sop-primary-500 overflow-hidden relative">
@@ -78,14 +81,23 @@ export default async function ThankYouPage(props: Props) {
               เราได้รับข้อมูลคำสั่งซื้อของคุณเรียบร้อยแล้ว
             </span>
           </div>
+          {isGuest && (
+            <a href={`/${locale}/login`} className="w-full max-w-[230px]">
+              <Button size="lg" fill className="max-w-[230px]">
+                สมัครสมาชิกกับ Sopet ?
+              </Button>
+            </a>
+          )}
           <a
             href="https://line.me/R/ti/p/@sopet"
             target="_blank"
             rel="noopener noreferrer"
+            className="w-full max-w-[230px]"
           >
             <Button
               size="lg"
-              className="bg-sop-system-success-500 hover:bg-sop-system-success-400"
+              fill
+              className="bg-sop-system-success-500 hover:bg-sop-system-success-400 max-w-[230px]"
             >
               ติดตามการสั่งซื้อผ่าน LINE OA
             </Button>

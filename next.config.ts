@@ -1,5 +1,9 @@
 import type { NextConfig } from "next"
 
+const enableFetchFullUrlLogging =
+  process.env.NEXT_DEBUG_FETCH_FULL_URL === "1" ||
+  process.env.NEXT_DEBUG_FETCH_FULL_URL === "true"
+
 const nextConfig: NextConfig = {
   trailingSlash: false,
   reactStrictMode: true,
@@ -8,11 +12,15 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "5mb",
     },
   },
-  logging: {
-    fetches: {
-      fullUrl: true,
-    },
-  },
+  ...(enableFetchFullUrlLogging
+    ? {
+        logging: {
+          fetches: {
+            fullUrl: true,
+          },
+        },
+      }
+    : {}),
   images: {
     remotePatterns: [
       {

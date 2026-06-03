@@ -1,20 +1,47 @@
-import { ProductDetails, ProductGallery } from "@/components/organisms"
+import { ProductDetails } from "@/components/organisms/ProductDetails/ProductDetails"
+import { ProductGallery } from "@/components/organisms/ProductGallery/ProductGallery"
 import { getProductByHandleForPdp } from "@/lib/data/product-pdp"
-import { getProductReviewStats } from "@/lib/data/reviews"
+import { getProductReviewStats, type ReviewStats } from "@/lib/data/reviews"
 import { Breadcrumbs } from "@/components/atoms"
-import { ProductDetailsSeller } from "@/components/cells"
-import {
-  ProductDetailDescription,
-  HomeProductSection,
-  ProductDetailReview,
-  ProductDetailWarning,
-} from ".."
+import { ProductDetailsSeller } from "@/components/cells/ProductDetailsSeller/ProductDetailsSeller"
+import { HomeProductSection } from "@/components/sections/HomeProductSection/HomeProductSection"
+import { ProductDetailDescription } from "@/components/sections/ProductDetailDescription/ProductDetailDescription"
+import { ProductDetailReview } from "@/components/sections/ProductDetailReview/ProductDetailReview"
+import { ProductDetailWarning } from "@/components/sections/ProductDetailWarning/ProductDetailWarning"
 import { Suspense } from "react"
 import { notFound } from "next/navigation"
 import { ProductDetailsCacheHydrator } from "./ProductDetailsCacheHydrator"
 import { ProductViewTracker } from "@/components/atoms/ProductViewTracker/ProductViewTracker"
 import { ProductDetailReviewSkeleton } from "./ProductDetailReviewSkeleton"
 import { SellerProductsSectionSkeleton } from "./SellerProductsSectionSkeleton"
+
+const toFiniteNumber = (value: unknown): number => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const getInitialReviewStats = (product: {
+  average_rating?: number | string | null
+  review_count?: number | string | null
+  sold_count?: number | string | null
+}): ReviewStats => ({
+  averageRating: toFiniteNumber(product.average_rating),
+  totalReviews: toFiniteNumber(product.review_count),
+  starCounts: [],
+  soldCount: toFiniteNumber(product.sold_count),
+})
+
+const ProductDetailReviewWithStats = async ({
+  productId,
+  reviewStatsPromise,
+}: {
+  productId: string
+  reviewStatsPromise: Promise<ReviewStats>
+}) => {
+  const reviewStats = await reviewStatsPromise
+
+  return <ProductDetailReview productId={productId} reviewStats={reviewStats} />
+}
 
 export const ProductDetailsPage = async ({
   handle,
@@ -31,7 +58,8 @@ export const ProductDetailsPage = async ({
     notFound()
   }
 
-  const reviewStats = await getProductReviewStats(prod.id)
+  const initialReviewStats = getInitialReviewStats(prod)
+  const reviewStatsPromise = getProductReviewStats(prod.id, initialReviewStats)
 
   const breadcrumbs = !prod.collection
     ? [
@@ -66,7 +94,7 @@ export const ProductDetailsPage = async ({
         <ProductDetails
           product={prod}
           locale={locale}
-          reviewStats={reviewStats}
+          reviewStats={initialReviewStats}
         />
       </div>
 
@@ -77,7 +105,10 @@ export const ProductDetailsPage = async ({
       <ProductDetailWarning warning={productWarning} />
 
       <Suspense fallback={<ProductDetailReviewSkeleton />}>
-        <ProductDetailReview productId={prod.id} reviewStats={reviewStats} />
+        <ProductDetailReviewWithStats
+          productId={prod.id}
+          reviewStatsPromise={reviewStatsPromise}
+        />
       </Suspense>
 
       <Suspense fallback={<SellerProductsSectionSkeleton />}>

@@ -36,7 +36,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { SaveIcon } from "@/icons"
 import { DogLoading } from "@/components/cells"
 import { useIsMobile } from "@/lib/utils/is-mobile"
-import { buildThankYouPath } from "@/lib/helpers/checkout-redirect"
+import { buildThankYouPathFromDisplayId } from "@/lib/helpers/checkout-redirect"
 
 type ProviderSessionData = {
   qr_image_url?: string | null
@@ -1048,7 +1048,15 @@ export default function PaymentPageClient({
         }
         if (sessionRes?.ok && sessionRes.session.status === "captured") {
           await clearCheckoutCartCookie().catch(() => undefined)
-          router.replace(buildThankYouPath(locale, nextOrderId))
+          const capturedOrder = await retrieveOrder(nextOrderId, {
+            checkoutSessionId,
+          }).catch(() => null)
+          const displayId = capturedOrder?.display_id
+          router.replace(
+            displayId != null
+              ? buildThankYouPathFromDisplayId(locale, displayId)
+              : buildThankYouPathFromDisplayId(locale, 0)
+          )
           return
         }
 
@@ -1069,7 +1077,12 @@ export default function PaymentPageClient({
               () => undefined
             )
             await clearCheckoutCartCookie().catch(() => undefined)
-            router.replace(buildThankYouPath(locale, nextOrderId))
+            const displayId = fresh?.display_id
+            router.replace(
+              displayId != null
+                ? buildThankYouPathFromDisplayId(locale, displayId)
+                : buildThankYouPathFromDisplayId(locale, 0)
+            )
             return
           }
 
