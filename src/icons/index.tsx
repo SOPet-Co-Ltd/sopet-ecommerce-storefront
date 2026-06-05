@@ -3458,17 +3458,26 @@ export function WarningIcon({
 
 export function BigWarningIcon({
   color = "#090909",
-  size = 24,
+  size,
+  sizeMobile,
+  sizeDesktop,
   className = "",
 }: IconProps) {
+  const { finalSize, svgClassName, svgStyle } = getResponsiveIconDimensions({
+    size,
+    sizeMobile,
+    sizeDesktop,
+  })
+
   return (
     <svg
-      width={size}
-      height={size}
+      width={finalSize}
+      height={finalSize}
       viewBox="0 0 24 24"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
+      className={cn(svgClassName, className)}
+      style={svgStyle}
       aria-hidden="true"
     >
       <path
