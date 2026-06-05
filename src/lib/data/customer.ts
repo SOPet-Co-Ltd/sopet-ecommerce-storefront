@@ -14,6 +14,7 @@ import {
 } from "./cookies"
 import meta from "@/components/atoms/Autocomplete/Autocomplete.stories"
 import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
+import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
 
 /**
  * Lightweight auth check for layout/header usage.
@@ -1051,6 +1052,47 @@ export async function deleteCustomerPaymentMethod(
         method: "DELETE",
         headers,
       }
+    )
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err?.message ?? String(err) }
+  }
+}
+
+export async function saveCheckoutAddressForCustomer(
+  address: AddressFormData
+): Promise<{ success: true } | { success: false; error: string }> {
+  const headers = await getAuthHeaders()
+
+  if (!headers || Object.keys(headers).length === 0) {
+    return { success: false, error: "Unauthorized" }
+  }
+
+  const [firstName, ...rest] = (address.recipientFullName ?? "")
+    .trim()
+    .split(" ")
+
+  try {
+    await sdk.store.customer.createAddress(
+      {
+        first_name: firstName ?? "",
+        last_name: rest.join(" ") || "-",
+        address_1: address.address,
+        address_2: address.district,
+        city: address.subDistrict,
+        province: address.province,
+        postal_code: address.postalCode,
+        country_code: "th",
+        phone: normalizeThaiPhoneNumber(address.phone),
+        is_default_shipping: address.setAsDefault ?? false,
+        is_default_billing: address.setAsDefault ?? false,
+      } as HttpTypes.StoreCreateCustomerAddress,
+      {},
+      headers
     )
 
     const customerCacheTag = await getCacheTag("customers")

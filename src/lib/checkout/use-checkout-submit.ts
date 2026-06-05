@@ -5,7 +5,11 @@ import { useCallback, useState } from "react"
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { createContactInformation } from "@/lib/checkout/create-contact-information"
 import { createCheckoutSession } from "@/lib/data/checkout-session"
-import { addCustomerPaymentMethod } from "@/lib/data/customer"
+import {
+  addCustomerPaymentMethod,
+  saveCheckoutAddressForCustomer,
+  updateCustomerPaymentMethod,
+} from "@/lib/data/customer"
 import {
   checkoutPayloadSchema,
   type CheckoutPayload,
@@ -146,6 +150,10 @@ export function useCheckoutSubmit() {
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
 
   const setNewCardDraft = useCheckoutStore((state) => state.setNewCardDraft)
+
+  const saveShippingAddress = useCheckoutStore(
+    (state) => state.saveShippingAddress
+  )
 
   const addressFormTrigger = useCheckoutStore(
     (state) => state.addressFormTrigger
@@ -326,6 +334,11 @@ export function useCheckoutSubmit() {
 
         setNewCardDraft(null)
       } else {
+        // Saved card path — set as default if customer checked the checkbox.
+        if (customer && saveShippingAddress && selectedCardId) {
+          updateCustomerPaymentMethod(selectedCardId, true).catch(() => {})
+        }
+
         await contactPromise
       }
 
@@ -387,6 +400,11 @@ export function useCheckoutSubmit() {
         }
       }
 
+      // Save shipping address to customer account if requested (fire-and-forget).
+      if (customer && shippingAddress?.setAsDefault && shippingAddress) {
+        saveCheckoutAddressForCustomer(shippingAddress).catch(() => {})
+      }
+
       return {
         ok: true,
         payload: result.data,
@@ -421,6 +439,7 @@ export function useCheckoutSubmit() {
     sellerGroups,
     setNewCardDraft,
     setSelectedCardId,
+    saveShippingAddress,
   ])
 
   return {

@@ -254,22 +254,24 @@ const AddressEmptyStateContent = ({
         />
       </div>
 
-      <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
-        <Controller
-          control={control}
-          name="setAsDefault"
-          render={({ field: { value, onChange, ...field } }) => (
-            <Checkbox
-              label={defaultLabel}
-              checked={!!value}
-              onChange={(e) =>
-                onChange((e?.target as HTMLInputElement)?.checked)
-              }
-              {...field}
-            />
-          )}
-        />
-      </div>
+      {storeCustomer && (
+        <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
+          <Controller
+            control={control}
+            name="setAsDefault"
+            render={({ field: { value, onChange, ...field } }) => (
+              <Checkbox
+                label={defaultLabel}
+                checked={!!value}
+                onChange={(e) =>
+                  onChange((e?.target as HTMLInputElement)?.checked)
+                }
+                {...field}
+              />
+            )}
+          />
+        </div>
+      )}
     </div>
   )
 }

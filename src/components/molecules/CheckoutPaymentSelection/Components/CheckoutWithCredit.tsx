@@ -1,9 +1,8 @@
 "use client"
 
 import { useEffect } from "react"
-import { Plus } from "lucide-react"
 
-import { Button } from "@/components/atoms"
+import { Checkbox } from "@/components/atoms"
 import { SelectBox } from "@/components/atoms/SelectBox/SelectBox"
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 
@@ -23,6 +22,13 @@ type Props = {
 export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
   const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
+  const customer = useCheckoutStore((state) => state.customer)
+  const saveShippingAddress = useCheckoutStore(
+    (state) => state.saveShippingAddress
+  )
+  const setSaveShippingAddress = useCheckoutStore(
+    (state) => state.setSaveShippingAddress
+  )
 
   useEffect(() => {
     if (payment.length === 0) return
@@ -63,17 +69,6 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
         <label className="sop-body-md-regular text-sop-neutral-gray-300">
           บัตรที่บันทึกไว้
         </label>
-
-        {/* เอา hide ออกทีหลังด้วย */}
-        {/* <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          rounded="full"
-          iconLeft={<Plus className="h-sop-16px w-sop-16px" />}
-        >
-          เพิ่มบัตรใหม่
-        </Button> */}
       </div>
 
       <div className="mt-sop-16px space-y-sop-12px">
@@ -100,6 +95,18 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
           </SelectBox>
         ))}
       </div>
+
+      {customer && (
+        <div className="mt-sop-16px mb-sop-16px flex items-center gap-2">
+          <Checkbox
+            label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
+            checked={saveShippingAddress}
+            onChange={(e) =>
+              setSaveShippingAddress((e.target as HTMLInputElement).checked)
+            }
+          />
+        </div>
+      )}
 
       {error && (
         <p className="sop-body-xs-regular mt-sop-8px text-sop-system-error-400">

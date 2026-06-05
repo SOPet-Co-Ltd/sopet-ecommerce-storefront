@@ -111,6 +111,7 @@ type CheckoutState = {
   billingContactOverride: { phone?: string; email?: string } | null
   selectedShippingMethodBySellerId: Record<string, string>
   selectedSitePromoCode: string | null
+  saveShippingAddress: boolean
 
   // Form validation triggers (registered by form components).
   addressFormTrigger: (() => Promise<boolean>) | null
@@ -139,6 +140,7 @@ type CheckoutActions = {
   ) => void
   setSelectedShippingMethod: (sellerId: string, optionId: string) => void
   setSelectedSitePromoCode: (code: string | null) => void
+  setSaveShippingAddress: (save: boolean) => void
   setAddressFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
   setPaymentFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
   resetCheckout: () => void
@@ -176,6 +178,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     billingContactOverride: null,
     selectedShippingMethodBySellerId: {},
     selectedSitePromoCode: null,
+    saveShippingAddress: false,
     addressFormTrigger: null,
     paymentFormTrigger: null,
 
@@ -203,6 +206,8 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       })),
     setSelectedSitePromoCode: (selectedSitePromoCode) =>
       set({ selectedSitePromoCode }),
+    setSaveShippingAddress: (saveShippingAddress) =>
+      set({ saveShippingAddress }),
     setAddressFormTrigger: (addressFormTrigger) => set({ addressFormTrigger }),
     setPaymentFormTrigger: (paymentFormTrigger) => set({ paymentFormTrigger }),
     resetCheckout: () =>
@@ -214,6 +219,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
         billingContactOverride: null,
         selectedShippingMethodBySellerId: {},
         selectedSitePromoCode: null,
+        saveShippingAddress: false,
       }),
     buildCheckoutPayload: () => {
       const state = get()

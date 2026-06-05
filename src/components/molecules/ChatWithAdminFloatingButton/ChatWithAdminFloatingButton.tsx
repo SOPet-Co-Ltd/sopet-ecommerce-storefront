@@ -3,6 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { BackIcon, LineSquareCustomIcon, QrAddLineOAIcon } from "@/icons"
 import { cn } from "@/lib/utils"
+import { useIsMobile } from "@/lib/utils/is-mobile"
+
+const LINE_OA_URL = "https://line.me/R/ti/p/@sopet"
+const LINE_ID = "@sopet"
+const TRANSITION_DURATION_MS = 500
+const TRANSITION_EASE = "cubic-bezier(0.4,0,0.2,1)"
 
 // Measures and tracks the card's natural (collapsed) pixel width so CSS can animate it.
 function useCollapsedWidth(cardRef: React.RefObject<HTMLDivElement | null>) {
@@ -11,10 +17,10 @@ function useCollapsedWidth(cardRef: React.RefObject<HTMLDivElement | null>) {
     const card = cardRef.current
     if (!card) return
     const measure = () => {
-      const prev = card.style.width // preserve width during open state
-      card.style.width = ""
+      const prev = card.style.width
+      card.style.width = "" // Reset to intrinsic width
       setCollapsedWidth(card.getBoundingClientRect().width)
-      card.style.width = prev
+      card.style.width = prev // Restore expanded width if open
     }
     measure()
     window.addEventListener("resize", measure)
@@ -48,7 +54,7 @@ function useOverlapDetection(
           intersects(br, footer.getBoundingClientRect())
       )
     }
-    // Coalesce rapid scroll/resize events into one layout read per frame.
+    // Coalesce rapid scroll/resize events into one layout read per frame
     const schedule = () => {
       cancelAnimationFrame(rafId)
       rafId = window.requestAnimationFrame(check)
@@ -74,32 +80,55 @@ function useOverlapDetection(
 const ChatWithAdminFloatingButton = () => {
   const buttonRef = useRef<HTMLDivElement | null>(null)
   const cardRef = useRef<HTMLDivElement | null>(null)
+  const lineButtonRef = useRef<HTMLButtonElement | null>(null)
+  const backButtonRef = useRef<HTMLButtonElement | null>(null)
   const [isQrOpen, setIsQrOpen] = useState(false)
+
+  const isMobile = useIsMobile()
 
   const collapsedWidth = useCollapsedWidth(cardRef)
   const overlapping = useOverlapDetection(buttonRef)
 
-  // Stagger: open = width first then height; close = height first then width.
+  // Close panel on Escape key
+  useEffect(() => {
+    if (!isQrOpen) return
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsQrOpen(false)
+        lineButtonRef.current?.focus()
+      }
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [isQrOpen])
+
+  // Focus management: focus back button when opening, focus LINE button when closing
+  useEffect(() => {
+    if (isQrOpen) {
+      backButtonRef.current?.focus()
+    }
+  }, [isQrOpen])
+
+  // Stagger: opening = width → height; closing = height → width
   const widthTransition =
     collapsedWidth == null
       ? undefined
-      : isQrOpen
-        ? "width 500ms cubic-bezier(0.4,0,0.2,1) 0ms"
-        : "width 500ms cubic-bezier(0.4,0,0.2,1) 400ms"
+      : `width ${TRANSITION_DURATION_MS}ms ${TRANSITION_EASE} ${isQrOpen ? "0ms" : "400ms"}`
 
   const heightTransition = (() => {
     const props = "grid-template-rows, opacity, margin-top"
-    const [dur, ease] = ["500ms", "cubic-bezier(0.4,0,0.2,1)"]
     const delay = isQrOpen ? "400ms" : "0ms"
     return props
       .split(", ")
-      .map((p) => `${p} ${dur} ${ease} ${delay}`)
+      .map(
+        (p) => `${p} ${TRANSITION_DURATION_MS}ms ${TRANSITION_EASE} ${delay}`
+      )
       .join(", ")
   })()
 
   const statusDot = (hidden?: string) => (
     <div
-      aria-hidden
+      aria-hidden="true"
       className={cn(
         hidden,
         "w-2.5 h-2.5 rounded-full border border-solid border-sop-base-white bg-sop-system-success-400"
@@ -119,6 +148,8 @@ const ChatWithAdminFloatingButton = () => {
     >
       <div
         ref={cardRef}
+        role="region"
+        aria-label="ติดต่อแอดมินผ่าน LINE"
         className={cn(
           "bg-sop-neutral-whitealpha-900 px-5 py-4 flex flex-col overflow-hidden",
           "rounded-tl-sop-28px rounded-tr-sop-28px rounded-bl-sop-28px rounded-br-sop-4px",
@@ -138,19 +169,23 @@ const ChatWithAdminFloatingButton = () => {
         <div className="flex items-center gap-2.5 transition-all duration-300 ease-out">
           {isQrOpen && (
             <button
+              ref={backButtonRef}
               type="button"
               onClick={() => setIsQrOpen(false)}
+              aria-label="ปิดรายละเอียด LINE"
               className="flex items-center justify-center cursor-pointer"
             >
               <BackIcon size={24} />
             </button>
           )}
           <button
+            ref={lineButtonRef}
             type="button"
             onClick={() => setIsQrOpen(true)}
             disabled={isQrOpen}
             aria-disabled={isQrOpen}
-            aria-label="Chat with admin via LINE"
+            aria-label="แสดงรายละเอียด LINE สำหรับติดต่อแอดมิน"
+            aria-expanded={isQrOpen}
             className={cn(
               "flex items-center gap-3 relative",
               isQrOpen ? "cursor-auto" : "cursor-pointer"
@@ -175,7 +210,7 @@ const ChatWithAdminFloatingButton = () => {
                 <span className="sop-body-md-medium line-clamp-1 text-sop-neutral-gray-200">
                   ติดต่อแอดมิน
                 </span>
-                {statusDot()} {/* Desktop dot beside label */}
+                {statusDot()}
               </div>
               <span className="sop-body-md-light line-clamp-1 text-sop-neutral-gray-200">
                 ผ่านช่องทาง LINE OA
@@ -184,8 +219,9 @@ const ChatWithAdminFloatingButton = () => {
           </button>
         </div>
 
-        {/* QR panel — always mounted, height animated via grid-rows trick */}
+        {/* QR panel — always mounted, animated via grid-rows */}
         <div
+          aria-hidden={!isQrOpen}
           className={cn(
             "grid",
             isQrOpen
@@ -196,34 +232,46 @@ const ChatWithAdminFloatingButton = () => {
         >
           <div className="overflow-hidden">
             <div className="flex flex-col gap-sop-12px">
-              <div className="flex items-center justify-center h-sop-224px w-full bg-sop-neutral-gray-600 rounded-sop-16px">
-                <QrAddLineOAIcon className="lg:hidden" size={125} />
-                <QrAddLineOAIcon className="hidden lg:block" size={160} />
+              <div
+                className="flex items-center justify-center h-sop-224px w-full bg-sop-neutral-gray-600 rounded-sop-16px"
+                role="img"
+                aria-label="QR Code สำหรับเพิ่มเพื่อน LINE Official Account"
+              >
+                <QrAddLineOAIcon size={isMobile ? 125 : 160} />
               </div>
               <div className="flex bg-sop-neutral-grayalpha-100 rounded-sop-12px justify-between items-center px-sop-12px py-sop-8px">
                 <div className="flex-col -space-y-1 items-start">
-                  <span className="sop-body-md-light line-clamp-1 text-sop-neutral-gray-200">
+                  <span
+                    className="sop-body-md-light line-clamp-1 text-sop-neutral-gray-200"
+                    id="line-id-label"
+                  >
                     LINE ID
                   </span>
-                  <span className="sop-body-md-regular line-clamp-1 text-sop-neutral-gray-200">
-                    @sopet
+                  <span
+                    className="sop-body-md-regular line-clamp-1 text-sop-neutral-gray-200"
+                    aria-labelledby="line-id-label"
+                  >
+                    {LINE_ID}
                   </span>
                 </div>
                 <a
-                  href="https://line.me/R/ti/p/@sopet"
+                  href={LINE_OA_URL}
                   target="_blank"
                   rel="noopener noreferrer"
+                  aria-label="เปิด LINE เพื่อเพิ่มเพื่อน Official Account"
                   className={cn(
                     "shadow-xs relative inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap border border-transparent transition-colors",
-                    "bg-sop-primary-500 text-sop-neutral-grayfixed-600 hover:bg-sop-primary-600",
                     "min-w-19 h-sop-36px rounded-sop-32 py-sop-8px px-sop-16px sop-body-sm-medium",
-                    "bg-sop-system-success-500 hover:bg-sop-system-success-400"
+                    "bg-sop-system-success-500 hover:bg-sop-system-success-400 text-sop-neutral-grayfixed-600"
                   )}
                 >
                   แอดไลน์เลย
                 </a>
               </div>
-              <span className="sop-body-sm-light line-clamp-1 text-sop-neutral-gray-200 text-center w-full">
+              <span
+                className="sop-body-sm-light line-clamp-1 text-sop-neutral-gray-200 text-center w-full"
+                role="note"
+              >
                 ปรึกษาปัญหาสัตว์เลี้ยงฟรี 24 ชม.
               </span>
             </div>

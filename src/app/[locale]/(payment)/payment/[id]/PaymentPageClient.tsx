@@ -33,10 +33,11 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { SaveIcon } from "@/icons"
+import { BigWarningIcon, SaveIcon } from "@/icons"
 import { DogLoading } from "@/components/cells"
 import { useIsMobile } from "@/lib/utils/is-mobile"
 import { buildThankYouPathFromDisplayId } from "@/lib/helpers/checkout-redirect"
+import { Modal } from "@/components/molecules"
 
 type ProviderSessionData = {
   qr_image_url?: string | null
@@ -260,26 +261,31 @@ function ErrorPanel({
 }
 
 function PromptPayPaymentView({
+  locale,
   qrImageUrl,
   qrReference,
   hms,
   isBootstrapping,
+  isExpired,
   errorMsg,
   order,
   orderId,
   session,
   promptpayExpiresAtMs,
 }: {
+  locale: string
   qrImageUrl: string | null
   qrReference: string | null
   hms: ReturnType<typeof formatCountdownHms> | null
   isBootstrapping: boolean
+  isExpired: boolean
   errorMsg: string | null
   session: CheckoutSessionDto
   order: OrderDetails | null
   orderId: string | null
   promptpayExpiresAtMs: number | null
 }) {
+  const router = useRouter()
   const timerLabel = hms ? `${hms.h}:${hms.m}:${hms.s}` : "กำลังเตรียมเวลา"
   const amountLabel = getPaymentAmountLabel(session, order)
   const isMobile = useIsMobile()
@@ -497,6 +503,39 @@ function PromptPayPaymentView({
           </div>
         </div>
       </div>
+      {isExpired && (
+        <Modal width={400}>
+          <div className="flex flex-col items-center justify-center gap-sop-20px py-sop-32px px-sop-16px">
+            <div>
+              <div className="flex items-center justify-center bg-sop-system-warning-300 rounded-full w-sop-48px h-sop-48px lg:w-sop-80px lg:h-sop-80px">
+                <BigWarningIcon
+                  sizeDesktop={30}
+                  sizeMobile={20}
+                  color="#FFFFFF"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col items-center justify-center text-center">
+              <h2 className="text-sop-neutral-gray-200 lg:sop-body-lg-medium">
+                หมดเวลาในการชำระเงิน
+              </h2>
+              <p className="sop-body-md-regular text-sop-neutral-gray-300">
+                หากยังไม่ชำระกดจ่ายใหม่ที่หน้าคำสั่งซื้อ
+              </p>
+            </div>
+            <div className="flex justify-center items-center w-full">
+              <Button
+                variant="primary"
+                size="lg"
+                className="w-full max-w-[250px]"
+                onClick={() => router.push(`/${locale}/cart`)}
+              >
+                ไปยังหน้าคำสั่งซื้อ
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </section>
   )
 }
@@ -1327,10 +1366,12 @@ export default function PaymentPageClient({
 
     return (
       <PromptPayPaymentView
+        locale={locale}
         qrImageUrl={qrImageUrl}
         qrReference={qrReference}
         hms={hms}
         isBootstrapping={isBootstrapping}
+        isExpired={isExpired}
         errorMsg={errorMsg}
         session={currentSession}
         order={order}

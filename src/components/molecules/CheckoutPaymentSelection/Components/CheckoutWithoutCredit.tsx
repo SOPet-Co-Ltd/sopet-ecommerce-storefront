@@ -3,6 +3,7 @@
 import { Controller, useFormContext, useWatch } from "react-hook-form"
 
 import { Checkbox, InputSOPet } from "@/components/atoms"
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import {
   formatCardName,
   formatCardNumber,
@@ -15,6 +16,7 @@ import { PaymentFormData } from "../Types/PaymentType"
 export const SelectWithoutCreditCard = () => {
   const { control, getValues, setValue } = useFormContext<PaymentFormData>()
   const cardNumber = useWatch({ control, name: "cardNumber" }) ?? ""
+  const customer = useCheckoutStore((state) => state.customer)
 
   return (
     <div>
@@ -121,22 +123,24 @@ export const SelectWithoutCreditCard = () => {
       </div>
 
       {/* save card */}
-      <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
-        <Controller
-          control={control}
-          name="setAsDefault"
-          defaultValue={false}
-          render={({ field }) => (
-            <Checkbox
-              label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
-              checked={field.value}
-              onChange={(e) =>
-                field.onChange((e.target as HTMLInputElement).checked)
-              }
-            />
-          )}
-        />
-      </div>
+      {customer && (
+        <div className="mt-5.5 mb-sop-16px flex items-center gap-2">
+          <Controller
+            control={control}
+            name="setAsDefault"
+            defaultValue={false}
+            render={({ field }) => (
+              <Checkbox
+                label="บันทึกไว้ใช้ครั้งถัดไป และตั้งเป็นค่าเริ่มต้น"
+                checked={field.value}
+                onChange={(e) =>
+                  field.onChange((e.target as HTMLInputElement).checked)
+                }
+              />
+            )}
+          />
+        </div>
+      )}
     </div>
   )
 }
