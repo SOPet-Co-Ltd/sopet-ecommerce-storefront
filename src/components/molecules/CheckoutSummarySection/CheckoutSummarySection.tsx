@@ -102,7 +102,7 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
         <SummaryRow label="ค่าจัดส่ง" value={formatPrice(shippingFee)} />
       </div>
 
-      <div className="hidden sm:block border-t pt-sop-16px text-sop-neutral-grayalpha-200">
+      <div className="hidden md:block border-t pt-sop-16px text-sop-neutral-grayalpha-200">
         <div className="flex justify-between">
           <label className="sop-body-lg-medium text-sop-neutral-gray-300">
             ยอดชำระเงิน
@@ -126,7 +126,7 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
       )}
 
       <Button
-        className="mt-sop-16px hidden w-full sm:block"
+        className="mt-sop-16px hidden w-full md:block"
         variant="primary"
         size="lg"
         type="button"

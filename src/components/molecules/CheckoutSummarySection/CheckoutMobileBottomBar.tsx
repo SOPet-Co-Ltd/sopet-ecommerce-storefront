@@ -20,7 +20,7 @@ export function CheckoutMobileBottomBar() {
   }
 
   return (
-    <div className="block lg:hidden">
+    <div className="block md:hidden">
       <div className="px-sop-32px py-sop-12px rounded-tl-sop-20px rounded-tr-sop-20px bg-sop-base-white flex justify-between items-center mt-14">
         <div className="flex flex-col">
           <label className="sop-body-sm-medium text-sop-neutral-gray-300">
