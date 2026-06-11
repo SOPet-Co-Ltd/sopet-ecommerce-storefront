@@ -153,7 +153,7 @@ export const VariantReselectionModal = ({
 
   return (
     <Modal width={600} onClose={onClose}>
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 p-sop-16px">
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className="relative w-20 h-20 bg-sop-neutral-grayalpha-200 overflow-hidden shrink-0 rounded-lg">
