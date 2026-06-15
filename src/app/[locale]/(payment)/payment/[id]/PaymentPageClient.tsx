@@ -653,7 +653,7 @@ async function syncSavedCheckoutDataToCart(session: CheckoutSessionDto) {
     payload.customerSession?.email ||
     shippingAddress.email ||
     (shippingAddress.contactPhone
-      ? `${normalizeThaiPhoneNumber(shippingAddress.contactPhone)}@sopet.co.th`
+      ? `${normalizeThaiPhoneNumber(shippingAddress.contactPhone)}@sopet.org`
       : "")
   if (email) {
     formData.set("email", email)
@@ -690,7 +690,7 @@ function getCartSnapshot(session: CheckoutSessionDto) {
     payload.customerSession?.email ||
     shippingAddress?.email ||
     (shippingAddress?.contactPhone
-      ? `${normalizeThaiPhoneNumber(shippingAddress.contactPhone)}@sopet.co.th`
+      ? `${normalizeThaiPhoneNumber(shippingAddress.contactPhone)}@sopet.org`
       : null)
   const promotionCodes = [
     ...(payload.promotions?.site ?? []),

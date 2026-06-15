@@ -55,7 +55,9 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
   } = useCheckoutTotals()
 
   const handleSubmit = async () => {
+    console.log("[CheckoutSummarySection] handleSubmit called")
     const res = await submit()
+    console.log("[CheckoutSummarySection] submit result:", res)
     if (res.ok) {
       // Hand off to the dedicated payment page; checkout page is done.
       router.replace(`/${locale}/payment/${res.sessionId}`)

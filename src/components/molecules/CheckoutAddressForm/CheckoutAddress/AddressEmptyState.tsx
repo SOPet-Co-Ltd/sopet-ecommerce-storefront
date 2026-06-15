@@ -57,6 +57,7 @@ const AddressEmptyStateContent = ({
   useEffect(() => {
     if (!storeCustomer) return
 
+    // Always set contactPhone to customer's phone for logged-in users
     if (storeCustomer.phone) {
       setValue("contactPhone", storeCustomer.phone, {
         shouldDirty: false,
@@ -65,14 +66,18 @@ const AddressEmptyStateContent = ({
       })
     }
 
-    if (storeCustomer.email) {
-      setValue("email", storeCustomer.email, {
+    // Generate placeholder email if customer doesn't have one
+    const emailToSet =
+      storeCustomer.email ||
+      (storeCustomer.phone ? `${storeCustomer.phone}@sopet.org` : "")
+    if (emailToSet) {
+      setValue("email", emailToSet, {
         shouldDirty: false,
         shouldValidate: false,
         shouldTouch: false,
       })
     }
-  }, [storeCustomer?.id, setValue])
+  }, [storeCustomer?.id, storeCustomer?.phone, storeCustomer?.email, setValue])
 
   const provinceValue = watch("province")
   const districtValue = watch("district")
@@ -108,6 +113,7 @@ const AddressEmptyStateContent = ({
 
   return (
     <div>
+      {/* Contact section - only show for guest users */}
       <div className={cn(!storeCustomer ? "block" : "hidden")}>
         <label className="sop-body-sm-medium text-sop-neutral-gray-300 mb-2 flex items-center gap-1">
           การติดต่อ
@@ -115,7 +121,7 @@ const AddressEmptyStateContent = ({
 
         <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 lg:gap-5">
           <ThaiPhoneInput
-            isRequire={storeCustomer ? false : true}
+            isRequire={true}
             title="เบอร์โทรศัพท์"
             size="sm"
             variant="bordered"

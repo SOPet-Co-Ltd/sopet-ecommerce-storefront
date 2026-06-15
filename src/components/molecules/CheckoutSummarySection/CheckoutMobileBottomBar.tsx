@@ -13,7 +13,9 @@ export function CheckoutMobileBottomBar() {
   const locale = (params?.locale as string) || "th"
 
   const handleSubmit = async () => {
+    console.log("[CheckoutMobileBottomBar] handleSubmit called")
     const res = await submit()
+    console.log("[CheckoutMobileBottomBar] submit result:", res)
     if (res.ok) {
       router.replace(`/${locale}/payment/${res.sessionId}`)
     }

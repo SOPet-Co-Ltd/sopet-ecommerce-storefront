@@ -42,11 +42,25 @@ const CheckoutAddressForm = ({
   onSubmitForm,
 }: Props) => {
   const defaultAddress = customer?.addresses?.find((a) => a.is_default_shipping)
+
+  // Generate placeholder email if customer is logged in but has no email
+  const generatePlaceholderEmail = () => {
+    if (customer && !customer.email && customer.phone) {
+      return `${customer.phone}@sopet.org`
+    }
+    return customer?.email || ""
+  }
+
   const seedValues =
     defaultValues ??
     (defaultAddress
       ? customerAddressToFormValues(defaultAddress, customer ?? null)
-      : emptyDefaultAddressValues)
+      : {
+          ...emptyDefaultAddressValues,
+          // Pre-fill contactPhone and email for logged-in customers
+          contactPhone: customer?.phone ?? "",
+          email: generatePlaceholderEmail(),
+        })
 
   const methods = useForm<AddressFormData>({
     resolver: zodResolver(checkoutAddressSchema),

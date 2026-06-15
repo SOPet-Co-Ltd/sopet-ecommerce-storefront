@@ -360,7 +360,7 @@ export async function createGuestMedusaCart(
   countryCode: string,
   promotionCodes: string[] = []
 ): Promise<never> {
-  const email = `guest-${Date.now()}@sopet.co.th`
+  const email = `guest-${Date.now()}@sopet.org`
 
   const res = await fetchQuery("/store/guest-cart/create-medusa", {
     method: "POST",
@@ -906,8 +906,8 @@ export async function completeMarketplaceOrder(
       cartSnapshot?.customerEmail ||
       (cartBeforeComplete as { customer?: { email?: string } })?.customer?.email
     const fallbackEmail = customerPhone
-      ? `${customerPhone}@sopet.co.th`
-      : customerEmail || "no-reply@sopet.co.th"
+      ? `${customerPhone}@sopet.org`
+      : customerEmail || "no-reply@sopet.org"
 
     await updateCart({ email: fallbackEmail })
     cartBeforeComplete = {
@@ -1135,7 +1135,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
         const cart = await retrieveCart(cartId)
         const customer = (cart as any)?.customer
         if (customer?.phone) {
-          email = `${customer.phone}@sopet.co.th`
+          email = `${customer.phone}@sopet.org`
         } else if (customer?.email) {
           email = customer.email
         }
@@ -1143,7 +1143,7 @@ export async function setAddresses(currentState: unknown, formData: FormData) {
     }
 
     if (!email) {
-      email = "no-reply@sopet.co.th"
+      email = "no-reply@sopet.org"
     }
 
     data.email = email
@@ -1185,8 +1185,8 @@ export async function placeOrder(
     // Use customer's phone if available for better identification
     const customerPhone = (cartBeforeComplete as any)?.customer?.phone
     const fallbackEmail = customerPhone
-      ? `${customerPhone}@sopet.co.th`
-      : "no-reply@sopet.co.th"
+      ? `${customerPhone}@sopet.org`
+      : "no-reply@sopet.org"
 
     await updateCart({ email: fallbackEmail })
   }
