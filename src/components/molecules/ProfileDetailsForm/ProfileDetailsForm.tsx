@@ -72,19 +72,21 @@ const Form: React.FC<Props> = ({ handleClose }) => {
   }
 
   return (
-    <form onSubmit={handleSubmit(submit)}>
+    <form onSubmit={handleSubmit(submit)} noValidate>
       <div className="px-4 space-y-4">
         <div className="max-w-full grid grid-cols-2 items-top gap-4 mb-4">
           <LabeledInput
             label="First name"
             placeholder="Type first name"
             error={errors.firstName as FieldError}
+            aria-required="true"
             {...register("firstName")}
           />
           <LabeledInput
             label="Last name"
             placeholder="Type last name"
             error={errors.lastName as FieldError}
+            aria-required="true"
             {...register("lastName")}
           />
           <ThaiPhoneInput
@@ -99,11 +101,23 @@ const Form: React.FC<Props> = ({ handleClose }) => {
                 shouldDirty: true,
               })
             }
+            aria-required="true"
           />
-          <LabeledInput label="Email" disabled {...register("email")} />
+          <LabeledInput
+            label="Email"
+            disabled
+            aria-disabled="true"
+            {...register("email")}
+          />
         </div>
-        {error && <p className="label-md text-negative">{error}</p>}
-        <Button className="w-full ">Save</Button>
+        {error && (
+          <p className="label-md text-negative" role="alert" aria-live="polite">
+            {error}
+          </p>
+        )}
+        <Button type="submit" className="w-full">
+          Save
+        </Button>
       </div>
     </form>
   )

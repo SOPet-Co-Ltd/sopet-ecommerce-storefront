@@ -126,10 +126,17 @@ function CheckoutAddressStoreSync({
 
 const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
   return (
-    <form>
+    <form noValidate aria-labelledby="checkout-address-heading">
       <div className="p-sop-16px">
-        <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5">
-          <MapPin className="fill-sop-primary-500 text-white" size={24} />
+        <label
+          id="checkout-address-heading"
+          className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5"
+        >
+          <MapPin
+            className="fill-sop-primary-500 text-white"
+            size={24}
+            aria-hidden="true"
+          />
           ข้อมูลการจัดส่ง
         </label>
         <div className="relative overflow-hidden w-fill bg-sop-base-white rounded-sop-20 md:px-6 xl:px-6 lg:px-6 px-4 py-6 ">
@@ -148,6 +155,7 @@ const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
     rounded-b-sop-20
     bg-[repeating-linear-gradient(to_right,#9C6ADE_0px,#9C6ADE_36.31px,transparent_36.31px,transparent_48.31px,#FF6F61_48.31px,#FF6F61_84.62px,transparent_84.62px,transparent_96.62px)]
   "
+            aria-hidden="true"
           />
         </div>
       </div>

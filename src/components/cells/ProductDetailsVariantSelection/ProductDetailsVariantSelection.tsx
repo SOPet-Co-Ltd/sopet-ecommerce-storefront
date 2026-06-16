@@ -521,12 +521,23 @@ export const ProductDetailsVariantSelection = ({
       <div className="flex justify-between items-center md:gap-6 gap-2">
         {/* Add to Cart */}
         <Button
+          type="button"
           onClick={handleAddToCart}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           loading={addToCartMutation.isPending}
           fill
           size="lg"
           variant="secondary"
+          aria-busy={addToCartMutation.isPending}
+          aria-label={
+            addToCartMutation.isPending
+              ? "กำลังเพิ่มสินค้าลงตะกร้า กรุณารอสักครู่"
+              : !hasAnyPrice
+                ? "สินค้าไม่มีจำหน่ายในภูมิภาคของคุณ"
+                : !variantStock
+                  ? "สินค้าหมด"
+                  : `เพิ่ม ${product.title} ลงตะกร้า`
+          }
         >
           {!hasAnyPrice
             ? "NOT AVAILABLE IN YOUR REGION"
@@ -537,22 +548,35 @@ export const ProductDetailsVariantSelection = ({
 
         {/* Buy now action: skip cart, checkout with only this item + quantity */}
         <Button
+          type="button"
           onClick={handleBuyNow}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           loading={isBuyingNow}
           fill
           size="lg"
           className="md:py-sop-12px py-sop-8px"
+          aria-busy={isBuyingNow}
+          aria-label={
+            isBuyingNow
+              ? "กำลังดำเนินการซื้อสินค้า กรุณารอสักครู่"
+              : !hasAnyPrice
+                ? "สินค้าไม่มีจำหน่ายในภูมิภาคของคุณ"
+                : !variantStock
+                  ? "สินค้าหมด"
+                  : `ซื้อ ${product.title} เลย`
+          }
         >
           ซื้อสินค้า
         </Button>
 
         <button
+          type="button"
           onClick={() => setIsShareModalOpen(true)}
           disabled={!variantStock || !variantHasPrice || !hasAnyPrice}
           className="cursor-pointer"
+          aria-label={`แชร์ ${product.title}`}
         >
-          <ShareIcon size={24} color={"#9c6ade"} />
+          <ShareIcon size={24} color={"#9c6ade"} aria-hidden="true" />
         </button>
 
         <WishlistButton
@@ -560,6 +584,12 @@ export const ProductDetailsVariantSelection = ({
           wishlist={wishlist}
           user={user}
         />
+
+        {/* Screen reader live region for cart actions */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {addToCartMutation.isPending && "กำลังเพิ่มสินค้าลงตะกร้า"}
+          {isBuyingNow && "กำลังดำเนินการซื้อสินค้า"}
+        </div>
 
         {/* Seller message */}
 

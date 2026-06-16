@@ -72,14 +72,20 @@ export const OTPVerificationForm = ({
   return (
     <div className="flex flex-col gap-6 w-full max-w-[400px] mx-auto text-center">
       <div className="space-y-2 text-left">
-        <h3 className="heading-xl text-gray-900">ยืนยันเบอร์มือถือของคุณ</h3>
+        <h3 className="heading-xl text-gray-900" id="otp-form-title">
+          ยืนยันเบอร์มือถือของคุณ
+        </h3>
         <p className="text-body-md text-gray-500">
           กรอกรหัส OTP ที่ส่งไปยังเบอร์{" "}
           {formatThaiPhoneNumberForDisplay(phoneNumber)}
         </p>
       </div>
 
-      <div className="flex justify-between gap-2 md:gap-3 px-2">
+      <div
+        className="flex justify-between gap-2 md:gap-3 px-2"
+        role="group"
+        aria-labelledby="otp-form-title"
+      >
         {otp.map((digit, index) => (
           <input
             key={index}
@@ -97,31 +103,49 @@ export const OTPVerificationForm = ({
                 ? "border-red-500"
                 : "border-gray-200 focus:border-sop-primary-500 focus:ring-1 focus:ring-sop-primary-500"
             } outline-none transition-all`}
+            aria-label={`รหัส OTP หลักที่ ${index + 1}`}
+            aria-required="true"
+            aria-invalid={isError}
+            disabled={isLoading}
           />
         ))}
       </div>
+
+      {isError && (
+        <p className="text-red-500 text-sm" role="alert" aria-live="polite">
+          รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง
+        </p>
+      )}
 
       <>
         {timeLeft > 0 ? (
           <div className="text-body-md text-gray-500 text-left">
             ไม่ได้รับรหัส OTP? {""}
-            <span className="text-gray-400">
+            <span className="text-gray-400" aria-live="polite">
               ขอรหัสผ่านใหม่ใน 0:
               {timeLeft.toString().padStart(2, "0")}
             </span>
           </div>
         ) : (
           <button
+            type="button"
             onClick={() => {
               setTimeLeft(60)
               onResend()
             }}
             className="text-sop-primary-500 font-medium hover:underline cursor-pointer"
+            aria-label="ขอรับรหัส OTP ใหม่"
           >
             ขอรับรหัส OTP ใหม่
           </button>
         )}
       </>
+
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {isLoading && "กำลังตรวจสอบรหัส OTP กรุณารอสักครู่"}
+        {isError && "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง"}
+      </div>
     </div>
   )
 }

@@ -85,13 +85,14 @@ function splitRecipientName(fullName: string): {
 const Form = forwardRef<AddressFormHandle, Props>(
   ({ mode, regions, handleClose, submitButton }, ref) => {
     const [error, setError] = useState<string>()
+    const [isSubmitting, setIsSubmitting] = useState(false)
     const {
       control,
       handleSubmit,
       register,
       setValue,
       watch,
-      formState: { errors, isSubmitting, isDirty },
+      formState: { errors, isDirty },
     } = useFormContext<AddressFormData>()
 
     const provinceValue = watch("province")
@@ -112,40 +113,52 @@ const Form = forwardRef<AddressFormHandle, Props>(
     )
 
     const submit = async (data: FieldValues) => {
-      const { firstName, lastName } = splitRecipientName(data.recipientFullName)
-      const addressName = data.recipientFullName.trim() || "ที่อยู่"
+      setIsSubmitting(true)
+      setError(undefined)
 
-      const formData = new FormData()
-      formData.append("addressId", data.addressId || "")
-      formData.append("address_name", addressName)
-      formData.append("first_name", firstName)
-      formData.append("last_name", lastName)
-      formData.append("address_1", data.address)
-      formData.append("address_2", data.district)
-      formData.append("province", data.province)
-      formData.append("city", data.subDistrict)
-      formData.append("country_code", "th")
-      formData.append("postal_code", data.postalCode)
-      formData.append("company", "")
-      formData.append("phone", normalizeThaiPhoneNumber(data.phone))
-      formData.append("isDefaultShipping", data.setAsDefault ? "1" : "")
-      formData.append("isDefaultBilling", data.setAsDefault ? "1" : "")
+      try {
+        const { firstName, lastName } = splitRecipientName(
+          data.recipientFullName
+        )
+        const addressName = data.recipientFullName.trim() || "ที่อยู่"
 
-      // Determine mode: use explicit mode prop if provided, otherwise fallback to addressId check
-      const isEditMode =
-        mode === "edit" || (mode !== "create" && data.addressId)
+        const formData = new FormData()
+        formData.append("addressId", data.addressId || "")
+        formData.append("address_name", addressName)
+        formData.append("first_name", firstName)
+        formData.append("last_name", lastName)
+        formData.append("address_1", data.address)
+        formData.append("address_2", data.district)
+        formData.append("province", data.province)
+        formData.append("city", data.subDistrict)
+        formData.append("country_code", "th")
+        formData.append("postal_code", data.postalCode)
+        formData.append("company", "")
+        formData.append("phone", normalizeThaiPhoneNumber(data.phone))
+        formData.append("isDefaultShipping", data.setAsDefault ? "1" : "")
+        formData.append("isDefaultBilling", data.setAsDefault ? "1" : "")
 
-      const res = isEditMode
-        ? await updateCustomerAddress(formData)
-        : await addCustomerAddress(formData)
+        // Determine mode: use explicit mode prop if provided, otherwise fallback to addressId check
+        const isEditMode =
+          mode === "edit" || (mode !== "create" && data.addressId)
 
-      if (!res.success) {
-        setError(res.error)
-        return
+        const res = isEditMode
+          ? await updateCustomerAddress(formData)
+          : await addCustomerAddress(formData)
+
+        if (!res.success) {
+          setError(res.error)
+          setIsSubmitting(false)
+          return
+        }
+
+        setError(undefined)
+        setIsSubmitting(false)
+        handleClose?.()
+      } catch (err) {
+        setError("เกิดข้อผิดพลาดในการบันทึกที่อยู่")
+        setIsSubmitting(false)
       }
-
-      setError("")
-      handleClose?.()
     }
 
     const onSubmit = handleSubmit(submit)
@@ -155,19 +168,29 @@ const Form = forwardRef<AddressFormHandle, Props>(
     }))
 
     return (
-      <form onSubmit={onSubmit}>
+      <form onSubmit={onSubmit} noValidate>
         <div className="space-y-4">
           <div className="max-w-full grid grid-cols-1 items-top gap-4 mb-4">
             <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+              <label
+                htmlFor="recipient-name"
+                className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+              >
                 ชื่อ-นามสกุล ผู้รับสินค้า
               </label>
               <InputSOPet
+                id="recipient-name"
                 size="sm"
                 variant="bordered"
                 placeholder="กรอกชื่อ-นามสกุล"
                 state={errors.recipientFullName ? "error" : "default"}
                 description={(errors.recipientFullName as FieldError)?.message}
+                aria-required="true"
+                aria-invalid={!!errors.recipientFullName}
+                aria-describedby={
+                  errors.recipientFullName ? "recipient-name-error" : undefined
+                }
+                disabled={isSubmitting}
                 {...register("recipientFullName", {
                   // Prevent whitespace-only values like " " from passing validation
                   setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
@@ -175,10 +198,14 @@ const Form = forwardRef<AddressFormHandle, Props>(
               />
             </div>
             <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+              <label
+                htmlFor="phone"
+                className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+              >
                 เบอร์โทรศัพท์
               </label>
               <ThaiPhoneInput
+                id="phone"
                 size="sm"
                 variant="bordered"
                 placeholder="กรอกเบอร์โทรศัพท์"
@@ -191,6 +218,10 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     shouldDirty: true,
                   })
                 }
+                aria-required="true"
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
+                disabled={isSubmitting}
               />
             </div>
 
@@ -237,10 +268,14 @@ const Form = forwardRef<AddressFormHandle, Props>(
             />
 
             <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+              <label
+                htmlFor="postal-code"
+                className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+              >
                 รหัสไปรษณีย์
               </label>
               <InputSOPet
+                id="postal-code"
                 size="sm"
                 variant="bordered"
                 placeholder="กรอกรหัสไปรษณีย์"
@@ -249,19 +284,32 @@ const Form = forwardRef<AddressFormHandle, Props>(
                 disabled
                 state={errors.postalCode ? "error" : "default"}
                 description={(errors.postalCode as FieldError)?.message}
+                aria-required="true"
+                aria-invalid={!!errors.postalCode}
+                aria-describedby={
+                  errors.postalCode ? "postal-code-error" : undefined
+                }
               />
             </div>
 
             <div>
-              <label className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2">
+              <label
+                htmlFor="address"
+                className="sop-body-sm-medium md:sop-body-sm-medium text-sop-neutral-gray-300 flex items-center gap-1 mb-2"
+              >
                 ที่อยู่
               </label>
               <InputSOPet
+                id="address"
                 size="sm"
                 variant="bordered"
                 placeholder="กรอกที่อยู่"
                 state={errors.address ? "error" : "default"}
                 description={(errors.address as FieldError)?.message}
+                aria-required="true"
+                aria-invalid={!!errors.address}
+                aria-describedby={errors.address ? "address-error" : undefined}
+                disabled={isSubmitting}
                 {...register("address", {
                   // Prevent whitespace-only values like " " from passing validation
                   setValueAs: (v) => (typeof v === "string" ? v.trim() : v),
@@ -280,22 +328,46 @@ const Form = forwardRef<AddressFormHandle, Props>(
                     onChange={(e) =>
                       onChange((e?.target as HTMLInputElement)?.checked)
                     }
+                    disabled={isSubmitting}
                     {...field}
                   />
                 )}
               />
             </div>
           </div>
-          {error && <p className="label-md text-negative">{error}</p>}
+          {error && (
+            <p
+              id="form-error"
+              className="label-md text-negative"
+              role="alert"
+              aria-live="polite"
+            >
+              {error}
+            </p>
+          )}
           {submitButton ? (
             submitButton({ onSubmit, isSubmitting, isDirty, hasAnyValue })
           ) : (
             <div className="flex justify-center">
-              <Button rounded="rounded" disabled={isSubmitting} type="submit">
+              <Button
+                rounded="rounded"
+                disabled={isSubmitting}
+                type="submit"
+                aria-busy={isSubmitting}
+                aria-label={
+                  isSubmitting
+                    ? "กำลังบันทึกที่อยู่ กรุณารอสักครู่"
+                    : "ยืนยันที่อยู่"
+                }
+              >
                 {isSubmitting ? "กำลังบันทึก..." : "ยืนยัน"}
               </Button>
             </div>
           )}
+        </div>
+        {/* Screen reader announcements */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isSubmitting && "กำลังบันทึกที่อยู่ กรุณารอสักครู่"}
         </div>
       </form>
     )

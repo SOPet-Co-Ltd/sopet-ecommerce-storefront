@@ -82,9 +82,17 @@ export const NavbarSearch = () => {
   )
 
   return (
-    <form className="flex items-center flex-1" onSubmit={handleSubmit}>
+    <form
+      className="flex items-center flex-1"
+      onSubmit={handleSubmit}
+      role="search"
+    >
+      <label htmlFor="navbar-search" className="sr-only">
+        ค้นหาสินค้า
+      </label>
       <Autocomplete
         inputProps={{
+          id: "navbar-search",
           className: "rounded-full h-9 min-w-[200px] max-w-[480px] gap-2",
           size: "sm",
           state: "default",
@@ -93,10 +101,11 @@ export const NavbarSearch = () => {
           hasStartIcon: true,
           hasEndIcon: false,
           hasTitle: false,
-          startIcon: <SearchIcon />,
+          startIcon: <SearchIcon aria-hidden="true" />,
           value: search,
           placeholder: "ค้นหาสินค้า",
           onKeyDown: handleKeyDown,
+          "aria-label": "ค้นหาสินค้า",
         }}
         onChange={setSearch}
         onOptionSelect={(data) => handleSelectHistoryItem(data.value)}
@@ -114,7 +123,9 @@ export const NavbarSearch = () => {
         footer={() => {
           return (
             <button
+              type="button"
               onClick={clearSearchHistoryCallback}
+              aria-label="ล้างประวัติการค้นหาทั้งหมด"
               className="sop-body-xs-regular text-sop-neutral-gray-400 cursor-pointer underline hover:text-sop-neutral-gray-300 transition-all duration-150"
             >
               ล้างประวัติ
@@ -134,6 +145,7 @@ export const NavbarSearch = () => {
             <button
               type="button"
               onClick={onClick}
+              aria-label={`ค้นหา ${option.label}`}
               className="cursor-pointer md:sop-body-sm-light sop-body-xs-light bg-sop-neutral-gray-500 border border-sop-neutral-gray-400 rounded-full px-3 py-1 hover:bg-sop-neutral-gray-600 text-sop"
             >
               {option.label}

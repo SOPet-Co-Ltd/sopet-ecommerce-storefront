@@ -76,23 +76,37 @@ export const CartDropdown = ({
   return (
     <div
       className="relative"
-      onMouseOver={() => setOpen(true)}
+      onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
+      onFocus={() => setOpen(true)}
+      onBlur={(e) => {
+        // Only close if focus is leaving the entire dropdown
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setOpen(false)
+        }
+      }}
     >
       <LocalizedClientLink
         href="/cart"
         className="relative"
-        aria-label="Go to cart"
+        aria-label={`ไปที่ตะกร้าสินค้า${cartItemsCount > 0 ? ` (${cartItemsCount} รายการ)` : ""}`}
       >
-        <CartIcon size={20} />
+        <CartIcon size={20} aria-hidden="true" />
         {Boolean(cartItemsCount) && (
-          <Badge className="absolute -top-2 -right-2 w-4 h-4 p-0">
+          <Badge
+            className="absolute -top-2 -right-2 w-4 h-4 p-0"
+            aria-hidden="true"
+          >
             {cartItemsCount}
           </Badge>
         )}
       </LocalizedClientLink>
       <Dropdown show={open}>
-        <div className="lg:w-[460px] shadow-lg">
+        <div
+          className="lg:w-[460px] shadow-lg"
+          role="region"
+          aria-label="ตัวอย่างตะกร้าสินค้า"
+        >
           <h3 className="uppercase heading-md border-b p-4">Shopping cart</h3>
           <div className="p-4">
             {Boolean(cartItemsCount) ? (
