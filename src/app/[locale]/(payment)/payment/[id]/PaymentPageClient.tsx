@@ -299,6 +299,12 @@ function PromptPayPaymentView({
     try {
       const response = await fetch(proxiedQrImageUrl)
       if (!response.ok) {
+        // Check if error response is JSON
+        const contentType = response.headers.get("content-type")
+        if (contentType?.includes("application/json")) {
+          const errorData = await response.json()
+          throw new Error(errorData.message || "Failed to fetch QR code image")
+        }
         throw new Error("Failed to fetch QR code image")
       }
       const blob = await response.blob()
@@ -359,22 +365,14 @@ function PromptPayPaymentView({
       }, 100)
     } catch (error) {
       console.error("Error downloading QR code:", error)
-      try {
-        const link = document.createElement("a")
-        link.href = proxiedQrImageUrl
-        link.download = filename
-        link.target = "_blank"
-        link.rel = "noopener noreferrer"
-        link.style.display = "none"
-        document.body.appendChild(link)
-        link.click()
-        setTimeout(() => {
-          document.body.removeChild(link)
-        }, 100)
-      } catch (fallbackError) {
-        console.error("Fallback download also failed:", fallbackError)
-        window.open(qrImageUrl, "_blank", "noopener,noreferrer")
-      }
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "ไม่สามารถดาวน์โหลด QR Code ได้"
+      toast.error({
+        title: "ดาวน์โหลดไม่สำเร็จ",
+        description: errorMessage,
+      })
     }
   }
 
