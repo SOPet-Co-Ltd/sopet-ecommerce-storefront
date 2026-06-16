@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+import * as gtag from "@/lib/analytics/gtag"
 
 const SESSION_KEY = "sopet_product_events_session_id"
 const BACKEND_URL =
@@ -30,15 +31,18 @@ function getOrCreateSessionId(): string {
 type ProductViewTrackerProps = {
   productId: string
   variantId?: string
+  product?: any // Accept any product type from Medusa
 }
 
 /**
  * Tracks product view by sending a single event to the backend on mount.
  * Uses session_id from sessionStorage for deduplication (one view per session per product per hour on backend).
+ * Also tracks GA4 view_item event.
  */
 export function ProductViewTracker({
   productId,
   variantId,
+  product,
 }: ProductViewTrackerProps) {
   const sent = useRef(false)
 
@@ -49,6 +53,7 @@ export function ProductViewTracker({
 
     const sessionId = getOrCreateSessionId()
 
+    // Track backend view event
     fetch(`${BACKEND_URL}/store/product-events`, {
       method: "POST",
       credentials: "include",
@@ -63,7 +68,34 @@ export function ProductViewTracker({
         session_id: sessionId || undefined,
       }),
     }).catch(() => {})
-  }, [productId, variantId])
+
+    // Track GA4 view_item event
+    if (product) {
+      const variant = product.variants?.[0]
+      const price = variant?.calculated_price?.calculated_amount
+        ? variant.calculated_price.calculated_amount / 100
+        : undefined
+
+      gtag.viewItem({
+        currency:
+          variant?.calculated_price?.currency_code?.toUpperCase() || "THB",
+        value: price,
+        items: [
+          {
+            item_id: productId,
+            item_name: product.title || "Product",
+            currency:
+              variant?.calculated_price?.currency_code?.toUpperCase() || "THB",
+            price,
+            item_category: product.categories?.[0]?.name,
+            item_category2: product.categories?.[1]?.name,
+            item_brand: product.collection?.title,
+            quantity: 1,
+          },
+        ],
+      })
+    }
+  }, [productId, variantId, product])
 
   return null
 }

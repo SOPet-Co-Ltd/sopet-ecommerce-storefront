@@ -5,6 +5,7 @@ import CheckoutSummarySection from "@/components/molecules/CheckoutSummarySectio
 import { CheckoutMobileBottomBar } from "@/components/molecules/CheckoutSummarySection/CheckoutMobileBottomBar"
 import { CheckoutPromotionSection } from "@/components/sections/CheckoutPromotionSection"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
+import { CheckoutTracker } from "@/components/atoms/CheckoutTracker/CheckoutTracker"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
 import { getCheckoutCustomer } from "@/lib/data/customer"
@@ -51,6 +52,7 @@ export default async function CheckoutPage({
 
   return (
     <main>
+      <CheckoutTracker cart={cart} />
       <CheckoutStoreProvider
         cart={cart}
         customer={initialData.customer}

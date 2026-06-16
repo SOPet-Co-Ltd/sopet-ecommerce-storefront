@@ -82,7 +82,7 @@ export const ProductDetailsPage = async ({
 
   return (
     <>
-      <ProductViewTracker productId={prod.id} />
+      <ProductViewTracker productId={prod.id} product={prod} />
       <ProductDetailsCacheHydrator product={prod} locale={locale} />
       {/* Section - Breadcrumb */}
       <div className="py-4 lg:block hidden">
