@@ -8,6 +8,7 @@ import {
   DEFAULT_SITE_NAME,
 } from "@/lib/site-defaults"
 import { Providers } from "./providers"
+import { GoogleAnalytics } from "@next/third-parties/google"
 
 const mitr = Mitr({
   variable: "--font-mitr",
@@ -87,6 +88,9 @@ export default async function RootLayout({
 
   const htmlLang = locale || "th"
 
+  const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+  const isProduction = process.env.NODE_ENV === "production"
+
   return (
     <html lang={htmlLang} className="" suppressHydrationWarning>
       <body
@@ -96,6 +100,9 @@ export default async function RootLayout({
         <MedusaToaster position="top-right" />
         <SonnerToaster position="top-right" richColors />
       </body>
+      {GA_MEASUREMENT_ID && isProduction && (
+        <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />
+      )}
     </html>
   )
 }

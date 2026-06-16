@@ -4,13 +4,18 @@ import { Button } from "@/components/atoms"
 import { HttpTypes } from "@medusajs/types"
 import { ProductVariants } from "@/components/molecules"
 import useGetAllSearchParams from "@/hooks/useGetAllSearchParams"
-import { CartSource, useAddToCartMutation, useCartQuery } from "@/hooks/useCartQuery"
+import {
+  CartSource,
+  useAddToCartMutation,
+  useCartQuery,
+} from "@/hooks/useCartQuery"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { SellerProps } from "@/types/seller"
 import { WishlistButton } from "../WishlistButton/WishlistButton"
 import { Wishlist } from "@/types/wishlist"
 import { toast } from "@/lib/helpers/toast"
 import { buildStorefrontCartItemMetadata } from "@/lib/helpers/cart-seller"
+import * as gtag from "@/lib/analytics/gtag"
 
 const optionsAsKeymap = (
   variantOptions: HttpTypes.StoreProductVariant["options"]
@@ -119,6 +124,25 @@ export const ProductDetailsHeader = ({
           variant,
           product,
         },
+      })
+
+      // Track GA4 add_to_cart event
+      gtag.addToCart({
+        currency: variantPrice?.currency_code?.toUpperCase() || "THB",
+        value: variantPrice?.calculated_price_number || 0,
+        items: [
+          {
+            item_id: variantId,
+            item_name: product.title || "Product",
+            currency: variantPrice?.currency_code?.toUpperCase() || "THB",
+            price: variantPrice?.calculated_price_number || 0,
+            quantity: 1,
+            item_category: product.categories?.[0]?.name,
+            item_category2: product.categories?.[1]?.name,
+            item_brand: product.collection?.title,
+            item_variant: variant?.title || undefined,
+          },
+        ],
       })
 
       toast.success({
