@@ -343,7 +343,7 @@ export const CartTemplate = ({
           </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 w-full z-50 pointer-events-none">
+        <div className="fixed bottom-0 left-0 w-full z-10 pointer-events-none">
           <div className="container mx-auto px-4 md:px-6">
             <div className="pointer-events-auto">
               <CartSummary

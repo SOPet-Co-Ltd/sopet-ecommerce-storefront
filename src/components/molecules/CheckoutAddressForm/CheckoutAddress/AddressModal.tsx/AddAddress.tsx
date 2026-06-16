@@ -23,6 +23,14 @@ type AddAddressProps = {
 }
 
 const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
+  // Generate placeholder email if customer doesn't have one
+  const generatePlaceholderEmail = () => {
+    if (customer && !customer.email && customer.phone) {
+      return `${customer.phone}@sopet.org`
+    }
+    return customer?.email || ""
+  }
+
   const methods = useForm<AddressFormData>({
     resolver: zodResolver(addressSchema),
     defaultValues: {
@@ -33,8 +41,8 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
       postalCode: "",
       recipientFullName: "",
       phone: "",
-      contactPhone: "",
-      email: "",
+      contactPhone: customer?.phone ?? "",
+      email: generatePlaceholderEmail(),
       setAsDefault: false,
     },
   })

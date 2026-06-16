@@ -1066,40 +1066,75 @@ export async function deleteCustomerPaymentMethod(
 export async function saveCheckoutAddressForCustomer(
   address: AddressFormData
 ): Promise<{ success: true } | { success: false; error: string }> {
+  console.log("[saveCheckoutAddressForCustomer] Called with:", {
+    setAsDefault: address.setAsDefault,
+    recipientFullName: address.recipientFullName,
+    address: address.address,
+    phone: address.phone,
+  })
+
   const headers = await getAuthHeaders()
 
   if (!headers || Object.keys(headers).length === 0) {
+    console.log("[saveCheckoutAddressForCustomer] Unauthorized - no headers")
     return { success: false, error: "Unauthorized" }
   }
+
+  console.log("[saveCheckoutAddressForCustomer] Headers obtained, parsing name")
 
   const [firstName, ...rest] = (address.recipientFullName ?? "")
     .trim()
     .split(" ")
 
+  console.log("[saveCheckoutAddressForCustomer] Name parsed:", {
+    firstName,
+    lastName: rest.join(" ") || "-",
+  })
+
+  const addressPayload = {
+    first_name: firstName ?? "",
+    last_name: rest.join(" ") || "-",
+    address_1: address.address,
+    address_2: address.district,
+    city: address.subDistrict,
+    province: address.province,
+    postal_code: address.postalCode,
+    country_code: "th",
+    phone: normalizeThaiPhoneNumber(address.phone),
+    is_default_shipping: address.setAsDefault ?? false,
+    is_default_billing: address.setAsDefault ?? false,
+  } as HttpTypes.StoreCreateCustomerAddress
+
+  console.log(
+    "[saveCheckoutAddressForCustomer] Calling SDK with payload:",
+    addressPayload
+  )
+
   try {
-    await sdk.store.customer.createAddress(
-      {
-        first_name: firstName ?? "",
-        last_name: rest.join(" ") || "-",
-        address_1: address.address,
-        address_2: address.district,
-        city: address.subDistrict,
-        province: address.province,
-        postal_code: address.postalCode,
-        country_code: "th",
-        phone: normalizeThaiPhoneNumber(address.phone),
-        is_default_shipping: address.setAsDefault ?? false,
-        is_default_billing: address.setAsDefault ?? false,
-      } as HttpTypes.StoreCreateCustomerAddress,
+    const response = await sdk.store.customer.createAddress(
+      addressPayload,
       {},
       headers
     )
+
+    console.log("[saveCheckoutAddressForCustomer] SDK Response:", {
+      success: true,
+      addressCreated: !!response,
+      is_default_shipping: address.setAsDefault ?? false,
+    })
 
     const customerCacheTag = await getCacheTag("customers")
     revalidateTag(customerCacheTag)
 
     return { success: true }
   } catch (err: any) {
+    console.error("[saveCheckoutAddressForCustomer] Error details:", {
+      message: err?.message,
+      response: err?.response,
+      status: err?.status,
+      data: err?.data,
+      stack: err?.stack?.split("\n").slice(0, 3),
+    })
     return { success: false, error: err?.message ?? String(err) }
   }
 }

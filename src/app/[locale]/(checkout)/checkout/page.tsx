@@ -11,6 +11,7 @@ import { getCheckoutCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 export async function generateMetadata({
   params,
@@ -61,14 +62,16 @@ export default async function CheckoutPage({
         vendorPromos={initialData.vendorPromos}
         error={initialData.error}
       >
-        <div className="lg:px-16 px-sop-16px lg:py-4 flex flex-col gap-4">
-          <div className="flex flex-col gap-8 xl:flex-row">
+        <div className="lg:px-sop-80px px-0 lg:pb-sop-80px lg:pt-sop-20px flex flex-col gap-4">
+          <div className="flex flex-col md:gap-5 gap-1 xl:flex-row">
             <div className="flex-1 xl:min-w-112.5">
               <CheckoutAddressForm customer={initialData.customer} />
-              <CheckoutDetailsSection cart={cart} />
+              <div className={cn("p-4")}>
+                <CheckoutDetailsSection cart={cart} />
+              </div>
             </div>
 
-            <div className="w-full xl:max-w-105 lg:mt-17 sm:mt-sop-16px">
+            <div className="w-full xl:max-w-105 lg:mt-19 p-4 lg:p-0">
               <CheckoutPromotionSection />
               <CheckoutPaymentSelection
                 payment={initialData.customerCards}

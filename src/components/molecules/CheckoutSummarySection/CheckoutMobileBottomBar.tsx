@@ -13,14 +13,16 @@ export function CheckoutMobileBottomBar() {
   const locale = (params?.locale as string) || "th"
 
   const handleSubmit = async () => {
+    console.log("[CheckoutMobileBottomBar] handleSubmit called")
     const res = await submit()
+    console.log("[CheckoutMobileBottomBar] submit result:", res)
     if (res.ok) {
       router.replace(`/${locale}/payment/${res.sessionId}`)
     }
   }
 
   return (
-    <div className="block lg:hidden">
+    <div className="block md:hidden">
       <div className="px-sop-32px py-sop-12px rounded-tl-sop-20px rounded-tr-sop-20px bg-sop-base-white flex justify-between items-center mt-14">
         <div className="flex flex-col">
           <label className="sop-body-sm-medium text-sop-neutral-gray-300">

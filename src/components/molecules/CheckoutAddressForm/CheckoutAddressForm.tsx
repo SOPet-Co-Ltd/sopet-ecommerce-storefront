@@ -42,11 +42,25 @@ const CheckoutAddressForm = ({
   onSubmitForm,
 }: Props) => {
   const defaultAddress = customer?.addresses?.find((a) => a.is_default_shipping)
+
+  // Generate placeholder email if customer is logged in but has no email
+  const generatePlaceholderEmail = () => {
+    if (customer && !customer.email && customer.phone) {
+      return `${customer.phone}@sopet.org`
+    }
+    return customer?.email || ""
+  }
+
   const seedValues =
     defaultValues ??
     (defaultAddress
       ? customerAddressToFormValues(defaultAddress, customer ?? null)
-      : emptyDefaultAddressValues)
+      : {
+          ...emptyDefaultAddressValues,
+          // Pre-fill contactPhone and email for logged-in customers
+          contactPhone: customer?.phone ?? "",
+          email: generatePlaceholderEmail(),
+        })
 
   const methods = useForm<AddressFormData>({
     resolver: zodResolver(checkoutAddressSchema),
@@ -113,7 +127,7 @@ function CheckoutAddressStoreSync({
 const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
   return (
     <form>
-      <div className="mt-6 mb-sop-20px">
+      <div className="p-sop-16px">
         <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-3 mt-5">
           <MapPin className="fill-sop-primary-500 text-white" size={24} />
           ข้อมูลการจัดส่ง

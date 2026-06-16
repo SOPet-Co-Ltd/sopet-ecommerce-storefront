@@ -10,7 +10,7 @@ import {
 } from "@/icons"
 import type { Cart, ExtendedLineItem, GroupedItems } from "@/types/cart"
 import Image from "next/image"
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react"
+import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import {
   useCheckoutStore,
@@ -314,7 +314,7 @@ function SellerGroupCard({
 
   return (
     <div>
-      <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-sop-12px mt-sop-40px">
+      <label className="sop-body-lg-medium text-sop-primary-500 flex items-center gap-2 mb-sop-12px">
         <ClipboardListIcon
           className="fill-sop-primary-500 text-white"
           size={24}

@@ -317,10 +317,11 @@ export function useCheckoutSubmit() {
 
         console.log("[checkout] Omise token created:", omiseToken)
 
-        if (customer) {
+        // Only save card if customer is logged in AND checkbox is checked
+        if (customer && newCardDraft.setAsDefault) {
           const saved = await addCustomerPaymentMethod({
             paymentMethodId: omiseToken,
-            makeDefault: newCardDraft.setAsDefault,
+            makeDefault: true,
           })
 
           console.log("[checkout] save card result:", saved)
@@ -385,6 +386,40 @@ export function useCheckoutSubmit() {
 
       console.log("[checkout] SUCCESS - payload:", result.data)
 
+      console.log("[checkout] Checking address save BEFORE persist:", {
+        hasCustomer: !!customer,
+        customerId: customer?.id,
+        hasShippingAddress: !!shippingAddress,
+        setAsDefault: shippingAddress?.setAsDefault,
+      })
+
+      // Save shipping address to customer account BEFORE navigation.
+      // Do this before persisting session so it completes before page navigates away.
+      if (customer && shippingAddress) {
+        console.log("[checkout] Saving address for customer (blocking):", {
+          customerId: customer.id,
+          setAsDefault: shippingAddress.setAsDefault,
+          address: shippingAddress.address,
+        })
+
+        try {
+          const saveResult =
+            await saveCheckoutAddressForCustomer(shippingAddress)
+          console.log("[checkout] Address save result:", saveResult)
+        } catch (err) {
+          console.error(
+            "[checkout] Failed to save address (non-blocking):",
+            err
+          )
+          // Don't block checkout if address save fails
+        }
+      } else {
+        console.log("[checkout] NOT saving address - condition failed:", {
+          hasCustomer: !!customer,
+          hasShippingAddress: !!shippingAddress,
+        })
+      }
+
       // Persist the validated checkout snapshot. Payment bootstrap + order
       // creation happen on the dedicated /payment/[id] page.
       const persistRes = await createCheckoutSession({
@@ -398,11 +433,6 @@ export function useCheckoutSubmit() {
           reason: "persist",
           message: persistRes.message,
         }
-      }
-
-      // Save shipping address to customer account if requested (fire-and-forget).
-      if (customer && shippingAddress?.setAsDefault && shippingAddress) {
-        saveCheckoutAddressForCustomer(shippingAddress).catch(() => {})
       }
 
       return {
