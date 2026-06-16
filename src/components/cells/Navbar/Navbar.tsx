@@ -58,13 +58,6 @@ export const Navbar = ({ user }: { user: HttpTypes.StoreCustomer | null }) => {
             <SOPetLogo size={45} aria-hidden="true" />
           </LocalizedClientLink>
           <NavbarSearch />
-          {/* TODO - Refactor to use a button component for minimal use client side routing */}
-          {/* TODO - route to vet ai page */}
-          <LocalizedClientLink href="/vet-ai">
-            <p className="hidden md:block sop-body-md-regular text-sop-neutral-gray-300">
-              Vet AI
-            </p>
-          </LocalizedClientLink>
           <LocalizedClientLink
             href="/user/notifications"
             aria-label="การแจ้งเตือน"

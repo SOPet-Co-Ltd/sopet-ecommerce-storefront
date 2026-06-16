@@ -1,5 +1,4 @@
 import { BannerSection } from "@/components/sections/BannerSection/BannerSection"
-import { HomeCouponSection } from "@/components/sections/HomeCouponSection/HomeCouponSection"
 import { HomeFaqSection } from "@/components/sections/HomeFaqSection/HomeFaqSection"
 import { HomeFooterSection } from "@/components/sections/HomeFooterSection/HomeFooterSection"
 import { HomeRecommendedProductSection } from "@/components/sections/HomeRecommendedProductSection/HomeRecommendedProductSection"
@@ -208,9 +207,9 @@ export default async function Home({
       <section className="relative w-full">
         <ChatWithAdminFloatingButton />
         <section className="flex flex-col gap-5 md:gap-10 w-full p-4 lg:py-10 lg:px-20">
-          <div className="w-full">
+          {/* <div className="w-full">
             <HomeCouponSection />
-          </div>
+          </div> */}
 
           {/* Bought items — only for signed-in customers */}
           {isSignedIn ? (
