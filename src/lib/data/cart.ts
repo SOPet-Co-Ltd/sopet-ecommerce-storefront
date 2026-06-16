@@ -430,7 +430,7 @@ export async function placeOrder(cartId?: string) {
   if (res?.data?.order_set) {
     revalidatePath("/user/reviews")
     revalidatePath("/user/orders")
-    removeCartId()
+    await removeCartId()
     redirect(`/order/${res?.data?.order_set.orders[0].id}/confirmed`)
   }
 
