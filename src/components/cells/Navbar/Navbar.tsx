@@ -15,11 +15,7 @@ import { UserDropdown } from "../UserDropdown/UserDropdown"
 import { UserDropdownMobile } from "../UserDropdown/UserDropdownMobile"
 import { NavbarCartButton } from "./NavbarCartButton"
 
-export const Navbar = ({
-  user,
-}: {
-  user: HttpTypes.StoreCustomer | null
-}) => {
+export const Navbar = ({ user }: { user: HttpTypes.StoreCustomer | null }) => {
   return (
     <section>
       <div className="sop-gradient-01 px-sop-4px md:px-sop-48px py-sop-4px flex md:justify-end justify-between items-center md:gap-3 h-10">
@@ -58,8 +54,8 @@ export const Navbar = ({
       </div>
       <div className="bg-sop-neutral-whitealpha-700 flex items-center justify-between md:px-20 px-4 md:py-3 py-2">
         <div className="flex justify-start items-center md:gap-6 gap-2 w-full">
-          <LocalizedClientLink href="/">
-            <SOPetLogo size={45} />
+          <LocalizedClientLink href="/" aria-label="SOPet หน้าหลัก">
+            <SOPetLogo size={45} aria-hidden="true" />
           </LocalizedClientLink>
           <NavbarSearch />
           {/* TODO - Refactor to use a button component for minimal use client side routing */}
@@ -69,9 +65,16 @@ export const Navbar = ({
               Vet AI
             </p>
           </LocalizedClientLink>
-          <LocalizedClientLink href="/user/notifications">
+          <LocalizedClientLink
+            href="/user/notifications"
+            aria-label="การแจ้งเตือน"
+          >
             <p>
-              <UserManagementBellIcon size={18} color="#454547" />
+              <UserManagementBellIcon
+                size={18}
+                color="#454547"
+                aria-hidden="true"
+              />
             </p>
           </LocalizedClientLink>
           <NavbarCartButton hasUser={Boolean(user)} />

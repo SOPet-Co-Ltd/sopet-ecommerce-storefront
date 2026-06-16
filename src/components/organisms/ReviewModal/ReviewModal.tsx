@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/atoms/Button/Button"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import { StarRating } from "@/components/molecules/StarRating/StarRating"
 import { PhotoUpload } from "@/components/molecules/PhotoUpload/PhotoUpload"
 import { SmartImage } from "@/components/atoms"
@@ -60,6 +60,61 @@ export const ReviewModal = ({
     useState<ReviewFormData[]>(initialReviewData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const modalRef = useRef<HTMLDivElement>(null)
+
+  // Focus management
+  useEffect(() => {
+    if (isOpen && modalRef.current) {
+      modalRef.current.focus()
+    }
+  }, [isOpen])
+
+  // Focus trap
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleClose()
+      }
+    }
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return
+
+      const focusableElements = modalRef.current?.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      )
+      if (!focusableElements || focusableElements.length === 0) return
+
+      const firstElement = focusableElements[0] as HTMLElement
+      const lastElement = focusableElements[
+        focusableElements.length - 1
+      ] as HTMLElement
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault()
+          lastElement.focus()
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault()
+          firstElement.focus()
+        }
+      }
+    }
+
+    document.addEventListener("keydown", handleEscape)
+    document.addEventListener("keydown", handleTabKey)
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape)
+      document.removeEventListener("keydown", handleTabKey)
+    }
+  }, [isOpen])
 
   // Update specific item's review data
   const updateItemReview = (
@@ -120,25 +175,41 @@ export const ReviewModal = ({
       <div
         className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
         onClick={handleClose}
+        aria-hidden="true"
       />
 
       {/* Modal Content */}
-      <div className="relative z-10 w-full max-w-175.25 bg-sop-base-white rounded-sop-20px px-4 py-5 gap-5 shadow-xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]">
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="review-modal-title"
+        tabIndex={-1}
+        className="relative z-10 w-full max-w-175.25 bg-sop-base-white rounded-sop-20px px-4 py-5 gap-5 shadow-xl flex flex-col animate-in fade-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh]"
+      >
         {/* Header */}
         <div className="flex justify-between items-center pb-2.5 border-b border-sop-neutral-grayalpha-300">
-          <h2 className="sop-headline-sm-medium text-sop-neutral-gray-200">
+          <h2
+            id="review-modal-title"
+            className="sop-headline-sm-medium text-sop-neutral-gray-200"
+          >
             รีวิวสินค้า
           </h2>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 rounded-sop-12px bg-red-50 border border-red-200 flex items-start gap-3">
+          <div
+            role="alert"
+            aria-live="polite"
+            className="p-3 rounded-sop-12px bg-red-50 border border-red-200 flex items-start gap-3"
+          >
             <div className="shrink-0 pt-0.5">
               <svg
                 className="w-5 h-5 text-red-600"
                 fill="currentColor"
                 viewBox="0 0 20 20"
+                aria-hidden="true"
               >
                 <path
                   fillRule="evenodd"
@@ -218,15 +289,20 @@ export const ReviewModal = ({
 
                 {/* Comment */}
                 <div className="flex flex-col gap-2">
-                  <label className="sop-body-sm-medium text-sop-neutral-gray-300">
+                  <label
+                    htmlFor={`comment-${item.id}`}
+                    className="sop-body-sm-medium text-sop-neutral-gray-300"
+                  >
                     ความเห็นของคุณ
                   </label>
                   <textarea
+                    id={`comment-${item.id}`}
                     value={itemReview.comment}
                     onChange={(e) =>
                       updateItemReview(item.id, "comment", e.target.value)
                     }
                     placeholder="แบ่งปันประสบการณ์ของคุณหลังจากได้รับหรือใช้สินค้า"
+                    aria-label={`ความเห็นสำหรับ ${item.title}`}
                     className="w-full h-24 py-2 px-3 rounded-sop-12px border border-sop-neutral-gray-500 bg-sop-neutral-gray-500 placeholder:text-sop-neutral-gray-400 text-sop-neutral-gray-200 focus:outline-none focus:ring-2 focus:ring-sop-primary-500 focus:border-transparent resize-none sop-body-sm-regular"
                   />
                 </div>
@@ -238,6 +314,7 @@ export const ReviewModal = ({
         {/* Actions */}
         <div className="flex gap-4 justify-end items-center pt-2.5 border-t border-sop-neutral-grayalpha-300">
           <Button
+            type="button"
             variant="secondary"
             onClick={handleClose}
             disabled={isSubmitting}
@@ -245,11 +322,24 @@ export const ReviewModal = ({
             ยกเลิก
           </Button>
           <Button
+            type="button"
             onClick={handleSubmit}
             disabled={isSubmitting || !allItemsRated}
+            aria-busy={isSubmitting}
+            aria-label={
+              isSubmitting
+                ? "กำลังส่งรีวิว กรุณารอสักครู่"
+                : !allItemsRated
+                  ? "กรุณาให้คะแนนสำหรับสินค้าทั้งหมดก่อนยืนยัน"
+                  : "ยืนยันการส่งรีวิว"
+            }
           >
             {isSubmitting ? "กำลังส่ง..." : "ยืนยัน"}
           </Button>
+        </div>
+        {/* Screen reader live region */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isSubmitting && "กำลังส่งรีวิว กรุณารอสักครู่"}
         </div>
       </div>
     </div>

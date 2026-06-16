@@ -1,21 +1,36 @@
 import { retrieveCart } from "@/lib/data/cart"
+import { getCartId } from "@/lib/data/cookies"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function GET(request: NextRequest) {
-  const cartId = request.nextUrl.searchParams.get("cartId")
+  const cookieCartId = await getCartId()
 
-  if (!cartId) {
+  if (!cookieCartId) {
     return NextResponse.json(
       {
-        message: "cartId is required",
+        message: "Forbidden: No cart session found",
       },
       {
-        status: 400,
+        status: 403,
       }
     )
   }
 
-  const cart = await retrieveCart(cartId)
+  const clientCartId = request.nextUrl.searchParams.get("cartId")
+
+  if (clientCartId && clientCartId !== cookieCartId) {
+    return NextResponse.json(
+      {
+        message: "Forbidden: Cart ID mismatch",
+      },
+      {
+        status: 403,
+      }
+    )
+  }
+
+  const cart = await retrieveCart(cookieCartId)
 
   return NextResponse.json({ cart })
 }
+

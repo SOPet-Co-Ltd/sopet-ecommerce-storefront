@@ -26,7 +26,7 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
     control,
     register,
     handleSubmit,
-    formState: { errors, isSubmitted },
+    formState: { errors, isSubmitted, isSubmitting },
     clearErrors,
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -43,9 +43,9 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
   return (
     <div>
       {!isSubmitted ? (
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <div className="px-4 pb-5">
-            <label className="label-sm">
+            <label htmlFor="report-reason" className="label-sm">
               <p className={cn(errors?.reason && "text-negative")}>Reason</p>
               <SearchableSelectField
                 control={control}
@@ -59,17 +59,27 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
               />
             </label>
 
-            <label className="label-sm">
+            <label htmlFor="report-comment" className="label-sm">
               <p className={cn("mt-5", errors?.comment && "text-negative")}>
                 Comment
               </p>
               <Textarea
+                id="report-comment"
                 rows={5}
                 {...register("comment")}
                 className={cn(errors.comment && "border-negative")}
+                disabled={isSubmitting}
+                aria-required="true"
+                aria-invalid={!!errors.comment}
+                aria-describedby={errors.comment ? "comment-error" : undefined}
               />
               {errors?.comment && (
-                <p className="label-sm text-negative">
+                <p
+                  id="comment-error"
+                  className="label-sm text-negative"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {errors.comment.message}
                 </p>
               )}
@@ -77,9 +87,22 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
           </div>
 
           <div className="border-t px-4 pt-5">
-            <Button type="submit" className="w-full py-3 uppercase">
-              Report Seller
+            <Button
+              type="submit"
+              className="w-full py-3 uppercase"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              aria-label={
+                isSubmitting ? "กำลังส่งรายงาน กรุณารอสักครู่" : "รายงานผู้ขาย"
+              }
+            >
+              {isSubmitting ? "กำลังส่ง..." : "Report Seller"}
             </Button>
+          </div>
+
+          {/* Screen reader announcements */}
+          <div aria-live="polite" aria-atomic="true" className="sr-only">
+            {isSubmitting && "กำลังส่งรายงาน กรุณารอสักครู่"}
           </div>
         </form>
       ) : (
@@ -95,7 +118,12 @@ export const ReportSellerForm = ({ onClose }: { onClose: () => void }) => {
           </div>
 
           <div className="border-t px-4 pt-5">
-            <Button className="w-full py-3 uppercase" onClick={onClose}>
+            <Button
+              type="button"
+              className="w-full py-3 uppercase"
+              onClick={onClose}
+              aria-label="ปิดหน้าต่างนี้"
+            >
               Got it
             </Button>
           </div>

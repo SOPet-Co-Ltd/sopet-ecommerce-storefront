@@ -157,18 +157,32 @@ export const CheckoutPaymentSection = ({
       </div>
 
       {checkoutDataLoading ? (
-        <Text className="text-sm text-gray-500">กำลังโหลดวิธีชำระเงิน…</Text>
+        <div role="status" aria-live="polite">
+          <Text className="text-sm text-gray-500">กำลังโหลดวิธีชำระเงิน…</Text>
+        </div>
       ) : (
-        <div className="flex flex-col gap-4">
-          <div
+        <fieldset className="flex flex-col gap-4">
+          <legend className="sr-only">เลือกวิธีการชำระเงิน</legend>
+
+          <label
+            htmlFor="payment-qrcode"
             className="flex items-start gap-3 cursor-pointer"
-            onClick={() => handleMethodChange("qrcode")}
           >
+            <input
+              type="radio"
+              id="payment-qrcode"
+              name="payment-method"
+              value="qrcode"
+              checked={method === "qrcode"}
+              onChange={() => handleMethodChange("qrcode")}
+              className="sr-only"
+            />
             <div
               className={clx(
                 "w-sop-16px md:w-sop-20px h-sop-16px md:h-sop-20px rounded-full border flex items-center justify-center mt-0.5",
                 method === "qrcode" ? "border-purple-600" : "border-gray-300"
               )}
+              aria-hidden="true"
             >
               {method === "qrcode" && (
                 <div className="w-[6px] md:w-2 h-[6px] md:h-2 rounded-full bg-purple-600" />
@@ -177,18 +191,28 @@ export const CheckoutPaymentSection = ({
             <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-black">
               QR Code
             </Text>
-          </div>
+          </label>
 
           <div className="flex flex-col gap-3">
-            <div
+            <label
+              htmlFor="payment-card"
               className="flex items-start gap-3 cursor-pointer"
-              onClick={() => handleMethodChange("card")}
             >
+              <input
+                type="radio"
+                id="payment-card"
+                name="payment-method"
+                value="card"
+                checked={method === "card"}
+                onChange={() => handleMethodChange("card")}
+                className="sr-only"
+              />
               <div
                 className={clx(
                   "w-sop-16px md:w-sop-20px h-sop-16px md:h-sop-20px rounded-full border flex items-center justify-center mt-0.5",
                   method === "card" ? "border-purple-600" : "border-gray-300"
                 )}
+                aria-hidden="true"
               >
                 {method === "card" && (
                   <div className="w-[6px] md:w-2 h-[6px] md:h-2 rounded-full bg-purple-600" />
@@ -197,12 +221,14 @@ export const CheckoutPaymentSection = ({
               <Text className="sop-body-sm-regular md:sop-body-md-regular text-sop-base-black">
                 บัตรเครดิต/บัตรเดบิต
               </Text>
-            </div>
+            </label>
 
             {method === "card" && (
               <div className="pl-8 flex flex-col gap-4">
                 {cardPaymentNotice && (
                   <Text
+                    role="alert"
+                    aria-live="polite"
                     className={clx(
                       "sop-body-sm-regular",
                       marketplacePaymentInitError
@@ -219,11 +245,13 @@ export const CheckoutPaymentSection = ({
                 ) : (
                   <div>
                     <Button
+                      type="button"
                       variant="secondary"
                       onClick={() => setUseNewCard(true)}
+                      aria-label="เพิ่มบัตรเครดิต/เดบิตใหม่"
                     >
                       <div className="flex items-center gap-2">
-                        <Plus className="w-4 h-4" />
+                        <Plus className="w-4 h-4" aria-hidden="true" />
                         <p>เพิ่มบัตรใหม่</p>
                       </div>
                     </Button>
@@ -232,7 +260,7 @@ export const CheckoutPaymentSection = ({
               </div>
             )}
           </div>
-        </div>
+        </fieldset>
       )}
     </div>
   )

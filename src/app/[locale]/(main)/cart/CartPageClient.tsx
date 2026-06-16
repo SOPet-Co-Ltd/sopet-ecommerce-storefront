@@ -17,6 +17,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import type { Cart } from "@/types/cart"
 import type { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
+import * as gtag from "@/lib/analytics/gtag"
 
 type CartPageClientProps = {
   initialCart: Cart | HttpTypes.StoreCart | null
@@ -42,6 +43,35 @@ export const CartPageClient = ({
     locale,
     cartSource
   )
+
+  // Track GA4 view_cart event
+  useEffect(() => {
+    if (!cart?.items?.length) return
+
+    const currency = cart.currency_code?.toUpperCase() || "THB"
+
+    const items = cart.items.map((item) => ({
+      item_id: item.variant_id || item.id,
+      item_name: item.title || "Product",
+      currency,
+      price: item.unit_price ? item.unit_price / 100 : 0,
+      quantity: item.quantity,
+      item_category: (item.variant?.product as any)?.categories?.[0]?.name,
+      item_brand: (item.variant?.product as any)?.collection?.title,
+      item_variant: item.variant?.title || undefined,
+    }))
+
+    const totalValue = items.reduce(
+      (sum, item) => sum + (item.price || 0) * item.quantity,
+      0
+    )
+
+    gtag.viewCart({
+      currency,
+      value: totalValue,
+      items,
+    })
+  }, [cart?.id]) // Only track when cart ID changes (initial load or cart replaced)
 
   useEffect(() => {
     let cancelled = false

@@ -2,7 +2,7 @@
 import { Card } from "@/components/atoms"
 import { CollapseIcon } from "@/icons"
 import { cn } from "@/lib/utils"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useId } from "react"
 
 export const Accordion = ({
   children,
@@ -16,6 +16,7 @@ export const Accordion = ({
   const [isOpen, setIsOpen] = useState(defaultOpen)
   const [height, setHeight] = useState(0)
   const contentRef = useRef<HTMLDivElement>(null)
+  const contentId = useId()
 
   useEffect(() => {
     setTimeout(() => {
@@ -31,9 +32,12 @@ export const Accordion = ({
 
   return (
     <div className="py-sop-12px px-sop-12px">
-      <div
+      <button
+        type="button"
         onClick={openHandler}
-        className="flex justify-between items-center cursor-pointer"
+        aria-expanded={isOpen}
+        aria-controls={contentId}
+        className="flex justify-between items-center cursor-pointer w-full text-left"
       >
         <h4 className="sop-body-md-regular text-sop-neutral-gray-300">
           {heading}
@@ -41,10 +45,12 @@ export const Accordion = ({
         <CollapseIcon
           color={"#949495"}
           size={20}
+          aria-hidden="true"
           className={cn("transition-all duration-300", isOpen && "rotate-180")}
         />
-      </div>
+      </button>
       <div
+        id={contentId}
         className={cn("transition-all duration-300 overflow-hidden")}
         style={{
           maxHeight: isOpen ? `${height}px` : "0px",

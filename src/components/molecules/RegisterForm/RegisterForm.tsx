@@ -97,7 +97,11 @@ const Form = () => {
     <main className="flex justify-center items-center h-full p-4 ">
       <div className="space-y-sop-40px md:max-w-[400px] min-w-[300px] w-full">
         {/* Logo */}
-        <div className="flex justify-center items-center">
+        <div
+          className="flex justify-center items-center"
+          role="img"
+          aria-label="SOPet โลโก้"
+        >
           <div className="md:block hidden">
             <SOPetLogo size={250} />
           </div>
@@ -107,91 +111,165 @@ const Form = () => {
         </div>
         {/* Title */}
         <div className="flex justify-center items-center">
-          <h1 className="sop-headline-md-medium md:sop-display-sm-medium">
+          <h1
+            id="register-title"
+            className="sop-headline-md-medium md:sop-display-sm-medium"
+          >
             สร้างบัญชีใหม่
           </h1>
         </div>
         {/* Form */}
-        <div className="space-y-4">
-          <InputSOPet
-            placeholder="อีเมลล์/เบอร์โทรศัพท์"
-            variant="bordered"
-            value={identifier}
-            disabled={otpRequested}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setIdentifier(e.target.value)
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (otpRequested) {
+              handleVerifyAndLogin()
+            } else {
+              handleRequestOtp()
             }
-          />
-          <div className="relative md:mb-4 mb-12">
-            <InputSOPet
-              placeholder="เลข OTP"
-              variant="bordered"
-              value={otp}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setOtp(e.target.value)
-              }
-            />
-            <div className="absolute right-0 min-w-[190px] md:-right-[200px] md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-end md:justify-start">
-              <Button
-                variant="outline"
-                size="sm"
-                rounded="rounded"
-                style={{ padding: "2px 8px", borderRadius: "8px" }}
-                disabled={isRequestingOtp || !isValidEmailOrPhone(identifier)}
-                onClick={handleRequestOtp}
-              >
-                ขอ OTP
-              </Button>
+          }}
+          noValidate
+          aria-labelledby="register-title"
+        >
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="identifier" className="sr-only">
+                อีเมลล์หรือเบอร์โทรศัพท์
+              </label>
+              <InputSOPet
+                id="identifier"
+                placeholder="อีเมลล์/เบอร์โทรศัพท์"
+                variant="bordered"
+                value={identifier}
+                disabled={otpRequested || isRequestingOtp || isVerifying}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setIdentifier(e.target.value)
+                  setError(undefined)
+                }}
+                aria-required="true"
+                aria-invalid={!!error && !identifier.trim()}
+                aria-describedby={error ? "register-error" : undefined}
+              />
             </div>
+            <div className="relative md:mb-4 mb-12">
+              <label htmlFor="otp" className="sr-only">
+                เลข OTP
+              </label>
+              <InputSOPet
+                id="otp"
+                placeholder="เลข OTP"
+                variant="bordered"
+                value={otp}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  setOtp(e.target.value)
+                  setError(undefined)
+                }}
+                disabled={isVerifying}
+                aria-required={otpRequested}
+                aria-invalid={!!error && otpRequested && !otp.trim()}
+                aria-describedby={
+                  otpRequested
+                    ? error
+                      ? "register-error"
+                      : "otp-sent-message"
+                    : undefined
+                }
+              />
+              <div className="absolute right-0 min-w-[190px] md:-right-[200px] md:top-0 md:bottom-0 -bottom-sop-36px flex items-center justify-end md:justify-start">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  rounded="rounded"
+                  style={{ padding: "2px 8px", borderRadius: "8px" }}
+                  disabled={isRequestingOtp || !isValidEmailOrPhone(identifier)}
+                  onClick={handleRequestOtp}
+                  aria-busy={isRequestingOtp}
+                  aria-label={
+                    isRequestingOtp
+                      ? "กำลังส่ง OTP กรุณารอสักครู่"
+                      : "ขอรหัส OTP"
+                  }
+                >
+                  {isRequestingOtp ? "กำลังส่ง..." : "ขอ OTP"}
+                </Button>
+              </div>
+            </div>
+            {otpRequested && (
+              <p
+                id="otp-sent-message"
+                className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400 px-1"
+                role="status"
+                aria-live="polite"
+              >
+                รหัส OTP ถูกส่งไปยังเบอร์โทรศัพท์ของคุณ
+              </p>
+            )}
+            {error && (
+              <p
+                id="register-error"
+                className="text-red-500 text-sm"
+                role="alert"
+                aria-live="polite"
+              >
+                {error}
+              </p>
+            )}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              fill={true}
+              disabled={
+                isVerifying ||
+                !otpRequested ||
+                !otp.trim() ||
+                !identifier.trim()
+              }
+              aria-busy={isVerifying}
+              aria-label={
+                isVerifying
+                  ? "กำลังสร้างบัญชี กรุณารอสักครู่"
+                  : "สร้างบัญชีใหม่"
+              }
+            >
+              {isVerifying ? "กำลังเข้าสู่ระบบ..." : "สร้างบัญชีใหม่"}
+            </Button>
           </div>
-          {otpRequested && (
-            <p className="sop-body-xs-regular md:sop-body-sm-regular text-sop-neutral-gray-400 px-1">
-              รหัส OTP ถูกส่งไปยังเบอร์โทรศัพท์ของคุณ
-            </p>
-          )}
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <Button
-            variant="primary"
-            size="lg"
-            fill={true}
-            disabled={
-              isVerifying || !otpRequested || !otp.trim() || !identifier.trim()
-            }
-            onClick={handleVerifyAndLogin}
-          >
-            {isVerifying ? "กำลังเข้าสู่ระบบ..." : "สร้างบัญชีใหม่"}
-          </Button>
-        </div>
+        </form>
         {/* Divider */}
         <div className="flex justify-center items-center gap-2">
-          <span className="w-full h-px bg-[#DEDEDE]"></span>
+          <span className="w-full h-px bg-[#DEDEDE]" aria-hidden="true"></span>
           <p className="sop-headline-sm-regular text-sop-neutral-gray-300">
             หรือ
           </p>
-          <span className="w-full h-px bg-[#DEDEDE]"></span>
+          <span className="w-full h-px bg-[#DEDEDE]" aria-hidden="true"></span>
         </div>
         {/* Media Login */}
         <div className="flex justify-center items-center gap-8">
           <button
+            type="button"
             onClick={() => initiateOAuth("facebook")}
             className="cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign up with Facebook"
+            aria-label="สร้างบัญชีด้วย Facebook"
           >
-            <FacebookCustomIcon size={48} />
+            <FacebookCustomIcon size={48} aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={() => initiateOAuth("google")}
             className="flex justify-center items-center bg-sop-base-white aspect-square rounded-full overflow-clip w-sop-48px h-sop-48px border-[#EEEEEE] cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign up with Google"
+            aria-label="สร้างบัญชีด้วย Google"
           >
-            <GoogleIcon size={28} />
+            <GoogleIcon size={28} aria-hidden="true" />
           </button>
           <button
+            type="button"
             onClick={() => initiateOAuth("line")}
             className="cursor-pointer hover:opacity-80 transition-opacity"
-            aria-label="Sign up with LINE"
+            aria-label="สร้างบัญชีด้วย LINE"
           >
-            <LineCustomIcon size={48} />
+            <LineCustomIcon size={48} aria-hidden="true" />
           </button>
         </div>
         {/* Link to Sign Up */}
@@ -201,86 +279,21 @@ const Form = () => {
             หากคุณมีบัญชีแล้ว
           </p>
           <LocalizedClientLink href="/login" className="underline">
-            <button className="sop-link-lg-regular text-sop-primary-500 cursor-pointer">
+            <button
+              type="button"
+              className="sop-link-lg-regular text-sop-primary-500 cursor-pointer"
+              aria-label="ไปที่หน้าเข้าสู่ระบบ"
+            >
               เข้าสู่ระบบ
             </button>
           </LocalizedClientLink>
         </div>
+        {/* Screen reader announcements */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isRequestingOtp && "กำลังส่งรหัส OTP กรุณารอสักครู่"}
+          {isVerifying && "กำลังสร้างบัญชีและเข้าสู่ระบบ กรุณารอสักครู่"}
+        </div>
       </div>
-      {/* <Container className="border max-w-xl mx-auto mt-8 p-4">
-        <h1 className="heading-md text-primary uppercase mb-8">
-          Create account
-        </h1>
-        <form onSubmit={handleSubmit(submit)}>
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <LabeledInput
-              className="md:w-1/2"
-              label="First name"
-              placeholder="Your first name"
-              error={errors.firstName as FieldError}
-              {...register("firstName")}
-            />
-            <LabeledInput
-              className="md:w-1/2"
-              label="Last name"
-              placeholder="Your last name"
-              error={errors.lastName as FieldError}
-              {...register("lastName")}
-            />
-          </div>
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <LabeledInput
-              className="md:w-1/2"
-              label="E-mail"
-              placeholder="Your e-mail address"
-              error={errors.email as FieldError}
-              {...register("email")}
-            />
-            <LabeledInput
-              className="md:w-1/2"
-              label="Phone"
-              placeholder="Your phone number"
-              error={errors.phone as FieldError}
-              {...register("phone")}
-            />
-          </div>
-          <div>
-            <LabeledInput
-              className="mb-4"
-              label="Password"
-              placeholder="Your password"
-              type="password"
-              error={errors.password as FieldError}
-              {...register("password")}
-            />
-            <PasswordValidator
-              password={watch("password")}
-              setError={setPasswordError}
-            />
-          </div>
-
-          {error && <p className="label-md text-negative">{error}</p>}
-          <Button
-            className="w-full flex justify-center mt-8 uppercase"
-            disabled={isSubmitting}
-            loading={isSubmitting}
-          >
-            Create account
-          </Button>
-        </form>
-      </Container>
-      <Container className="border max-w-xl mx-auto mt-8 p-4">
-        <h1 className="heading-md text-primary uppercase mb-8">
-          Already have an account?
-        </h1>
-        <p className="text-center label-md">
-          <Link href="/user">
-            <Button className="w-full flex justify-center mt-8 uppercase">
-              Log in
-            </Button>
-          </Link>
-        </p>
-      </Container> */}
     </main>
   )
 }

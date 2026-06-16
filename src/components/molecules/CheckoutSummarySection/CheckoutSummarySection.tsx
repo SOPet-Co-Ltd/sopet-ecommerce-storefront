@@ -135,9 +135,21 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
         loading={isSubmitting}
         disabled={isSubmitting}
         onClick={() => void handleSubmit()}
+        aria-busy={isSubmitting}
+        aria-label={
+          isSubmitting
+            ? "กำลังดำเนินการชำระเงิน กรุณารอสักครู่"
+            : `ชำระเงิน ยอดรวม ${formatPrice(finalPrice)} (${totalQuantity} รายการ)`
+        }
       >
-        ชำระเงิน {formatPrice(finalPrice)}
+        {isSubmitting
+          ? "กำลังดำเนินการ..."
+          : `ชำระเงิน ${formatPrice(finalPrice)}`}
       </Button>
+      {/* Screen reader live region */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {isSubmitting && "กำลังดำเนินการชำระเงิน กรุณารอสักครู่"}
+      </div>
     </div>
   )
 }

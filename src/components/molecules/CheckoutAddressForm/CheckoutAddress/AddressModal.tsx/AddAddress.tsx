@@ -1,6 +1,7 @@
 "use client"
 
 import { FormProvider, useForm } from "react-hook-form"
+import { useState } from "react"
 
 import { Modal } from "@/components/molecules/Modal/Modal"
 import AddressEmptyState from "../AddressEmptyState"
@@ -23,6 +24,9 @@ type AddAddressProps = {
 }
 
 const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   // Generate placeholder email if customer doesn't have one
   const generatePlaceholderEmail = () => {
     if (customer && !customer.email && customer.phone) {
@@ -48,6 +52,9 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
   })
 
   const handleSubmit = async (data: AddressFormData) => {
+    setIsSubmitting(true)
+    setError(null)
+
     const [firstName = "", ...lastNameParts] = data.recipientFullName
       .trim()
       .split(" ")
@@ -80,6 +87,8 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
 
     if (!result.success) {
       console.error(result.error)
+      setError(result.error || "ไม่สามารถเพิ่มที่อยู่ได้ กรุณาลองใหม่อีกครั้ง")
+      setIsSubmitting(false)
       return
     }
 
@@ -92,6 +101,7 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
       onAdd(newAddress)
     }
 
+    setIsSubmitting(false)
     onClose()
   }
 
@@ -100,25 +110,61 @@ const AddAddress = ({ onAdd, onClose, customer }: AddAddressProps) => {
       <Modal
         header={
           <div className="flex justify-center">
-            <h2 className="sop-body-lg-medium text-sop-neutral-gray-200">
+            <h2
+              id="add-address-title"
+              className="sop-body-lg-medium text-sop-neutral-gray-200"
+            >
               เพิ่มข้อมูลการจัดส่ง
             </h2>
           </div>
         }
         footer={
           <div className="flex flex-col gap-2 md:flex-row md:justify-end">
-            <Button onClick={onClose} variant="filled" fill size="lg">
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="filled"
+              fill
+              size="lg"
+              disabled={isSubmitting}
+            >
               ยกเลิก
             </Button>
 
-            <Button fill size="lg" onClick={methods.handleSubmit(handleSubmit)}>
-              เพิ่มที่อยู่
+            <Button
+              type="button"
+              fill
+              size="lg"
+              onClick={methods.handleSubmit(handleSubmit)}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              aria-label={
+                isSubmitting
+                  ? "กำลังบันทึกที่อยู่ กรุณารอสักครู่"
+                  : "เพิ่มที่อยู่"
+              }
+            >
+              {isSubmitting ? "กำลังบันทึก..." : "เพิ่มที่อยู่"}
             </Button>
           </div>
         }
         onClose={onClose}
+        aria-labelledby="add-address-title"
       >
         <AddressEmptyState storeCustomer={customer} isAdding={true} />
+        {error && (
+          <p
+            className="text-red-500 text-sm mt-2 px-4"
+            role="alert"
+            aria-live="polite"
+          >
+            {error}
+          </p>
+        )}
+        {/* Screen reader announcements */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isSubmitting && "กำลังบันทึกที่อยู่ กรุณารอสักครู่"}
+        </div>
       </Modal>
     </FormProvider>
   )

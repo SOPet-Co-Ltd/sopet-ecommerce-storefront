@@ -118,6 +118,8 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
     }
 
     setSubmitting(true)
+    setError(null)
+
     window.Omise.createToken(
       "card",
       {
@@ -144,31 +146,41 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
 
         if (res.success) {
           await onSuccess?.(res.paymentMethod)
+          setSubmitting(false)
         } else {
           setError(res.error)
+          setSubmitting(false)
         }
-        setSubmitting(false)
       }
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
       <div>
-        <label className={fieldLabelClass}>ชื่อบนบัตร</label>
+        <label htmlFor="card-name" className={fieldLabelClass}>
+          ชื่อบนบัตร
+        </label>
         <InputSOPet
+          id="card-name"
           size="sm"
           variant="bordered"
           placeholder="ชื่อ นามสกุล (ภาษาอังกฤษ)"
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoComplete="cc-name"
+          disabled={submitting}
+          aria-required="true"
+          aria-invalid={error && !name.trim() ? "true" : "false"}
         />
       </div>
 
       <div>
-        <label className={fieldLabelClass}>หมายเลขบัตร</label>
+        <label htmlFor="card-number" className={fieldLabelClass}>
+          หมายเลขบัตร
+        </label>
         <InputSOPet
+          id="card-number"
           size="sm"
           variant="bordered"
           placeholder="0000 0000 0000 0000"
@@ -183,13 +195,19 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
             setNumber(cardNumber)
             setCvv((currentCvv) => formatCVV(currentCvv, cardNumber))
           }}
+          disabled={submitting}
+          aria-required="true"
+          aria-invalid={error && number ? "true" : "false"}
         />
       </div>
 
       <div className="flex gap-3">
         <div className="flex-1">
-          <label className={fieldLabelClass}>วันหมดอายุ</label>
+          <label htmlFor="card-expiry" className={fieldLabelClass}>
+            วันหมดอายุ
+          </label>
           <InputSOPet
+            id="card-expiry"
             size="sm"
             variant="bordered"
             placeholder="MM/YY"
@@ -197,11 +215,17 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
             inputMode="numeric"
             autoComplete="cc-exp"
             onChange={(e) => setExpiry(formatExpiry(e.target.value))}
+            disabled={submitting}
+            aria-required="true"
+            aria-invalid={error && expiry ? "true" : "false"}
           />
         </div>
         <div className="w-28">
-          <label className={fieldLabelClass}>CVV</label>
+          <label htmlFor="card-cvv" className={fieldLabelClass}>
+            CVV
+          </label>
           <InputSOPet
+            id="card-cvv"
             size="sm"
             variant="bordered"
             placeholder="123"
@@ -210,6 +234,9 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
             autoComplete="cc-csc"
             maxLength={getCvvLength(number)}
             onChange={(e) => setCvv(formatCVV(e.target.value, number))}
+            disabled={submitting}
+            aria-required="true"
+            aria-invalid={error && cvv ? "true" : "false"}
           />
         </div>
       </div>
@@ -218,13 +245,31 @@ export const CreditCardForm = ({ onSuccess }: CreditCardFormProps) => {
         label="ตั้งเป็นบัตรค่าเริ่มต้น"
         checked={makeDefault}
         onChange={(e) => setMakeDefault(e.target.checked)}
+        disabled={submitting}
       />
 
-      {error && <p className="label-md text-negative">{error}</p>}
+      {error && (
+        <p className="label-md text-negative" role="alert" aria-live="polite">
+          {error}
+        </p>
+      )}
 
-      <Button type="submit" loading={submitting} fill>
-        บันทึกบัตร
+      <Button
+        type="submit"
+        loading={submitting}
+        fill
+        aria-busy={submitting}
+        aria-label={
+          submitting ? "กำลังบันทึกบัตร กรุณารอสักครู่" : "บันทึกบัตร"
+        }
+      >
+        {submitting ? "กำลังบันทึก..." : "บันทึกบัตร"}
       </Button>
+
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {submitting && "กำลังบันทึกบัตรเครดิต กรุณารอสักครู่"}
+      </div>
     </form>
   )
 }

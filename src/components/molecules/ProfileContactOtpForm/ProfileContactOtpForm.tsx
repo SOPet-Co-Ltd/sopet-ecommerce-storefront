@@ -208,6 +208,8 @@ export function ProfileContactOtpForm({
             disabled={!otpRequested}
             className="lg:w-[254px] max-w-full"
             variant="bordered"
+            aria-required="true"
+            aria-describedby={error ? "contact-error" : undefined}
           />
           <div className="absolute -bottom-sop-40px  md:top-0 md:h-full md:flex items-center justify-end md:justify-start md:-right-sop-96px">
             <Button
@@ -216,6 +218,10 @@ export function ProfileContactOtpForm({
               rounded="rounded"
               onClick={handleRequestOtp}
               disabled={loading || otpRequested}
+              aria-busy={loading && !otpRequested}
+              aria-label={
+                loading && !otpRequested ? "กำลังส่ง OTP" : "ขอรหัส OTP"
+              }
             >
               {loading && !otpRequested ? "กำลังส่ง..." : "ขอ OTP"}
             </Button>
@@ -229,14 +235,34 @@ export function ProfileContactOtpForm({
           rounded="rounded"
           onClick={handleConfirmOtp}
           disabled={loading || !otpRequested}
+          aria-busy={loading && otpRequested}
+          aria-label={
+            loading && otpRequested ? "กำลังยืนยัน OTP" : "ยืนยันรหัส OTP"
+          }
         >
           {loading && otpRequested ? "กำลังยืนยัน..." : "ยืนยัน"}
         </Button>
       </div>
 
       {error && (
-        <p className="col-span-2 text-red-500 sop-body-sm-regular">{error}</p>
+        <p
+          id="contact-error"
+          className="col-span-2 text-red-500 sop-body-sm-regular"
+          role="alert"
+          aria-live="polite"
+        >
+          {error}
+        </p>
       )}
+
+      {/* Screen reader announcements */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {loading && !otpRequested && "กำลังส่งรหัส OTP"}
+        {loading && otpRequested && "กำลังยืนยันรหัส OTP"}
+        {otpRequested &&
+          !loading &&
+          "ส่งรหัส OTP เรียบร้อยแล้ว กรุณากรอกรหัส OTP"}
+      </div>
     </div>
   )
 }

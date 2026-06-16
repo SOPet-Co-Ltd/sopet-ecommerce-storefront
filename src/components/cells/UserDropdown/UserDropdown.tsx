@@ -68,7 +68,13 @@ export const UserDropdown = ({
       align="end"
       width={240}
       trigger={
-        <div className="flex cursor-pointer items-center gap-sop-8px">
+        <button
+          type="button"
+          className="flex cursor-pointer items-center gap-sop-8px"
+          aria-expanded={open}
+          aria-haspopup="true"
+          aria-label={`เมนูผู้ใช้: ${displayName.split(" ")[0] || displayName}`}
+        >
           <Avatar
             src={avatarUrl}
             size="xsmall"
@@ -78,8 +84,8 @@ export const UserDropdown = ({
           <span className="sop-body-md-regular hidden max-w-[120px] truncate text-sop-neutral-gray-300 md:inline-flex">
             {displayName.split(" ")[0]}
           </span>
-          <DownArrowIcon size={16} color="#454547" />
-        </div>
+          <DownArrowIcon size={16} color="#454547" aria-hidden="true" />
+        </button>
       }
     >
       <div className="flex w-[240px] flex-col">

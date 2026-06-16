@@ -46,6 +46,8 @@ const EditAddress = ({
   } = useFormContext<AddressFormData>()
 
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const provinceValue = watch("province")
   const districtValue = watch("district")
@@ -86,6 +88,9 @@ const EditAddress = ({
     setValue("setAsDefault", !!address.is_default_shipping)
   }, [address, setValue])
   const onSubmit = async (data: AddressFormData) => {
+    setIsSubmitting(true)
+    setError(null)
+
     try {
       const [firstName = "", ...lastNameParts] =
         data.recipientFullName.split(" ")
@@ -119,6 +124,10 @@ const EditAddress = ({
 
       if (!result.success) {
         console.error(result.error)
+        setError(
+          result.error || "ไม่สามารถอัปเดตที่อยู่ได้ กรุณาลองใหม่อีกครั้ง"
+        )
+        setIsSubmitting(false)
         return
       }
 
@@ -141,9 +150,12 @@ const EditAddress = ({
         is_default_billing: data.setAsDefault,
       })
 
+      setIsSubmitting(false)
       onClose()
     } catch (error) {
       console.error(error)
+      setError("เกิดข้อผิดพลาดในการอัปเดตที่อยู่")
+      setIsSubmitting(false)
     }
   }
 
@@ -169,9 +181,13 @@ const EditAddress = ({
   return (
     <Modal
       onClose={onClose}
+      aria-labelledby="edit-address-title"
       header={
         <div className="flex justify-center">
-          <label className="sop-body-lg-medium text-sop-neutral-gray-200">
+          <label
+            id="edit-address-title"
+            className="sop-body-lg-medium text-sop-neutral-gray-200"
+          >
             แก้ไขข้อมูลการจัดส่ง
           </label>
         </div>
@@ -179,16 +195,31 @@ const EditAddress = ({
       footer={
         <div className="flex flex-col gap-2 md:flex-row md:justify-end">
           <Button
+            type="button"
             onClick={() => setShowDeleteModal(true)}
             variant="filled"
             fill
             size="lg"
+            disabled={isSubmitting}
+            aria-label="ลบที่อยู่นี้"
           >
             ลบที่อยู่
           </Button>
 
-          <Button fill size="lg" onClick={handleSubmit(onSubmit)}>
-            บันทึก
+          <Button
+            type="button"
+            fill
+            size="lg"
+            onClick={handleSubmit(onSubmit)}
+            disabled={isSubmitting}
+            aria-busy={isSubmitting}
+            aria-label={
+              isSubmitting
+                ? "กำลังบันทึกที่อยู่ กรุณารอสักครู่"
+                : "บันทึกที่อยู่"
+            }
+          >
+            {isSubmitting ? "กำลังบันทึก..." : "บันทึก"}
           </Button>
         </div>
       }
@@ -312,6 +343,19 @@ const EditAddress = ({
               />
             )}
           />
+        </div>
+        {error && (
+          <p
+            className="text-red-500 text-sm mt-2"
+            role="alert"
+            aria-live="polite"
+          >
+            {error}
+          </p>
+        )}
+        {/* Screen reader announcements */}
+        <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {isSubmitting && "กำลังบันทึกที่อยู่ กรุณารอสักครู่"}
         </div>
       </div>
     </Modal>

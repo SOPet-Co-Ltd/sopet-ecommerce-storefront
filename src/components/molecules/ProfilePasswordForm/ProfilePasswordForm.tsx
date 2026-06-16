@@ -110,30 +110,41 @@ const Form = ({
     <form
       className="flex flex-col gap-4 px-4"
       onSubmit={handleSubmit(updatePassword)}
+      noValidate
     >
       <LabeledInput
         label="Current password"
         type="password"
         error={errors.currentPassword as FieldError}
+        aria-required="true"
         {...register("currentPassword")}
       />
-      <LabeledInput
-        label="New password"
-        type="password"
-        error={errors.newPassword as FieldError}
-        {...register("newPassword")}
-      />
-      <PasswordValidator
-        password={form.watch("newPassword")}
-        setError={setNewPasswordError}
-      />
+      <div>
+        <LabeledInput
+          label="New password"
+          type="password"
+          error={errors.newPassword as FieldError}
+          aria-required="true"
+          aria-describedby="password-requirements"
+          {...register("newPassword")}
+        />
+        <div id="password-requirements">
+          <PasswordValidator
+            password={form.watch("newPassword")}
+            setError={setNewPasswordError}
+          />
+        </div>
+      </div>
       <LabeledInput
         label="Confirm new password"
         type="password"
         error={confirmPasswordError as FieldError}
+        aria-required="true"
         {...register("confirmPassword")}
       />
-      <Button className="w-full my-4">Change password</Button>
+      <Button type="submit" className="w-full my-4">
+        Change password
+      </Button>
     </form>
   )
 }

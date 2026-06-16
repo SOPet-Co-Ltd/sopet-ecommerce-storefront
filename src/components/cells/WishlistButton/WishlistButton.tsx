@@ -56,22 +56,41 @@ export const WishlistButton = ({
     }
   }
   return (
-    <button
-      onClick={() => {
-        if (!user) {
-          router.push(`/${locale}/user`)
-          return
+    <>
+      <button
+        type="button"
+        onClick={() => {
+          if (!user) {
+            router.push(`/${locale}/user`)
+            return
+          }
+          if (isWishlisted) {
+            handleRemoveFromWishlist()
+          } else {
+            handleAddToWishlist()
+          }
+        }}
+        disabled={isWishlistAdding}
+        className="cursor-pointer"
+        aria-busy={isWishlistAdding}
+        aria-label={
+          isWishlistAdding
+            ? isWishlisted
+              ? "กำลังลบจากรายการโปรด"
+              : "กำลังเพิ่มในรายการโปรด"
+            : isWishlisted
+              ? "ลบจากรายการโปรด"
+              : "เพิ่มในรายการโปรด"
         }
-        if (isWishlisted) {
-          handleRemoveFromWishlist()
-        } else {
-          handleAddToWishlist()
-        }
-      }}
-      disabled={isWishlistAdding}
-      className="cursor-pointer"
-    >
-      <WishListHeartIcon size={30} filled={isWishlisted} />
-    </button>
+        aria-pressed={isWishlisted}
+      >
+        <WishListHeartIcon size={30} filled={isWishlisted} aria-hidden="true" />
+      </button>
+      {/* Screen reader live region */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {isWishlistAdding && isWishlisted && "กำลังลบจากรายการโปรด"}
+        {isWishlistAdding && !isWishlisted && "กำลังเพิ่มในรายการโปรด"}
+      </div>
+    </>
   )
 }
