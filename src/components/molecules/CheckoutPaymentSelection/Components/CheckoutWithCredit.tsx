@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
-import { Checkbox } from "@/components/atoms"
+import { Button, Checkbox } from "@/components/atoms"
 import { SelectBox } from "@/components/atoms/SelectBox/SelectBox"
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 
@@ -13,13 +13,21 @@ import {
   VisaIcon,
 } from "@/icons/payment"
 import { CustomerCard } from "../Types/PaymentType"
+import { PlusIcon } from "@/icons"
+import { AddCardModal } from "./AddCardModal"
 
 type Props = {
   payment?: CustomerCard[]
   error?: string | null
+  onPaymentMethodsChange?: () => void
 }
 
-export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
+export const SelectWithCreditCard = ({
+  payment = [],
+  error,
+  onPaymentMethodsChange,
+}: Props) => {
+  const [showAddCardModal, setShowAddCardModal] = useState(false)
   const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
   const setSelectedCardId = useCheckoutStore((state) => state.setSelectedCardId)
   const customer = useCheckoutStore((state) => state.customer)
@@ -29,6 +37,11 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
   const setSaveShippingAddress = useCheckoutStore(
     (state) => state.setSaveShippingAddress
   )
+
+  const handleAddCardSuccess = () => {
+    setShowAddCardModal(false)
+    onPaymentMethodsChange?.()
+  }
 
   useEffect(() => {
     if (payment.length === 0) return
@@ -69,6 +82,14 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
         <label className="sop-body-md-regular text-sop-neutral-gray-300">
           บัตรที่บันทึกไว้
         </label>
+        <Button
+          iconLeft={<PlusIcon color={"#FF6F61"} />}
+          variant="secondary"
+          size="sm"
+          onClick={() => setShowAddCardModal(true)}
+        >
+          เพิ่มบัตรใหม่
+        </Button>
       </div>
 
       <div className="mt-sop-16px space-y-sop-12px">
@@ -112,6 +133,13 @@ export const SelectWithCreditCard = ({ payment = [], error }: Props) => {
         <p className="sop-body-xs-regular mt-sop-8px text-sop-system-error-400">
           {error}
         </p>
+      )}
+
+      {showAddCardModal && (
+        <AddCardModal
+          onClose={() => setShowAddCardModal(false)}
+          onSuccess={handleAddCardSuccess}
+        />
       )}
     </div>
   )

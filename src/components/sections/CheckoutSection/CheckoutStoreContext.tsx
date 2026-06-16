@@ -25,7 +25,9 @@ import {
   type VendorShippingState,
 } from "@/lib/zustand/checkout-store"
 
-const CheckoutStoreContext = createContext<CheckoutStoreApi | null>(null)
+const CheckoutStoreContext = createContext<CheckoutStoreApi | undefined>(
+  undefined
+)
 
 // Default selector when hook is called without a slice function.
 const identitySelector = (state: CheckoutStore): CheckoutStore => state
@@ -36,7 +38,7 @@ export function CheckoutStoreProvider({
   ...initial
 }: CheckoutStoreInitialProps & { children: ReactNode }) {
   // Keep a stable store instance across re-renders (React Strict Mode safe).
-  const storeRef = useRef<CheckoutStoreApi | null>(null)
+  const storeRef = useRef<CheckoutStoreApi | undefined>(undefined)
 
   if (!storeRef.current) {
     storeRef.current = createCheckoutStore(initial)
