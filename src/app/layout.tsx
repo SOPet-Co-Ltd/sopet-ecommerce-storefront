@@ -6,6 +6,7 @@ import { Toaster as SonnerToaster } from "sonner"
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_NAME,
+  DEFAULT_REGION,
 } from "@/lib/site-defaults"
 import { Providers } from "./providers"
 import { GoogleAnalytics } from "@next/third-parties/google"
@@ -42,7 +43,7 @@ export default async function RootLayout({
 }>) {
   // Root layout doesn't receive params, so use default locale
   // The actual locale is handled by layouts inside [locale] folder
-  const locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "th"
+  const locale = DEFAULT_REGION
 
   // Check if PUBLISHABLE_API_KEY is configured
   const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY

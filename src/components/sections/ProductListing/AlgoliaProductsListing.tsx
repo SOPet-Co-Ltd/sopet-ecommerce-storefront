@@ -17,12 +17,13 @@ import { listProducts } from "@/lib/data/products"
 import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { sortProducts } from "@/lib/helpers/sort-products"
 import { SortOptions } from "@/types/product"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 export const AlgoliaProductsListing = ({
   category_id,
   collection_id,
   seller_handle,
-  locale = process.env.NEXT_PUBLIC_DEFAULT_REGION,
+  locale = DEFAULT_REGION,
   currency_code,
 }: {
   category_id?: string

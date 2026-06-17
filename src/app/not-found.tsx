@@ -1,8 +1,9 @@
 import Link from "next/link"
 import type { Metadata } from "next"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 /** Align with middleware redirect target for paths without a locale prefix */
-const defaultLocale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
+const defaultLocale = DEFAULT_REGION
 
 export const metadata: Metadata = {
   title: "ไม่พบหน้า",

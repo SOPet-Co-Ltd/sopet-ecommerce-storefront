@@ -9,10 +9,11 @@ import {
 } from "@/lib/data/products"
 import { Product } from "@/types/product"
 import Link from "next/link"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 export const HomeProductSection = async ({
   heading,
-  locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "pl",
+  locale = DEFAULT_REGION,
   sellerProducts = [],
   home = false,
   section,
