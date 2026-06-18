@@ -41,6 +41,7 @@
     "next": "15.1.11",
     "next-intl": "^3.26.3",
     "next-mdx-remote-client": "^2.1.7",
+    "posthog-js": "^1.390.2",
     "react": "^19.0.0",
     "react-country-flag": "^3.1.0",
     "react-dom": "^19.0.0",

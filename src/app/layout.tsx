@@ -10,6 +10,7 @@ import {
 } from "@/lib/site-defaults"
 import { Providers } from "./providers"
 import { GoogleAnalytics } from "@next/third-parties/google"
+import { PostHogProvider } from "@/components/PostHogProvider"
 
 const mitr = Mitr({
   variable: "--font-mitr",
@@ -97,7 +98,9 @@ export default async function RootLayout({
       <body
         className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
-        <Providers>{children}</Providers>
+        <PostHogProvider>
+          <Providers>{children}</Providers>
+        </PostHogProvider>
         <MedusaToaster position="top-right" />
         <SonnerToaster position="top-right" richColors />
       </body>

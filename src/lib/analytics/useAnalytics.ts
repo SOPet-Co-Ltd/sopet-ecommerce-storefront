@@ -126,6 +126,21 @@ export const useAnalytics = () => {
     []
   )
 
+  const trackScrollDepth = useCallback((percentage: number) => {
+    gtag.scrollDepth(percentage)
+  }, [])
+
+  const trackFileDownload = useCallback(
+    (fileName: string, fileExtension: string, fileUrl: string) => {
+      gtag.fileDownload(fileName, fileExtension, fileUrl)
+    },
+    []
+  )
+
+  const trackOutboundClick = useCallback((url: string, linkText?: string) => {
+    gtag.outboundClick(url, linkText)
+  }, [])
+
   return {
     trackPageView,
     trackEvent,
@@ -140,5 +155,8 @@ export const useAnalytics = () => {
     trackAddPaymentInfo,
     trackPurchase,
     trackSelectItem,
+    trackScrollDepth,
+    trackFileDownload,
+    trackOutboundClick,
   }
 }

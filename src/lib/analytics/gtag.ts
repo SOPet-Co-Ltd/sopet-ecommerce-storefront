@@ -225,3 +225,50 @@ export const search = (searchTerm: string) => {
     search_term: searchTerm,
   })
 }
+
+/**
+ * Scroll depth tracking
+ * @param percentage - Scroll depth percentage (25, 50, 75, 90, 100)
+ */
+export const scrollDepth = (percentage: number) => {
+  if (!isGtagAvailable()) return
+
+  window.gtag!("event", "scroll", {
+    percent_scrolled: percentage,
+  })
+}
+
+/**
+ * File download tracking
+ * @param fileName - Name of the file being downloaded
+ * @param fileExtension - File extension (e.g., "pdf", "zip")
+ * @param fileUrl - URL of the file
+ */
+export const fileDownload = (
+  fileName: string,
+  fileExtension: string,
+  fileUrl: string
+) => {
+  if (!isGtagAvailable()) return
+
+  window.gtag!("event", "file_download", {
+    file_name: fileName,
+    file_extension: fileExtension,
+    link_url: fileUrl,
+  })
+}
+
+/**
+ * Outbound link click tracking
+ * @param url - External URL being clicked
+ * @param linkText - Text of the link (optional)
+ */
+export const outboundClick = (url: string, linkText?: string) => {
+  if (!isGtagAvailable()) return
+
+  window.gtag!("event", "click", {
+    link_url: url,
+    link_text: linkText,
+    outbound: true,
+  })
+}
