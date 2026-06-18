@@ -1,8 +1,9 @@
 import { ProductCard } from "@/components/organisms"
 import { getRecentOrderProducts } from "@/lib/data/recent-orders"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 export const HomeRecentOrdersSection = async ({
-  locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "en",
+  locale = DEFAULT_REGION,
 }: {
   locale?: string
 }) => {

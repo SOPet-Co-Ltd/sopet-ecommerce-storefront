@@ -5,13 +5,14 @@ import { ProductsList } from "@/components/organisms/ProductsList/ProductsList"
 import { ProductsPagination } from "@/components/organisms/ProductsPagination/ProductsPagination"
 import { PRODUCT_LIMIT } from "@/const"
 import { listProductsWithSort } from "@/lib/data/products"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 export const ProductListing = async ({
   category_id,
   collection_id,
   seller_id,
   showSidebar = false,
-  locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "pl",
+  locale = DEFAULT_REGION,
 }: {
   category_id?: string
   collection_id?: string

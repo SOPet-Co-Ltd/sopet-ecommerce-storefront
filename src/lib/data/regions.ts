@@ -6,9 +6,10 @@ import medusaError from "@/lib/helpers/medusa-error"
 import { HttpTypes } from "@medusajs/types"
 import { REVALIDATE_REGIONS } from "@/lib/cache/constants"
 import { getCacheOptions } from "./cookies"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 
 // Constants
-const DEFAULT_COUNTRY_CODE = "th"
+const DEFAULT_COUNTRY_CODE = DEFAULT_REGION
 
 // Cache key helper
 const getRegionCacheKey = (id: string): string => `regions-${id}`

@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 
 import { GUEST_ONLY_ROUTES, PROTECTED_ROUTES } from "./lib/constants"
 import { isTokenExpired } from "./lib/helpers/token"
-
-const DEFAULT_REGION = process.env.NEXT_PUBLIC_DEFAULT_REGION || "us"
+import { DEFAULT_REGION } from "./lib/site-defaults"
 
 function getPathContext(pathname: string) {
   const segment = pathname.split("/")[1]

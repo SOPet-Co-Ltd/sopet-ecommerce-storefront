@@ -4,7 +4,7 @@ import { listCollections } from "@/lib/data/collections"
 import { getAuthHeaders, getCacheOptions } from "@/lib/data/cookies"
 import { getRegion, listRegions } from "@/lib/data/regions"
 import { REVALIDATE_REGIONS } from "@/lib/cache/constants"
-import { getPublicSiteUrl } from "@/lib/site-defaults"
+import { getPublicSiteUrl, DEFAULT_REGION } from "@/lib/site-defaults"
 
 /** Cap product list API pages per locale to bound build/runtime cost; raise or add generateSitemaps if the catalog outgrows this. */
 const MAX_PRODUCT_PAGES_PER_LOCALE = 60
@@ -34,7 +34,7 @@ async function resolveLocales(): Promise<string[]> {
   } catch {
     /* fallback below */
   }
-  return [(process.env.NEXT_PUBLIC_DEFAULT_REGION || "th").toLowerCase()]
+  return [DEFAULT_REGION.toLowerCase()]
 }
 
 async function fetchCategoryRows(): Promise<
@@ -145,7 +145,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     locales = await resolveLocales()
   } catch {
-    locales = [(process.env.NEXT_PUBLIC_DEFAULT_REGION || "th").toLowerCase()]
+    locales = [DEFAULT_REGION.toLowerCase()]
   }
 
   let collectionHandles: string[] = []

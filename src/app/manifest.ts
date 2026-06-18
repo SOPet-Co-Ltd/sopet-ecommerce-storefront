@@ -2,15 +2,14 @@ import type { MetadataRoute } from "next"
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_NAME,
+  DEFAULT_REGION,
 } from "@/lib/site-defaults"
 
 export default function manifest(): MetadataRoute.Manifest {
   const name = process.env.NEXT_PUBLIC_SITE_NAME?.trim() || DEFAULT_SITE_NAME
   const description =
     process.env.NEXT_PUBLIC_SITE_DESCRIPTION?.trim() || DEFAULT_SITE_DESCRIPTION
-  const defaultLocale = (
-    process.env.NEXT_PUBLIC_DEFAULT_REGION || "th"
-  ).toLowerCase()
+  const defaultLocale = DEFAULT_REGION.toLowerCase()
   const start = `/${defaultLocale}/`
 
   return {

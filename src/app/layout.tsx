@@ -6,9 +6,11 @@ import { Toaster as SonnerToaster } from "sonner"
 import {
   DEFAULT_SITE_DESCRIPTION,
   DEFAULT_SITE_NAME,
+  DEFAULT_REGION,
 } from "@/lib/site-defaults"
 import { Providers } from "./providers"
 import { GoogleAnalytics } from "@next/third-parties/google"
+import { PostHogProvider } from "@/components/PostHogProvider"
 
 const mitr = Mitr({
   variable: "--font-mitr",
@@ -42,7 +44,7 @@ export default async function RootLayout({
 }>) {
   // Root layout doesn't receive params, so use default locale
   // The actual locale is handled by layouts inside [locale] folder
-  const locale = process.env.NEXT_PUBLIC_DEFAULT_REGION || "th"
+  const locale = DEFAULT_REGION
 
   // Check if PUBLISHABLE_API_KEY is configured
   const PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
@@ -96,7 +98,9 @@ export default async function RootLayout({
       <body
         className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
-        <Providers>{children}</Providers>
+        <PostHogProvider>
+          <Providers>{children}</Providers>
+        </PostHogProvider>
         <MedusaToaster position="top-right" />
         <SonnerToaster position="top-right" richColors />
       </body>
