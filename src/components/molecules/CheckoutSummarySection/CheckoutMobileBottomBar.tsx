@@ -4,13 +4,20 @@ import { Button } from "@/components/atoms"
 import { useCheckoutSubmit } from "@/lib/checkout/use-checkout-submit"
 import { useParams, useRouter } from "next/navigation"
 import { formatPrice, useCheckoutTotals } from "./use-checkout-totals"
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 
 export function CheckoutMobileBottomBar() {
-  const { finalPrice } = useCheckoutTotals()
+  const { finalPrice, subtotal, platformDiscount, vendorDiscount } =
+    useCheckoutTotals()
   const { submit, isSubmitting } = useCheckoutSubmit()
   const router = useRouter()
   const params = useParams()
   const locale = (params?.locale as string) || "th"
+
+  // Check if order price (excluding shipping) is valid
+  const orderPriceWithoutShipping =
+    subtotal - (platformDiscount + vendorDiscount)
+  const hasInvalidOrderPrice = orderPriceWithoutShipping <= 0
 
   const handleSubmit = async () => {
     console.log("[CheckoutMobileBottomBar] handleSubmit called")
@@ -39,7 +46,7 @@ export function CheckoutMobileBottomBar() {
             size="lg"
             type="button"
             loading={isSubmitting}
-            disabled={isSubmitting}
+            disabled={isSubmitting || hasInvalidOrderPrice}
             onClick={() => void handleSubmit()}
           >
             ชำระเงิน

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useSearchParams } from "next/navigation"
 import { toast } from "@/lib/helpers/toast"
 
@@ -18,17 +18,32 @@ const ERROR_MESSAGES: Record<string, { title: string; description?: string }> =
   }
 
 export function CheckoutErrorToast() {
+  const lastShownError = useRef<string | null>(null)
   const searchParams = useSearchParams()
 
   useEffect(() => {
     const error = searchParams.get("error")
-    if (error && ERROR_MESSAGES[error]) {
+
+    // Only show toast if:
+    // 1. There is an error
+    // 2. We have a message for it
+    // 3. It's different from the last one we showed
+    if (error && ERROR_MESSAGES[error] && lastShownError.current !== error) {
+      lastShownError.current = error
+
       const message = ERROR_MESSAGES[error]
-      toast.error({
-        title: message.title,
-        description: message.description,
-        duration: 5000,
-      })
+
+      // Dismiss any existing toasts first
+      toast.dismiss()
+
+      // Small delay to ensure dismiss completes
+      setTimeout(() => {
+        toast.error({
+          title: message.title,
+          description: message.description,
+          duration: 5000,
+        })
+      }, 50)
 
       // Clean up URL by removing error param (without page reload)
       const url = new URL(window.location.href)

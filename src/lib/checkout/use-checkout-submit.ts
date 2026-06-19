@@ -133,6 +133,8 @@ export function useCheckoutSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const cart = useCheckoutStore((state) => state.cart)
+
   const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
 
   const buildCheckoutPayload = useCheckoutStore(
@@ -180,6 +182,31 @@ export function useCheckoutSubmit() {
     })
 
     try {
+      // Validate order price (excluding shipping)
+      const subtotal = typeof cart.subtotal === "number" ? cart.subtotal : 0
+      const discountTotal =
+        typeof cart.discount_total === "number" ? cart.discount_total : 0
+      const orderPriceWithoutShipping = subtotal - discountTotal
+
+      console.log("[checkout] order price validation:", {
+        subtotal,
+        discountTotal,
+        orderPriceWithoutShipping,
+      })
+
+      if (orderPriceWithoutShipping <= 0) {
+        const message =
+          "โปรโมชั่นไม่สามารถลดราคาสินค้าเป็น 0 ได้ กรุณาลบโค้ดส่วนลดบางรายการ"
+
+        console.log("[checkout] FAIL - order price is 0 or negative")
+
+        return {
+          ok: false,
+          reason: "validation",
+          message,
+        }
+      }
+
       // Validate address form
       if (addressFormTrigger) {
         const addressValid = await addressFormTrigger()
@@ -457,6 +484,7 @@ export function useCheckoutSubmit() {
       setIsSubmitting(false)
     }
   }, [
+    cart,
     addressFormTrigger,
     paymentFormTrigger,
     buildCheckoutPayload,
