@@ -10,11 +10,12 @@ import {
 import { getAuthHeaders } from "./cookies"
 import { listCartShippingMethods } from "./fulfillment"
 import { listCartPaymentMethods } from "./payment"
-import type { StoreCardShippingMethod } from "@/types/cart"
+import type { Cart, StoreCardShippingMethod } from "@/types/cart"
 import type {
   CheckoutCoupon,
   CheckoutPromotionsPayload,
 } from "@/types/checkout-coupon"
+import { enrichCartWithSellerData } from "./enrich-cart-sellers"
 
 /**
  * @deprecated Import `CheckoutCoupon` from `@/types/checkout-coupon` instead.
@@ -31,6 +32,8 @@ export type CheckoutPageBundleData = {
   customerCards: CustomerPaymentMethod[]
   sitePromos: CheckoutCoupon[]
   vendorPromos: CheckoutCoupon[]
+  cart: Cart | null
+  promotionAutoApplyEnabled: boolean
   error: string | null
 }
 
@@ -42,17 +45,19 @@ type CheckoutPageBundleResponse = {
   customer?: HttpTypes.StoreCustomer | null
   customer_cards?: CustomerPaymentMethod[] | null
   promotions?: PromotionsPayload | null
+  cart?: Cart | null
+  promotion_auto_apply_enabled?: boolean
   error?: string | null
 }
 
 export async function getCheckoutPageInitialData(
   cartId: string,
   regionId: string | null | undefined,
-  options?: {
+  _options?: {
     customerPromise?: Promise<HttpTypes.StoreCustomer | null>
   }
 ): Promise<CheckoutPageInitialData> {
-  return getCheckoutPageBundleData(cartId, regionId, options)
+  return getCheckoutPageBundleDataFromStoreApi(cartId, regionId)
 }
 
 const CHECKOUT_COUPON_PAGE_SIZE = 200
@@ -140,6 +145,8 @@ export async function getCheckoutPageBundleData(
     customerCards,
     sitePromos,
     vendorPromos,
+    cart: null,
+    promotionAutoApplyEnabled: false,
     error,
   }
 }
@@ -152,16 +159,44 @@ export async function getCheckoutPageBundleDataFromStoreApi(
     ...(await getAuthHeaders()),
   }
 
-  const response = await fetchQuery("/store/checkout/page-data", {
-    method: "GET",
-    query: {
-      cart_id: cartId,
-      ...(regionId ? { region_id: regionId } : {}),
-      include_promotions: "true",
-    },
-    headers,
-    cache: "no-store",
-  })
+  const [responseResult, customerCardsResult] = await Promise.allSettled([
+    fetchQuery("/store/checkout/page-data", {
+      method: "GET",
+      query: {
+        cart_id: cartId,
+        ...(regionId ? { region_id: regionId } : {}),
+        include_promotions: "true",
+      },
+      headers,
+      cache: "no-store",
+    }),
+    getCustomerPaymentMethods(),
+  ])
+
+  const customerCards =
+    customerCardsResult.status === "fulfilled" &&
+    customerCardsResult.value.success
+      ? customerCardsResult.value.paymentMethods
+      : []
+
+  if (responseResult.status === "rejected") {
+    return {
+      shippingMethods: [],
+      paymentMethods: null,
+      customer: null,
+      customerAddresses: [],
+      customerCards,
+      sitePromos: [],
+      vendorPromos: [],
+      cart: null,
+      promotionAutoApplyEnabled: false,
+      error:
+        (responseResult.reason as Error)?.message ??
+        "ไม่สามารถโหลดข้อมูล checkout ได้",
+    }
+  }
+
+  const response = responseResult.value
 
   if (!response.ok) {
     return {
@@ -169,24 +204,30 @@ export async function getCheckoutPageBundleDataFromStoreApi(
       paymentMethods: null,
       customer: null,
       customerAddresses: [],
-      customerCards: [],
+      customerCards,
       sitePromos: [],
       vendorPromos: [],
+      cart: null,
+      promotionAutoApplyEnabled: false,
       error: response.error?.message ?? "ไม่สามารถโหลดข้อมูล checkout ได้",
     }
   }
 
   const payload = response.data as CheckoutPageBundleResponse | null
   const customer = payload?.customer ?? null
+  const rawCart = payload?.cart ?? null
+  const cart = rawCart ? await enrichCartWithSellerData(rawCart as Cart) : null
 
   return {
     shippingMethods: payload?.shipping_methods ?? [],
     paymentMethods: payload?.payment_methods ?? null,
     customer,
     customerAddresses: customer?.addresses ?? [],
-    customerCards: payload?.customer_cards ?? [],
+    customerCards,
     sitePromos: payload?.promotions?.site ?? [],
     vendorPromos: payload?.promotions?.vendor ?? [],
+    cart,
+    promotionAutoApplyEnabled: payload?.promotion_auto_apply_enabled === true,
     error: payload?.error ?? null,
   }
 }

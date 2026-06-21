@@ -4,13 +4,14 @@ import CheckoutPaymentSelection from "@/components/molecules/CheckoutPaymentSele
 import CheckoutSummarySection from "@/components/molecules/CheckoutSummarySection/CheckoutSummarySection"
 import { CheckoutMobileBottomBar } from "@/components/molecules/CheckoutSummarySection/CheckoutMobileBottomBar"
 import { CheckoutPromotionSection } from "@/components/sections/CheckoutPromotionSection"
+import { CheckoutCartQuerySeed } from "@/components/sections/CheckoutSection/CheckoutCartQuerySeed"
 import { CheckoutStoreProvider } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { CheckoutTracker } from "@/components/atoms/CheckoutTracker/CheckoutTracker"
 import { CheckoutErrorToast } from "@/components/atoms/CheckoutErrorToast/CheckoutErrorToast"
 import { retrieveCart } from "@/lib/data/cart"
 import { getCheckoutPageInitialData } from "@/lib/data/checkout-page"
-import { getCheckoutCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import type { Cart } from "@/types/cart"
 import type { Metadata } from "next"
 import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -37,24 +38,31 @@ export default async function CheckoutPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  // Kick the customer fetch off in parallel — `getCheckoutPageInitialData`
-  // awaits the same promise so we don't double-fetch.
-  const customerPromise = getCheckoutCustomer()
-  const cart = await retrieveCart()
+  const preliminaryCart = await retrieveCart()
 
-  if (!cart) {
+  if (!preliminaryCart) {
     redirect(`/${locale}/cart?checkout=unavailable`)
   }
 
-  const regionId = cart.region_id ?? cart.region?.id ?? null
-  const initialData = await getCheckoutPageInitialData(cart.id, regionId, {
-    customerPromise,
-  })
+  const regionId =
+    preliminaryCart.region_id ?? preliminaryCart.region?.id ?? null
+  const initialData = await getCheckoutPageInitialData(
+    preliminaryCart.id,
+    regionId
+  )
+  const pageDataCart = initialData.cart
+  const cart = (
+    pageDataCart &&
+    (pageDataCart.item_subtotal != null || pageDataCart.subtotal != null)
+      ? pageDataCart
+      : preliminaryCart
+  ) as Cart
 
   return (
     <main>
       <CheckoutTracker cart={cart} />
       <CheckoutErrorToast />
+      <CheckoutCartQuerySeed cart={cart} />
       <CheckoutStoreProvider
         cart={cart}
         customer={initialData.customer}
