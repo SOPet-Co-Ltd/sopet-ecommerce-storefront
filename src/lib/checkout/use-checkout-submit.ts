@@ -10,6 +10,7 @@ import {
   saveCheckoutAddressForCustomer,
   updateCustomerPaymentMethod,
 } from "@/lib/data/customer"
+import { toast } from "@/lib/helpers/toast"
 import {
   checkoutPayloadSchema,
   type CheckoutPayload,
@@ -357,6 +358,14 @@ export function useCheckoutSubmit() {
             resolvedCardId = saved.paymentMethod.id
 
             setSelectedCardId(resolvedCardId)
+          } else {
+            toast.error({
+              title: saved.error,
+              description:
+                saved.code === "duplicate_card"
+                  ? "การชำระเงินจะดำเนินการต่อด้วยบัตรนี้"
+                  : undefined,
+            })
           }
         }
 

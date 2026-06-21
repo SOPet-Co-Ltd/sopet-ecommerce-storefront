@@ -26,7 +26,7 @@ import {
   type CheckoutPaymentMethod,
   type NewCardDraft,
 } from "@/lib/checkout/checkout-payload-schema"
-import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
+import type { CheckoutAddressFormData } from "@/components/molecules/AddressForm/schema"
 import type { z } from "zod"
 
 /** Async fetch state for one marketplace seller's shipping methods. */
@@ -109,7 +109,7 @@ type CheckoutState = {
   paymentMethod: CheckoutPaymentMethod
   selectedCardId: string | null
   newCardDraft: NewCardDraft | null
-  shippingAddress: AddressFormData | null
+  shippingAddress: CheckoutAddressFormData | null
   billingContactOverride: { phone?: string; email?: string } | null
   selectedShippingMethodBySellerId: Record<string, string>
   selectedSitePromoCode: string | null
@@ -136,7 +136,7 @@ type CheckoutActions = {
   setPaymentMethod: (method: CheckoutPaymentMethod) => void
   setSelectedCardId: (id: string | null) => void
   setNewCardDraft: (draft: NewCardDraft | null) => void
-  setShippingAddress: (address: AddressFormData | null) => void
+  setShippingAddress: (address: CheckoutAddressFormData | null) => void
   setBillingContactOverride: (
     override: { phone?: string; email?: string } | null
   ) => void
@@ -231,7 +231,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       const override = state.billingContactOverride ?? {}
 
       // Billing defaults to shipping; only phone/email may be overridden.
-      const billing: AddressFormData | null = shipping
+      const billing: CheckoutAddressFormData | null = shipping
         ? {
             ...shipping,
             phone:

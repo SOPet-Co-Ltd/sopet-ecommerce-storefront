@@ -875,6 +875,8 @@ export type CustomerPaymentMethod = {
   is_default: boolean
 }
 
+const DUPLICATE_CARD_ERROR_MESSAGE = "บัตรนี้ถูกบันทึกไว้แล้ว"
+
 function extractCustomerPaymentMethodError(err: any): {
   error: string
   type?: string
@@ -911,6 +913,10 @@ function extractCustomerPaymentMethodError(err: any): {
         // Not JSON, use as is
       }
     }
+  }
+
+  if (errorCode === "duplicate_card") {
+    errorMessage = DUPLICATE_CARD_ERROR_MESSAGE
   }
 
   return {
