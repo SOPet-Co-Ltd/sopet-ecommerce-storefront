@@ -28,6 +28,8 @@ const CheckoutPaymentSelection = ({
   paymentMethods = [],
 }: Props) => {
   const methods = useForm<PaymentFormData>({
+    mode: "onTouched",
+    reValidateMode: "onBlur",
     defaultValues: {
       paymentMethod: "promptpay",
       cardNumber: "",
@@ -72,28 +74,7 @@ const CheckoutPaymentSelection = ({
         return true
       }
 
-      const values = methods.getValues()
-      const result = newCardDraftSchema.safeParse({
-        cardNumber: values.cardNumber,
-        cardName: values.cardName,
-        expiry: values.expiry,
-        cvv: values.cvv,
-        setAsDefault: values.setAsDefault,
-      })
-
-      if (!result.success) {
-        methods.clearErrors(["cardNumber", "cardName", "expiry", "cvv"])
-        result.error.errors.forEach((err) => {
-          const field = err.path[0] as keyof PaymentFormData
-          if (field) {
-            methods.setError(field, { type: "manual", message: err.message })
-          }
-        })
-        return false
-      }
-
-      methods.clearErrors(["cardNumber", "cardName", "expiry", "cvv"])
-      return true
+      return methods.trigger(["cardNumber", "cardName", "expiry", "cvv"])
     }
 
     setPaymentFormTrigger(trigger)
