@@ -12,6 +12,7 @@ export const ReturnSummaryTab = ({
   tab,
   returnMethod,
   handleSubmit,
+  isSubmitting = false,
 }: {
   selectedItems: ReturnRequestLineItemInput[]
   items: OrderLineItem[]
@@ -20,6 +21,7 @@ export const ReturnSummaryTab = ({
   tab: number
   returnMethod: string | null
   handleSubmit: () => void
+  isSubmitting?: boolean
 }) => {
   const selected = items.filter((item) =>
     selectedItems.some((i) => i.line_item_id === item.id)
@@ -83,8 +85,12 @@ export const ReturnSummaryTab = ({
         <Button
           className="label-md w-full uppercase"
           disabled={
-            (tab === 0 && !selected.length) || (tab === 1 && !returnMethod)
+            isSubmitting ||
+            (tab === 0 && !selected.length) ||
+            (tab === 1 && !returnMethod)
           }
+          loading={tab === 1 && isSubmitting}
+          aria-busy={tab === 1 && isSubmitting}
           onClick={tab === 0 ? () => handleTabChange(1) : () => handleSubmit()}
         >
           {tab === 0
@@ -93,7 +99,9 @@ export const ReturnSummaryTab = ({
               : "Select Items"
             : !returnMethod
               ? "Select return method"
-              : "Request return"}
+              : isSubmitting
+                ? "กำลังส่ง..."
+                : "Request return"}
         </Button>
       </Card>
     </div>

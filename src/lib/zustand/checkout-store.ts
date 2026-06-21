@@ -118,6 +118,9 @@ type CheckoutState = {
   // Form validation triggers (registered by form components).
   addressFormTrigger: (() => Promise<boolean>) | null
   paymentFormTrigger: (() => Promise<boolean>) | null
+
+  /** Shared across desktop + mobile checkout submit buttons. */
+  isSubmitting: boolean
 }
 
 type CheckoutActions = {
@@ -145,6 +148,7 @@ type CheckoutActions = {
   setSaveShippingAddress: (save: boolean) => void
   setAddressFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
   setPaymentFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
+  setIsSubmitting: (isSubmitting: boolean) => void
   resetCheckout: () => void
   buildCheckoutPayload: () => unknown
   validateCheckoutPayload: () =>
@@ -183,6 +187,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     saveShippingAddress: false,
     addressFormTrigger: null,
     paymentFormTrigger: null,
+    isSubmitting: false,
 
     setCart: (cart) => set({ cart }),
     setCustomer: (customer) => set({ customer }),
@@ -212,6 +217,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       set({ saveShippingAddress }),
     setAddressFormTrigger: (addressFormTrigger) => set({ addressFormTrigger }),
     setPaymentFormTrigger: (paymentFormTrigger) => set({ paymentFormTrigger }),
+    setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
     resetCheckout: () =>
       set({
         paymentMethod: "promptpay",
@@ -222,6 +228,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
         selectedShippingMethodBySellerId: {},
         selectedSitePromoCode: null,
         saveShippingAddress: false,
+        isSubmitting: false,
       }),
     buildCheckoutPayload: () => {
       const state = get()

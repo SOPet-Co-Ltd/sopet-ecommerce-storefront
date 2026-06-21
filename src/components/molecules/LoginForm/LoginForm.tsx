@@ -33,6 +33,10 @@ const Form = () => {
   }, [error])
 
   const handleRequestOtp = async () => {
+    if (isRequestingOtp) {
+      return
+    }
+
     const normalizedPhone = normalizeThaiPhoneNumber(phone)
     if (!isValidThaiPhoneNumber(normalizedPhone)) {
       setError("กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง")
@@ -120,7 +124,7 @@ const Form = () => {
               size="lg"
               fill={true}
               disabled={isRequestingOtp || !isValidThaiPhoneNumber(phone)}
-              onClick={handleRequestOtp}
+              loading={isRequestingOtp}
               aria-busy={isRequestingOtp}
               aria-label={
                 isRequestingOtp ? "กำลังส่ง OTP กรุณารอสักครู่" : "ขอรหัส OTP"

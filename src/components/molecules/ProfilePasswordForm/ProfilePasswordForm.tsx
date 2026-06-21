@@ -13,11 +13,12 @@ import {
   UseFormReturn,
 } from "react-hook-form"
 import { ProfilePasswordFormData, profilePasswordSchema } from "./schema"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { updateCustomerPassword } from "@/lib/data/customer"
 import { Heading, toast } from "@medusajs/ui"
 import LocalizedClientLink from "../LocalizedLink/LocalizedLink"
 import { PasswordValidator } from "@/components/cells/PasswordValidator/PasswordValidator"
+import { useSubmitOnce } from "@/lib/hooks/use-submit-once"
 
 export const ProfilePasswordForm = ({ token }: { token?: string }) => {
   const form = useForm<ProfilePasswordFormData>({
@@ -60,6 +61,7 @@ const Form = ({
     handleSubmit,
     formState: { errors },
   } = useFormContext()
+  const { isSubmitting, runSubmit } = useSubmitOnce()
 
   const updatePassword = async (data: FieldValues) => {
     if (form.getValues("confirmPassword") !== form.getValues("newPassword")) {
@@ -72,7 +74,11 @@ const Form = ({
 
     setConfirmPasswordError(undefined)
 
-    if (newPasswordError.isValid) {
+    if (!newPasswordError.isValid) {
+      return
+    }
+
+    await runSubmit(async () => {
       try {
         const res = await updateCustomerPassword(data.newPassword, token!)
         if (res.success) {
@@ -83,9 +89,8 @@ const Form = ({
         }
       } catch (err) {
         console.log(err)
-        return
       }
-    }
+    })
   }
 
   return success ? (
@@ -142,8 +147,14 @@ const Form = ({
         aria-required="true"
         {...register("confirmPassword")}
       />
-      <Button type="submit" className="w-full my-4">
-        Change password
+      <Button
+        type="submit"
+        className="w-full my-4"
+        disabled={isSubmitting}
+        loading={isSubmitting}
+        aria-busy={isSubmitting}
+      >
+        {isSubmitting ? "กำลังบันทึก..." : "Change password"}
       </Button>
     </form>
   )

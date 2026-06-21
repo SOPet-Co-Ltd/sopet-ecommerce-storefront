@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react"
 
+const submitInFlightRef = { current: false }
+
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { createContactInformation } from "@/lib/checkout/create-contact-information"
 import { createCheckoutSession } from "@/lib/data/checkout-session"
@@ -131,8 +133,10 @@ export type CheckoutSubmitResult =
     }
 
 export function useCheckoutSubmit() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isSubmitting = useCheckoutStore((state) => state.isSubmitting)
+  const setIsSubmitting = useCheckoutStore((state) => state.setIsSubmitting)
 
   const cart = useCheckoutStore((state) => state.cart)
 
@@ -173,6 +177,15 @@ export function useCheckoutSubmit() {
   )
 
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
+    if (submitInFlightRef.current) {
+      return {
+        ok: false,
+        reason: "unknown",
+        message: "กำลังดำเนินการชำระเงิน กรุณารอสักครู่",
+      }
+    }
+
+    submitInFlightRef.current = true
     setError(null)
     setIsSubmitting(true)
 
@@ -490,10 +503,12 @@ export function useCheckoutSubmit() {
         message,
       }
     } finally {
+      submitInFlightRef.current = false
       setIsSubmitting(false)
     }
   }, [
     cart,
+    setIsSubmitting,
     addressFormTrigger,
     paymentFormTrigger,
     buildCheckoutPayload,
