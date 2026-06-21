@@ -13,7 +13,10 @@ import {
   formatExpiry,
   getCvvLength,
 } from "../Utils/PaymentFormat"
-import { addCustomerPaymentMethod } from "@/lib/data/customer"
+import {
+  addCustomerPaymentMethod,
+  type CustomerPaymentMethod,
+} from "@/lib/data/customer"
 
 declare global {
   interface Window {
@@ -47,7 +50,7 @@ type AddCardFormData = {
 
 type Props = {
   onClose: () => void
-  onSuccess: () => void
+  onSuccess: (paymentMethod: CustomerPaymentMethod) => void
 }
 
 const OMISE_SCRIPT_SRC = "https://cdn.omise.co/omise.js"
@@ -170,7 +173,7 @@ export const AddCardModal = ({ onClose, onSuccess }: Props) => {
       })
 
       if (result.success) {
-        onSuccess()
+        onSuccess(result.paymentMethod)
       } else {
         setError(result.error)
       }

@@ -12,6 +12,7 @@ import {
   UnionPayIcon,
   VisaIcon,
 } from "@/icons/payment"
+import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { CustomerCard } from "../Types/PaymentType"
 import { PlusIcon } from "@/icons"
 import { AddCardModal } from "./AddCardModal"
@@ -19,13 +20,13 @@ import { AddCardModal } from "./AddCardModal"
 type Props = {
   payment?: CustomerCard[]
   error?: string | null
-  onPaymentMethodsChange?: () => void
+  onCardAdded?: (paymentMethod: CustomerPaymentMethod) => void
 }
 
 export const SelectWithCreditCard = ({
   payment = [],
   error,
-  onPaymentMethodsChange,
+  onCardAdded,
 }: Props) => {
   const [showAddCardModal, setShowAddCardModal] = useState(false)
   const selectedCardId = useCheckoutStore((state) => state.selectedCardId)
@@ -38,9 +39,10 @@ export const SelectWithCreditCard = ({
     (state) => state.setSaveShippingAddress
   )
 
-  const handleAddCardSuccess = () => {
+  const handleAddCardSuccess = (paymentMethod: CustomerPaymentMethod) => {
     setShowAddCardModal(false)
-    onPaymentMethodsChange?.()
+    onCardAdded?.(paymentMethod)
+    setSelectedCardId(paymentMethod.id)
   }
 
   useEffect(() => {
