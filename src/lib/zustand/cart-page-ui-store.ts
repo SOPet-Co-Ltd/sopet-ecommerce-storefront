@@ -4,6 +4,7 @@ type CartPageUiState = {
   selectedItemIds: string[]
   discountModalVendor: string | null
   stagedPromotionCodes: string[]
+  pendingQuantityItemIds: string[]
   reset: () => void
   setSelectedItemIds: (ids: string[]) => void
   toggleItemSelection: (id: string, checked: boolean) => void
@@ -13,17 +14,20 @@ type CartPageUiState = {
   stagePromotionCode: (code: string) => void
   unstagePromotionCode: (code: string) => void
   clearStagedPromotionCodes: () => void
+  setItemQuantityPending: (id: string, pending: boolean) => void
 }
 
 export const useCartPageUiStore = create<CartPageUiState>((set) => ({
   selectedItemIds: [],
   discountModalVendor: null,
   stagedPromotionCodes: [],
+  pendingQuantityItemIds: [],
   reset: () =>
     set({
       selectedItemIds: [],
       discountModalVendor: null,
       stagedPromotionCodes: [],
+      pendingQuantityItemIds: [],
     }),
   setSelectedItemIds: (ids) =>
     set({
@@ -68,5 +72,25 @@ export const useCartPageUiStore = create<CartPageUiState>((set) => ({
   clearStagedPromotionCodes: () =>
     set({
       stagedPromotionCodes: [],
+    }),
+  setItemQuantityPending: (id, pending) =>
+    set((state) => {
+      const hasId = state.pendingQuantityItemIds.includes(id)
+
+      if (pending && hasId) {
+        return state
+      }
+
+      if (!pending && !hasId) {
+        return state
+      }
+
+      return {
+        pendingQuantityItemIds: pending
+          ? [...state.pendingQuantityItemIds, id]
+          : state.pendingQuantityItemIds.filter(
+              (candidate) => candidate !== id
+            ),
+      }
     }),
 }))

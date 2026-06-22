@@ -18,6 +18,7 @@ import type { Cart } from "@/types/cart"
 import type { HttpTypes } from "@medusajs/types"
 import { useEffect, useState } from "react"
 import * as gtag from "@/lib/analytics/gtag"
+import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 
 type CartPageClientProps = {
   initialCart: Cart | HttpTypes.StoreCart | null
@@ -43,6 +44,14 @@ export const CartPageClient = ({
     locale,
     cartSource
   )
+  const pendingQuantityItemIds = useCartPageUiStore(
+    (state) => state.pendingQuantityItemIds
+  )
+  const isCartUpdating =
+    updateItemMutation.isPending ||
+    deleteItemMutation.isPending ||
+    changeVariantMutation.isPending ||
+    pendingQuantityItemIds.length > 0
 
   // Track GA4 view_cart event
   useEffect(() => {
@@ -135,12 +144,18 @@ export const CartPageClient = ({
     <CartTemplate
       cart={cart}
       locale={locale}
-      onItemQuantityChange={async (itemId, quantity) => {
-        await updateItemMutation.mutateAsync({
-          itemId,
-          quantity,
+      isCartUpdating={isCartUpdating}
+      onItemQuantityChange={(itemId, quantity) =>
+        new Promise<void>((resolve, reject) => {
+          updateItemMutation.mutate(
+            { itemId, quantity },
+            {
+              onSuccess: () => resolve(),
+              onError: (error) => reject(error),
+            }
+          )
         })
-      }}
+      }
       onItemDelete={async (itemId) => {
         await deleteItemMutation.mutateAsync({
           itemId,

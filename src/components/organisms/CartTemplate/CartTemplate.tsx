@@ -16,6 +16,7 @@ import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 type CartTemplateProps = {
   cart: HttpTypes.StoreCart | Cart
   locale: string
+  isCartUpdating?: boolean
   onItemQuantityChange?: (
     itemId: string,
     quantity: number
@@ -32,6 +33,7 @@ type CartTemplateProps = {
 export const CartTemplate = ({
   cart,
   locale,
+  isCartUpdating = false,
   onItemQuantityChange,
   onItemDelete,
   onItemVariantChange,
@@ -349,6 +351,7 @@ export const CartTemplate = ({
               <CartSummary
                 cart={cart}
                 locale={locale}
+                isCartUpdating={isCartUpdating}
                 selectedCount={selectedItems.length}
                 totalCount={cart?.items?.length || 0}
                 isAllSelected={

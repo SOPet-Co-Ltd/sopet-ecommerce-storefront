@@ -16,6 +16,7 @@ import {
   updateAnonymousCartItemQuantity,
 } from "@/lib/data/local-customer-cart"
 import type { HttpTypes } from "@medusajs/types"
+import { toast } from "@/lib/helpers/toast"
 
 export type CartSource = "customer" | "anonymous"
 
@@ -195,6 +196,45 @@ function applyOptimisticChangeCartItemVariant(
         : currentItem.variant,
     } as HttpTypes.StoreCartLineItem
   }
+
+  const totals = getCartTotals(currentItems)
+
+  return {
+    ...(cart ?? {}),
+    items: currentItems,
+    subtotal: totals.subtotal,
+    item_subtotal: totals.subtotal,
+    total: totals.total,
+    tax_total: totals.tax_total,
+    discount_total: getNumeric(cart?.discount_total),
+  } as Cart
+}
+
+function applyOptimisticUpdateCartItemQuantity(
+  cart: CartLike,
+  input: UpdateCartItemInput
+): CartLike {
+  const currentItems = [...(cart?.items ?? [])]
+  const targetIndex = currentItems.findIndex((item) => item.id === input.itemId)
+
+  if (targetIndex < 0) {
+    return cart
+  }
+
+  const currentItem = currentItems[targetIndex]
+  const oldQuantity = currentItem.quantity ?? 1
+  const resolvedUnitPrice =
+    getNumeric(currentItem.unit_price) ||
+    (oldQuantity ? getNumeric(currentItem.total) / oldQuantity : 0)
+  const nextLineTotal = resolvedUnitPrice * input.quantity
+
+  currentItems[targetIndex] = {
+    ...currentItem,
+    quantity: input.quantity,
+    unit_price: resolvedUnitPrice,
+    subtotal: nextLineTotal,
+    total: nextLineTotal,
+  } as HttpTypes.StoreCartLineItem
 
   const totals = getCartTotals(currentItems)
 
@@ -427,6 +467,34 @@ export function useUpdateCartItemMutation(locale: string, source: CartSource) {
       }
 
       return parseJson(response)
+    },
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previousCart = queryClient.getQueryData<CartLike>(queryKey)
+
+      queryClient.setQueryData<CartLike>(queryKey, (current) =>
+        applyOptimisticUpdateCartItemQuantity(
+          current ?? previousCart ?? null,
+          input
+        )
+      )
+
+      return {
+        previousCart,
+      }
+    },
+    onError: (error, _input, context) => {
+      if (context?.previousCart !== undefined) {
+        queryClient.setQueryData(queryKey, context.previousCart)
+      }
+
+      toast.error({
+        title: "เกิดข้อผิดพลาด",
+        description:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถอัปเดตจำนวนสินค้าได้ กรุณาลองใหม่อีกครั้ง",
+      })
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey })
