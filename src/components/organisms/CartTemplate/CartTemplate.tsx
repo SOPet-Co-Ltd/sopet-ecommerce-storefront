@@ -336,24 +336,6 @@ export const CartTemplate = ({
                       />
                     ))}
                   </div>
-                  {/* Store Discount Section (Footer) */}
-                  <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center">
-                        <DiscountIcon size={26} color="#9C6ADE" />
-                      </div>
-                      <p className="sop-body-lg-regular text-sop-primary-500">
-                        ส่วนลดร้านค้า
-                      </p>
-                    </div>
-                    {/* Store coupons button */}
-                    <button
-                      className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline"
-                      onClick={() => openDiscountModal(seller.name)}
-                    >
-                      ดูส่วนลดอื่นๆ
-                    </button>
-                  </div>
                 </div>
               )
             })}
