@@ -124,7 +124,7 @@ export const CartPageClient = ({
     }
   }, [cartSource, locale, queryClient])
 
-  if (!checkoutRecoveryReady && !cart) {
+  if (!checkoutRecoveryReady) {
     return (
       <div className="container mx-auto py-20 text-center px-4">
         <h1 className="heading-xl mb-4">กำลังกู้คืนตะกร้า...</h1>

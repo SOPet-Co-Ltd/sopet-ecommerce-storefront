@@ -38,8 +38,9 @@ export const CartTemplate = ({
   onItemDelete,
   onItemVariantChange,
 }: CartTemplateProps) => {
-  const hasInitializedSelectionRef = useRef(false)
   const router = useRouter()
+  const hasAppliedDefaultSelectionRef = useRef(false)
+  const lastKnownItemIdsRef = useRef<string[]>([])
   const selectedItems = useCartPageUiStore((state) => state.selectedItemIds)
   const discountModalVendor = useCartPageUiStore(
     (state) => state.discountModalVendor
@@ -66,6 +67,8 @@ export const CartTemplate = ({
 
   useEffect(() => {
     return () => {
+      hasAppliedDefaultSelectionRef.current = false
+      lastKnownItemIdsRef.current = []
       resetCartPageUi()
     }
   }, [resetCartPageUi])
@@ -105,7 +108,6 @@ export const CartTemplate = ({
     if (!newIds.length) {
       setLineOrder([])
       resetCartPageUi()
-      hasInitializedSelectionRef.current = false
       return
     }
 
@@ -223,19 +225,32 @@ export const CartTemplate = ({
   }
 
   useEffect(() => {
-    if (!sortedItems.length) {
-      hasInitializedSelectionRef.current = false
+    if (!allItemIds.length) {
+      hasAppliedDefaultSelectionRef.current = false
+      lastKnownItemIdsRef.current = []
       resetCartPageUi()
       return
     }
 
-    if (hasInitializedSelectionRef.current) {
+    if (!hasAppliedDefaultSelectionRef.current) {
+      hasAppliedDefaultSelectionRef.current = true
+      setSelectedItemIds(allItemIds)
+      lastKnownItemIdsRef.current = allItemIds
       return
     }
 
-    hasInitializedSelectionRef.current = true
-    setSelectedItemIds(sortedItems.map((item) => item.id))
-  }, [resetCartPageUi, setSelectedItemIds, sortedItems])
+    const previousIds = new Set(lastKnownItemIdsRef.current)
+    const newlyAddedIds = allItemIds.filter((id) => !previousIds.has(id))
+    const hadAllPreviousSelected =
+      previousIds.size > 0 &&
+      [...previousIds].every((id) => selectedItems.includes(id))
+
+    if (newlyAddedIds.length > 0 && hadAllPreviousSelected) {
+      setSelectedItemIds([...selectedItems, ...newlyAddedIds])
+    }
+
+    lastKnownItemIdsRef.current = allItemIds
+  }, [allItemIds, selectedItems, resetCartPageUi, setSelectedItemIds])
 
   // Ensure selectedItems only contains IDs that still exist in the cart
   useEffect(() => {
