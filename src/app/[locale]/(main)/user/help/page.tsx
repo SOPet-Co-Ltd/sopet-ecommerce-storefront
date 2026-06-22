@@ -1,4 +1,5 @@
-import { UserContainer, SaveQRCodeButton } from "@/components/molecules"
+import { SaveQRCodeButton } from "@/components/molecules/SaveQRCodeButton/SaveQRCodeButton"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import { cn } from "@/lib/utils"
 import type { Metadata } from "next"

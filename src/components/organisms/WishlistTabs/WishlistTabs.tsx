@@ -1,4 +1,5 @@
-import { TabsContent, TabsList } from "@/components/molecules"
+import { TabsContent } from "@/components/molecules/TabsContent/TabsContent"
+import { TabsList } from "@/components/molecules/TabsList/TabsList"
 import { Suspense } from "react"
 // import { ProductsList } from "../ProductsList/ProductsList"
 import { ProductsPagination } from "../ProductsPagination/ProductsPagination"

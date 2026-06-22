@@ -2,7 +2,8 @@ import { Suspense } from "react"
 import { ProductListingSkeleton } from "../ProductListingSkeleton/ProductListingSkeleton"
 import { AlgoliaProductsListing } from "@/components/sections/ProductListing/AlgoliaProductsListing"
 import { ProductListing } from "@/components/sections/ProductListing/ProductListing"
-import { TabsContent, TabsList } from "@/components/molecules"
+import { TabsContent } from "@/components/molecules/TabsContent/TabsContent"
+import { TabsList } from "@/components/molecules/TabsList/TabsList"
 import { SellerReviewTab } from "@/components/cells"
 
 const ALGOLIA_ID = process.env.NEXT_PUBLIC_ALGOLIA_ID

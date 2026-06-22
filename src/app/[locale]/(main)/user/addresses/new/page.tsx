@@ -1,5 +1,5 @@
 import { AddressFormPage } from "@/components/molecules/AddressForm/AddressFormPage"
-import { UserContainer } from "@/components/molecules"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
 import { verifyCustomer } from "@/lib/data/customer"
 import { listRegions } from "@/lib/data/regions"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"

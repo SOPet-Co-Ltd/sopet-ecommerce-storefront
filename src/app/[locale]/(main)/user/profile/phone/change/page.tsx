@@ -1,4 +1,5 @@
-import { ProfileContactOtpForm, UserContainer } from "@/components/molecules"
+import { ProfileContactOtpForm } from "@/components/molecules/ProfileContactOtpForm/ProfileContactOtpForm"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
 import { verifyCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"

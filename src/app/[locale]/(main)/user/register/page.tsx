@@ -1,4 +1,4 @@
-import { RegisterForm } from "@/components/molecules"
+import { RegisterForm } from "@/components/molecules/RegisterForm/RegisterForm"
 import { verifyCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"

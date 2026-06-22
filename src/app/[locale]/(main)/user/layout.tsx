@@ -1,4 +1,5 @@
-import { UserBreadcrumbs, UserNavigation } from "@/components/molecules"
+import { UserBreadcrumbs } from "@/components/molecules/UserBreadcrumbs/UserBreadcrumbs"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { verifyCustomer } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
 import { redirect } from "next/navigation"

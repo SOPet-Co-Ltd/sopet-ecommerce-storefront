@@ -1,4 +1,5 @@
-import { UserContainer, UserNavigation } from "@/components/molecules"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { verifyCustomer } from "@/lib/data/customer"
 import { redirect } from "next/navigation"
 import { Addresses } from "@/components/organisms"

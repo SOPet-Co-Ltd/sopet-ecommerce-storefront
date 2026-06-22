@@ -1,4 +1,4 @@
-import { LoginForm } from "@/components/molecules"
+import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
 import { verifyCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"

@@ -1,4 +1,4 @@
-import { UserContainer } from "@/components/molecules"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
 import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
 import { verifyCustomer } from "@/lib/data/customer"
 import { CreditCards } from "@/components/organisms"

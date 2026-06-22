@@ -1,4 +1,5 @@
-import { SellerReviewList, SellerScore } from "@/components/molecules"
+import { SellerReviewList } from "@/components/molecules/SellerReviewList/SellerReviewList"
+import { SellerScore } from "@/components/molecules/SellerScore/SellerScore"
 import { getSellerByHandle } from "@/lib/data/seller"
 import { SellerProps } from "@/types/seller"
 

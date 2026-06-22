@@ -1,4 +1,4 @@
-import { SellerInfo } from "@/components/molecules"
+import { SellerInfo } from "@/components/molecules/SellerInfo/SellerInfo"
 import { SellerProps } from "@/types/seller"
 import { Chat } from "../Chat/Chat"
 import { HttpTypes } from "@medusajs/types"
