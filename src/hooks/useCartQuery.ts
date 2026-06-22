@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 
 import { queryKeys } from "@/lib/react-query/query-keys"
@@ -67,9 +63,12 @@ async function parseJson<T>(response: Response): Promise<T> {
 }
 
 async function fetchCustomerCart(locale: string): Promise<CartLike> {
-  const response = await fetch(`/api/cart?locale=${encodeURIComponent(locale)}`, {
-    cache: "no-store",
-  })
+  const response = await fetch(
+    `/api/cart?locale=${encodeURIComponent(locale)}`,
+    {
+      cache: "no-store",
+    }
+  )
 
   if (response.status === 401) {
     return null
@@ -235,7 +234,8 @@ function applyOptimisticAddToCart(
         getNumeric(currentItem.subtotal) + getNumeric(optimisticItem.subtotal),
       total: getNumeric(currentItem.total) + getNumeric(optimisticItem.total),
       tax_total:
-        getNumeric(currentItem.tax_total) + getNumeric(optimisticItem.tax_total),
+        getNumeric(currentItem.tax_total) +
+        getNumeric(optimisticItem.tax_total),
     } as HttpTypes.StoreCartLineItem
   } else {
     currentItems.push({
@@ -286,7 +286,10 @@ export function useCartQuery({
     }
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key && !event.key.includes("sopet_customer_cart_anonymous_v1")) {
+      if (
+        event.key &&
+        !event.key.includes("sopet_customer_cart_anonymous_v1")
+      ) {
         return
       }
 
@@ -346,24 +349,26 @@ export function useAddToCartMutation(locale: string, source: CartSource) {
         return null
       }
 
-      const response = await fetch("/api/cart/items", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: [
-            {
-              productId: input.productId,
-              variantId: input.variantId,
-              quantity: input.quantity,
-              unitPriceSnapshot: input.unitPriceSnapshot,
-              source: input.source,
-              metadata: input.metadata,
-            },
-          ],
-        }),
-      })
+      const response = await fetch(
+        `/api/cart/items?locale=${encodeURIComponent(locale)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: [
+              {
+                productId: input.productId,
+                variantId: input.variantId,
+                quantity: input.quantity,
+                source: input.source,
+                metadata: input.metadata,
+              },
+            ],
+          }),
+        }
+      )
 
       if (!response.ok) {
         const payload = await parseJson<{ message?: string }>(response)
@@ -483,17 +488,19 @@ export function useChangeCartItemVariantMutation(
         return null
       }
 
-      const response = await fetch(`/api/cart/items/${itemId}/variant`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          quantity,
-          variantId,
-          unitPriceSnapshot,
-        }),
-      })
+      const response = await fetch(
+        `/api/cart/items/${itemId}/variant?locale=${encodeURIComponent(locale)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quantity,
+            variantId,
+          }),
+        }
+      )
 
       if (!response.ok) {
         const payload = await parseJson<{ message?: string }>(response)
