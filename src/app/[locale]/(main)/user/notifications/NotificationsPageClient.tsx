@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useShallow } from "zustand/react/shallow"
 
 import { NotificationCard } from "@/components/molecules/NotificationCard"
 import { useNotificationsPageQuery } from "@/hooks/useNotificationsQuery"
@@ -35,45 +36,44 @@ const NotificationsPageClient = ({
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const activeTab = useNotificationsUiStore((state) => state.activeTab)
-  const setActiveTab = useNotificationsUiStore((state) => state.setActiveTab)
-  const seenNotificationIds = useNotificationsUiStore(
-    (state) => state.seenNotificationIds
-  )
-  const seenPromotionIds = useNotificationsUiStore(
-    (state) => state.seenPromotionIds
-  )
-  const hasHydratedSeenIds = useNotificationsUiStore(
-    (state) => state.hasHydratedSeenIds
-  )
-  const hydrateSeenIds = useNotificationsUiStore(
-    (state) => state.hydrateSeenIds
-  )
-  const markTabItemsSeen = useNotificationsUiStore(
-    (state) => state.markTabItemsSeen
+  const activeTab = notificationsTabFromQuery(searchParams.get(TAB_QUERY_KEY))
+
+  const {
+    seenNotificationIds,
+    seenPromotionIds,
+    hasHydratedSeenIds,
+    hydrateSeenIds,
+    markTabItemsSeen,
+  } = useNotificationsUiStore(
+    useShallow((state) => ({
+      seenNotificationIds: state.seenNotificationIds,
+      seenPromotionIds: state.seenPromotionIds,
+      hasHydratedSeenIds: state.hasHydratedSeenIds,
+      hydrateSeenIds: state.hydrateSeenIds,
+      markTabItemsSeen: state.markTabItemsSeen,
+    }))
   )
 
   const notificationsQuery = useNotificationsPageQuery(initialData)
   const bundle = notificationsQuery.data ?? initialData
   const orderNotifications = bundle.notifications
   const promotions = bundle.promotions
-  const activeTabFromQuery = notificationsTabFromQuery(
-    searchParams.get(TAB_QUERY_KEY)
+
+  const seenNotificationIdSet = useMemo(
+    () => new Set(seenNotificationIds),
+    [seenNotificationIds]
+  )
+  const seenPromotionIdSet = useMemo(
+    () => new Set(seenPromotionIds),
+    [seenPromotionIds]
   )
 
   useEffect(() => {
     hydrateSeenIds()
   }, [hydrateSeenIds])
 
-  useEffect(() => {
-    if (activeTab !== activeTabFromQuery) {
-      setActiveTab(activeTabFromQuery)
-    }
-  }, [activeTab, activeTabFromQuery, setActiveTab])
-
   const setTab = useCallback(
     (tab: NotificationTab) => {
-      setActiveTab(tab)
       const params = new URLSearchParams(searchParams.toString())
 
       if (tab === "noti") {
@@ -87,17 +87,7 @@ const NotificationsPageClient = ({
         scroll: false,
       })
     },
-    [pathname, router, searchParams, setActiveTab]
-  )
-
-  const orderNotificationIds = useMemo(
-    () => orderNotifications.map((notification) => notification.id),
-    [orderNotifications]
-  )
-
-  const promotionIds = useMemo(
-    () => promotions.map((promotion) => promotion.id),
-    [promotions]
+    [pathname, router, searchParams]
   )
 
   useEffect(() => {
@@ -105,32 +95,46 @@ const NotificationsPageClient = ({
       return
     }
 
-    if (activeTab === "noti") {
-      markTabItemsSeen("noti", orderNotificationIds)
+    const items = activeTab === "noti" ? orderNotifications : promotions
+    const seenIds =
+      activeTab === "noti" ? seenNotificationIdSet : seenPromotionIdSet
+    const unseenIds = items
+      .map((item) => item.id)
+      .filter((id) => !seenIds.has(id))
+
+    if (!unseenIds.length) {
       return
     }
 
-    markTabItemsSeen("promo", promotionIds)
+    markTabItemsSeen(activeTab, unseenIds)
   }, [
     activeTab,
     hasHydratedSeenIds,
     markTabItemsSeen,
-    orderNotificationIds,
-    promotionIds,
+    orderNotifications,
+    promotions,
+    seenNotificationIdSet,
+    seenPromotionIdSet,
   ])
 
   const notiTabHasUnread = useMemo(
     () =>
       orderNotifications.some(
-        (notification) => !seenNotificationIds.includes(notification.id)
+        (notification) => !seenNotificationIdSet.has(notification.id)
       ),
-    [orderNotifications, seenNotificationIds]
+    [orderNotifications, seenNotificationIdSet]
   )
 
   const promoTabHasUnread = useMemo(
-    () => promotions.some((promotion) => !seenPromotionIds.includes(promotion.id)),
-    [promotions, seenPromotionIds]
+    () => promotions.some((promotion) => !seenPromotionIdSet.has(promotion.id)),
+    [promotions, seenPromotionIdSet]
   )
+
+  const activeItems = activeTab === "noti" ? orderNotifications : promotions
+  const activeSeenIdSet =
+    activeTab === "noti" ? seenNotificationIdSet : seenPromotionIdSet
+  const emptyMessage =
+    activeTab === "noti" ? "ไม่มีการแจ้งเตือนใหม่" : "ไม่มีโปรโมชั่นใหม่"
 
   return (
     <div className="lg:bg-sop-base-white rounded-lg w-full h-full">
@@ -170,41 +174,22 @@ const NotificationsPageClient = ({
       </div>
 
       <div className="flex flex-col w-full pb-4">
-        {activeTab === "noti" ? (
-          orderNotifications.length > 0 ? (
-            orderNotifications.map((notification) => (
-              <NotificationCard
-                key={notification.id}
-                id={notification.id}
-                title={notification.title}
-                description={notification.description}
-                date={notification.dateLabel}
-                image={notification.image}
-                isUnread={!seenNotificationIds.includes(notification.id)}
-                href={notification.href}
-              />
-            ))
-          ) : (
-            <div className="p-4 text-center text-sop-neutral-gray-400 sop-body-sm-regular">
-              ไม่มีการแจ้งเตือนใหม่
-            </div>
-          )
-        ) : promotions.length > 0 ? (
-          promotions.map((promotion) => (
+        {activeItems.length > 0 ? (
+          activeItems.map((item) => (
             <NotificationCard
-              key={promotion.id}
-              id={promotion.id}
-              title={promotion.title}
-              description={promotion.description}
-              date={promotion.dateLabel}
-              image={promotion.image}
-              isUnread={!seenPromotionIds.includes(promotion.id)}
-              href={promotion.href}
+              key={item.id}
+              id={item.id}
+              title={item.title}
+              description={item.description}
+              date={item.dateLabel}
+              image={item.image}
+              isUnread={!activeSeenIdSet.has(item.id)}
+              href={item.href}
             />
           ))
         ) : (
           <div className="p-4 text-center text-sop-neutral-gray-400 sop-body-sm-regular">
-            ไม่มีโปรโมชั่นใหม่
+            {emptyMessage}
           </div>
         )}
       </div>
