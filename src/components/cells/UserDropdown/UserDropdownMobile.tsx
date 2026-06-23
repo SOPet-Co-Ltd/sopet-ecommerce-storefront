@@ -131,12 +131,6 @@ export const UserDropdownMobile = ({
             {!user ? (
               <>
                 <ListItem
-                  icon={<VetAIIcon size={14} color="#454547" />}
-                  label={"Vet AI"}
-                  colored
-                  separator
-                />
-                <ListItem
                   icon={<SignInIcon size={14} color="#454547" />}
                   label={"เข้าสู่ระบบ"}
                   colored
