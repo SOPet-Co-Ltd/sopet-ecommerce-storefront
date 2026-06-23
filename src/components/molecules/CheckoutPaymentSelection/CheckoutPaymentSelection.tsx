@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Wallet } from "lucide-react"
 import { FormProvider, useForm, useWatch } from "react-hook-form"
 
@@ -11,6 +11,7 @@ import { SelectWithCreditCard } from "./Components/CheckoutWithCredit"
 import { SelectWithoutCreditCard } from "./Components/CheckoutWithoutCredit"
 import { newCardDraftSchema } from "@/lib/checkout/checkout-payload-schema"
 
+import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import type {
   PaymentFormData,
   CustomerCard,
@@ -28,6 +29,8 @@ const CheckoutPaymentSelection = ({
   paymentMethods = [],
 }: Props) => {
   const methods = useForm<PaymentFormData>({
+    mode: "onTouched",
+    reValidateMode: "onBlur",
     defaultValues: {
       paymentMethod: "promptpay",
       cardNumber: "",
@@ -45,7 +48,29 @@ const CheckoutPaymentSelection = ({
     (state) => state.setPaymentFormTrigger
   )
 
-  const hasSavedCards = payment.length > 0
+  const [customerCards, setCustomerCards] = useState<CustomerCard[]>(payment)
+
+  useEffect(() => {
+    setCustomerCards(payment)
+  }, [payment])
+
+  const handleCardAdded = useCallback(
+    (paymentMethod: CustomerPaymentMethod) => {
+      setCustomerCards((prev) => {
+        const withoutDuplicate = prev.filter(
+          (card) => card.id !== paymentMethod.id
+        )
+        const normalized = paymentMethod.is_default
+          ? withoutDuplicate.map((card) => ({ ...card, is_default: false }))
+          : withoutDuplicate
+
+        return [...normalized, paymentMethod]
+      })
+    },
+    []
+  )
+
+  const hasSavedCards = customerCards.length > 0
   const isCardSelected = selected === "card"
   const [cardSelectionError, setCardSelectionError] = useState<string | null>(
     null
@@ -72,28 +97,7 @@ const CheckoutPaymentSelection = ({
         return true
       }
 
-      const values = methods.getValues()
-      const result = newCardDraftSchema.safeParse({
-        cardNumber: values.cardNumber,
-        cardName: values.cardName,
-        expiry: values.expiry,
-        cvv: values.cvv,
-        setAsDefault: values.setAsDefault,
-      })
-
-      if (!result.success) {
-        methods.clearErrors(["cardNumber", "cardName", "expiry", "cvv"])
-        result.error.errors.forEach((err) => {
-          const field = err.path[0] as keyof PaymentFormData
-          if (field) {
-            methods.setError(field, { type: "manual", message: err.message })
-          }
-        })
-        return false
-      }
-
-      methods.clearErrors(["cardNumber", "cardName", "expiry", "cvv"])
-      return true
+      return methods.trigger(["cardNumber", "cardName", "expiry", "cvv"])
     }
 
     setPaymentFormTrigger(trigger)
@@ -158,8 +162,9 @@ const CheckoutPaymentSelection = ({
               {isCardSelected &&
                 (hasSavedCards ? (
                   <SelectWithCreditCard
-                    payment={payment}
+                    payment={customerCards}
                     error={cardSelectionError}
+                    onCardAdded={handleCardAdded}
                   />
                 ) : (
                   <SelectWithoutCreditCard />

@@ -21,6 +21,7 @@ interface CartSummaryProps {
   selectedItemIds?: string[]
   isAnonymousCart?: boolean
   promotionCodes?: string[]
+  isCartUpdating?: boolean
 }
 
 export const CartSummary = ({
@@ -34,6 +35,7 @@ export const CartSummary = ({
   selectedItemIds = [],
   isAnonymousCart = false,
   promotionCodes = [],
+  isCartUpdating = false,
 }: CartSummaryProps) => {
   const { total, subtotal, discount_total, currency_code } = cart || {}
 
@@ -48,7 +50,7 @@ export const CartSummary = ({
     (discount_total ?? 0) > 0 && selectedCount === totalCount
 
   const handleCheckout = async () => {
-    if (selectedCount === 0) return
+    if (selectedCount === 0 || isCartUpdating) return
     setIsLoading(true)
     try {
       if (isAnonymousCart) {
@@ -148,6 +150,7 @@ export const CartSummary = ({
               <Button
                 onClick={handleCheckout}
                 loading={isLoading}
+                disabled={isCartUpdating}
                 size="fill"
                 className="py-1 sop-body-sm-medium"
               >

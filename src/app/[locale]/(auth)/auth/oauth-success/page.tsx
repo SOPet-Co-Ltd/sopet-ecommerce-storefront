@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation"
-import { OAuthSuccessView } from "@/components/molecules"
+import { OAuthSuccessView } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
 import { verifyCustomer } from "@/lib/data/customer"
 import type { OAuthSuccessProvider } from "@/components/molecules/OAuthSuccessView/OAuthSuccessView"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"

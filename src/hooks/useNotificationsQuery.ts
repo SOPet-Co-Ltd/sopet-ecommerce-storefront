@@ -35,6 +35,7 @@ export function useNotificationsPageQuery(
     queryKey: queryKeys.notifications.page(),
     queryFn: fetchNotificationsPageData,
     initialData,
+    initialDataUpdatedAt: initialData ? Date.now() : undefined,
     staleTime: 30 * 1000,
   })
 }

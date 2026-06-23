@@ -1,5 +1,6 @@
-import { LoginForm, ProfileDetails } from "@/components/molecules"
-import { UserNavigation } from "@/components/molecules"
+import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
+import { ProfileDetails } from "@/components/molecules/ProfileDetails/ProfileDetails"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { ProfilePassword } from "@/components/molecules/ProfileDetails/ProfilePassword"
 import { verifyCustomer } from "@/lib/data/customer"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"

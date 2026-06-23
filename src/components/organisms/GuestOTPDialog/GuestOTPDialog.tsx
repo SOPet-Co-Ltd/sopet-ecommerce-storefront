@@ -1,7 +1,7 @@
 "use client"
 
 import { Modal } from "@/components/molecules/Modal/Modal"
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { PhoneNumberForm } from "./PhoneNumberForm"
 import { OTPVerificationForm } from "./OTPVerificationForm"
 import { SuccessDialog } from "./SuccessDialog"
@@ -22,6 +22,7 @@ export const GuestOTPDialog = ({
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const resendInFlightRef = useRef(false)
 
   useEffect(() => {
     if (isOpen) {
@@ -73,12 +74,21 @@ export const GuestOTPDialog = ({
   )
 
   const handleResend = useCallback(async () => {
+    if (isLoading || resendInFlightRef.current) {
+      return
+    }
+
+    resendInFlightRef.current = true
+    setIsLoading(true)
     try {
       await sendOTP(phoneNumber)
     } catch (e) {
       console.error("Resend failed", e)
+    } finally {
+      resendInFlightRef.current = false
+      setIsLoading(false)
     }
-  }, [phoneNumber])
+  }, [phoneNumber, isLoading])
 
   const handleSuccessFinish = useCallback(() => {
     onVerified(phoneNumber)

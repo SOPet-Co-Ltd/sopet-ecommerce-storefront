@@ -1,4 +1,5 @@
-import { LoginForm, UserNavigation } from "@/components/molecules"
+import { LoginForm } from "@/components/molecules/LoginForm/LoginForm"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { ReviewsWritten } from "@/components/organisms"
 import { verifyCustomer } from "@/lib/data/customer"
 import { listOrders } from "@/lib/data/orders"

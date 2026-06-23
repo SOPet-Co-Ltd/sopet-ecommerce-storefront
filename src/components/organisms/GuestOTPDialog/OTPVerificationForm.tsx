@@ -129,14 +129,19 @@ export const OTPVerificationForm = ({
         ) : (
           <button
             type="button"
+            disabled={isLoading}
             onClick={() => {
+              if (isLoading) {
+                return
+              }
               setTimeLeft(60)
               onResend()
             }}
-            className="text-sop-primary-500 font-medium hover:underline cursor-pointer"
+            className="text-sop-primary-500 font-medium hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
             aria-label="ขอรับรหัส OTP ใหม่"
+            aria-busy={isLoading}
           >
-            ขอรับรหัส OTP ใหม่
+            {isLoading ? "กำลังส่ง..." : "ขอรับรหัส OTP ใหม่"}
           </button>
         )}
       </>

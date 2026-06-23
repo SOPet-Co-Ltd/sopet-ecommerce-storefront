@@ -11,6 +11,12 @@ import {
   formatExpiry,
   getCvvLength,
 } from "../Utils/PaymentFormat"
+import {
+  validateCardName,
+  validateCardNumber,
+  validateCvv,
+  validateExpiry,
+} from "../Utils/PaymentValidation"
 import { PaymentFormData } from "../Types/PaymentType"
 
 export const SelectWithoutCreditCard = () => {
@@ -32,6 +38,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cardNumber"
           defaultValue=""
+          rules={{ validate: validateCardNumber }}
           render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
@@ -43,6 +50,7 @@ export const SelectWithoutCreditCard = () => {
               state={fieldState.error ? "error" : "default"}
               description={fieldState.error?.message}
               value={field.value}
+              onBlur={field.onBlur}
               onChange={(e: any) => {
                 const cardNumber = formatCardNumber(e.target.value)
                 field.onChange(cardNumber)
@@ -57,6 +65,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cardName"
           defaultValue=""
+          rules={{ validate: validateCardName }}
           render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
@@ -67,6 +76,7 @@ export const SelectWithoutCreditCard = () => {
               state={fieldState.error ? "error" : "default"}
               description={fieldState.error?.message}
               value={field.value}
+              onBlur={field.onBlur}
               onChange={(e: any) =>
                 field.onChange(formatCardName(e.target.value))
               }
@@ -79,6 +89,7 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="expiry"
           defaultValue=""
+          rules={{ validate: validateExpiry }}
           render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
@@ -90,6 +101,7 @@ export const SelectWithoutCreditCard = () => {
               state={fieldState.error ? "error" : "default"}
               description={fieldState.error?.message}
               value={field.value}
+              onBlur={field.onBlur}
               onChange={(e: any) =>
                 field.onChange(formatExpiry(e.target.value))
               }
@@ -102,6 +114,9 @@ export const SelectWithoutCreditCard = () => {
           control={control}
           name="cvv"
           defaultValue=""
+          rules={{
+            validate: (value) => validateCvv(getValues("cardNumber"))(value),
+          }}
           render={({ field, fieldState }) => (
             <InputSOPet
               isRequire
@@ -114,6 +129,7 @@ export const SelectWithoutCreditCard = () => {
               description={fieldState.error?.message}
               value={field.value}
               maxLength={getCvvLength(cardNumber)}
+              onBlur={field.onBlur}
               onChange={(e: any) =>
                 field.onChange(formatCVV(e.target.value, cardNumber))
               }

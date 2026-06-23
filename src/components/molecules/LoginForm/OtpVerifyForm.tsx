@@ -40,6 +40,10 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
   }, [error])
 
   const handleResend = async () => {
+    if (isResending) {
+      return
+    }
+
     setIsResending(true)
     setError("")
 
@@ -56,6 +60,10 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
   }
 
   const handleVerify = async () => {
+    if (isVerifying) {
+      return
+    }
+
     if (!otp.trim()) {
       setError("กรุณากรอก OTP")
       return
@@ -165,7 +173,7 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
               size="lg"
               fill={true}
               disabled={isVerifying || !otp.trim()}
-              onClick={handleVerify}
+              loading={isVerifying}
               aria-busy={isVerifying}
               aria-label={
                 isVerifying

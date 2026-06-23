@@ -3,41 +3,51 @@ import { z } from "zod"
 import { checkoutAddressSchema } from "@/components/molecules/AddressForm/schema"
 import { paymentMethods } from "@/components/molecules/CheckoutPaymentSelection/Schemas/PaymentSchema"
 import {
-  cleanCardNumber,
-  getCardNumberLength,
-  getCvvLength,
-} from "@/components/molecules/CheckoutPaymentSelection/Utils/PaymentFormat"
+  getCardNameError,
+  getCardNumberError,
+  getCvvError,
+  getExpiryError,
+} from "@/components/molecules/CheckoutPaymentSelection/Utils/PaymentValidation"
 
 export const newCardDraftSchema = z
   .object({
     cardNumber: z
       .string()
       .trim()
-      .refine((val) => {
-        const cleaned = cleanCardNumber(val)
-        return (
-          /^\d+$/.test(cleaned) &&
-          cleaned.length === getCardNumberLength(cleaned)
-        )
-      }, "หมายเลขบัตรไม่ถูกต้อง"),
+      .superRefine((val, ctx) => {
+        const message = getCardNumberError(val)
+        if (message) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+        }
+      }),
     cardName: z
       .string()
       .trim()
-      .min(1, "กรุณากรอกชื่อบนบัตร")
-      .regex(/^[a-zA-Z฀-๿\s]+$/, "ชื่อบนบัตรต้องเป็นตัวอักษรเท่านั้น"),
+      .superRefine((val, ctx) => {
+        const message = getCardNameError(val)
+        if (message) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+        }
+      }),
     expiry: z
       .string()
       .trim()
-      .regex(/^(0[1-9]|1[0-2])\/\d{2}$/, "รูปแบบต้องเป็น MM/YY"),
-    cvv: z.string().trim().regex(/^\d+$/, "CVV ไม่ถูกต้อง"),
+      .superRefine((val, ctx) => {
+        const message = getExpiryError(val)
+        if (message) {
+          ctx.addIssue({ code: z.ZodIssueCode.custom, message })
+        }
+      }),
+    cvv: z.string().trim(),
     setAsDefault: z.boolean().default(false),
   })
   .superRefine(({ cardNumber, cvv }, ctx) => {
-    if (cvv.length !== getCvvLength(cardNumber)) {
+    const message = getCvvError(cvv, cardNumber)
+    if (message) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["cvv"],
-        message: "CVV ไม่ถูกต้อง",
+        message,
       })
     }
   })

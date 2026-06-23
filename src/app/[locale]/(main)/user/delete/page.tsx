@@ -1,4 +1,5 @@
-import { UserContainer, DeleteAccountButton } from "@/components/molecules"
+import { DeleteAccountButton } from "@/components/molecules/DeleteAccountButton/DeleteAccountButton"
+import { UserContainer } from "@/components/molecules/UserContainer/UserContainer"
 import { verifyCustomer } from "@/lib/data/customer"
 import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"

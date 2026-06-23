@@ -13,7 +13,7 @@ export interface NotificationCardProps {
   onClick?: () => void
 }
 
-export const NotificationCard: React.FC<NotificationCardProps> = ({
+export const NotificationCard = React.memo(function NotificationCard({
   title,
   description,
   date,
@@ -21,7 +21,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   isUnread = false,
   href,
   onClick,
-}) => {
+}: NotificationCardProps) {
   const innerContent = (
     <div
       onClick={onClick}
@@ -55,4 +55,4 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({
   }
 
   return <div className="block w-full">{innerContent}</div>
-}
+})

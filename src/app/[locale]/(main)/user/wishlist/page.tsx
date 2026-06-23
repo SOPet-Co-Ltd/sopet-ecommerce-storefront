@@ -7,7 +7,7 @@ import { Button } from "@/components/atoms"
 import { WishlistItem } from "@/components/cells"
 import { getUserWishlists } from "@/lib/data/wishlist"
 import { HttpTypes } from "@medusajs/types"
-import { UserNavigation } from "@/components/molecules"
+import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
 import type { Metadata } from "next"
 

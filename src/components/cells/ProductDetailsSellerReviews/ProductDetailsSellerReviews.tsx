@@ -1,5 +1,5 @@
 import { Button } from "@/components/atoms"
-import { SellerReview } from "@/components/molecules"
+import { SellerReview } from "@/components/molecules/SellerReview/SellerReview"
 import { SingleProductReview } from "@/types/product"
 
 export const ProductDetailsSellerReviews = ({

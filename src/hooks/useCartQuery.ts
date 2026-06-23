@@ -1,10 +1,6 @@
 "use client"
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
 
 import { queryKeys } from "@/lib/react-query/query-keys"
@@ -20,6 +16,7 @@ import {
   updateAnonymousCartItemQuantity,
 } from "@/lib/data/local-customer-cart"
 import type { HttpTypes } from "@medusajs/types"
+import { toast } from "@/lib/helpers/toast"
 
 export type CartSource = "customer" | "anonymous"
 
@@ -67,9 +64,12 @@ async function parseJson<T>(response: Response): Promise<T> {
 }
 
 async function fetchCustomerCart(locale: string): Promise<CartLike> {
-  const response = await fetch(`/api/cart?locale=${encodeURIComponent(locale)}`, {
-    cache: "no-store",
-  })
+  const response = await fetch(
+    `/api/cart?locale=${encodeURIComponent(locale)}`,
+    {
+      cache: "no-store",
+    }
+  )
 
   if (response.status === 401) {
     return null
@@ -210,6 +210,45 @@ function applyOptimisticChangeCartItemVariant(
   } as Cart
 }
 
+function applyOptimisticUpdateCartItemQuantity(
+  cart: CartLike,
+  input: UpdateCartItemInput
+): CartLike {
+  const currentItems = [...(cart?.items ?? [])]
+  const targetIndex = currentItems.findIndex((item) => item.id === input.itemId)
+
+  if (targetIndex < 0) {
+    return cart
+  }
+
+  const currentItem = currentItems[targetIndex]
+  const oldQuantity = currentItem.quantity ?? 1
+  const resolvedUnitPrice =
+    getNumeric(currentItem.unit_price) ||
+    (oldQuantity ? getNumeric(currentItem.total) / oldQuantity : 0)
+  const nextLineTotal = resolvedUnitPrice * input.quantity
+
+  currentItems[targetIndex] = {
+    ...currentItem,
+    quantity: input.quantity,
+    unit_price: resolvedUnitPrice,
+    subtotal: nextLineTotal,
+    total: nextLineTotal,
+  } as HttpTypes.StoreCartLineItem
+
+  const totals = getCartTotals(currentItems)
+
+  return {
+    ...(cart ?? {}),
+    items: currentItems,
+    subtotal: totals.subtotal,
+    item_subtotal: totals.subtotal,
+    total: totals.total,
+    tax_total: totals.tax_total,
+    discount_total: getNumeric(cart?.discount_total),
+  } as Cart
+}
+
 function applyOptimisticAddToCart(
   cart: CartLike,
   input: AddToCartMutationInput,
@@ -235,7 +274,8 @@ function applyOptimisticAddToCart(
         getNumeric(currentItem.subtotal) + getNumeric(optimisticItem.subtotal),
       total: getNumeric(currentItem.total) + getNumeric(optimisticItem.total),
       tax_total:
-        getNumeric(currentItem.tax_total) + getNumeric(optimisticItem.tax_total),
+        getNumeric(currentItem.tax_total) +
+        getNumeric(optimisticItem.tax_total),
     } as HttpTypes.StoreCartLineItem
   } else {
     currentItems.push({
@@ -286,7 +326,10 @@ export function useCartQuery({
     }
 
     const handleStorage = (event: StorageEvent) => {
-      if (event.key && !event.key.includes("sopet_customer_cart_anonymous_v1")) {
+      if (
+        event.key &&
+        !event.key.includes("sopet_customer_cart_anonymous_v1")
+      ) {
         return
       }
 
@@ -346,24 +389,26 @@ export function useAddToCartMutation(locale: string, source: CartSource) {
         return null
       }
 
-      const response = await fetch("/api/cart/items", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: [
-            {
-              productId: input.productId,
-              variantId: input.variantId,
-              quantity: input.quantity,
-              unitPriceSnapshot: input.unitPriceSnapshot,
-              source: input.source,
-              metadata: input.metadata,
-            },
-          ],
-        }),
-      })
+      const response = await fetch(
+        `/api/cart/items?locale=${encodeURIComponent(locale)}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            items: [
+              {
+                productId: input.productId,
+                variantId: input.variantId,
+                quantity: input.quantity,
+                source: input.source,
+                metadata: input.metadata,
+              },
+            ],
+          }),
+        }
+      )
 
       if (!response.ok) {
         const payload = await parseJson<{ message?: string }>(response)
@@ -422,6 +467,34 @@ export function useUpdateCartItemMutation(locale: string, source: CartSource) {
       }
 
       return parseJson(response)
+    },
+    onMutate: async (input) => {
+      await queryClient.cancelQueries({ queryKey })
+      const previousCart = queryClient.getQueryData<CartLike>(queryKey)
+
+      queryClient.setQueryData<CartLike>(queryKey, (current) =>
+        applyOptimisticUpdateCartItemQuantity(
+          current ?? previousCart ?? null,
+          input
+        )
+      )
+
+      return {
+        previousCart,
+      }
+    },
+    onError: (error, _input, context) => {
+      if (context?.previousCart !== undefined) {
+        queryClient.setQueryData(queryKey, context.previousCart)
+      }
+
+      toast.error({
+        title: "เกิดข้อผิดพลาด",
+        description:
+          error instanceof Error
+            ? error.message
+            : "ไม่สามารถอัปเดตจำนวนสินค้าได้ กรุณาลองใหม่อีกครั้ง",
+      })
     },
     onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey })
@@ -483,17 +556,19 @@ export function useChangeCartItemVariantMutation(
         return null
       }
 
-      const response = await fetch(`/api/cart/items/${itemId}/variant`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          quantity,
-          variantId,
-          unitPriceSnapshot,
-        }),
-      })
+      const response = await fetch(
+        `/api/cart/items/${itemId}/variant?locale=${encodeURIComponent(locale)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quantity,
+            variantId,
+          }),
+        }
+      )
 
       if (!response.ok) {
         const payload = await parseJson<{ message?: string }>(response)

@@ -16,6 +16,7 @@ import { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
 import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
+import { useSubmitOnce } from "@/lib/hooks/use-submit-once"
 
 interface Props {
   defaultValues?: ProfileDetailsFormData
@@ -53,22 +54,25 @@ const Form: React.FC<Props> = ({ handleClose }) => {
     formState: { errors },
   } = useFormContext()
   const phone = useWatch({ control, name: "phone" })
+  const { isSubmitting, runSubmit } = useSubmitOnce()
 
   const submit = async (data: FieldValues) => {
-    const body = {
-      first_name: data.firstName,
-      last_name: data.lastName,
-      phone: normalizeThaiPhoneNumber(data.phone),
-    }
-    try {
-      await updateCustomer(body as HttpTypes.StoreUpdateCustomer)
-    } catch (err) {
-      setError((err as Error).message)
-      return
-    }
+    await runSubmit(async () => {
+      const body = {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        phone: normalizeThaiPhoneNumber(data.phone),
+      }
+      try {
+        await updateCustomer(body as HttpTypes.StoreUpdateCustomer)
+      } catch (err) {
+        setError((err as Error).message)
+        return
+      }
 
-    setError("")
-    handleClose && handleClose()
+      setError("")
+      handleClose && handleClose()
+    })
   }
 
   return (
@@ -115,8 +119,14 @@ const Form: React.FC<Props> = ({ handleClose }) => {
             {error}
           </p>
         )}
-        <Button type="submit" className="w-full">
-          Save
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          aria-busy={isSubmitting}
+        >
+          {isSubmitting ? "กำลังบันทึก..." : "Save"}
         </Button>
       </div>
     </form>

@@ -16,6 +16,7 @@ import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 type CartTemplateProps = {
   cart: HttpTypes.StoreCart | Cart
   locale: string
+  isCartUpdating?: boolean
   onItemQuantityChange?: (
     itemId: string,
     quantity: number
@@ -32,12 +33,14 @@ type CartTemplateProps = {
 export const CartTemplate = ({
   cart,
   locale,
+  isCartUpdating = false,
   onItemQuantityChange,
   onItemDelete,
   onItemVariantChange,
 }: CartTemplateProps) => {
-  const hasInitializedSelectionRef = useRef(false)
   const router = useRouter()
+  const hasAppliedDefaultSelectionRef = useRef(false)
+  const lastKnownItemIdsRef = useRef<string[]>([])
   const selectedItems = useCartPageUiStore((state) => state.selectedItemIds)
   const discountModalVendor = useCartPageUiStore(
     (state) => state.discountModalVendor
@@ -64,6 +67,8 @@ export const CartTemplate = ({
 
   useEffect(() => {
     return () => {
+      hasAppliedDefaultSelectionRef.current = false
+      lastKnownItemIdsRef.current = []
       resetCartPageUi()
     }
   }, [resetCartPageUi])
@@ -103,7 +108,6 @@ export const CartTemplate = ({
     if (!newIds.length) {
       setLineOrder([])
       resetCartPageUi()
-      hasInitializedSelectionRef.current = false
       return
     }
 
@@ -221,19 +225,32 @@ export const CartTemplate = ({
   }
 
   useEffect(() => {
-    if (!sortedItems.length) {
-      hasInitializedSelectionRef.current = false
+    if (!allItemIds.length) {
+      hasAppliedDefaultSelectionRef.current = false
+      lastKnownItemIdsRef.current = []
       resetCartPageUi()
       return
     }
 
-    if (hasInitializedSelectionRef.current) {
+    if (!hasAppliedDefaultSelectionRef.current) {
+      hasAppliedDefaultSelectionRef.current = true
+      setSelectedItemIds(allItemIds)
+      lastKnownItemIdsRef.current = allItemIds
       return
     }
 
-    hasInitializedSelectionRef.current = true
-    setSelectedItemIds(sortedItems.map((item) => item.id))
-  }, [resetCartPageUi, setSelectedItemIds, sortedItems])
+    const previousIds = new Set(lastKnownItemIdsRef.current)
+    const newlyAddedIds = allItemIds.filter((id) => !previousIds.has(id))
+    const hadAllPreviousSelected =
+      previousIds.size > 0 &&
+      [...previousIds].every((id) => selectedItems.includes(id))
+
+    if (newlyAddedIds.length > 0 && hadAllPreviousSelected) {
+      setSelectedItemIds([...selectedItems, ...newlyAddedIds])
+    }
+
+    lastKnownItemIdsRef.current = allItemIds
+  }, [allItemIds, selectedItems, resetCartPageUi, setSelectedItemIds])
 
   // Ensure selectedItems only contains IDs that still exist in the cart
   useEffect(() => {
@@ -319,24 +336,6 @@ export const CartTemplate = ({
                       />
                     ))}
                   </div>
-                  {/* Store Discount Section (Footer) */}
-                  <div className="w-full justify-between p-4 border-t border-gray-100 flex items-center gap-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center">
-                        <DiscountIcon size={26} color="#9C6ADE" />
-                      </div>
-                      <p className="sop-body-lg-regular text-sop-primary-500">
-                        ส่วนลดร้านค้า
-                      </p>
-                    </div>
-                    {/* Store coupons button */}
-                    <button
-                      className="text-sop-neutral-gray-300 ml-auto md:ml-2 text-xs md:text-sm font-medium hover:underline"
-                      onClick={() => openDiscountModal(seller.name)}
-                    >
-                      ดูส่วนลดอื่นๆ
-                    </button>
-                  </div>
                 </div>
               )
             })}
@@ -349,6 +348,7 @@ export const CartTemplate = ({
               <CartSummary
                 cart={cart}
                 locale={locale}
+                isCartUpdating={isCartUpdating}
                 selectedCount={selectedItems.length}
                 totalCount={cart?.items?.length || 0}
                 isAllSelected={

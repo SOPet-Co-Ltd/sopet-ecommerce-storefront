@@ -17,6 +17,8 @@ import type {
 import type { CheckoutCoupon } from "@/types/checkout-coupon"
 import type { CustomerPaymentMethod } from "@/lib/data/customer"
 import { fetchVendorShippingMethods } from "@/lib/checkout/fetch-vendor-shipping"
+import { ensureCheckoutShippingAddressSynced } from "@/lib/checkout/sync-shipping-address-client"
+import { resolveVendorShippingSellerId } from "@/lib/checkout/resolve-vendor-shipping-seller-id"
 import { getCartItemSellerGroup } from "@/lib/helpers/cart-seller"
 import {
   checkoutPayloadSchema,
@@ -24,7 +26,7 @@ import {
   type CheckoutPaymentMethod,
   type NewCardDraft,
 } from "@/lib/checkout/checkout-payload-schema"
-import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
+import type { CheckoutAddressFormData } from "@/components/molecules/AddressForm/schema"
 import type { z } from "zod"
 
 /** Async fetch state for one marketplace seller's shipping methods. */
@@ -107,7 +109,7 @@ type CheckoutState = {
   paymentMethod: CheckoutPaymentMethod
   selectedCardId: string | null
   newCardDraft: NewCardDraft | null
-  shippingAddress: AddressFormData | null
+  shippingAddress: CheckoutAddressFormData | null
   billingContactOverride: { phone?: string; email?: string } | null
   selectedShippingMethodBySellerId: Record<string, string>
   selectedSitePromoCode: string | null
@@ -116,6 +118,9 @@ type CheckoutState = {
   // Form validation triggers (registered by form components).
   addressFormTrigger: (() => Promise<boolean>) | null
   paymentFormTrigger: (() => Promise<boolean>) | null
+
+  /** Shared across desktop + mobile checkout submit buttons. */
+  isSubmitting: boolean
 }
 
 type CheckoutActions = {
@@ -134,7 +139,7 @@ type CheckoutActions = {
   setPaymentMethod: (method: CheckoutPaymentMethod) => void
   setSelectedCardId: (id: string | null) => void
   setNewCardDraft: (draft: NewCardDraft | null) => void
-  setShippingAddress: (address: AddressFormData | null) => void
+  setShippingAddress: (address: CheckoutAddressFormData | null) => void
   setBillingContactOverride: (
     override: { phone?: string; email?: string } | null
   ) => void
@@ -143,6 +148,7 @@ type CheckoutActions = {
   setSaveShippingAddress: (save: boolean) => void
   setAddressFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
   setPaymentFormTrigger: (trigger: (() => Promise<boolean>) | null) => void
+  setIsSubmitting: (isSubmitting: boolean) => void
   resetCheckout: () => void
   buildCheckoutPayload: () => unknown
   validateCheckoutPayload: () =>
@@ -181,6 +187,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     saveShippingAddress: false,
     addressFormTrigger: null,
     paymentFormTrigger: null,
+    isSubmitting: false,
 
     setCart: (cart) => set({ cart }),
     setCustomer: (customer) => set({ customer }),
@@ -210,6 +217,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       set({ saveShippingAddress }),
     setAddressFormTrigger: (addressFormTrigger) => set({ addressFormTrigger }),
     setPaymentFormTrigger: (paymentFormTrigger) => set({ paymentFormTrigger }),
+    setIsSubmitting: (isSubmitting) => set({ isSubmitting }),
     resetCheckout: () =>
       set({
         paymentMethod: "promptpay",
@@ -220,6 +228,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
         selectedShippingMethodBySellerId: {},
         selectedSitePromoCode: null,
         saveShippingAddress: false,
+        isSubmitting: false,
       }),
     buildCheckoutPayload: () => {
       const state = get()
@@ -229,7 +238,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       const override = state.billingContactOverride ?? {}
 
       // Billing defaults to shipping; only phone/email may be overridden.
-      const billing: AddressFormData | null = shipping
+      const billing: CheckoutAddressFormData | null = shipping
         ? {
             ...shipping,
             phone:
@@ -334,7 +343,67 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
       set(setVendorShippingEntry(sellerId, { isLoading: true, error: null }))
 
       try {
-        const options = await fetchVendorShippingMethods(cartId, sellerId)
+        const resolvedSellerId = resolveVendorShippingSellerId(
+          get().sellerGroups,
+          sellerId
+        )
+
+        if (!resolvedSellerId) {
+          if (isVendorShippingLoadStale(sellerId, generation)) {
+            return
+          }
+
+          set(
+            setVendorShippingEntry(sellerId, {
+              options: [],
+              isLoading: false,
+              error: "ไม่มีตัวเลือกการจัดส่งสำหรับร้านค้านี้",
+            })
+          )
+          return
+        }
+
+        const shippingAddress = get().shippingAddress
+
+        if (!shippingAddress) {
+          if (isVendorShippingLoadStale(sellerId, generation)) {
+            return
+          }
+
+          set(
+            setVendorShippingEntry(sellerId, {
+              options: null,
+              isLoading: false,
+              error: "กรุณากรอกที่อยู่จัดส่งก่อนเลือกวิธีจัดส่ง",
+            })
+          )
+          return
+        }
+
+        const synced = await ensureCheckoutShippingAddressSynced(
+          cartId,
+          shippingAddress
+        )
+
+        if (!synced) {
+          if (isVendorShippingLoadStale(sellerId, generation)) {
+            return
+          }
+
+          set(
+            setVendorShippingEntry(sellerId, {
+              options: null,
+              isLoading: false,
+              error: "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
+            })
+          )
+          return
+        }
+
+        const options = await fetchVendorShippingMethods(
+          cartId,
+          resolvedSellerId
+        )
 
         // Drop result if a newer load or abort happened while awaiting the API.
         if (isVendorShippingLoadStale(sellerId, generation)) {

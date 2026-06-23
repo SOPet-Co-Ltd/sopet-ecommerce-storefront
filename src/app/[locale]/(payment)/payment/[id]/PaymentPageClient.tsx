@@ -1059,17 +1059,62 @@ export default function PaymentPageClient({
       if (capturingRef.current) return
       capturingRef.current = true
 
+      // ─── PromptPay: poll checkout-session รอ webhook แทนการ call /capture ───
+      if (paymentMethod === "promptpay") {
+        const deadline =
+          (promptpayExpiresAtMsRef.current ?? Date.now()) + PROMPTPAY_GRACE_MS
+
+        while (Date.now() < deadline) {
+          await waitInterruptible(PROMPTPAY_POLL_INTERVAL_MS, () => false)
+
+          const sessionRes = await getCheckoutSession(checkoutSessionId).catch(
+            () => null
+          )
+          const status = sessionRes?.ok ? sessionRes.session.status : null
+
+          if (status === "captured") {
+            await clearCheckoutCartCookie().catch(() => undefined)
+            const capturedOrder = await retrieveOrder(nextOrderId, {
+              checkoutSessionId,
+            }).catch(() => null)
+            const displayId = capturedOrder?.display_id
+            router.replace(
+              buildThankYouPathFromDisplayId(locale, displayId ?? 0)
+            )
+            return
+          }
+
+          if (status === "failed") {
+            const msg = sessionRes?.ok
+              ? sessionRes.session.failure_reason || "การชำระเงินไม่สำเร็จ"
+              : "การชำระเงินไม่สำเร็จ"
+            setErrorMsg(msg)
+            setStatusText("ชำระเงินไม่สำเร็จ")
+            capturingRef.current = false
+            return
+          }
+
+          setStatusText("รอการสแกน QR จากธนาคาร…")
+        }
+
+        // หมดเวลา
+        const msg = "หมดเวลา QR กรุณาลองใหม่อีกครั้ง"
+        setErrorMsg(msg)
+        setStatusText("หมดเวลา QR")
+        await setCheckoutSessionStatus(checkoutSessionId, "failed", {
+          failure_reason: msg,
+          failure_code: "promptpay_qr_expired",
+        }).catch(() => undefined)
+        capturingRef.current = false
+        return
+      }
+
+      // ─── Card: backoff + capture ───
       let lastError: string | null = null
       let attempt = 0
 
       while (true) {
-        const baseWait =
-          paymentMethod === "promptpay"
-            ? attempt === 0
-              ? 0
-              : PROMPTPAY_POLL_INTERVAL_MS
-            : (CARD_CAPTURE_BACKOFFS_MS[attempt] ?? null)
-
+        const baseWait = CARD_CAPTURE_BACKOFFS_MS[attempt] ?? null
         if (baseWait == null) break
         if (baseWait > 0) {
           await waitInterruptible(baseWait, () => false)
@@ -1088,11 +1133,11 @@ export default function PaymentPageClient({
           const capturedOrder = await retrieveOrder(nextOrderId, {
             checkoutSessionId,
           }).catch(() => null)
-          const displayId = capturedOrder?.display_id
           router.replace(
-            displayId != null
-              ? buildThankYouPathFromDisplayId(locale, displayId)
-              : buildThankYouPathFromDisplayId(locale, 0)
+            buildThankYouPathFromDisplayId(
+              locale,
+              capturedOrder?.display_id ?? 0
+            )
           )
           return
         }
@@ -1106,19 +1151,15 @@ export default function PaymentPageClient({
             checkoutSessionId,
           }).catch(() => null)
           const isPaid =
-            (fresh?.metadata as { is_paid?: unknown } | null | undefined)
-              ?.is_paid === true
+            (fresh?.metadata as { is_paid?: unknown } | null)?.is_paid === true
 
           if (isPaid) {
             await setCheckoutSessionStatus(checkoutSessionId, "captured").catch(
               () => undefined
             )
             await clearCheckoutCartCookie().catch(() => undefined)
-            const displayId = fresh?.display_id
             router.replace(
-              displayId != null
-                ? buildThankYouPathFromDisplayId(locale, displayId)
-                : buildThankYouPathFromDisplayId(locale, 0)
+              buildThankYouPathFromDisplayId(locale, fresh?.display_id ?? 0)
             )
             return
           }
@@ -1137,25 +1178,10 @@ export default function PaymentPageClient({
           lastError = "ยังไม่ได้รับการยืนยันการชำระเงิน"
         } else {
           lastError = res.error ?? null
-          if (classifyCaptureError(res.error) === "terminal") {
-            break
-          }
-        }
-        setStatusText(
-          paymentMethod === "promptpay"
-            ? "รอการยืนยันการชำระเงินจากธนาคาร…"
-            : "กำลังยืนยันการชำระเงินกับธนาคาร…"
-        )
-
-        if (paymentMethod === "promptpay") {
-          const deadline =
-            promptpayExpiresAtMsRef.current ??
-            Date.now() + getPromptPayPendingTtlSeconds() * 1000
-          if (Date.now() > deadline + PROMPTPAY_GRACE_MS) {
-            break
-          }
+          if (classifyCaptureError(res.error) === "terminal") break
         }
 
+        setStatusText("กำลังยืนยันการชำระเงินกับธนาคาร…")
         attempt += 1
       }
 

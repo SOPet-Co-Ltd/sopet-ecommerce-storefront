@@ -11,6 +11,7 @@ import { ReturnMethodsTab } from "./ReturnMethodsTab"
 import { StepProgressBar } from "@/components/cells/StepProgressBar/StepProgressBar"
 import { createReturnRequest } from "@/lib/data/orders"
 import { useRouter } from "next/navigation"
+import { useSubmitOnce } from "@/lib/hooks/use-submit-once"
 import type {
   OrderDetails,
   OrderLineItem,
@@ -35,6 +36,7 @@ export const OrderReturnSection = ({
   const [error, setError] = useState<boolean>(false)
   const [returnMethod, setReturnMethod] = useState<string | null>(null)
   const router = useRouter()
+  const { isSubmitting, runSubmit } = useSubmitOnce()
 
   const handleTabChange = (tab: number) => {
     const noReason = selectedItems.filter((item) => !item.reason_id)
@@ -71,26 +73,29 @@ export const OrderReturnSection = ({
   }
 
   const handleSubmit = async () => {
-    if (!returnMethod) {
+    if (!returnMethod || isSubmitting) {
       return
     }
 
-    const data = {
-      order_id: order.id,
-      customer_note: "",
-      shipping_option_id: returnMethod,
-      line_items: selectedItems,
-    }
+    await runSubmit(async () => {
+      const data = {
+        order_id: order.id,
+        customer_note: "",
+        shipping_option_id: returnMethod,
+        line_items: selectedItems,
+      }
 
-    const result = await createReturnRequest(data)
+      const result = await createReturnRequest(data)
 
-    if (!result.order_return_request.id) {
-      return console.log("Error creating return request")
-    }
+      if (!result.order_return_request.id) {
+        console.log("Error creating return request")
+        return
+      }
 
-    router.push(
-      `/user/orders/${result.order_return_request.id}/request-success`
-    )
+      router.push(
+        `/user/orders/${result.order_return_request.id}/request-success`
+      )
+    })
   }
 
   return (
@@ -151,6 +156,7 @@ export const OrderReturnSection = ({
               tab={tab}
               returnMethod={returnMethod}
               handleSubmit={handleSubmit}
+              isSubmitting={isSubmitting}
             />
           </div>
         </div>

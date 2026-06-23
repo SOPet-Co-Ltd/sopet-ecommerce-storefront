@@ -3,7 +3,7 @@
 import { Button, Checkbox, SmartImage } from "@/components/atoms"
 import { convertToLocale } from "@/lib/helpers/money"
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { TrashIcon, PlusLineIcon, MinusIcon, DownArrowIcon } from "@/icons"
 import { MoreVertical, ChevronDownIcon } from "lucide-react"
 import { HttpTypes } from "@medusajs/types"
@@ -17,6 +17,7 @@ import { VariantReselectionModal } from "./VariantReselectionModal"
 import { listProducts } from "@/lib/data/products"
 import { useParams } from "next/navigation"
 import { toast } from "@/lib/helpers/toast"
+import { useCartPageUiStore } from "@/lib/zustand/cart-page-ui-store"
 
 // Using any for mock flexibility
 type ExtendedCartItem = HttpTypes.StoreCartLineItem & {
@@ -60,7 +61,9 @@ export const CartItem = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [isVariantModalOpen, setIsVariantModalOpen] = useState(false)
-  const [updating, setUpdating] = useState(false)
+  const [pendingQuantity, setPendingQuantity] = useState(item.quantity)
+  const [isSyncing, setIsSyncing] = useState(false)
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [updatingVariant, setUpdatingVariant] = useState(false)
   const [product, setProduct] = useState<
@@ -69,6 +72,9 @@ export const CartItem = ({
   const [loadingProduct, setLoadingProduct] = useState(false)
   const params = useParams()
   const locale = (params?.locale as string) || "th"
+  const setItemQuantityPending = useCartPageUiStore(
+    (state) => state.setItemQuantityPending
+  )
 
   const maxQuantity =
     (item as ExtendedCartItem).max_quantity ??
@@ -77,11 +83,45 @@ export const CartItem = ({
   const isAtMax =
     typeof maxQuantity === "number" &&
     maxQuantity >= 0 &&
-    Number(item.quantity) >= maxQuantity
+    Number(pendingQuantity) >= maxQuantity
 
-  const handleQuantityChange = async (newQuantity: number) => {
+  const unitPrice =
+    item.unit_price ?? (item.quantity ? (item.total ?? 0) / item.quantity : 0)
+  const hasPendingQuantityChange = pendingQuantity !== item.quantity
+  const displayTotal =
+    isSyncing || hasPendingQuantityChange
+      ? unitPrice * pendingQuantity
+      : (item.total ?? 0)
+  const displayOriginalTotal =
+    isSyncing || hasPendingQuantityChange
+      ? item.original_price
+        ? item.original_price * pendingQuantity
+        : item.original_total
+      : item.original_total
+
+  useEffect(() => {
+    setPendingQuantity(item.quantity)
+    setIsSyncing(false)
+  }, [item.quantity])
+
+  useEffect(() => {
+    setItemQuantityPending(item.id, pendingQuantity !== item.quantity)
+
+    return () => {
+      setItemQuantityPending(item.id, false)
+    }
+  }, [item.id, item.quantity, pendingQuantity, setItemQuantityPending])
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [])
+
+  const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity < 1) return
-    if (updating) return
     if (
       typeof maxQuantity === "number" &&
       maxQuantity >= 0 &&
@@ -90,21 +130,43 @@ export const CartItem = ({
       newQuantity = maxQuantity
     }
 
-    setUpdating(true)
-    try {
-      if (onQuantityChange) {
-        await onQuantityChange(item.id, newQuantity)
-      } else {
-        await updateCustomerCartItem({
-          id: item.id,
-          quantity: newQuantity,
-        })
-      }
-    } catch (e) {
-      console.error(e)
-    } finally {
-      setUpdating(false)
+    setPendingQuantity(newQuantity)
+    setIsSyncing(true)
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
     }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const commitQuantity = newQuantity
+      const previousQuantity = item.quantity
+
+      const runUpdate = async () => {
+        try {
+          if (onQuantityChange) {
+            await onQuantityChange(item.id, commitQuantity)
+          } else {
+            await updateCustomerCartItem({
+              id: item.id,
+              quantity: commitQuantity,
+            })
+          }
+        } catch (e) {
+          console.error(e)
+          if (!onQuantityChange) {
+            setPendingQuantity(previousQuantity)
+            toast.error({
+              title: "เกิดข้อผิดพลาด",
+              description: "ไม่สามารถอัปเดตจำนวนสินค้าได้ กรุณาลองใหม่อีกครั้ง",
+            })
+          }
+        } finally {
+          setIsSyncing(false)
+        }
+      }
+
+      void runUpdate()
+    }, 400)
   }
 
   const handleDelete = async () => {
@@ -229,7 +291,7 @@ export const CartItem = ({
       <div className="flex flex-col py-sop-20 border-b border-sop-neutral-grayalpha-300 last:border-0 gap-4 md:gap-0 py-4 relative">
         <div
           className={`flex items-start w-full relative ${
-            updating || deleting ? "opacity-50 pointer-events-none" : ""
+            deleting ? "opacity-50 pointer-events-none" : ""
           }`}
         >
           {/* ... (Checkbox & Image - unchanged) ... */}
@@ -298,7 +360,7 @@ export const CartItem = ({
                   rounded="rounded"
                   size="sm"
                   onClick={() => setIsVariantModalOpen(true)}
-                  disabled={updating || deleting}
+                  disabled={deleting}
                 >
                   <div
                     className="flex items-center gap-1 w-full justify-between"
@@ -316,15 +378,15 @@ export const CartItem = ({
                 <div className="flex flex-col">
                   <span className="sop-body-sm-medium text-gray-900 leading-tight">
                     {convertToLocale({
-                      amount: item.total ?? 0,
+                      amount: displayTotal,
                       currency_code: currencyCode,
                     })}
                   </span>
-                  {item.original_total &&
-                    item.original_total !== item.total && (
+                  {displayOriginalTotal &&
+                    displayOriginalTotal !== displayTotal && (
                       <span className="text-sop-3XS text-sop-neutral-gray-400 line-through leading-tight">
                         {convertToLocale({
-                          amount: item.original_total,
+                          amount: displayOriginalTotal,
                           currency_code: currencyCode,
                         })}
                       </span>
@@ -333,17 +395,23 @@ export const CartItem = ({
 
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleQuantityChange(item.quantity - 1)}
-                    disabled={Number(item.quantity) <= 1}
+                    onClick={() => handleQuantityChange(pendingQuantity - 1)}
+                    disabled={Number(pendingQuantity) <= 1}
                     className="disabled:opacity-50 cursor-pointer"
                   >
                     <MinusIcon size={24} />
                   </button>
-                  <span className="sop-body-sm-medium text-gray-900 w-4 text-center">
-                    {updating ? "..." : item.quantity}
+                  <span
+                    className={`sop-body-sm-medium text-gray-900 w-4 text-center transition-all duration-300 ${
+                      isSyncing
+                        ? "opacity-70 scale-95"
+                        : "opacity-100 scale-100"
+                    }`}
+                  >
+                    {pendingQuantity}
                   </span>
                   <button
-                    onClick={() => handleQuantityChange(item.quantity + 1)}
+                    onClick={() => handleQuantityChange(pendingQuantity + 1)}
                     disabled={isAtMax}
                     className="disabled:opacity-50 cursor-pointer"
                   >
@@ -375,17 +443,21 @@ export const CartItem = ({
             <div className="hidden md:flex items-center justify-end gap-4 min-w-[140px]">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => handleQuantityChange(item.quantity - 1)}
-                  disabled={Number(item.quantity) <= 1}
+                  onClick={() => handleQuantityChange(pendingQuantity - 1)}
+                  disabled={Number(pendingQuantity) <= 1}
                   className="disabled:opacity-50 cursor-pointer"
                 >
                   <MinusIcon size={24} />
                 </button>
-                <span className="text-body-md font-normal text-gray-900 w-6 text-center">
-                  {updating ? "..." : item.quantity}
+                <span
+                  className={`text-body-md font-normal text-gray-900 w-6 text-center transition-all duration-300 ${
+                    isSyncing ? "opacity-70 scale-95" : "opacity-100 scale-100"
+                  }`}
+                >
+                  {pendingQuantity}
                 </span>
                 <button
-                  onClick={() => handleQuantityChange(item.quantity + 1)}
+                  onClick={() => handleQuantityChange(pendingQuantity + 1)}
                   disabled={isAtMax}
                   className="disabled:opacity-50 cursor-pointer"
                 >

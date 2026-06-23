@@ -6,11 +6,9 @@ const SEEN_NOTIFICATION_IDS_STORAGE_KEY = "sopet_seen_notification_ids"
 const SEEN_PROMOTION_IDS_STORAGE_KEY = "sopet_seen_promotion_ids"
 
 type NotificationsUiState = {
-  activeTab: NotificationTab
   seenNotificationIds: string[]
   seenPromotionIds: string[]
   hasHydratedSeenIds: boolean
-  setActiveTab: (tab: NotificationTab) => void
   hydrateSeenIds: () => void
   markTabItemsSeen: (tab: NotificationTab, ids: string[]) => void
 }
@@ -50,48 +48,57 @@ function persistIds(storageKey: string, ids: string[]) {
   } catch {}
 }
 
-export const useNotificationsUiStore = create<NotificationsUiState>((set, get) => ({
-  activeTab: "noti",
-  seenNotificationIds: [],
-  seenPromotionIds: [],
-  hasHydratedSeenIds: false,
-  setActiveTab: (tab) =>
-    set({
-      activeTab: tab,
-    }),
-  hydrateSeenIds: () => {
-    if (get().hasHydratedSeenIds) {
-      return
-    }
-
-    set({
-      seenNotificationIds: readStoredIds(SEEN_NOTIFICATION_IDS_STORAGE_KEY),
-      seenPromotionIds: readStoredIds(SEEN_PROMOTION_IDS_STORAGE_KEY),
-      hasHydratedSeenIds: true,
-    })
-  },
-  markTabItemsSeen: (tab, ids) => {
-    if (!ids.length) {
-      return
-    }
-
-    if (tab === "noti") {
-      const nextIds = Array.from(
-        new Set([...get().seenNotificationIds, ...ids])
-      )
-      persistIds(SEEN_NOTIFICATION_IDS_STORAGE_KEY, nextIds)
+export const useNotificationsUiStore = create<NotificationsUiState>(
+  (set, get) => ({
+    seenNotificationIds: [],
+    seenPromotionIds: [],
+    hasHydratedSeenIds: false,
+    hydrateSeenIds: () => {
+      if (get().hasHydratedSeenIds) {
+        return
+      }
 
       set({
-        seenNotificationIds: nextIds,
+        seenNotificationIds: readStoredIds(SEEN_NOTIFICATION_IDS_STORAGE_KEY),
+        seenPromotionIds: readStoredIds(SEEN_PROMOTION_IDS_STORAGE_KEY),
+        hasHydratedSeenIds: true,
       })
-      return
-    }
+    },
+    markTabItemsSeen: (tab, ids) => {
+      if (!ids.length) {
+        return
+      }
 
-    const nextIds = Array.from(new Set([...get().seenPromotionIds, ...ids]))
-    persistIds(SEEN_PROMOTION_IDS_STORAGE_KEY, nextIds)
+      if (tab === "noti") {
+        const seenIds = new Set(get().seenNotificationIds)
+        const newIds = ids.filter((id) => !seenIds.has(id))
 
-    set({
-      seenPromotionIds: nextIds,
-    })
-  },
-}))
+        if (!newIds.length) {
+          return
+        }
+
+        const nextIds = [...seenIds, ...newIds]
+        persistIds(SEEN_NOTIFICATION_IDS_STORAGE_KEY, nextIds)
+
+        set({
+          seenNotificationIds: nextIds,
+        })
+        return
+      }
+
+      const seenIds = new Set(get().seenPromotionIds)
+      const newIds = ids.filter((id) => !seenIds.has(id))
+
+      if (!newIds.length) {
+        return
+      }
+
+      const nextIds = [...seenIds, ...newIds]
+      persistIds(SEEN_PROMOTION_IDS_STORAGE_KEY, nextIds)
+
+      set({
+        seenPromotionIds: nextIds,
+      })
+    },
+  })
+)

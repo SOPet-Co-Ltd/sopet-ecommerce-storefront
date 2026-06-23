@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react"
 
+const submitInFlightRef = { current: false }
+
 import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 import { createContactInformation } from "@/lib/checkout/create-contact-information"
 import { createCheckoutSession } from "@/lib/data/checkout-session"
@@ -10,6 +12,7 @@ import {
   saveCheckoutAddressForCustomer,
   updateCustomerPaymentMethod,
 } from "@/lib/data/customer"
+import { toast } from "@/lib/helpers/toast"
 import {
   checkoutPayloadSchema,
   type CheckoutPayload,
@@ -130,8 +133,12 @@ export type CheckoutSubmitResult =
     }
 
 export function useCheckoutSubmit() {
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const isSubmitting = useCheckoutStore((state) => state.isSubmitting)
+  const setIsSubmitting = useCheckoutStore((state) => state.setIsSubmitting)
+
+  const cart = useCheckoutStore((state) => state.cart)
 
   const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
 
@@ -170,6 +177,15 @@ export function useCheckoutSubmit() {
   )
 
   const submit = useCallback(async (): Promise<CheckoutSubmitResult> => {
+    if (submitInFlightRef.current) {
+      return {
+        ok: false,
+        reason: "unknown",
+        message: "กำลังดำเนินการชำระเงิน กรุณารอสักครู่",
+      }
+    }
+
+    submitInFlightRef.current = true
     setError(null)
     setIsSubmitting(true)
 
@@ -180,6 +196,31 @@ export function useCheckoutSubmit() {
     })
 
     try {
+      // Validate order price (excluding shipping)
+      const subtotal = typeof cart.subtotal === "number" ? cart.subtotal : 0
+      const discountTotal =
+        typeof cart.discount_total === "number" ? cart.discount_total : 0
+      const orderPriceWithoutShipping = subtotal - discountTotal
+
+      console.log("[checkout] order price validation:", {
+        subtotal,
+        discountTotal,
+        orderPriceWithoutShipping,
+      })
+
+      if (orderPriceWithoutShipping <= 0) {
+        const message =
+          "โปรโมชั่นไม่สามารถลดราคาสินค้าเป็น 0 ได้ กรุณาลบโค้ดส่วนลดบางรายการ"
+
+        console.log("[checkout] FAIL - order price is 0 or negative")
+
+        return {
+          ok: false,
+          reason: "validation",
+          message,
+        }
+      }
+
       // Validate address form
       if (addressFormTrigger) {
         const addressValid = await addressFormTrigger()
@@ -330,6 +371,14 @@ export function useCheckoutSubmit() {
             resolvedCardId = saved.paymentMethod.id
 
             setSelectedCardId(resolvedCardId)
+          } else {
+            toast.error({
+              title: saved.error,
+              description:
+                saved.code === "duplicate_card"
+                  ? "การชำระเงินจะดำเนินการต่อด้วยบัตรนี้"
+                  : undefined,
+            })
           }
         }
 
@@ -454,9 +503,12 @@ export function useCheckoutSubmit() {
         message,
       }
     } finally {
+      submitInFlightRef.current = false
       setIsSubmitting(false)
     }
   }, [
+    cart,
+    setIsSubmitting,
     addressFormTrigger,
     paymentFormTrigger,
     buildCheckoutPayload,

@@ -1,11 +1,16 @@
 import { fetchQuery } from "@/lib/config"
 import { getAuthHeaders } from "@/lib/data/cookies"
+import {
+  buildCartItemPriceKey,
+  CartItemPriceResolutionError,
+  resolveCartItemUnitPrices,
+} from "@/lib/data/resolve-cart-item-prices"
+import { DEFAULT_REGION } from "@/lib/site-defaults"
 import { NextRequest, NextResponse } from "next/server"
 
 type ChangeVariantBody = {
   variantId?: string
   quantity?: number
-  unitPriceSnapshot?: number | null
 }
 
 type CustomerCartItemApi = {
@@ -20,10 +25,7 @@ type CustomerCartItemApi = {
 }
 
 const buildKey = (
-  item: Pick<
-    CustomerCartItemApi,
-    "product_id" | "variant_id"
-  >
+  item: Pick<CustomerCartItemApi, "product_id" | "variant_id">
 ) => {
   return [item.product_id, item.variant_id].join("|")
 }
@@ -36,8 +38,9 @@ export async function PATCH(
   const body = (await request.json().catch(() => ({}))) as ChangeVariantBody
   const variantId = body.variantId
   const quantity = body.quantity
-  const unitPriceSnapshot =
-    typeof body.unitPriceSnapshot === "number" ? body.unitPriceSnapshot : null
+  const locale =
+    request.nextUrl.searchParams.get("locale")?.trim().toLowerCase() ||
+    DEFAULT_REGION
 
   if (!id || !variantId || typeof quantity !== "number") {
     return NextResponse.json(
@@ -63,15 +66,45 @@ export async function PATCH(
     )
   }
 
-  const items =
-    ((listResponse.data as { items?: CustomerCartItemApi[] } | null)?.items ??
-      []) as CustomerCartItemApi[]
+  const items = ((listResponse.data as { items?: CustomerCartItemApi[] } | null)
+    ?.items ?? []) as CustomerCartItemApi[]
   const currentItem = items.find((item) => item.id === id)
 
   if (!currentItem) {
     return NextResponse.json(
       { message: "Customer cart item not found" },
       { status: 404 }
+    )
+  }
+
+  let unitPriceSnapshot: number
+
+  try {
+    const priceByKey = await resolveCartItemUnitPrices(locale, [
+      {
+        productId: currentItem.product_id,
+        variantId,
+      },
+    ])
+    const resolvedPrice = priceByKey.get(
+      buildCartItemPriceKey(currentItem.product_id, variantId)
+    )
+
+    if (typeof resolvedPrice !== "number") {
+      throw new CartItemPriceResolutionError(
+        `No price found for variant ${variantId}`
+      )
+    }
+
+    unitPriceSnapshot = resolvedPrice
+  } catch (error) {
+    if (error instanceof CartItemPriceResolutionError) {
+      return NextResponse.json({ message: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json(
+      { message: "Failed to resolve cart item price" },
+      { status: 400 }
     )
   }
 
@@ -82,7 +115,9 @@ export async function PATCH(
 
   const existingSame = items.find(
     (item) =>
-      item.id !== id && item.status === "in_cart" && buildKey(item) === targetKey
+      item.id !== id &&
+      item.status === "in_cart" &&
+      buildKey(item) === targetKey
   )
 
   if (existingSame) {
@@ -93,9 +128,7 @@ export async function PATCH(
         headers,
         body: {
           quantity: (existingSame.quantity ?? 0) + quantity,
-          ...(unitPriceSnapshot !== null
-            ? { unit_price_snapshot: unitPriceSnapshot }
-            : {}),
+          unit_price_snapshot: unitPriceSnapshot,
         },
         cache: "no-store",
       }
@@ -103,22 +136,28 @@ export async function PATCH(
 
     if (!mergeResponse.ok) {
       return NextResponse.json(
-        { message: mergeResponse.error?.message || "Failed to merge cart items" },
+        {
+          message: mergeResponse.error?.message || "Failed to merge cart items",
+        },
         { status: mergeResponse.status || 400 }
       )
     }
 
-    const deleteResponse = await fetchQuery(`/store/customer-cart/items/${id}`, {
-      method: "DELETE",
-      headers,
-      cache: "no-store",
-    })
+    const deleteResponse = await fetchQuery(
+      `/store/customer-cart/items/${id}`,
+      {
+        method: "DELETE",
+        headers,
+        cache: "no-store",
+      }
+    )
 
     if (!deleteResponse.ok) {
       return NextResponse.json(
         {
           message:
-            deleteResponse.error?.message || "Failed to remove replaced cart item",
+            deleteResponse.error?.message ||
+            "Failed to remove replaced cart item",
         },
         { status: deleteResponse.status || 400 }
       )
@@ -133,9 +172,7 @@ export async function PATCH(
     body: {
       quantity,
       variant_id: variantId,
-      ...(unitPriceSnapshot !== null
-        ? { unit_price_snapshot: unitPriceSnapshot }
-        : {}),
+      unit_price_snapshot: unitPriceSnapshot,
     },
     cache: "no-store",
   })

@@ -3,11 +3,12 @@
 import { Button } from "@/components/atoms"
 import { Infotag } from "@/components/atoms/InfoTag/Infotag"
 import { PiggyBankIcon } from "@/icons"
-import { LockKeyholeIcon } from "lucide-react"
+import { AlertCircle, LockKeyholeIcon } from "lucide-react"
 import { useCheckoutSubmit } from "@/lib/checkout/use-checkout-submit"
 import type { HttpTypes } from "@medusajs/types"
 import { useParams, useRouter } from "next/navigation"
 import { formatPrice, useCheckoutTotals } from "./use-checkout-totals"
+import { useCheckoutStore } from "@/components/sections/CheckoutSection/CheckoutStoreContext"
 
 type SummaryRowProps = {
   label: string
@@ -44,6 +45,7 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
   const router = useRouter()
   const params = useParams()
   const locale = (params?.locale as string) || "th"
+  const cart = useCheckoutStore((state) => state.cart)
   const {
     totalQuantity,
     subtotal,
@@ -53,6 +55,11 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
     totalSaving,
     finalPrice,
   } = useCheckoutTotals()
+
+  // Check if order price (excluding shipping) is valid
+  const orderPriceWithoutShipping =
+    subtotal - (platformDiscount + vendorDiscount)
+  const hasInvalidOrderPrice = orderPriceWithoutShipping <= 0
 
   const handleSubmit = async () => {
     console.log("[CheckoutSummarySection] handleSubmit called")
@@ -127,19 +134,30 @@ const CheckoutSummarySection = ({ customer }: CheckoutSummarySectionProps) => {
         </Infotag>
       )}
 
+      {hasInvalidOrderPrice && (
+        <Infotag
+          className="lg:sop-body-sm-medium sop-body-sm-regular lg:mt-sop-16px mt-sop-12px w-full rounded-sop-8px bg-sop-error-100 px-sop-16px py-sop-12px text-sop-error-700"
+          leftIcon={<AlertCircle size={20} className="pr-sop-8px" />}
+        >
+          โปรโมชั่นไม่สามารถลดราคาสินค้าเป็น 0 ได้ กรุณาลบโค้ดส่วนลดบางรายการ
+        </Infotag>
+      )}
+
       <Button
         className="mt-sop-16px hidden w-full md:block"
         variant="primary"
         size="lg"
         type="button"
         loading={isSubmitting}
-        disabled={isSubmitting}
+        disabled={isSubmitting || hasInvalidOrderPrice}
         onClick={() => void handleSubmit()}
         aria-busy={isSubmitting}
         aria-label={
-          isSubmitting
-            ? "กำลังดำเนินการชำระเงิน กรุณารอสักครู่"
-            : `ชำระเงิน ยอดรวม ${formatPrice(finalPrice)} (${totalQuantity} รายการ)`
+          hasInvalidOrderPrice
+            ? "ไม่สามารถชำระเงินได้ เนื่องจากโปรโมชั่นลดราคาเกินกำหนด"
+            : isSubmitting
+              ? "กำลังดำเนินการชำระเงิน กรุณารอสักครู่"
+              : `ชำระเงิน ยอดรวม ${formatPrice(finalPrice)} (${totalQuantity} รายการ)`
         }
       >
         {isSubmitting

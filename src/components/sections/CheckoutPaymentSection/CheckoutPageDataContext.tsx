@@ -97,6 +97,8 @@ export function CheckoutPageDataProvider({
       customerCards: initialData.customerCards ?? [],
       sitePromos: initialData.sitePromos ?? [],
       vendorPromos: initialData.vendorPromos ?? [],
+      cart: initialData.cart ?? null,
+      promotionAutoApplyEnabled: initialData.promotionAutoApplyEnabled ?? false,
       error: initialData.error,
     }
   }, [initialData])

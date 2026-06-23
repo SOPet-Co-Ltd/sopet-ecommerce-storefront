@@ -94,6 +94,7 @@ export function useVendorShipping(
   const abortVendorShippingLoad = useCheckoutStore(
     (state) => state.abortVendorShippingLoad
   )
+  const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
   const vendorShipping = useCheckoutStore(
     (state) => state.vendorShippingBySellerId[sellerId]
   )
@@ -104,7 +105,13 @@ export function useVendorShipping(
     return () => {
       abortVendorShippingLoad(sellerId)
     }
-  }, [abortVendorShippingLoad, cartId, loadVendorShippingOptions, sellerId])
+  }, [
+    abortVendorShippingLoad,
+    cartId,
+    loadVendorShippingOptions,
+    sellerId,
+    shippingAddress,
+  ])
 
   // Treat missing entry as loading until the store writes the first patch.
   return vendorShipping ?? { options: null, isLoading: true, error: null }

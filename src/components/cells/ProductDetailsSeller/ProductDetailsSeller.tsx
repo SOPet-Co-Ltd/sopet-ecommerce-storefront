@@ -1,5 +1,5 @@
 import LocalizedClientLink from "@/components/molecules/LocalizedLink/LocalizedLink"
-import { SellerInfo } from "@/components/molecules"
+import { SellerInfo } from "@/components/molecules/SellerInfo/SellerInfo"
 import { SellerProps } from "@/types/seller"
 
 export const ProductDetailsSeller = ({ seller }: { seller?: SellerProps }) => {

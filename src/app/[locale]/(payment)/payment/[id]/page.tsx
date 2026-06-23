@@ -39,6 +39,22 @@ export default async function PaymentPage({
 
   const { session } = sessionRes
 
+  // Validate order price (excluding shipping) before allowing payment
+  const cart = session.payload.cart as {
+    subtotal?: number | null
+    discount_total?: number | null
+  } | null
+  if (cart) {
+    const subtotal = typeof cart.subtotal === "number" ? cart.subtotal : 0
+    const discountTotal =
+      typeof cart.discount_total === "number" ? cart.discount_total : 0
+    const orderPriceWithoutShipping = subtotal - discountTotal
+
+    if (orderPriceWithoutShipping <= 0) {
+      redirect(`/${locale}/checkout?error=invalid_order_price`)
+    }
+  }
+
   // Resolve provider IDs for the cart's region so the client can bootstrap
   // marketplace payment sessions on mount when no order exists yet.
   const paymentProviders = session.region_id
