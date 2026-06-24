@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import type { HttpTypes } from "@medusajs/types"
 import { useRouter } from "next/navigation"
 import { useRef, useState } from "react"
-import { useForm } from "react-hook-form"
+import { FieldError, useForm } from "react-hook-form"
 import { z } from "zod"
 import { Avatar, Button, InputSOPet } from "@/components/atoms"
 import { SearchableSelectField } from "@/components/molecules/SearchableSelect/SearchableSelectField"
@@ -21,12 +21,38 @@ type ProfileDetailsSectionProps = {
   user: HttpTypes.StoreCustomer
 }
 
-const userProfileSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  birthDay: z.string().optional(),
-  birthMonth: z.string().optional(),
-  birthYear: z.string().optional(),
-})
+const userProfileSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    birthDay: z.string().optional(),
+    birthMonth: z.string().optional(),
+    birthYear: z.string().optional(),
+  })
+  .superRefine((data, ctx) => {
+    const { birthDay, birthMonth, birthYear } = data
+    const filledCount = [birthDay, birthMonth, birthYear].filter(Boolean).length
+
+    if (filledCount > 0 && filledCount < 3) {
+      if (!birthDay)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "",
+          path: ["birthDay"],
+        })
+      if (!birthMonth)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "",
+          path: ["birthMonth"],
+        })
+      if (!birthYear)
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "",
+          path: ["birthYear"],
+        })
+    }
+  })
 
 type UserProfileFormData = z.infer<typeof userProfileSchema>
 
@@ -100,7 +126,7 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
     register,
     handleSubmit,
     control,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = useForm<UserProfileFormData>({
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
@@ -159,6 +185,11 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
 
   const currentAvatarUrl =
     avatarUrl ?? (metadata?.avatar_url as string | undefined)
+
+  const birthErrorWithoutMessage =
+    errors.birthDay || errors.birthMonth || errors.birthYear
+      ? ({ type: "custom", message: "" } as FieldError)
+      : undefined
 
   return (
     <div className="flex flex-col gap-sop-24px items-center min-h-[500px]">
@@ -273,44 +304,54 @@ export function ProfileDetailsSection({ user }: ProfileDetailsSectionProps) {
         <label className="md:sop-body-md-regular sop-body-sm-regular text-sop-neutral-gray-200">
           วันเกิด
         </label>
-        <div className="flex gap-2">
-          <SearchableSelectField
-            control={control}
-            name="birthDay"
-            placeholder="วัน"
-            options={BIRTH_DAY_OPTIONS}
-            hideTitle
-            isRequire={false}
-            className="max-w-[150px]"
-            showAllOptions
-            dropdownAlign="start"
-          />
-          <SearchableSelectField
-            control={control}
-            name="birthMonth"
-            placeholder="เดือน"
-            options={BIRTH_MONTH_OPTIONS}
-            hideTitle
-            isRequire={false}
-            className="max-w-[150px]"
-            showAllOptions
-            dropdownAlign="start"
-          />
-          <SearchableSelectField
-            control={control}
-            name="birthYear"
-            placeholder="ปี"
-            options={BIRTH_YEAR_SEARCH_OPTIONS}
-            hideTitle
-            isRequire={false}
-            className="max-w-[150px]"
-            showAllOptions
-            dropdownAlign="start"
-          />
+        <div>
+          <div className="flex gap-2">
+            <SearchableSelectField
+              control={control}
+              name="birthDay"
+              placeholder="วัน"
+              options={BIRTH_DAY_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+              error={birthErrorWithoutMessage}
+            />
+            <SearchableSelectField
+              control={control}
+              name="birthMonth"
+              placeholder="เดือน"
+              options={BIRTH_MONTH_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+              error={birthErrorWithoutMessage}
+            />
+            <SearchableSelectField
+              control={control}
+              name="birthYear"
+              placeholder="ปี"
+              options={BIRTH_YEAR_SEARCH_OPTIONS}
+              hideTitle
+              isRequire={false}
+              className="max-w-[150px]"
+              showAllOptions
+              dropdownAlign="start"
+              error={birthErrorWithoutMessage}
+            />
+          </div>
+          {(errors.birthDay || errors.birthMonth || errors.birthYear) && (
+            <p className="text-sop-system-error-400 sop-body-sm-regular mt-1">
+              กรุณากรอกวันเกิดให้ครบถ้วน
+            </p>
+          )}
         </div>
 
         {profileError && (
-          <p className="col-span-2 text-red-500 sop-body-sm-regular">
+          <p className="col-span-2 text-sop-system-error-400 sop-body-sm-regular">
             {profileError}
           </p>
         )}
