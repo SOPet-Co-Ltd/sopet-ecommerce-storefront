@@ -18,6 +18,7 @@ import { getProductPrice } from "@/lib/helpers/get-product-price"
 import { sortProducts } from "@/lib/helpers/sort-products"
 import { SortOptions } from "@/types/product"
 import { DEFAULT_REGION } from "@/lib/site-defaults"
+import * as gtag from "@/lib/analytics/gtag"
 
 export const AlgoliaProductsListing = ({
   category_id,
@@ -87,12 +88,20 @@ const ProductsListing = ({
   const [isLoading, setIsLoading] = useState(false)
   const hasInitialLoad = useRef(false)
   const previousItemIdsRef = useRef<string>("")
+  const lastTrackedQuery = useRef<string | null>(null)
 
   // Extract search params
   const page: number = +(searchParams.get("page") || 1)
   const sortBy = (searchParams.get("sortBy") as SortOptions) || "relevance"
   const minPrice = searchParams.get("min_price")
   const maxPrice = searchParams.get("max_price")
+
+  useEffect(() => {
+    const q = searchParams.get("query")?.trim()
+    if (!q || q === lastTrackedQuery.current) return
+    lastTrackedQuery.current = q
+    gtag.search(q)
+  }, [searchParams])
 
   // Create a stable string of item IDs to detect changes
   const currentItemIds = useMemo(

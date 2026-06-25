@@ -157,6 +157,30 @@ export const CartPageClient = ({
         })
       }
       onItemDelete={async (itemId) => {
+        const lineItem = cart.items?.find((item) => item.id === itemId)
+        if (lineItem) {
+          const currency = cart.currency_code?.toUpperCase() || "THB"
+          const price = lineItem.unit_price ? lineItem.unit_price / 100 : 0
+          gtag.removeFromCart({
+            currency,
+            value: price * lineItem.quantity,
+            items: [
+              {
+                item_id: lineItem.variant_id || lineItem.id,
+                item_name: lineItem.title || "Product",
+                currency,
+                price,
+                quantity: lineItem.quantity,
+                item_category: (lineItem.variant?.product as any)
+                  ?.categories?.[0]?.name,
+                item_brand: (lineItem.variant?.product as any)?.collection
+                  ?.title,
+                item_variant: lineItem.variant?.title || undefined,
+              },
+            ],
+          })
+        }
+
         await deleteItemMutation.mutateAsync({
           itemId,
         })

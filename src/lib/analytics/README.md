@@ -1,19 +1,73 @@
-# Google Analytics 4 Integration
+# Google Tag Manager & GA4 Analytics
 
-This directory contains the Google Analytics 4 (GA4) integration for tracking e-commerce events and user behavior.
+This directory contains GTM-based analytics for tracking e-commerce events and user behavior. Events are pushed to `window.dataLayer` and forwarded to GA4 (and other tags) via the GTM container.
 
-**Note:** GA4 only loads in production mode (`NODE_ENV=production`). This prevents development traffic from polluting your analytics data.
+**Note:** GTM only loads in production mode (`NODE_ENV=production`). This prevents development traffic from polluting your analytics data.
 
 ## Setup
 
-1. **Add your GA4 Measurement ID to environment variables:**
+### 1. Storefront environment variable
 
 ```bash
-# .env.local
-NEXT_PUBLIC_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+# .env.local or deployment env
+NEXT_PUBLIC_GTM_ID=GTM-XXXXXXX
 ```
 
-2. **The GA4 script is automatically loaded** in `src/app/layout.tsx` using `@next/third-parties/google`
+GA4 Measurement ID (`G-XXXXXXXX`) is **not** set in the app — configure it inside the GTM container (see below).
+
+### 2. GTM container loads automatically
+
+`src/app/layout.tsx` loads the container via `@next/third-parties/google` (`GoogleTagManager`).
+
+Client-side route changes are tracked by `src/components/GTMPageViewTracker.tsx`.
+
+## GTM container configuration
+
+Configure these in [Google Tag Manager](https://tagmanager.google.com). Without this, the container loads but GA4 reports stay empty.
+
+### GA4 Configuration tag
+
+1. **Tags → New → Google Analytics: GA4 Configuration**
+2. Measurement ID: `G-XXXXXXXX`
+3. Trigger: **Initialization - All Pages**
+4. Save
+
+### GA4 Event tags (e-commerce)
+
+For each dataLayer event the app pushes, create a **GA4 Event** tag with a **Custom Event** trigger:
+
+| dataLayer `event`  | Trigger (Custom Event) | Event parameters                                           |
+| ------------------ | ---------------------- | ---------------------------------------------------------- |
+| `page_view`        | `page_view`            | `page_path`, `page_location`                               |
+| `view_item`        | `view_item`            | `ecommerce.items`, `ecommerce.value`, `ecommerce.currency` |
+| `add_to_cart`      | `add_to_cart`          | same as above                                              |
+| `view_cart`        | `view_cart`            | same as above                                              |
+| `begin_checkout`   | `begin_checkout`       | same as above                                              |
+| `purchase`         | `purchase`             | + `ecommerce.transaction_id`                               |
+| `remove_from_cart` | `remove_from_cart`     | same as above                                              |
+| `search`           | `search`               | `search_term`                                              |
+| `scroll`           | `scroll`               | `percent_scrolled`                                         |
+| `click`            | `click`                | `link_url`, `link_text`, `outbound`                        |
+
+**Data Layer Variables** (Variables → New → Data Layer Variable):
+
+- `ecommerce.items` → Data Layer Variable Name: `ecommerce.items`
+- `ecommerce.value` → Data Layer Variable Name: `ecommerce.value`
+- `ecommerce.currency` → Data Layer Variable Name: `ecommerce.currency`
+- `ecommerce.transaction_id` → Data Layer Variable Name: `ecommerce.transaction_id`
+- `search_term` → Data Layer Variable Name: `search_term`
+- `percent_scrolled` → Data Layer Variable Name: `percent_scrolled`
+- `link_url` → Data Layer Variable Name: `link_url`
+- `link_text` → Data Layer Variable Name: `link_text`
+- `outbound` → Data Layer Variable Name: `outbound`
+
+Map these variables in each GA4 Event tag under **Event Parameters**.
+
+### Publish and verify
+
+1. **Submit** and publish the container
+2. [Tag Assistant](https://tagassistant.google.com/) — confirm container loads, no duplicate GA4 tags
+3. GA4 **Admin → DebugView** — confirm events appear when browsing the site
 
 ## Usage
 
@@ -88,38 +142,22 @@ function ProductPage({ product }) {
 
 - `trackSearch` - Search performed
 - `trackEvent` - Custom event
-- `trackPageView` - Page view (usually automatic)
+- `trackPageView` - Page view (SPA navigations via `GTMPageViewTracker`)
 
-## Implementation Checklist
+### Currently wired in the app
 
-### Home Page
-
-- [ ] Track featured products view (`trackViewItemList`)
-- [ ] Track product clicks (`trackSelectItem`)
-
-### Product Listing Page
-
-- [ ] Track product list view (`trackViewItemList`)
-- [ ] Track product clicks (`trackSelectItem`)
-- [ ] Track search queries (`trackSearch`)
-
-### Product Detail Page
-
-- [ ] Track product view (`trackViewItem`)
-- [ ] Track add to cart (`trackAddToCart`)
-
-### Cart Page
-
-- [ ] Track cart view (`trackViewCart`)
-- [ ] Track remove from cart (`trackRemoveFromCart`)
-- [ ] Track begin checkout (`trackBeginCheckout`)
-
-### Checkout Flow
-
-- [ ] Track begin checkout (`trackBeginCheckout`)
-- [ ] Track add shipping info (`trackAddShippingInfo`)
-- [ ] Track add payment info (`trackAddPaymentInfo`)
-- [ ] Track purchase (`trackPurchase`)
+| Event              | Location                                 |
+| ------------------ | ---------------------------------------- |
+| `page_view`        | `GTMPageViewTracker` (SPA navigations)   |
+| `view_item`        | `ProductViewTracker` (PDP)               |
+| `add_to_cart`      | `ProductDetailsHeader`                   |
+| `view_cart`        | `CartPageClient`                         |
+| `remove_from_cart` | `CartPageClient` (item delete)           |
+| `begin_checkout`   | `CheckoutTracker`                        |
+| `purchase`         | `OrderPurchaseTracker` (order confirmed) |
+| `search`           | `AlgoliaProductsListing` (`query` param) |
+| `scroll`           | `AnalyticsBehaviorTracker` (site-wide)   |
+| `click` (outbound) | `AnalyticsBehaviorTracker` (site-wide)   |
 
 ## GA4 Item Format
 
@@ -149,44 +187,32 @@ interface GA4Item {
 
 ## Testing
 
-**Important:** GA4 is disabled in development mode. To test, you need to run in production mode:
+GTM is disabled in development mode. To test, run in production mode:
 
 ```bash
-# Build and run in production mode
-npm run build
-npm run start
+NEXT_PUBLIC_GTM_ID=GTM-XXXX yarn build && yarn start
 ```
 
 Then:
 
-1. Open your website in browser
-2. Open Developer Console
-3. Type `window.gtag` - should return a function (if undefined, GA4 didn't load)
-4. Perform actions (view product, add to cart, etc.)
-5. Check GA4 DebugView in Google Analytics (enable debug mode: `?ga_debug=1` in URL)
-
-### Development Testing
-
-If you need to test in development temporarily, you can modify `src/app/layout.tsx`:
-
-```tsx
-// Find this line (around line 92):
-const isProduction = process.env.NODE_ENV === "production"
-
-// Change to:
-const isProduction = true // Force GA4 in development (for testing only)
-```
-
-**Don't forget to revert this change after testing!**
+1. Open [Tag Assistant](https://tagassistant.google.com/) and connect to your site
+2. Open Developer Console — type `dataLayer` to inspect pushed events
+3. Walk the funnel: search → PDP → add to cart → cart → remove item → checkout → order confirmed
+4. Scroll a page and click an external link — confirm `scroll` and `click` events in `dataLayer`
+5. Confirm events in GA4 **DebugView** (GTM preview mode or published container)
+6. Confirm only one GA4 path (via GTM) — no duplicate `collect` requests from a direct GA4 script
 
 ## Files
 
-- `gtag.ts` - Core GA4 event tracking functions
+- `gtag.ts` - dataLayer push functions (GA4 ecommerce format)
 - `useAnalytics.ts` - React hook for tracking in components
-- `helpers.ts` - Helper functions to convert Medusa data to GA4 format
+- `helpers.ts` - Helper functions to convert Medusa/cart/order data to GA4 format
 - `index.ts` - Public exports
+- `../components/GTMPageViewTracker.tsx` - SPA page view tracking
+- `../components/AnalyticsBehaviorTracker.tsx` - Scroll depth and outbound link tracking
+- `../components/atoms/OrderPurchaseTracker/OrderPurchaseTracker.tsx` - Purchase event on order confirmation
 
 ## Resources
 
-- [GA4 E-commerce Events Documentation](https://developers.google.com/analytics/devguides/collection/ga4/ecommerce)
-- [Next.js Third Parties Documentation](https://nextjs.org/docs/app/building-your-application/optimizing/third-party-libraries#google-analytics)
+- [GA4 E-commerce (GTM dataLayer)](https://developers.google.com/tag-platform/tag-manager/ecommerce-ga4)
+- [Next.js GTM Documentation](https://nextjs.org/docs/app/building-your-application/optimizing/third-party-libraries#google-tag-manager)
