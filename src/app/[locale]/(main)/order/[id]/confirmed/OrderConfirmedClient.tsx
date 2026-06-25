@@ -1,6 +1,7 @@
 "use client"
 
 import { useOrderDetailsQuery } from "@/hooks/useOrderManagementQuery"
+import { OrderPurchaseTracker } from "@/components/atoms/OrderPurchaseTracker/OrderPurchaseTracker"
 import { ClearCheckoutCartHold } from "@/components/sections/OrderConfirmedSection/ClearCheckoutCartHold"
 import { OrderConfirmedSection } from "@/components/sections/OrderConfirmedSection/OrderConfirmedSection"
 import { Container, Heading, Text } from "@medusajs/ui"
@@ -100,6 +101,7 @@ export const OrderConfirmedClient = ({
   return (
     <main className="container bg-gray-50/50 min-h-screen pb-20">
       <ClearCheckoutCartHold />
+      <OrderPurchaseTracker order={data.order} />
       <div className="pt-12 pb-6 px-4 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out flex flex-col items-center">
         {/* Premium Success Indicator */}
         <div className="relative mb-8 flex justify-center">

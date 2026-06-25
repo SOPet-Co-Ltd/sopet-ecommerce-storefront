@@ -1,22 +1,33 @@
 /**
- * Google Analytics 4 E-commerce Event Tracking
- * Documentation: https://developers.google.com/analytics/devguides/collection/ga4/ecommerce
+ * GTM dataLayer event tracking (GA4 ecommerce format)
+ * Documentation: https://developers.google.com/tag-platform/tag-manager/ecommerce-ga4
  */
 
-// Extend Window interface to include gtag
 declare global {
   interface Window {
-    gtag?: (
-      command: string,
-      targetId: string,
-      config?: Record<string, any>
-    ) => void
+    dataLayer?: Record<string, unknown>[]
   }
 }
 
-// Check if gtag is available
-const isGtagAvailable = (): boolean => {
-  return typeof window !== "undefined" && typeof window.gtag === "function"
+const canTrack = (): boolean => {
+  if (typeof window === "undefined") return false
+  if (process.env.NODE_ENV !== "production") return false
+  window.dataLayer = window.dataLayer || []
+  return true
+}
+
+const pushEcommerceEvent = (
+  event: string,
+  ecommerce: Record<string, unknown>
+) => {
+  if (!canTrack()) return
+  window.dataLayer!.push({ ecommerce: null })
+  window.dataLayer!.push({ event, ecommerce })
+}
+
+const pushEvent = (payload: Record<string, unknown>) => {
+  if (!canTrack()) return
+  window.dataLayer!.push(payload)
 }
 
 // Product/Item interface for GA4
@@ -59,20 +70,18 @@ export interface EcommerceEventParams {
  * Track page view
  */
 export const pageview = (url: string) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("config", process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID!, {
+  pushEvent({
+    event: "page_view",
     page_path: url,
+    page_location: window.location.href,
   })
 }
 
 /**
  * Track custom event
  */
-export const event = (action: string, params?: Record<string, any>) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", action, params)
+export const event = (action: string, params?: Record<string, unknown>) => {
+  pushEvent({ event: action, ...params })
 }
 
 /**
@@ -83,9 +92,7 @@ export const viewItemList = (params: {
   item_list_name?: string
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "view_item_list", params)
+  pushEcommerceEvent("view_item_list", params)
 }
 
 /**
@@ -96,9 +103,7 @@ export const viewItem = (params: {
   value?: number
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "view_item", params)
+  pushEcommerceEvent("view_item", params)
 }
 
 /**
@@ -109,9 +114,7 @@ export const addToCart = (params: {
   value?: number
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "add_to_cart", params)
+  pushEcommerceEvent("add_to_cart", params)
 }
 
 /**
@@ -122,9 +125,7 @@ export const removeFromCart = (params: {
   value?: number
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "remove_from_cart", params)
+  pushEcommerceEvent("remove_from_cart", params)
 }
 
 /**
@@ -136,9 +137,7 @@ export const beginCheckout = (params: {
   items: GA4Item[]
   coupon?: string
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "begin_checkout", params)
+  pushEcommerceEvent("begin_checkout", params)
 }
 
 /**
@@ -151,9 +150,7 @@ export const addShippingInfo = (params: {
   coupon?: string
   shipping_tier?: string
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "add_shipping_info", params)
+  pushEcommerceEvent("add_shipping_info", params)
 }
 
 /**
@@ -166,9 +163,7 @@ export const addPaymentInfo = (params: {
   coupon?: string
   payment_type?: string
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "add_payment_info", params)
+  pushEcommerceEvent("add_payment_info", params)
 }
 
 /**
@@ -184,9 +179,7 @@ export const purchase = (params: {
   tax?: number
   affiliation?: string
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "purchase", params)
+  pushEcommerceEvent("purchase", params)
 }
 
 /**
@@ -197,9 +190,7 @@ export const viewCart = (params: {
   value?: number
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "view_cart", params)
+  pushEcommerceEvent("view_cart", params)
 }
 
 /**
@@ -210,18 +201,15 @@ export const selectItem = (params: {
   item_list_name?: string
   items: GA4Item[]
 }) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "select_item", params)
+  pushEcommerceEvent("select_item", params)
 }
 
 /**
  * Search event
  */
 export const search = (searchTerm: string) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "search", {
+  pushEvent({
+    event: "search",
     search_term: searchTerm,
   })
 }
@@ -231,9 +219,8 @@ export const search = (searchTerm: string) => {
  * @param percentage - Scroll depth percentage (25, 50, 75, 90, 100)
  */
 export const scrollDepth = (percentage: number) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "scroll", {
+  pushEvent({
+    event: "scroll",
     percent_scrolled: percentage,
   })
 }
@@ -249,9 +236,8 @@ export const fileDownload = (
   fileExtension: string,
   fileUrl: string
 ) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "file_download", {
+  pushEvent({
+    event: "file_download",
     file_name: fileName,
     file_extension: fileExtension,
     link_url: fileUrl,
@@ -264,9 +250,8 @@ export const fileDownload = (
  * @param linkText - Text of the link (optional)
  */
 export const outboundClick = (url: string, linkText?: string) => {
-  if (!isGtagAvailable()) return
-
-  window.gtag!("event", "click", {
+  pushEvent({
+    event: "click",
     link_url: url,
     link_text: linkText,
     outbound: true,

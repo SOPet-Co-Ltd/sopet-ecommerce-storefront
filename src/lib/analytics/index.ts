@@ -1,7 +1,7 @@
 /**
  * Analytics Integration
  *
- * Google Analytics 4 - All e-commerce tracking and analytics
+ * Google Analytics 4 (via GTM dataLayer) - All e-commerce tracking and analytics
  * PostHog - Heatmaps, session recording, UX analysis
  *
  * Usage:

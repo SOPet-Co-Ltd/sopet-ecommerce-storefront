@@ -1,4 +1,5 @@
 import type { GA4Item } from "./gtag"
+import type { OrderLineItem } from "@/types/order"
 
 /**
  * Helper utilities to convert Medusa product data to GA4 format
@@ -72,6 +73,25 @@ export const convertCartItemToGA4Item = (item: {
     item_category2: product?.categories?.[1]?.name,
     item_brand: product?.collection?.title,
     item_variant: item.variant?.title,
+  }
+}
+
+/**
+ * Convert order line item to GA4 Item format
+ */
+export const convertOrderLineItemToGA4Item = (
+  item: OrderLineItem,
+  currencyCode: string
+): GA4Item => {
+  const price = item.unit_price ? item.unit_price / 100 : undefined
+
+  return {
+    item_id: item.variant?.id || item.id,
+    item_name: item.title,
+    currency: currencyCode.toUpperCase() || "THB",
+    price,
+    quantity: item.quantity,
+    item_variant: item.variant?.title || undefined,
   }
 }
 

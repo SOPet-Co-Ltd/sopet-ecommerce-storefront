@@ -9,7 +9,8 @@ import {
   DEFAULT_REGION,
 } from "@/lib/site-defaults"
 import { Providers } from "./providers"
-import { GoogleAnalytics } from "@next/third-parties/google"
+import { GoogleTagManager } from "@next/third-parties/google"
+import { GTMPageViewTracker } from "@/components/GTMPageViewTracker"
 import { PostHogProvider } from "@/components/PostHogProvider"
 
 const mitr = Mitr({
@@ -90,23 +91,22 @@ export default async function RootLayout({
 
   const htmlLang = locale || "th"
 
-  const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID
+  const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID
   const isProduction = process.env.NODE_ENV === "production"
 
   return (
     <html lang={htmlLang} className="" suppressHydrationWarning>
+      {GTM_ID && isProduction && <GoogleTagManager gtmId={GTM_ID} />}
       <body
         className={`${mitr.className} bg-sop-primary-100 text-sop-neutral-gray-300 relative h-dvh`}
       >
+        {GTM_ID && isProduction && <GTMPageViewTracker />}
         <PostHogProvider>
           <Providers>{children}</Providers>
         </PostHogProvider>
         <MedusaToaster position="top-right" />
         <SonnerToaster position="top-right" richColors />
       </body>
-      {GA_MEASUREMENT_ID && isProduction && (
-        <GoogleAnalytics gaId={GA_MEASUREMENT_ID} />
-      )}
     </html>
   )
 }
