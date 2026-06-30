@@ -15,7 +15,6 @@ import { updateCustomer } from "@/lib/data/customer"
 import { HttpTypes } from "@medusajs/types"
 import { useState } from "react"
 import { ThaiPhoneInput } from "@/components/molecules/ThaiPhoneInput/ThaiPhoneInput"
-import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 import { useSubmitOnce } from "@/lib/hooks/use-submit-once"
 
 interface Props {
@@ -61,7 +60,6 @@ const Form: React.FC<Props> = ({ handleClose }) => {
       const body = {
         first_name: data.firstName,
         last_name: data.lastName,
-        phone: normalizeThaiPhoneNumber(data.phone),
       }
       try {
         await updateCustomer(body as HttpTypes.StoreUpdateCustomer)
@@ -96,15 +94,11 @@ const Form: React.FC<Props> = ({ handleClose }) => {
           <ThaiPhoneInput
             title="Phone"
             placeholder="Type phone number"
-            state={errors.phone ? "error" : "default"}
-            description={(errors.phone as FieldError)?.message}
+            state="default"
             value={phone}
-            onValueChange={(value) =>
-              setValue("phone", value, {
-                shouldValidate: true,
-                shouldDirty: true,
-              })
-            }
+            disabled
+            aria-disabled="true"
+            onValueChange={() => {}}
             aria-required="true"
           />
           <LabeledInput
