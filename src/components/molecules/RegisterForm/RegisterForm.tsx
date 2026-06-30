@@ -2,7 +2,13 @@
 import { useState } from "react"
 import { Button, InputSOPet } from "@/components/atoms"
 import LocalizedClientLink from "../LocalizedLink/LocalizedLink"
-import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
+import {
+  requestOtp,
+  reactivateAccount,
+  verifyOtpAndLogin,
+} from "@/lib/data/customer"
+import { finishCustomerLoginAfterAuth } from "@/lib/data/local-customer-cart"
+import { ReactivateAccountModal } from "@/components/molecules/ReactivateAccountModal/ReactivateAccountModal"
 import { initiateOAuth } from "@/lib/data/oauth"
 import {
   SOPetLogo,
@@ -10,7 +16,7 @@ import {
   GoogleIcon,
   LineCustomIcon,
 } from "@/icons"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 
 export const RegisterForm = () => {
   return <Form />
@@ -22,8 +28,26 @@ const Form = () => {
   const [otpRequested, setOtpRequested] = useState(false)
   const [isRequestingOtp, setIsRequestingOtp] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [isReactivating, setIsReactivating] = useState(false)
+  const [reactivationToken, setReactivationToken] = useState<string | null>(
+    null
+  )
+  const [reactivationError, setReactivationError] = useState<string | null>(
+    null
+  )
   const [error, setError] = useState<string | undefined>()
   const router = useRouter()
+  const params = useParams()
+  const locale = typeof params.locale === "string" ? params.locale : "th"
+
+  const finishLogin = async () => {
+    try {
+      await finishCustomerLoginAfterAuth()
+    } catch (mergeError) {
+      console.error("[RegisterForm] Failed to complete login:", mergeError)
+    }
+    router.push("/user")
+  }
 
   const isValidEmailOrPhone = (value: string | null | undefined): boolean => {
     if (!value || value.trim() === "") {
@@ -83,14 +107,45 @@ const Form = () => {
     formData.append("otp", otp.trim())
 
     const res = await verifyOtpAndLogin(formData)
-    if (res) {
-      setError(res)
+    if (res.type === "error") {
+      setError(res.message)
+      setIsVerifying(false)
+      return
+    }
+
+    if (res.type === "pending_deletion") {
+      setReactivationToken(res.reactivationToken)
       setIsVerifying(false)
       return
     }
 
     setIsVerifying(false)
-    router.push("/user")
+    await finishLogin()
+  }
+
+  const handleReactivateConfirm = async () => {
+    if (!reactivationToken || isReactivating) return
+
+    setReactivationError(null)
+    setIsReactivating(true)
+
+    const result = await reactivateAccount(reactivationToken)
+    if (result.type === "error") {
+      setReactivationError(result.message)
+      setIsReactivating(false)
+      return
+    }
+
+    setReactivationToken(null)
+    setIsReactivating(false)
+    await finishLogin()
+  }
+
+  const handleReactivateCancel = () => {
+    if (isReactivating) return
+    setReactivationToken(null)
+    setReactivationError(null)
+    router.replace(`/${locale}`)
   }
 
   return (
@@ -294,6 +349,14 @@ const Form = () => {
           {isVerifying && "กำลังสร้างบัญชีและเข้าสู่ระบบ กรุณารอสักครู่"}
         </div>
       </div>
+
+      <ReactivateAccountModal
+        open={reactivationToken != null}
+        loading={isReactivating}
+        error={reactivationError}
+        onConfirm={handleReactivateConfirm}
+        onCancel={handleReactivateCancel}
+      />
     </main>
   )
 }

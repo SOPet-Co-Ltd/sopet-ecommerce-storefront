@@ -3,11 +3,13 @@
 import { Button } from "@/components/atoms"
 import { Modal } from "@/components/molecules"
 import { requestDeleteAccount } from "@/lib/data/customer"
+import { formatSoftDeleteRetentionPeriodThai } from "@/lib/helpers/customer-deletion"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 
-const MODAL_CONFIRM_MESSAGE =
-  "กดลบบัญชีเพื่อยืนยัน การดำเนินการนี้ไม่สามารถย้อนกลับได้"
+const retentionPeriod = formatSoftDeleteRetentionPeriodThai()
+
+const MODAL_CONFIRM_MESSAGE = `บัญชีจะเข้าสู่สถานะรอลบ คุณสามารถเปิดใช้งานบัญชีอีกครั้งได้ภายใน ${retentionPeriod} โดยเข้าสู่ระบบใหม่ หลังจากนั้นบัญชีจะถูกปิดใช้งานถาวร`
 
 export function DeleteAccountButton() {
   const [openModal, setOpenModal] = useState(false)

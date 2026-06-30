@@ -10,11 +10,22 @@ import {
   normalizeThaiPhoneNumber,
 } from "@/lib/helpers/phone"
 
-export const LoginForm = () => {
-  return <Form />
+export type LoginNotice = "sessionRequired" | "sessionExpired" | null
+
+type LoginFormProps = {
+  notice?: LoginNotice
 }
 
-const Form = () => {
+export const LoginForm = ({ notice = null }: LoginFormProps) => {
+  return <Form notice={notice} />
+}
+
+const NOTICE_MESSAGES: Record<Exclude<LoginNotice, null>, string> = {
+  sessionRequired: "กรุณาเข้าสู่ระบบเพื่อใช้งานส่วนนี้",
+  sessionExpired: "เซสชันหมดอายุ กรุณาเข้าสู่ระบบอีกครั้ง",
+}
+
+const Form = ({ notice }: { notice: LoginNotice }) => {
   const [phone, setPhone] = useState("")
   const [isRequestingOtp, setIsRequestingOtp] = useState(false)
   const [error, setError] = useState("")
@@ -87,6 +98,14 @@ const Form = () => {
             เข้าสู่ระบบ
           </h1>
         </div>
+        {notice && (
+          <p
+            className="sop-body-sm-regular text-sop-neutral-gray-400 text-center rounded-lg bg-sop-neutral-grayalpha-50 px-4 py-3"
+            role="status"
+          >
+            {NOTICE_MESSAGES[notice]}
+          </p>
+        )}
         {/* Form */}
         <form onSubmit={handleSubmit} noValidate aria-labelledby="login-title">
           <div className="space-y-4">

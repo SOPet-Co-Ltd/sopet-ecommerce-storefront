@@ -1,11 +1,16 @@
 "use client"
 import { useState, useEffect, useRef } from "react"
 import { Button, InputSOPet } from "@/components/atoms"
-import { useRouter } from "next/navigation"
-import { requestOtp, verifyOtpAndLogin } from "@/lib/data/customer"
+import { finishCustomerLoginAfterAuth } from "@/lib/data/local-customer-cart"
+import {
+  reactivateAccount,
+  requestOtp,
+  verifyOtpAndLogin,
+} from "@/lib/data/customer"
+import { ReactivateAccountModal } from "@/components/molecules/ReactivateAccountModal/ReactivateAccountModal"
 import { SOPetLogo } from "@/icons"
-import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
 import { formatThaiPhoneNumberForDisplay } from "@/lib/helpers/phone"
+import { useParams, useRouter } from "next/navigation"
 
 const OTP_COOLDOWN_SECONDS = 180
 
@@ -19,9 +24,18 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
   const [otp, setOtp] = useState("")
   const [isVerifying, setIsVerifying] = useState(false)
   const [isResending, setIsResending] = useState(false)
+  const [isReactivating, setIsReactivating] = useState(false)
   const [error, setError] = useState("")
+  const [reactivationToken, setReactivationToken] = useState<string | null>(
+    null
+  )
+  const [reactivationError, setReactivationError] = useState<string | null>(
+    null
+  )
   const [cooldown, setCooldown] = useState(OTP_COOLDOWN_SECONDS)
   const router = useRouter()
+  const params = useParams()
+  const locale = typeof params.locale === "string" ? params.locale : "th"
   const errorRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -32,12 +46,20 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
     return () => clearInterval(timer)
   }, [cooldown])
 
-  // Focus error message when error appears
   useEffect(() => {
     if (error && errorRef.current) {
       errorRef.current.focus()
     }
   }, [error])
+
+  const finishLogin = async () => {
+    try {
+      await finishCustomerLoginAfterAuth()
+    } catch (mergeError) {
+      console.error("[OtpVerifyForm] Failed to complete login:", mergeError)
+    }
+    router.push("/user")
+  }
 
   const handleResend = async () => {
     if (isResending) {
@@ -77,23 +99,45 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
     formData.append("otp", otp.trim())
 
     const res = await verifyOtpAndLogin(formData)
-    if (res) {
-      setError(res)
+    if (res.type === "error") {
+      setError(res.message)
       setIsVerifying(false)
       return
     }
 
-    try {
-      await mergeAnonymousCartIntoCustomerAfterLogin()
-    } catch (mergeError) {
-      console.error(
-        "[OtpVerifyForm] Failed to merge anonymous cart after OTP login:",
-        mergeError
-      )
+    if (res.type === "pending_deletion") {
+      setReactivationToken(res.reactivationToken)
+      setIsVerifying(false)
+      return
     }
 
     setIsVerifying(false)
-    router.push("/user")
+    await finishLogin()
+  }
+
+  const handleReactivateConfirm = async () => {
+    if (!reactivationToken || isReactivating) return
+
+    setReactivationError(null)
+    setIsReactivating(true)
+
+    const result = await reactivateAccount(reactivationToken)
+    if (result.type === "error") {
+      setReactivationError(result.message)
+      setIsReactivating(false)
+      return
+    }
+
+    setReactivationToken(null)
+    setIsReactivating(false)
+    await finishLogin()
+  }
+
+  const handleReactivateCancel = () => {
+    if (isReactivating) return
+    setReactivationToken(null)
+    setReactivationError(null)
+    router.replace(`/${locale}`)
   }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -104,7 +148,6 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
   return (
     <main className="flex justify-center items-center h-full p-4">
       <div className="space-y-sop-40px md:max-w-[400px] min-w-[300px] w-full">
-        {/* Logo */}
         <div
           className="flex justify-center items-center"
           role="img"
@@ -117,7 +160,6 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
             <SOPetLogo size={150} />
           </div>
         </div>
-        {/* Title */}
         <div className="flex justify-center items-center flex-col gap-2">
           <h1
             id="otp-title"
@@ -129,7 +171,6 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
             รหัส OTP ถูกส่งไปยัง {formatThaiPhoneNumberForDisplay(phone)}
           </p>
         </div>
-        {/* Form */}
         <form onSubmit={handleSubmit} noValidate aria-labelledby="otp-title">
           <div className="space-y-4">
             <div>
@@ -209,13 +250,20 @@ export const OtpVerifyForm = ({ phone }: { phone: string }) => {
             </div>
           </div>
         </form>
-        {/* Screen reader live region for status updates */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
           {isVerifying && "กำลังยืนยันรหัส OTP กรุณารอสักครู่"}
           {isResending && "กำลังส่งรหัส OTP ใหม่"}
           {cooldown === 0 && !isResending && "สามารถขอ OTP ใหม่ได้แล้ว"}
         </div>
       </div>
+
+      <ReactivateAccountModal
+        open={reactivationToken != null}
+        loading={isReactivating}
+        error={reactivationError}
+        onConfirm={handleReactivateConfirm}
+        onCancel={handleReactivateCancel}
+      />
     </main>
   )
 }

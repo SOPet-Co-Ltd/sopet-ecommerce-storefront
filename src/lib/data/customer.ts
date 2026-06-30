@@ -16,11 +16,14 @@ import meta from "@/components/atoms/Autocomplete/Autocomplete.stories"
 import { normalizeThaiPhoneNumber } from "@/lib/helpers/phone"
 import type { AddressFormData } from "@/components/molecules/AddressForm/schema"
 
-/**
- * Lightweight auth check for layout/header usage.
- * Returns basic customer identity without expanding orders/addresses.
- */
-export async function getSessionCustomer(): Promise<HttpTypes.StoreCustomer | null> {
+type AuthMeQuery = {
+  fields?: string
+  relations?: string
+}
+
+async function resolveSessionCustomer(
+  query?: AuthMeQuery
+): Promise<HttpTypes.StoreCustomer | null> {
   const headers = await getAuthHeaders()
 
   if (!headers || Object.keys(headers).length === 0) {
@@ -33,6 +36,7 @@ export async function getSessionCustomer(): Promise<HttpTypes.StoreCustomer | nu
     }>(`/store/auth/me`, {
       method: "GET",
       headers,
+      ...(query ? { query } : {}),
       cache: "no-store",
     })
 
@@ -43,36 +47,23 @@ export async function getSessionCustomer(): Promise<HttpTypes.StoreCustomer | nu
 }
 
 /**
+ * Lightweight auth check for layout/header usage.
+ * Returns basic customer identity without expanding orders/addresses.
+ */
+export async function getSessionCustomer(): Promise<HttpTypes.StoreCustomer | null> {
+  return resolveSessionCustomer()
+}
+
+/**
  * Verify that the current user is logged in using the custom /store/auth/me route.
  * Returns the customer on 200, or null if unauthorized / not logged in.
  */
 export const verifyCustomer =
   async (): Promise<HttpTypes.StoreCustomer | null> => {
-    const headers = await getAuthHeaders()
-
-    // No auth headers means there's no token; treat as not logged in.
-    if (!headers || Object.keys(headers).length === 0) {
-      return null
-    }
-
-    try {
-      const result = await sdk.client.fetch<{
-        customer: HttpTypes.StoreCustomer
-      }>(`/store/auth/me`, {
-        method: "GET",
-        headers,
-        query: {
-          fields: "*orders,*addresses",
-          relations: "*orders,*addresses",
-        },
-        cache: "no-store",
-      })
-
-      return result.customer
-    } catch {
-      // If the backend returns 401/404 or any error, treat as not logged in.
-      return null
-    }
+    return resolveSessionCustomer({
+      fields: "*orders,*addresses",
+      relations: "*orders,*addresses",
+    })
   }
 
 /**
@@ -491,16 +482,23 @@ export async function requestOtp(formData: FormData) {
  * Verify OTP and log in the customer.
  * Uses /store/auth/signin/verify and stores the returned JWT.
  */
-export async function verifyOtpAndLogin(formData: FormData) {
+export type VerifyOtpAndLoginResult =
+  | { type: "logged_in" }
+  | { type: "pending_deletion"; reactivationToken: string }
+  | { type: "error"; message: string }
+
+export async function verifyOtpAndLogin(
+  formData: FormData
+): Promise<VerifyOtpAndLoginResult> {
   const identifier = (formData.get("identifier") as string)?.trim()
   const otp = (formData.get("otp") as string)?.trim()
 
   if (!identifier) {
-    return "กรุณากรอกอีเมลหรือเบอร์โทรศัพท์"
+    return { type: "error", message: "กรุณากรอกอีเมลหรือเบอร์โทรศัพท์" }
   }
 
   if (!otp || !/^\d{6}$/.test(otp)) {
-    return "กรุณากรอก OTP 6 หลักให้ถูกต้อง"
+    return { type: "error", message: "กรุณากรอก OTP 6 หลักให้ถูกต้อง" }
   }
 
   try {
@@ -519,27 +517,103 @@ export async function verifyOtpAndLogin(formData: FormData) {
       success: boolean
       error?: string
       token?: string
+      account_status?: string
+      reactivation_token?: string
     }>(`/store/auth/signin/verify`, {
       method: "POST",
       body: payload,
     })
 
-    if (!res.success || !res.token) {
-      return res.error || "ไม่สามารถยืนยัน OTP ได้"
+    if (!res.success) {
+      return {
+        type: "error",
+        message: res.error || "ไม่สามารถยืนยัน OTP ได้",
+      }
     }
 
-    // Store JWT in cookies
-    await setAuthToken(res.token as string)
+    if (res.account_status === "pending_deletion" && res.reactivation_token) {
+      return {
+        type: "pending_deletion",
+        reactivationToken: res.reactivation_token,
+      }
+    }
 
-    // Revalidate customer cache; clear any stale Medusa cart (cart only created at checkout)
+    if (!res.token) {
+      return {
+        type: "error",
+        message: res.error || "ไม่สามารถยืนยัน OTP ได้",
+      }
+    }
+
+    await setAuthToken(res.token)
+
     const customerCacheTag = await getCacheTag("customers")
     revalidateTag(customerCacheTag)
 
     await removeCartId()
 
-    return null
-  } catch (error: any) {
-    return error.toString()
+    return { type: "logged_in" }
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : error != null
+          ? String(error)
+          : "ไม่สามารถยืนยัน OTP ได้"
+    return { type: "error", message }
+  }
+}
+
+/**
+ * Post-login housekeeping: revalidate customer cache and clear stale cart id.
+ * Client components should call finishCustomerLoginAfterAuth() to also merge
+ * the anonymous local cart.
+ */
+export async function completeCustomerLogin(): Promise<void> {
+  const customerCacheTag = await getCacheTag("customers")
+  revalidateTag(customerCacheTag)
+  await removeCartId()
+}
+
+export async function reactivateAccount(
+  reactivationToken: string
+): Promise<{ type: "logged_in" } | { type: "error"; message: string }> {
+  try {
+    const res = await fetchQuery("/store/auth/reactivate", {
+      method: "POST",
+      body: { reactivation_token: reactivationToken },
+    })
+
+    const data = res.data as {
+      success?: boolean
+      error?: string
+      token?: string
+    } | null
+
+    if (!res.ok || !data?.success || !data.token) {
+      return {
+        type: "error",
+        message:
+          data?.error || res.error?.message || "ไม่สามารถเปิดใช้งานบัญชีได้",
+      }
+    }
+
+    await setAuthToken(data.token)
+
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+
+    await removeCartId()
+
+    return { type: "logged_in" }
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : error != null
+          ? String(error)
+          : "ไม่สามารถเปิดใช้งานบัญชีได้"
+    return { type: "error", message }
   }
 }
 

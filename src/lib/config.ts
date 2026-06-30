@@ -128,7 +128,7 @@ export async function fetchQuery(
   return {
     ok: res.ok,
     status: res.status,
-    error: res.ok ? null : { message: data?.message },
-    data: res.ok ? data : null,
+    error: res.ok ? null : { message: data?.error || data?.message },
+    data,
   }
 }
