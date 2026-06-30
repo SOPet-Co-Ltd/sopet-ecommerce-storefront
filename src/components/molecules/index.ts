@@ -41,6 +41,7 @@ import { ProfileDetailsSection } from "./ProfileDetailsSection/ProfileDetailsSec
 import { ProfileContactOtpForm } from "./ProfileContactOtpForm/ProfileContactOtpForm"
 import { SaveQRCodeButton } from "./SaveQRCodeButton/SaveQRCodeButton"
 import { DeleteAccountButton } from "./DeleteAccountButton/DeleteAccountButton"
+import { ReactivateAccountModal } from "./ReactivateAccountModal/ReactivateAccountModal"
 import OrderCard from "./OrderCard/OrderCard"
 import { CouponCard } from "./CouponCard/CouponCard"
 import { CouponConditionsModal } from "./CouponConditionsModal/CouponConditionsModal"
@@ -91,6 +92,7 @@ export {
   ProfileContactOtpForm,
   SaveQRCodeButton,
   DeleteAccountButton,
+  ReactivateAccountModal,
   OrderCard,
   CouponCard,
   CouponConditionsModal,

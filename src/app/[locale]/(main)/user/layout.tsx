@@ -1,5 +1,6 @@
 import { UserBreadcrumbs } from "@/components/molecules/UserBreadcrumbs/UserBreadcrumbs"
 import { UserNavigation } from "@/components/molecules/UserNavigation/UserNavigation"
+import { getAuthHeaders } from "@/lib/data/cookies"
 import { verifyCustomer } from "@/lib/data/customer"
 import { cn } from "@/lib/utils"
 import { redirect } from "next/navigation"
@@ -12,7 +13,11 @@ export default async function UserLayout({
   const customer = await verifyCustomer()
 
   if (!customer) {
-    redirect("/login")
+    const headers = await getAuthHeaders()
+    const hadSession = Boolean(headers && Object.keys(headers).length > 0)
+    redirect(
+      hadSession ? "/login?sessionExpired=true" : "/login?sessionRequired=true"
+    )
   }
   return (
     <div className={cn("md:px-sop-80px md:py-7.5 px-0 py-sop-20px")}>

@@ -22,6 +22,14 @@ function normalizeOAuthProvider(
     : null
 }
 
+function normalizeSearchParam(
+  value: string | string[] | undefined
+): string | null {
+  const raw = Array.isArray(value) ? value[0] : value
+  if (typeof raw !== "string" || raw.trim() === "") return null
+  return raw.trim()
+}
+
 type OAuthSuccessPageProps = {
   params: Promise<{
     locale: string
@@ -52,14 +60,28 @@ export default async function OAuthSuccessPage({
 }: OAuthSuccessPageProps) {
   const { locale } = await params
   const resolvedSearchParams = await searchParams
+  const provider = normalizeOAuthProvider(resolvedSearchParams.oauth)
+  const pendingDeletion =
+    normalizeSearchParam(resolvedSearchParams.pending_deletion) === "true"
+  const reactivationToken = normalizeSearchParam(
+    resolvedSearchParams.reactivation_token
+  )
+
+  if (pendingDeletion && reactivationToken) {
+    return (
+      <OAuthSuccessView
+        locale={locale}
+        provider={provider}
+        reactivationToken={reactivationToken}
+      />
+    )
+  }
+
   const user = await verifyCustomer()
 
   if (!user) {
     return redirect(`/${locale}/login`)
   }
 
-  const provider = normalizeOAuthProvider(resolvedSearchParams.oauth)
-
-  // Show success message then client-side redirect to profile.
   return <OAuthSuccessView locale={locale} provider={provider} />
 }

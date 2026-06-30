@@ -3,6 +3,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { AnonymousCartItemInput } from "@/types/customer-cart"
 import { mergeAnonymousCustomerCartFromClient } from "@/lib/actions/merge-anonymous-customer-cart"
+import { completeCustomerLogin } from "@/lib/data/customer"
 import {
   getCartItemSeller,
   getCartItemVariantOptionsFromMetadata,
@@ -38,7 +39,8 @@ const findAnonymousItemIndexByLineItemId = (
 }
 
 const LOCAL_STORAGE_KEY = "sopet_customer_cart_anonymous_v1"
-const CHECKOUT_HOLD_STORAGE_KEY = "sopet_customer_cart_anonymous_checkout_hold_v1"
+const CHECKOUT_HOLD_STORAGE_KEY =
+  "sopet_customer_cart_anonymous_checkout_hold_v1"
 export const ANONYMOUS_CART_SYNC_EVENT = "sopet:anonymous-cart-sync"
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -324,6 +326,15 @@ export const mergeAnonymousCartIntoCustomerAfterLogin =
     }
   }
 
+/**
+ * Server cache/cart cleanup plus client-side anonymous cart merge.
+ * Call from client components after auth succeeds.
+ */
+export async function finishCustomerLoginAfterAuth(): Promise<void> {
+  await completeCustomerLogin()
+  await mergeAnonymousCartIntoCustomerAfterLogin()
+}
+
 export interface AddItemToAnonymousCartOptions {
   /** When set, resulting quantity (existing + new or just new) is capped at this value. */
   maxQuantity?: number
@@ -420,13 +431,14 @@ export const buildAnonymousCartFromLocal = (): HttpTypes.StoreCart | null => {
           } as unknown as HttpTypes.StoreProduct)
         : undefined
 
-    const variant = variantTitle || variantOptions?.length
-      ? ({
-          id: item.variantId,
-          title: variantTitle,
-          options: variantOptions,
-        } as unknown as HttpTypes.StoreProductVariant)
-      : undefined
+    const variant =
+      variantTitle || variantOptions?.length
+        ? ({
+            id: item.variantId,
+            title: variantTitle,
+            options: variantOptions,
+          } as unknown as HttpTypes.StoreProductVariant)
+        : undefined
 
     return {
       id,

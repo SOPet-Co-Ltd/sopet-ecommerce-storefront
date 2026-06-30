@@ -68,7 +68,18 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const { pathWithoutLocale, looksLikeLocale, locale } =
     getPathContext(pathname)
+  const jwtCookie = request.cookies.get("_medusa_jwt")
   const authenticated = hasValidSession(request)
+
+  if (
+    isGuestOnlyPath(pathWithoutLocale) &&
+    request.nextUrl.searchParams.get("sessionExpired") === "true" &&
+    jwtCookie?.value
+  ) {
+    const res = NextResponse.next()
+    res.cookies.delete("_medusa_jwt")
+    return res
+  }
 
   // Authenticated customer must not access login/register → redirect to account
   if (authenticated && isGuestOnlyPath(pathWithoutLocale)) {
@@ -77,7 +88,6 @@ export async function middleware(request: NextRequest) {
 
   // Anything under [locale]/user requires auth
   if (isProtectedPath(pathWithoutLocale) && !authenticated) {
-    const jwtCookie = request.cookies.get("_medusa_jwt")
     const reason =
       jwtCookie?.value && isTokenExpired(jwtCookie.value)
         ? "sessionExpired"

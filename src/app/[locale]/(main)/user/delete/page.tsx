@@ -4,6 +4,7 @@ import { verifyCustomer } from "@/lib/data/customer"
 import { redirect } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { buildPageMetadata } from "@/lib/metadata/build-page-metadata"
+import { formatSoftDeleteRetentionPeriodThai } from "@/lib/helpers/customer-deletion"
 import type { Metadata } from "next"
 
 export async function generateMetadata({
@@ -23,6 +24,7 @@ export async function generateMetadata({
 
 export default async function DeleteAccountPage() {
   const customer = await verifyCustomer()
+  const retentionPeriod = formatSoftDeleteRetentionPeriodThai()
 
   if (!customer) {
     redirect("/login")
@@ -40,14 +42,15 @@ export default async function DeleteAccountPage() {
         </h2>
         <p className={cn("sop-body-md-regular text-sop-neutral-gray-200")}>
           คุณแน่ใจหรือไม่ว่าต้องการลบบัญชีของคุณ หากคุณลบบัญชีแล้ว
-          จะไม่สามารถกู้คืนกลับมาได้อีก
+          คุณสามารถเปิดใช้งานบัญชีอีกครั้งได้ภายใน {retentionPeriod}
+          โดยเข้าสู่ระบบใหม่
         </p>
         <p
           className={cn(
             "sop-body-sm-regular text-sop-neutral-gray-300 max-w-[480px]"
           )}
         >
-          บัญชีจะถูกลบถาวรภายใน 30 วัน
+          หลังจาก {retentionPeriod} บัญชีจะถูกปิดใช้งานถาวรและไม่สามารถกู้คืนได้
         </p>
         <DeleteAccountButton />
       </div>

@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { FacebookCustomIcon, GoogleIcon, LineCustomIcon } from "@/icons"
-import { mergeAnonymousCartIntoCustomerAfterLogin } from "@/lib/data/local-customer-cart"
+import { reactivateAccount } from "@/lib/data/customer"
+import { finishCustomerLoginAfterAuth } from "@/lib/data/local-customer-cart"
+import { ReactivateAccountModal } from "@/components/molecules/ReactivateAccountModal/ReactivateAccountModal"
 
 const REDIRECT_DELAY_MS = 1500
-/** Short delay so auth cookie is available before merge (e.g. after OAuth redirect). */
 const MERGE_DELAY_MS = 400
 
 export type OAuthSuccessProvider = "google" | "facebook" | "line"
@@ -14,6 +15,7 @@ export type OAuthSuccessProvider = "google" | "facebook" | "line"
 type OAuthSuccessViewProps = {
   locale: string
   provider: OAuthSuccessProvider | null
+  reactivationToken?: string | null
 }
 
 const PROVIDER_CONFIG: Record<
@@ -34,17 +36,28 @@ const PROVIDER_CONFIG: Record<
   },
 }
 
-export function OAuthSuccessView({ locale, provider }: OAuthSuccessViewProps) {
+export function OAuthSuccessView({
+  locale,
+  provider,
+  reactivationToken = null,
+}: OAuthSuccessViewProps) {
   const router = useRouter()
+  const [isReactivating, setIsReactivating] = useState(false)
+  const [reactivationError, setReactivationError] = useState<string | null>(
+    null
+  )
+  const pendingDeletion = Boolean(reactivationToken)
 
   useEffect(() => {
+    if (pendingDeletion) return
+
     let cancelled = false
 
     const mergeAndRedirect = async () => {
       try {
         await new Promise((r) => setTimeout(r, MERGE_DELAY_MS))
         if (cancelled) return
-        await mergeAnonymousCartIntoCustomerAfterLogin()
+        await finishCustomerLoginAfterAuth()
       } catch (error) {
         console.error(
           "[OAuthSuccessView] Failed to merge anonymous cart:",
@@ -64,15 +77,58 @@ export function OAuthSuccessView({ locale, provider }: OAuthSuccessViewProps) {
     return () => {
       cancelled = true
     }
-  }, [locale, router])
+  }, [locale, pendingDeletion, router])
+
+  const handleReactivateConfirm = async () => {
+    if (!reactivationToken || isReactivating) return
+
+    setReactivationError(null)
+    setIsReactivating(true)
+
+    const result = await reactivateAccount(reactivationToken)
+    if (result.type === "error") {
+      setReactivationError(result.message)
+      setIsReactivating(false)
+      return
+    }
+
+    try {
+      await finishCustomerLoginAfterAuth()
+    } catch (error) {
+      console.error(
+        "[OAuthSuccessView] Failed to complete login after reactivation:",
+        error
+      )
+    }
+
+    router.replace(`/${locale}/user/profile`)
+  }
+
+  const handleReactivateCancel = () => {
+    if (isReactivating) return
+    router.replace(`/${locale}`)
+  }
 
   const config = provider ? PROVIDER_CONFIG[provider] : null
   const Icon = config?.Icon
 
+  if (pendingDeletion) {
+    return (
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
+        <ReactivateAccountModal
+          open
+          loading={isReactivating}
+          error={reactivationError}
+          onConfirm={handleReactivateConfirm}
+          onCancel={handleReactivateCancel}
+        />
+      </main>
+    )
+  }
+
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-[400px] min-w-[300px] overflow-hidden rounded-2xl border border-sop-neutral-grayalpha-100 bg-sop-base-white shadow-[0_4px_24px_var(--color-sop-neutral-grayalpha-100)]">
-        {/* Sopet gradient band */}
         <div className="sop-gradient-01 h-2 w-full" aria-hidden />
 
         <div className="flex flex-col items-center gap-6 px-8 py-8">
