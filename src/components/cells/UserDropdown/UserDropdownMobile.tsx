@@ -130,11 +130,13 @@ export const UserDropdownMobile = ({
           <div className="flex flex-col">
             {!user ? (
               <>
-                <ListItem
-                  icon={<SignInIcon size={14} color="#454547" />}
-                  label={"เข้าสู่ระบบ"}
-                  colored
-                />
+                <LocalizedClientLink href="/login">
+                  <ListItem
+                    icon={<SignInIcon size={14} color="#454547" />}
+                    label={"เข้าสู่ระบบ"}
+                    colored
+                  />
+                </LocalizedClientLink>
               </>
             ) : (
               <>
