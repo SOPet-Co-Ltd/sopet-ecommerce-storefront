@@ -140,7 +140,7 @@ const CheckoutAddressFormContent = ({ customer, onSubmitForm }: Props) => {
           ข้อมูลการจัดส่ง
         </label>
         <div className="relative overflow-hidden w-fill bg-sop-base-white rounded-sop-20 md:px-6 xl:px-6 lg:px-6 px-4 py-6 ">
-          {!customer?.addresses.length ? (
+          {!customer?.addresses?.length ? (
             <AddressEmptyState
               onSubmitForm={onSubmitForm}
               storeCustomer={customer}

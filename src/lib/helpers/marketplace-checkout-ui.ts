@@ -225,3 +225,139 @@ export function getMarketplaceSessionsInOrder(
   }
   return sessions
 }
+
+type PromptPayCollectionLike = {
+  id?: string
+  payment_sessions?: Array<{
+    provider_id?: string | null
+    data?: Record<string, unknown> | null
+  }> | null
+  payments?: Array<{ data?: Record<string, unknown> | null }> | null
+}
+
+function readPromptPayQrFromProviderData(
+  data: Record<string, unknown> | null | undefined
+): string | null {
+  if (!data) {
+    return null
+  }
+
+  for (const key of ["qr_code_url", "qr_image_url", "redirect_url"] as const) {
+    const value = data[key]
+    if (typeof value === "string" && value.length > 0) {
+      return value
+    }
+  }
+
+  const source = data.source
+  if (source && typeof source === "object") {
+    const scannable = (source as { scannable_code?: unknown }).scannable_code
+    if (scannable && typeof scannable === "object") {
+      const image = (scannable as { image?: unknown }).image
+      if (image && typeof image === "object") {
+        const downloadUri = (image as { download_uri?: unknown }).download_uri
+        if (typeof downloadUri === "string" && downloadUri.length > 0) {
+          return downloadUri
+        }
+      }
+    }
+  }
+
+  return null
+}
+
+/** Resolve PromptPay QR URL from marketplace payment collections (sessions or payments). */
+export function extractPromptPayQrImageUrl(
+  collections: PromptPayCollectionLike[]
+): string | null {
+  for (const collection of collections) {
+    for (const session of collection.payment_sessions ?? []) {
+      if (!isPromptpayProviderId(session.provider_id ?? undefined)) {
+        continue
+      }
+      const qr = readPromptPayQrFromProviderData(
+        (session.data as Record<string, unknown> | null | undefined) ?? null
+      )
+      if (qr) {
+        return qr
+      }
+    }
+
+    for (const payment of collection.payments ?? []) {
+      const qr = readPromptPayQrFromProviderData(
+        (payment.data as Record<string, unknown> | null | undefined) ?? null
+      )
+      if (qr) {
+        return qr
+      }
+    }
+  }
+
+  return null
+}
+
+export function mergeCheckoutPaymentCollections<
+  T extends PromptPayCollectionLike,
+>(orderCollections: T[] | undefined, sessionCollections: T[] | undefined): T[] {
+  const merged = new Map<string, T>()
+
+  for (const collection of sessionCollections ?? []) {
+    if (collection?.id) {
+      merged.set(collection.id, collection)
+    }
+  }
+
+  for (const collection of orderCollections ?? []) {
+    if (!collection?.id) {
+      continue
+    }
+
+    const existing = merged.get(collection.id)
+    if (!existing) {
+      merged.set(collection.id, collection)
+      continue
+    }
+
+    const existingHasQr = extractPromptPayQrImageUrl([existing]) != null
+    const incomingHasQr = extractPromptPayQrImageUrl([collection]) != null
+
+    if (incomingHasQr && !existingHasQr) {
+      merged.set(collection.id, collection)
+      continue
+    }
+
+    merged.set(collection.id, {
+      ...existing,
+      ...collection,
+      payment_sessions:
+        collection.payment_sessions?.length && !existingHasQr
+          ? collection.payment_sessions
+          : existing.payment_sessions?.length
+            ? existing.payment_sessions
+            : collection.payment_sessions,
+      payments:
+        collection.payments?.length && !existingHasQr
+          ? collection.payments
+          : existing.payments?.length
+            ? existing.payments
+            : collection.payments,
+    })
+  }
+
+  return Array.from(merged.values())
+}
+
+export function collectMarketplacePromptPaySessionIds(
+  mp: MpCheckoutV1,
+  collectionsById: Record<string, HttpTypes.StorePaymentCollection>,
+  providerId?: string
+): string[] {
+  return getMarketplaceSessionsInOrder(
+    mp,
+    collectionsById,
+    "promptpay",
+    providerId
+  )
+    .map((session) => session.id)
+    .filter((id): id is string => typeof id === "string" && id.length > 0)
+}
