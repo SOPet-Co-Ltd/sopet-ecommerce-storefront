@@ -725,25 +725,45 @@ export const addCustomerAddress = async (formData: FormData): Promise<any> => {
     province: formData.get("province") as string,
     is_default_billing: Boolean(formData.get("isDefaultBilling")),
     is_default_shipping: Boolean(formData.get("isDefaultShipping")),
-    // metadata: {
-    //   recipientphone: formData.get("recipientphone") as string,
-    // },
-  } as HttpTypes.StoreCreateCustomerAddress
-
-  const headers = {
-    ...(await getAuthHeaders()),
   }
 
-  return sdk.store.customer
-    .createAddress(address, {}, headers)
-    .then(async ({ customer }) => {
-      const customerCacheTag = await getCacheTag("customers")
-      revalidateTag(customerCacheTag)
-      return { success: true, error: null }
+  const headers = await getAuthHeaders()
+  const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
+  try {
+    // Use custom store route so OTP-login actors resolve to the real customer id
+    // (core SDK createAddress fails with "customer_id does not exist" for phone JWT).
+    const response = await fetch(`${backendUrl}/store/customers/me/addresses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-publishable-api-key": publishableKey,
+        ...headers,
+      },
+      body: JSON.stringify(address),
     })
-    .catch((err) => {
-      return { success: false, error: err.toString() }
-    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: response.statusText || "Failed to create address",
+      }))
+      return {
+        success: false,
+        error: errorData.message || "Failed to create address",
+      }
+    }
+
+    const data = await response.json().catch(() => null)
+    const customerCacheTag = await getCacheTag("customers")
+    revalidateTag(customerCacheTag)
+    return { success: true, error: null, customer: data?.customer ?? null }
+  } catch (err) {
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : String(err),
+    }
+  }
 }
 
 export const deleteCustomerAddress = async (
@@ -1190,16 +1210,37 @@ export async function saveCheckoutAddressForCustomer(
     addressPayload
   )
 
+  const backendUrl = process.env.MEDUSA_BACKEND_URL || "http://localhost:9000"
+  const publishableKey = process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY || ""
+
   try {
-    const response = await sdk.store.customer.createAddress(
-      addressPayload,
-      {},
-      headers
-    )
+    // Same custom route as addCustomerAddress for OTP-login customer resolution.
+    const response = await fetch(`${backendUrl}/store/customers/me/addresses`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-publishable-api-key": publishableKey,
+        ...headers,
+      },
+      body: JSON.stringify(addressPayload),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        message: response.statusText || "Failed to create address",
+      }))
+      console.error(
+        "[saveCheckoutAddressForCustomer] Error details:",
+        errorData
+      )
+      return {
+        success: false,
+        error: errorData.message || "Failed to create address",
+      }
+    }
 
     console.log("[saveCheckoutAddressForCustomer] SDK Response:", {
       success: true,
-      addressCreated: !!response,
       is_default_shipping: address.setAsDefault ?? false,
     })
 

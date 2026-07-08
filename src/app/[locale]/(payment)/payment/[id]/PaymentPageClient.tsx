@@ -37,6 +37,12 @@ import { BigWarningIcon, SaveIcon } from "@/icons"
 import { DogLoading } from "@/components/cells"
 import { useIsMobile } from "@/lib/utils/is-mobile"
 import { buildThankYouPathFromDisplayId } from "@/lib/helpers/checkout-redirect"
+import {
+  collectMarketplacePromptPaySessionIds,
+  countPayableMarketplaceSlices,
+  extractPromptPayQrImageUrl,
+  mergeCheckoutPaymentCollections,
+} from "@/lib/helpers/marketplace-checkout-ui"
 import { Modal } from "@/components/molecules"
 
 type ProviderSessionData = {
@@ -712,13 +718,19 @@ function getCartSnapshot(session: CheckoutSessionDto) {
 
 function getPaymentCollections(
   order: OrderDetails | null,
-  session: CheckoutSessionDto
+  session: CheckoutSessionDto,
+  bootstrappedCollections: PaymentCollectionLike[]
 ): PaymentCollectionLike[] {
-  if (order?.payment_collections?.length) {
-    return order.payment_collections as PaymentCollectionLike[]
+  const merged = mergeCheckoutPaymentCollections(
+    (order?.payment_collections as PaymentCollectionLike[] | undefined) ?? [],
+    (session.payment_collections as PaymentCollectionLike[] | undefined) ?? []
+  )
+
+  if (merged.length > 0) {
+    return merged
   }
 
-  return session.payment_collections as PaymentCollectionLike[]
+  return bootstrappedCollections
 }
 
 function findPaymentSession(
@@ -739,15 +751,7 @@ function findPaymentSession(
 function extractQrImageUrl(
   collections: PaymentCollectionLike[]
 ): string | null {
-  const session = findPaymentSession(collections, (s) =>
-    Boolean(s.provider_id?.toLowerCase().includes("promptpay"))
-  )
-  const data = session?.data ?? null
-
-  return (data?.qr_code_url ??
-    data?.qr_image_url ??
-    data?.redirect_url ??
-    null) as string | null
+  return extractPromptPayQrImageUrl(collections)
 }
 
 function extractPromptPayReference(
@@ -966,6 +970,9 @@ export default function PaymentPageClient({
     useState<CheckoutSessionDto>(session)
   const [order, setOrder] = useState<OrderDetails | null>(initialOrder)
   const [orderId, setOrderId] = useState<string | null>(session.order_id)
+  const [bootstrappedCollections, setBootstrappedCollections] = useState<
+    PaymentCollectionLike[]
+  >([])
   const [isBootstrapping, setIsBootstrapping] = useState(!session.order_id)
   const [statusText, setStatusText] = useState(
     !session.order_id
@@ -983,8 +990,8 @@ export default function PaymentPageClient({
 
   const paymentMethod = currentSession.payment_method
   const paymentCollections = useMemo(
-    () => getPaymentCollections(order, currentSession),
-    [currentSession, order]
+    () => getPaymentCollections(order, currentSession, bootstrappedCollections),
+    [bootstrappedCollections, currentSession, order]
   )
   const qrImageUrl =
     paymentMethod === "promptpay" ? extractQrImageUrl(paymentCollections) : null
@@ -1166,8 +1173,11 @@ export default function PaymentPageClient({
 
           const freshCollections = (
             fresh?.payment_collections?.length
-              ? (fresh.payment_collections as PaymentCollectionLike[])
-              : getPaymentCollections(fresh, session)
+              ? mergeCheckoutPaymentCollections(
+                  fresh.payment_collections as PaymentCollectionLike[],
+                  getPaymentCollections(fresh, session, bootstrappedCollections)
+                )
+              : getPaymentCollections(fresh, session, bootstrappedCollections)
           ) as PaymentCollectionLike[]
           const failure = detectPaymentFailure(fresh, freshCollections)
           if (failure.failed) {
@@ -1194,7 +1204,14 @@ export default function PaymentPageClient({
       }).catch(() => undefined)
       toast.error({ title: "ชำระเงินไม่สำเร็จ", description: msg })
     },
-    [checkoutSessionId, locale, paymentMethod, router, session]
+    [
+      bootstrappedCollections,
+      checkoutSessionId,
+      locale,
+      paymentMethod,
+      router,
+      session,
+    ]
   )
 
   useEffect(() => {
@@ -1238,23 +1255,45 @@ export default function PaymentPageClient({
           { provider_id: providerId, data: sessionData }
         )
 
+        setBootstrappedCollections(
+          Object.values(bootstrap.collectionsById) as PaymentCollectionLike[]
+        )
+
         const paymentCollectionIds = bootstrap.marketplaceCheckout.slices.map(
           (slice) => slice.payment_collection_id
         )
-        const paymentSessionIds = paymentCollectionIds.flatMap(
-          (collectionId) => {
-            const collection = bootstrap.collectionsById[collectionId]
-            const paymentSession = collection?.payment_sessions?.find(
-              (session) =>
-                session.provider_id === providerId &&
-                hasPaymentMethodType(
-                  session as PaymentSessionLike,
-                  paymentMethod
+        const paymentSessionIds =
+          paymentMethod === "promptpay"
+            ? collectMarketplacePromptPaySessionIds(
+                bootstrap.marketplaceCheckout,
+                bootstrap.collectionsById,
+                providerId
+              )
+            : paymentCollectionIds.flatMap((collectionId) => {
+                const collection = bootstrap.collectionsById[collectionId]
+                const paymentSession = collection?.payment_sessions?.find(
+                  (session) =>
+                    session.provider_id === providerId &&
+                    hasPaymentMethodType(
+                      session as PaymentSessionLike,
+                      paymentMethod
+                    )
                 )
-            )
-            return paymentSession?.id ? [paymentSession.id] : []
-          }
+                return paymentSession?.id ? [paymentSession.id] : []
+              })
+
+        const payableSliceCount = countPayableMarketplaceSlices(
+          bootstrap.marketplaceCheckout,
+          bootstrap.collectionsById
         )
+        if (
+          payableSliceCount > 0 &&
+          paymentSessionIds.length < payableSliceCount
+        ) {
+          throw new Error(
+            "ไม่สามารถสร้างช่องทางชำระเงินครบทุกร้านได้ กรุณาลองใหม่อีกครั้ง"
+          )
+        }
 
         const completeRes = await completeMarketplaceOrder(
           currentSession.cart_id,
@@ -1380,7 +1419,7 @@ export default function PaymentPageClient({
     }).catch(() => undefined)
   }, [currentSession.id, errorMsg, isExpired, orderId, paymentMethod])
 
-  if (isBootstrapping || isOrderLoading) {
+  if (isBootstrapping || (isOrderLoading && paymentMethod !== "promptpay")) {
     return <DogLoading />
   }
 
@@ -1389,19 +1428,29 @@ export default function PaymentPageClient({
       remainingSeconds != null ? formatCountdownHms(remainingSeconds) : null
 
     return (
-      <PromptPayPaymentView
-        locale={locale}
-        qrImageUrl={qrImageUrl}
-        qrReference={qrReference}
-        hms={hms}
-        isBootstrapping={isBootstrapping}
-        isExpired={isExpired}
-        errorMsg={errorMsg}
-        session={currentSession}
-        order={order}
-        orderId={orderId}
-        promptpayExpiresAtMs={promptpayExpiresAtMs}
-      />
+      <>
+        {errorMsg && !qrImageUrl && (
+          <div className="mb-4 w-full max-w-3xl">
+            <ErrorPanel
+              errorMsg={errorMsg}
+              onRetry={() => window.location.reload()}
+            />
+          </div>
+        )}
+        <PromptPayPaymentView
+          locale={locale}
+          qrImageUrl={qrImageUrl}
+          qrReference={qrReference}
+          hms={hms}
+          isBootstrapping={isBootstrapping}
+          isExpired={isExpired}
+          errorMsg={errorMsg}
+          session={currentSession}
+          order={order}
+          orderId={orderId}
+          promptpayExpiresAtMs={promptpayExpiresAtMs}
+        />
+      </>
     )
   }
 
