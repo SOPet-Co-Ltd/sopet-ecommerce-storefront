@@ -55,7 +55,7 @@ export const newCardDraftSchema = z
 export type NewCardDraft = z.infer<typeof newCardDraftSchema>
 
 export const cartLineItemSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().trim().min(1),
   quantity: z.number().int().positive(),
   unit_price: z.number().nonnegative(),
   product_id: z.string().nullish(),
@@ -64,9 +64,9 @@ export const cartLineItemSchema = z.object({
 })
 
 export const cartSnapshotSchema = z.object({
-  id: z.string().min(1),
+  id: z.string().trim().min(1),
   region_id: z.string().nullish(),
-  currency_code: z.string().min(1),
+  currency_code: z.string().trim().min(1),
   email: z.string().nullish(),
   items: z.array(cartLineItemSchema).min(1, "ตะกร้าสินค้าว่างเปล่า"),
   subtotal: z.number().nonnegative().nullish(),
@@ -78,7 +78,7 @@ export const cartSnapshotSchema = z.object({
 export const customerSessionSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("logged_in"),
-    customerId: z.string().min(1),
+    customerId: z.string().trim().min(1),
     email: z
       .union([z.literal(""), z.string().trim().email()])
       .nullable()
@@ -94,8 +94,8 @@ export const customerSessionSchema = z.discriminatedUnion("mode", [
 ])
 
 export const selectedShippingMethodSchema = z.object({
-  sellerId: z.string().min(1),
-  optionId: z.string().min(1),
+  sellerId: z.string().trim().min(1),
+  optionId: z.string().trim().min(1),
 })
 
 export const paymentSelectionSchema = z.union([
@@ -103,8 +103,8 @@ export const paymentSelectionSchema = z.union([
   z
     .object({
       method: z.literal("card"),
-      customerPaymentMethodId: z.string().min(1).optional(),
-      omiseToken: z.string().min(1).optional(),
+      customerPaymentMethodId: z.string().trim().min(1).optional(),
+      omiseToken: z.string().trim().min(1).optional(),
     })
     .refine(
       (data) =>
@@ -117,7 +117,7 @@ export const paymentSelectionSchema = z.union([
 ])
 
 export const couponsSelectionSchema = z.object({
-  site: z.string().min(1).nullable(),
+  site: z.string().trim().min(1).nullable(),
   vendor: z.record(z.string(), z.array(z.string())).default({}),
 })
 

@@ -23,7 +23,7 @@ type ProfileDetailsSectionProps = {
 
 const userProfileSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
+    name: z.string().trim().min(1, "Name is required"),
     birthDay: z.string().optional(),
     birthMonth: z.string().optional(),
     birthYear: z.string().optional(),

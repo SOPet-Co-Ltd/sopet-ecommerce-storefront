@@ -15,8 +15,8 @@ const reasonOptions = [
 ].map((opt) => toSearchOption(opt.label, opt.value))
 
 const formSchema = z.object({
-  reason: z.string().nonempty("Please select reason"),
-  comment: z.string().nonempty("Please add comment"),
+  reason: z.string().trim().min(1, "Please select reason"),
+  comment: z.string().trim().min(1, "Please add comment"),
 })
 
 type FormData = z.infer<typeof formSchema>
