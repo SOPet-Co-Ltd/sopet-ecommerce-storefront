@@ -153,6 +153,14 @@ export async function updateProfile(
   }
 }
 
+function getFetchQueryErrorMessage(
+  res: { error?: { message?: string } | null },
+  data: { error?: string } | null | undefined,
+  fallback: string
+): string {
+  return data?.error || res.error?.message || fallback
+}
+
 /**
  * Request OTP for adding or changing email/phone (logged-in user).
  * Uses POST /store/customers/me/request-otp. Does not create a new customer.
@@ -172,22 +180,22 @@ export async function requestOtpForUpdate(
       ? { email: identifier.trim() }
       : { phone: normalizeThaiPhoneNumber(identifier) }
 
-  try {
-    const res = await sdk.client.fetch<{ success: boolean; error?: string }>(
-      "/store/customers/me/request-otp",
-      {
-        method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
-        body,
-      }
-    )
-    if (!res.success) {
-      return { success: false, error: res.error ?? "ไม่สามารถส่ง OTP ได้" }
+  const res = await fetchQuery("/store/customers/me/request-otp", {
+    method: "POST",
+    headers: headers as Record<string, string>,
+    body,
+  })
+
+  const data = res.data as { success?: boolean; error?: string } | null
+
+  if (!res.ok || !data?.success) {
+    return {
+      success: false,
+      error: getFetchQueryErrorMessage(res, data, "ไม่สามารถส่ง OTP ได้"),
     }
-    return { success: true }
-  } catch (err: any) {
-    return { success: false, error: err?.message ?? String(err) }
   }
+
+  return { success: true }
 }
 
 export type VerifyOtpUpdateInput = {
@@ -222,39 +230,40 @@ export async function verifyOtpAndUpdateContact(
     return { success: false, error: "กรุณากรอก OTP 6 หลักให้ถูกต้อง" }
   }
 
-  try {
-    const res = await sdk.client.fetch<{
-      success: boolean
-      error?: string
-      token?: string
-      customer?: HttpTypes.StoreCustomer
-    }>("/store/customers/me/verify-otp-update", {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: {
-        email,
-        phone: phone ? normalizeThaiPhoneNumber(phone) : phone,
-        otp,
-      },
-    })
+  const res = await fetchQuery("/store/customers/me/verify-otp-update", {
+    method: "POST",
+    headers: headers as Record<string, string>,
+    body: {
+      email,
+      phone: phone ? normalizeThaiPhoneNumber(phone) : phone,
+      otp,
+    },
+  })
 
-    if (!res.success) {
-      return { success: false, error: res.error ?? "ไม่สามารถยืนยัน OTP ได้" }
-    }
+  const data = res.data as {
+    success?: boolean
+    error?: string
+    token?: string
+    customer?: HttpTypes.StoreCustomer
+  } | null
 
-    if (res.token) {
-      await setAuthToken(res.token)
-    }
-    const customerCacheTag = await getCacheTag("customers")
-    revalidateTag(customerCacheTag)
-
+  if (!res.ok || !data?.success) {
     return {
-      success: true,
-      token: res.token,
-      customer: res.customer,
+      success: false,
+      error: getFetchQueryErrorMessage(res, data, "ไม่สามารถยืนยัน OTP ได้"),
     }
-  } catch (err: any) {
-    return { success: false, error: err?.message ?? String(err) }
+  }
+
+  if (data.token) {
+    await setAuthToken(data.token)
+  }
+  const customerCacheTag = await getCacheTag("customers")
+  revalidateTag(customerCacheTag)
+
+  return {
+    success: true,
+    token: data.token,
+    customer: data.customer,
   }
 }
 
