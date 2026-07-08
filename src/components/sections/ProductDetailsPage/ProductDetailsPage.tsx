@@ -117,6 +117,7 @@ export const ProductDetailsPage = async ({
           sellerProducts={prod.seller?.products}
           locale={locale}
           excludeProductId={prod.id}
+          viewAllHref={`/${locale}/categories`}
         />
       </Suspense>
     </>
