@@ -153,12 +153,43 @@ export async function updateProfile(
   }
 }
 
+const GENERIC_HTTP_ERROR_MESSAGES = new Set([
+  "Bad Request",
+  "Unauthorized",
+  "Forbidden",
+  "Not Found",
+  "Internal Server Error",
+  "Unknown error",
+])
+
+const OTP_AUTH_ERROR_MESSAGES: Record<string, string> = {
+  "Invalid OTP": "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
+  "OTP validation failed": "รหัส OTP ไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง",
+  "OTP must be a 6-digit number": "กรุณากรอก OTP 6 หลักให้ถูกต้อง",
+  "Invalid phone number format": "รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง",
+  "Invalid email format": "รูปแบบอีเมลไม่ถูกต้อง",
+  "Authentication failed": "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง",
+}
+
 function getFetchQueryErrorMessage(
   res: { error?: { message?: string } | null },
   data: { error?: string } | null | undefined,
   fallback: string
 ): string {
-  return data?.error || res.error?.message || fallback
+  const message = data?.error || res.error?.message
+  if (!message || GENERIC_HTTP_ERROR_MESSAGES.has(message)) {
+    return fallback
+  }
+  return message
+}
+
+function getOtpAuthErrorMessage(
+  res: { error?: { message?: string } | null },
+  data: { error?: string } | null | undefined,
+  fallback: string
+): string {
+  const message = getFetchQueryErrorMessage(res, data, fallback)
+  return OTP_AUTH_ERROR_MESSAGES[message] ?? message
 }
 
 /**
@@ -459,32 +490,27 @@ export async function requestOtp(formData: FormData) {
     return "กรุณากรอกอีเมลหรือเบอร์โทรศัพท์"
   }
 
-  try {
-    const isEmail = identifier.includes("@")
-    const payload: { email?: string; phone?: string } = {}
+  const isEmail = identifier.includes("@")
+  const payload: { email?: string; phone?: string } = {}
 
-    if (isEmail) {
-      payload.email = identifier
-    } else {
-      payload.phone = normalizeThaiPhoneNumber(identifier)
-    }
-
-    const res = await sdk.client.fetch<{ success: boolean; error?: string }>(
-      `/store/auth/signin`,
-      {
-        method: "POST",
-        body: payload,
-      }
-    )
-
-    if (!res.success) {
-      return res.error || "ไม่สามารถส่ง OTP ได้"
-    }
-
-    return null
-  } catch (error: any) {
-    return error.toString()
+  if (isEmail) {
+    payload.email = identifier
+  } else {
+    payload.phone = normalizeThaiPhoneNumber(identifier)
   }
+
+  const res = await fetchQuery("/store/auth/signin", {
+    method: "POST",
+    body: payload,
+  })
+
+  const data = res.data as { success?: boolean; error?: string } | null
+
+  if (!res.ok || !data?.success) {
+    return getOtpAuthErrorMessage(res, data, "ไม่สามารถส่ง OTP ได้")
+  }
+
+  return null
 }
 
 /**
@@ -510,67 +536,59 @@ export async function verifyOtpAndLogin(
     return { type: "error", message: "กรุณากรอก OTP 6 หลักให้ถูกต้อง" }
   }
 
-  try {
-    const isEmail = identifier.includes("@")
-    const payload: { email?: string; phone?: string; otp: string } = {
-      otp,
-    }
-
-    if (isEmail) {
-      payload.email = identifier
-    } else {
-      payload.phone = normalizeThaiPhoneNumber(identifier)
-    }
-
-    const res = await sdk.client.fetch<{
-      success: boolean
-      error?: string
-      token?: string
-      account_status?: string
-      reactivation_token?: string
-    }>(`/store/auth/signin/verify`, {
-      method: "POST",
-      body: payload,
-    })
-
-    if (!res.success) {
-      return {
-        type: "error",
-        message: res.error || "ไม่สามารถยืนยัน OTP ได้",
-      }
-    }
-
-    if (res.account_status === "pending_deletion" && res.reactivation_token) {
-      return {
-        type: "pending_deletion",
-        reactivationToken: res.reactivation_token,
-      }
-    }
-
-    if (!res.token) {
-      return {
-        type: "error",
-        message: res.error || "ไม่สามารถยืนยัน OTP ได้",
-      }
-    }
-
-    await setAuthToken(res.token)
-
-    const customerCacheTag = await getCacheTag("customers")
-    revalidateTag(customerCacheTag)
-
-    await removeCartId()
-
-    return { type: "logged_in" }
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : error != null
-          ? String(error)
-          : "ไม่สามารถยืนยัน OTP ได้"
-    return { type: "error", message }
+  const isEmail = identifier.includes("@")
+  const payload: { email?: string; phone?: string; otp: string } = {
+    otp,
   }
+
+  if (isEmail) {
+    payload.email = identifier
+  } else {
+    payload.phone = normalizeThaiPhoneNumber(identifier)
+  }
+
+  const res = await fetchQuery("/store/auth/signin/verify", {
+    method: "POST",
+    body: payload,
+  })
+
+  const data = res.data as {
+    success?: boolean
+    error?: string
+    token?: string
+    account_status?: string
+    reactivation_token?: string
+  } | null
+
+  if (!res.ok || !data?.success) {
+    return {
+      type: "error",
+      message: getOtpAuthErrorMessage(res, data, "ไม่สามารถยืนยัน OTP ได้"),
+    }
+  }
+
+  if (data.account_status === "pending_deletion" && data.reactivation_token) {
+    return {
+      type: "pending_deletion",
+      reactivationToken: data.reactivation_token,
+    }
+  }
+
+  if (!data.token) {
+    return {
+      type: "error",
+      message: getOtpAuthErrorMessage(res, data, "ไม่สามารถยืนยัน OTP ได้"),
+    }
+  }
+
+  await setAuthToken(data.token)
+
+  const customerCacheTag = await getCacheTag("customers")
+  revalidateTag(customerCacheTag)
+
+  await removeCartId()
+
+  return { type: "logged_in" }
 }
 
 /**
