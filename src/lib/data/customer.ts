@@ -171,6 +171,13 @@ const OTP_AUTH_ERROR_MESSAGES: Record<string, string> = {
   "Authentication failed": "ไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง",
 }
 
+const OTP_AUTH_ERROR_PATTERNS: Array<{ pattern: RegExp; message: string }> = [
+  {
+    pattern: /jwt expired|token expired|expired token/i,
+    message: "รหัส OTP หมดอายุแล้ว กรุณาขอ OTP ใหม่",
+  },
+]
+
 function getFetchQueryErrorMessage(
   res: { error?: { message?: string } | null },
   data: { error?: string } | null | undefined,
@@ -189,7 +196,21 @@ function getOtpAuthErrorMessage(
   fallback: string
 ): string {
   const message = getFetchQueryErrorMessage(res, data, fallback)
-  return OTP_AUTH_ERROR_MESSAGES[message] ?? message
+  const exactMatch = OTP_AUTH_ERROR_MESSAGES[message]
+  if (exactMatch) {
+    return exactMatch
+  }
+
+  for (const {
+    pattern,
+    message: localizedMessage,
+  } of OTP_AUTH_ERROR_PATTERNS) {
+    if (pattern.test(message)) {
+      return localizedMessage
+    }
+  }
+
+  return message
 }
 
 /**

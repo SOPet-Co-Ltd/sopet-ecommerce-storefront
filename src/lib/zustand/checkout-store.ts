@@ -16,6 +16,7 @@ import type {
 } from "@/types/cart"
 import type { CheckoutCoupon } from "@/types/checkout-coupon"
 import type { CustomerPaymentMethod } from "@/lib/data/customer"
+import { getShippingAddressFingerprint } from "@/lib/checkout/address-to-cart-shipping"
 import { fetchVendorShippingMethods } from "@/lib/checkout/fetch-vendor-shipping"
 import { ensureCheckoutShippingAddressSynced } from "@/lib/checkout/sync-shipping-address-client"
 import { resolveVendorShippingSellerId } from "@/lib/checkout/resolve-vendor-shipping-seller-id"
@@ -53,6 +54,70 @@ function bumpVendorShippingGeneration(sellerId: string) {
 
 function isVendorShippingLoadStale(sellerId: string, generation: number) {
   return vendorShippingLoadGeneration.get(sellerId) !== generation
+}
+
+const VENDOR_SHIPPING_FETCH_MAX_ATTEMPTS = 3
+const VENDOR_SHIPPING_FETCH_RETRY_DELAY_MS = 400
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
+
+function seedVendorShippingFromPlatformMethods(
+  shippingMethods: StoreCardShippingMethod[]
+): Record<string, VendorShippingState> {
+  const optionsBySellerId = shippingMethods.reduce<
+    Record<string, StoreCardShippingMethod[]>
+  >((groups, method) => {
+    const sellerId = method.seller_id?.trim()
+    if (!sellerId) {
+      return groups
+    }
+
+    groups[sellerId] ??= []
+    groups[sellerId].push(method)
+    return groups
+  }, {})
+
+  return Object.fromEntries(
+    Object.entries(optionsBySellerId).map(([sellerId, options]) => [
+      sellerId,
+      {
+        options,
+        isLoading: false,
+        error: null,
+      } satisfies VendorShippingState,
+    ])
+  )
+}
+
+async function fetchVendorShippingMethodsWithRetry(
+  cartId: string,
+  sellerId: string,
+  isStale: () => boolean
+): Promise<StoreCardShippingMethod[] | null> {
+  for (
+    let attempt = 0;
+    attempt < VENDOR_SHIPPING_FETCH_MAX_ATTEMPTS;
+    attempt++
+  ) {
+    if (attempt > 0) {
+      await sleep(VENDOR_SHIPPING_FETCH_RETRY_DELAY_MS * attempt)
+    }
+
+    if (isStale()) {
+      return null
+    }
+
+    const options = await fetchVendorShippingMethods(cartId, sellerId)
+    if (options !== null) {
+      return options
+    }
+  }
+
+  return null
 }
 
 function setVendorShippingEntry(
@@ -175,7 +240,9 @@ export type CheckoutStoreInitialProps = {
 export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
   return createStore<CheckoutStore>((set, get) => ({
     ...initial,
-    vendorShippingBySellerId: {},
+    vendorShippingBySellerId: seedVendorShippingFromPlatformMethods(
+      initial.shippingMethods
+    ),
 
     paymentMethod: "promptpay",
     selectedCardId: null,
@@ -201,7 +268,27 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
     setSelectedCardId: (selectedCardId) => set({ selectedCardId }),
     setNewCardDraft: (newCardDraft) => set({ newCardDraft }),
-    setShippingAddress: (shippingAddress) => set({ shippingAddress }),
+    setShippingAddress: (shippingAddress) =>
+      set((state) => {
+        if (!shippingAddress) {
+          return state.shippingAddress === null
+            ? state
+            : { shippingAddress: null }
+        }
+
+        if (!state.shippingAddress) {
+          return { shippingAddress }
+        }
+
+        const nextFingerprint = getShippingAddressFingerprint(shippingAddress)
+        const currentFingerprint = getShippingAddressFingerprint(
+          state.shippingAddress
+        )
+
+        return nextFingerprint === currentFingerprint
+          ? state
+          : { shippingAddress }
+      }),
     setBillingContactOverride: (billingContactOverride) =>
       set({ billingContactOverride }),
     setSelectedShippingMethod: (sellerId, optionId) =>
@@ -339,8 +426,17 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
     /** Fetches `/store/shipping-options/vendor` and updates `vendorShippingBySellerId`. */
     loadVendorShippingOptions: async (cartId, sellerId) => {
       const generation = bumpVendorShippingGeneration(sellerId)
+      const previousEntry =
+        get().vendorShippingBySellerId[sellerId] ?? DEFAULT_VENDOR_SHIPPING
+      const isStale = () => isVendorShippingLoadStale(sellerId, generation)
 
-      set(setVendorShippingEntry(sellerId, { isLoading: true, error: null }))
+      set(
+        setVendorShippingEntry(sellerId, {
+          isLoading: true,
+          error: null,
+          options: previousEntry.options,
+        })
+      )
 
       try {
         const resolvedSellerId = resolveVendorShippingSellerId(
@@ -349,7 +445,7 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
         )
 
         if (!resolvedSellerId) {
-          if (isVendorShippingLoadStale(sellerId, generation)) {
+          if (isStale()) {
             return
           }
 
@@ -366,56 +462,82 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
         const shippingAddress = get().shippingAddress
 
         if (!shippingAddress) {
-          if (isVendorShippingLoadStale(sellerId, generation)) {
+          if (isStale()) {
             return
           }
 
           set(
             setVendorShippingEntry(sellerId, {
-              options: null,
+              options: previousEntry.options,
               isLoading: false,
-              error: "กรุณากรอกที่อยู่จัดส่งก่อนเลือกวิธีจัดส่ง",
+              error: previousEntry.options?.length
+                ? null
+                : "กรุณากรอกที่อยู่จัดส่งก่อนเลือกวิธีจัดส่ง",
             })
           )
           return
         }
 
-        const synced = await ensureCheckoutShippingAddressSynced(
-          cartId,
-          shippingAddress
-        )
+        let synced = false
+        for (
+          let attempt = 0;
+          attempt < VENDOR_SHIPPING_FETCH_MAX_ATTEMPTS;
+          attempt++
+        ) {
+          if (attempt > 0) {
+            await sleep(VENDOR_SHIPPING_FETCH_RETRY_DELAY_MS * attempt)
+          }
+
+          if (isStale()) {
+            return
+          }
+
+          synced = await ensureCheckoutShippingAddressSynced(
+            cartId,
+            shippingAddress
+          )
+
+          if (synced) {
+            break
+          }
+        }
 
         if (!synced) {
-          if (isVendorShippingLoadStale(sellerId, generation)) {
+          if (isStale()) {
             return
           }
 
           set(
             setVendorShippingEntry(sellerId, {
-              options: null,
+              options: previousEntry.options,
               isLoading: false,
-              error: "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
+              error: previousEntry.options?.length
+                ? null
+                : "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
             })
           )
           return
         }
 
-        const options = await fetchVendorShippingMethods(
+        const options = await fetchVendorShippingMethodsWithRetry(
           cartId,
-          resolvedSellerId
+          resolvedSellerId,
+          isStale
         )
 
         // Drop result if a newer load or abort happened while awaiting the API.
-        if (isVendorShippingLoadStale(sellerId, generation)) {
+        if (isStale()) {
           return
         }
 
         if (options === null) {
           set(
             setVendorShippingEntry(sellerId, {
-              options: null,
+              options: previousEntry.options,
               isLoading: false,
-              error: "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
+              error: previousEntry.options?.length
+                ? null
+                : "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
             })
           )
           return
@@ -432,15 +554,17 @@ export function createCheckoutStore(initial: CheckoutStoreInitialProps) {
           })
         )
       } catch {
-        if (isVendorShippingLoadStale(sellerId, generation)) {
+        if (isStale()) {
           return
         }
 
         set(
           setVendorShippingEntry(sellerId, {
-            options: null,
+            options: previousEntry.options,
             isLoading: false,
-            error: "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
+            error: previousEntry.options?.length
+              ? null
+              : "ไม่สามารถโหลดตัวเลือกการจัดส่งได้",
           })
         )
       }

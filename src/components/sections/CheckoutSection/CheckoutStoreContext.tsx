@@ -17,6 +17,7 @@ import {
 } from "react"
 import { useStore } from "zustand"
 
+import { getShippingAddressFingerprint } from "@/lib/checkout/address-to-cart-shipping"
 import {
   createCheckoutStore,
   type CheckoutStore,
@@ -94,7 +95,11 @@ export function useVendorShipping(
   const abortVendorShippingLoad = useCheckoutStore(
     (state) => state.abortVendorShippingLoad
   )
-  const shippingAddress = useCheckoutStore((state) => state.shippingAddress)
+  const shippingAddressFingerprint = useCheckoutStore((state) =>
+    state.shippingAddress
+      ? getShippingAddressFingerprint(state.shippingAddress)
+      : null
+  )
   const vendorShipping = useCheckoutStore(
     (state) => state.vendorShippingBySellerId[sellerId]
   )
@@ -110,7 +115,7 @@ export function useVendorShipping(
     cartId,
     loadVendorShippingOptions,
     sellerId,
-    shippingAddress,
+    shippingAddressFingerprint,
   ])
 
   // Treat missing entry as loading until the store writes the first patch.

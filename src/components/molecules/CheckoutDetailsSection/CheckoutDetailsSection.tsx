@@ -304,13 +304,14 @@ function SellerGroupCard({
     (opt) => opt.id === selectedShippingMethodId
   )
 
-  const shippingActionLabel = isLoadingShipping
-    ? "กำลังโหลด..."
-    : shippingError
-      ? shippingError
-      : shippingOptions && shippingOptions.length > 0
-        ? `เลือกการจัดส่ง (${shippingOptions.length})`
-        : "เลือกการจัดส่ง"
+  const shippingActionLabel =
+    isLoadingShipping && !shippingOptions?.length
+      ? "กำลังโหลด..."
+      : shippingError
+        ? shippingError
+        : shippingOptions && shippingOptions.length > 0
+          ? `เลือกการจัดส่ง (${shippingOptions.length})`
+          : "เลือกการจัดส่ง"
 
   return (
     <div>
@@ -381,11 +382,7 @@ function SellerGroupCard({
           <SellerGroupAction
             label="การจัดส่ง"
             onClick={handleOpenShipping}
-            disabled={
-              isLoadingShipping ||
-              Boolean(shippingError) ||
-              !shippingOptions?.length
-            }
+            disabled={!shippingOptions?.length}
             icon={
               <OutlineLogisIcon
                 sizeMobile={24}
